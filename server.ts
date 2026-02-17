@@ -1,4 +1,5 @@
 import compression from 'compression';
+import cron from 'node-cron';
 import dotenv from 'dotenv';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
@@ -1367,6 +1368,47 @@ export function app(): express.Express {
     }
   });
 
+  // =============================================
+  // API: Trigger manual de felicitaciones de cumpleaños (para testing)
+  // GET /api/birthday-test — Envía mensajes de cumpleaños del día a Teams
+  // =============================================
+  // GET /api/teams-test?type=birthday|newhire — Test manual de notificaciones Teams
+  server.get('/api/teams-test', async (req, res) => {
+    const SUPABASE_URL = process.env['ENV_SUPABASE_URL'];
+    const SUPABASE_TOKEN = process.env['ENV_SUPABASE_TOKEN'];
+    if (!SUPABASE_URL || !SUPABASE_TOKEN) {
+      res.status(500).json({ error: 'Supabase no configurado' });
+      return;
+    }
+    const type = (req.query['type'] as string) || 'birthday';
+    try {
+      if (type === 'newhire') {
+        await sendNewHiresMessages(SUPABASE_URL, SUPABASE_TOKEN, TEAMS_WEBHOOK_URL);
+        res.json({ ok: true, message: 'New hire messages sent (if any in last 60 min)' });
+      } else {
+        await sendBirthdayMessages(SUPABASE_URL, SUPABASE_TOKEN, TEAMS_WEBHOOK_URL);
+        res.json({ ok: true, message: 'Birthday messages sent (if any today)' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Error' });
+    }
+  });
+  // Keep old endpoint for backwards compatibility
+  server.get('/api/birthday-test', async (req, res) => {
+    const SUPABASE_URL = process.env['ENV_SUPABASE_URL'];
+    const SUPABASE_TOKEN = process.env['ENV_SUPABASE_TOKEN'];
+    if (!SUPABASE_URL || !SUPABASE_TOKEN) {
+      res.status(500).json({ error: 'Supabase no configurado' });
+      return;
+    }
+    try {
+      await sendBirthdayMessages(SUPABASE_URL, SUPABASE_TOKEN, TEAMS_WEBHOOK_URL);
+      res.json({ ok: true, message: 'Birthday messages sent (if any today)' });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Error' });
+    }
+  });
+
   // Servir archivos estáticos del frontend Angular
   const distFolder = path.join(process.cwd(), 'dist/people/browser');
 
@@ -1458,6 +1500,462 @@ function run(): void {
   server.listen(port, () => {
     safeLogger.log(`Node Express server listening on http://localhost:${port}`);
   });
+
+  // =============================================
+  // CRON: Notificaciones diarias vía Teams (7:00 AM Panamá)
+  // - Felicitaciones de cumpleaños
+  // - Nuevos ingresos del día
+  // =============================================
+  setupTeamsCrons();
+}
+
+/**
+ * Cron de cumpleaños → Microsoft Teams webhook
+ * Se ejecuta diariamente a las 7:00 AM EST (Panamá)
+ */
+const TEAMS_WEBHOOK_URL = 'https://blackdogpanama.webhook.office.com/webhookb2/f02ce765-7490-4e4f-87e1-60bc7105c2a4@2b632609-7a2b-43f5-b938-2c552d778a5c/IncomingWebhook/c2703cf3cd69428d852077089a878d96/10a942a9-436b-4356-abee-a70f4eacd56f/V2BAeLl---IgdNWdOnLqPC2NRn-7qXlNyZHDtIVfYbeeI1';
+
+function setupTeamsCrons(): void {
+  const SUPABASE_URL = process.env['ENV_SUPABASE_URL'];
+  const SUPABASE_TOKEN = process.env['ENV_SUPABASE_TOKEN'];
+
+  if (!SUPABASE_URL || !SUPABASE_TOKEN) {
+    console.warn('⚠️  Teams crons: Supabase no configurado, crons desactivados.');
+    return;
+  }
+
+  // Cron cumpleaños: "0 7 * * *" = todos los días a las 7:00 AM Panamá
+  cron.schedule('0 7 * * *', async () => {
+    console.log('🎂 [Birthday Cron] Verificando cumpleaños del día...');
+    try {
+      await sendBirthdayMessages(SUPABASE_URL, SUPABASE_TOKEN, TEAMS_WEBHOOK_URL);
+    } catch (err: any) {
+      console.error('🎂 [Birthday Cron] Error:', err?.message || err);
+    }
+  }, { timezone: 'America/Panama' });
+
+  // Cron nuevos ingresos: cada 5 minutos, detecta empleados creados hace ~30 min
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      await sendNewHiresMessages(SUPABASE_URL, SUPABASE_TOKEN, TEAMS_WEBHOOK_URL);
+    } catch (err: any) {
+      console.error('🆕 [New Hires Cron] Error:', err?.message || err);
+    }
+  }, { timezone: 'America/Panama' });
+
+  console.log('📢 Teams crons programados:');
+  console.log('   🎂 Cumpleaños: diario a las 7:00 AM (Panamá)');
+  console.log('   🆕 Nuevos ingresos: cada 5 min (30 min después de crear)');
+}
+
+async function sendBirthdayMessages(
+  supabaseUrl: string,
+  supabaseToken: string,
+  teamsWebhookUrl: string
+): Promise<void> {
+  // Obtener la fecha actual en zona horaria de Panamá
+  const now = new Date();
+  // Panamá = UTC-5
+  const panamaOffset = -5 * 60;
+  const localNow = new Date(now.getTime() + (panamaOffset - now.getTimezoneOffset()) * 60000);
+  const todayMonth = localNow.getMonth() + 1; // 1-12
+  const todayDay = localNow.getDate();
+
+  // Consultar empleados activos cuyo cumpleaños es HOY
+  const url = `${supabaseUrl}/rest/v1/employees?select=first_name,father_name,birth_date,branch_id,position_id,start_date,branch:branches(name),position:positions(name),department:departments(name)&is_active=eq.true&birth_date=not.is.null`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': supabaseToken,
+      'Authorization': `Bearer ${supabaseToken}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Supabase respondió ${res.status}: ${await res.text()}`);
+  }
+
+  const employees: any[] = await res.json();
+
+  // Filtrar empleados cuyo cumpleaños es hoy (mismo día y mes)
+  const birthdayEmployees = employees.filter((emp) => {
+    if (!emp.birth_date || emp.birth_date === '1970-01-01') return false;
+    const bd = new Date(emp.birth_date + 'T12:00:00'); // Noon para evitar timezone issues
+    return (bd.getMonth() + 1) === todayMonth && bd.getDate() === todayDay;
+  });
+
+  if (birthdayEmployees.length === 0) {
+    console.log('🎂 [Birthday Cron] No hay cumpleaños hoy.');
+    return;
+  }
+
+  console.log(`🎂 [Birthday Cron] ${birthdayEmployees.length} cumpleaño(s) hoy!`);
+
+  // Enviar un mensaje por cada cumpleañero
+  for (const emp of birthdayEmployees) {
+    const fullName = `${(emp.first_name || '').trim()} ${(emp.father_name || '').trim()}`.trim();
+    const branch = emp.branch?.name || 'Sin sucursal';
+    const position = emp.position?.name || '';
+    const department = emp.department?.name || '';
+
+    // Calcular edad
+    let ageText = '';
+    if (emp.birth_date) {
+      const bd = new Date(emp.birth_date + 'T12:00:00');
+      const age = localNow.getFullYear() - bd.getFullYear();
+      ageText = `cumple **${age} años**`;
+    }
+
+    // Calcular antigüedad en la empresa
+    let tenureText = '';
+    if (emp.start_date) {
+      const sd = new Date(emp.start_date + 'T12:00:00');
+      const years = localNow.getFullYear() - sd.getFullYear();
+      const months = localNow.getMonth() - sd.getMonth();
+      const totalMonths = years * 12 + months;
+      if (totalMonths >= 12) {
+        const y = Math.floor(totalMonths / 12);
+        tenureText = `${y} año${y > 1 ? 's' : ''}`;
+      } else {
+        tenureText = `${totalMonths} mes${totalMonths > 1 ? 'es' : ''}`;
+      }
+    }
+
+    // Mensaje Adaptive Card para Teams
+    const card = {
+      type: 'message',
+      attachments: [{
+        contentType: 'application/vnd.microsoft.card.adaptive',
+        content: {
+          '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+          type: 'AdaptiveCard',
+          version: '1.4',
+          body: [
+            {
+              type: 'Container',
+              style: 'emphasis',
+              bleed: true,
+              items: [
+                {
+                  type: 'ColumnSet',
+                  columns: [
+                    {
+                      type: 'Column',
+                      width: 'auto',
+                      items: [
+                        {
+                          type: 'TextBlock',
+                          text: '🎂🎉🥳',
+                          size: 'extraLarge',
+                          horizontalAlignment: 'center',
+                        },
+                      ],
+                      verticalContentAlignment: 'center',
+                    },
+                    {
+                      type: 'Column',
+                      width: 'stretch',
+                      items: [
+                        {
+                          type: 'TextBlock',
+                          text: '¡FELIZ CUMPLEAÑOS!',
+                          weight: 'bolder',
+                          size: 'large',
+                          color: 'accent',
+                          spacing: 'none',
+                        },
+                        {
+                          type: 'TextBlock',
+                          text: `Hoy celebramos a un miembro especial de nuestra familia Black Dog 🐾`,
+                          wrap: true,
+                          spacing: 'small',
+                          isSubtle: true,
+                        },
+                      ],
+                      verticalContentAlignment: 'center',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'Container',
+              spacing: 'medium',
+              items: [
+                {
+                  type: 'TextBlock',
+                  text: `🌟 **${fullName}** 🌟`,
+                  size: 'extraLarge',
+                  weight: 'bolder',
+                  horizontalAlignment: 'center',
+                  wrap: true,
+                },
+                {
+                  type: 'TextBlock',
+                  text: ageText ? `¡Hoy ${ageText}!` : '¡Hoy es su día especial!',
+                  horizontalAlignment: 'center',
+                  spacing: 'small',
+                  size: 'medium',
+                  wrap: true,
+                },
+              ],
+            },
+            {
+              type: 'FactSet',
+              spacing: 'medium',
+              facts: [
+                ...(position ? [{ title: '💼 Cargo:', value: position }] : []),
+                ...(department ? [{ title: '🏢 Departamento:', value: department }] : []),
+                { title: '📍 Sucursal:', value: branch },
+                ...(tenureText ? [{ title: '⏳ Antigüedad:', value: tenureText }] : []),
+              ],
+            },
+            {
+              type: 'Container',
+              spacing: 'medium',
+              items: [
+                {
+                  type: 'TextBlock',
+                  text: '🎊 Que este nuevo año de vida esté lleno de éxitos, salud y mucha alegría. ¡Gracias por ser parte de esta gran familia! 🐾💛',
+                  wrap: true,
+                  horizontalAlignment: 'center',
+                  size: 'medium',
+                },
+                {
+                  type: 'TextBlock',
+                  text: '— Tu equipo de **Black Dog Panamá** 🖤🐕',
+                  wrap: true,
+                  horizontalAlignment: 'center',
+                  spacing: 'medium',
+                  weight: 'bolder',
+                  isSubtle: true,
+                },
+              ],
+            },
+          ],
+        },
+      }],
+    };
+
+    try {
+      const teamsRes = await fetch(teamsWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(card),
+      });
+
+      if (teamsRes.ok) {
+        console.log(`🎂 [Birthday Cron] ✅ Mensaje enviado para ${fullName}`);
+      } else {
+        const errText = await teamsRes.text();
+        console.error(`🎂 [Birthday Cron] ❌ Error Teams para ${fullName}: ${teamsRes.status} ${errText}`);
+      }
+    } catch (err: any) {
+      console.error(`🎂 [Birthday Cron] ❌ Error enviando mensaje para ${fullName}:`, err?.message);
+    }
+
+    // Esperar 2 segundos entre mensajes para no saturar el webhook
+    if (birthdayEmployees.length > 1) {
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+}
+
+// Set para rastrear IDs de empleados ya anunciados como nuevos ingresos (evitar duplicados)
+const announcedNewHires = new Set<string>();
+
+async function sendNewHiresMessages(
+  supabaseUrl: string,
+  supabaseToken: string,
+  teamsWebhookUrl: string
+): Promise<void> {
+  // Buscar empleados creados entre 25 y 60 minutos atrás (ventana amplia para no perder ninguno)
+  const now = new Date();
+  const from = new Date(now.getTime() - 60 * 60 * 1000); // 60 min atrás
+  const to = new Date(now.getTime() - 25 * 60 * 1000);   // 25 min atrás
+
+  const fromISO = from.toISOString();
+  const toISO = to.toISOString();
+
+  const url = `${supabaseUrl}/rest/v1/employees?select=id,first_name,father_name,start_date,created_at,branch:branches(name),position:positions(name),department:departments(name)&is_active=eq.true&created_at=gte.${fromISO}&created_at=lte.${toISO}&order=created_at.asc`;
+
+  const res = await fetch(url, {
+    headers: {
+      'apikey': supabaseToken,
+      'Authorization': `Bearer ${supabaseToken}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Supabase respondió ${res.status}: ${await res.text()}`);
+  }
+
+  const newEmployees: any[] = await res.json();
+
+  // Filtrar los que ya fueron anunciados
+  const toAnnounce = newEmployees.filter((emp) => !announcedNewHires.has(emp.id));
+
+  if (toAnnounce.length === 0) return;
+
+  console.log(`🆕 [New Hires] ${toAnnounce.length} nuevo(s) ingreso(s) detectado(s)`);
+
+  for (const emp of toAnnounce) {
+    const fullName = `${(emp.first_name || '').trim()} ${(emp.father_name || '').trim()}`.trim();
+    const branch = emp.branch?.name || 'Sin sucursal';
+    const position = emp.position?.name || 'Sin cargo';
+    const department = emp.department?.name || '';
+    const startDate = emp.start_date || 'No definida';
+
+    // Formatear fecha de inicio
+    let startDateFormatted = startDate;
+    if (startDate && startDate !== 'No definida') {
+      const sd = new Date(startDate + 'T12:00:00');
+      const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      startDateFormatted = `${sd.getDate()} de ${months[sd.getMonth()]} ${sd.getFullYear()}`;
+    }
+
+    const card = {
+      type: 'message',
+      attachments: [{
+        contentType: 'application/vnd.microsoft.card.adaptive',
+        content: {
+          '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+          type: 'AdaptiveCard',
+          version: '1.4',
+          body: [
+            {
+              type: 'Container',
+              style: 'emphasis',
+              bleed: true,
+              items: [
+                {
+                  type: 'ColumnSet',
+                  columns: [
+                    {
+                      type: 'Column',
+                      width: 'auto',
+                      items: [
+                        {
+                          type: 'TextBlock',
+                          text: '🐾👋🎉',
+                          size: 'extraLarge',
+                          horizontalAlignment: 'center',
+                        },
+                      ],
+                      verticalContentAlignment: 'center',
+                    },
+                    {
+                      type: 'Column',
+                      width: 'stretch',
+                      items: [
+                        {
+                          type: 'TextBlock',
+                          text: '¡NUEVO INTEGRANTE!',
+                          weight: 'bolder',
+                          size: 'large',
+                          color: 'good',
+                          spacing: 'none',
+                        },
+                        {
+                          type: 'TextBlock',
+                          text: 'Un nuevo miembro se une a la manada Black Dog 🐕',
+                          wrap: true,
+                          spacing: 'small',
+                          isSubtle: true,
+                        },
+                      ],
+                      verticalContentAlignment: 'center',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'Container',
+              spacing: 'medium',
+              items: [
+                {
+                  type: 'TextBlock',
+                  text: `🌟 **${fullName}** 🌟`,
+                  size: 'extraLarge',
+                  weight: 'bolder',
+                  horizontalAlignment: 'center',
+                  wrap: true,
+                },
+                {
+                  type: 'TextBlock',
+                  text: '¡Le damos la más calurosa bienvenida!',
+                  horizontalAlignment: 'center',
+                  spacing: 'small',
+                  size: 'medium',
+                  wrap: true,
+                },
+              ],
+            },
+            {
+              type: 'FactSet',
+              spacing: 'medium',
+              facts: [
+                { title: '💼 Cargo:', value: position },
+                ...(department ? [{ title: '🏢 Departamento:', value: department }] : []),
+                { title: '📍 Sucursal:', value: branch },
+                { title: '📅 Fecha de inicio:', value: startDateFormatted },
+              ],
+            },
+            {
+              type: 'Container',
+              spacing: 'medium',
+              items: [
+                {
+                  type: 'TextBlock',
+                  text: '💛 ¡Bienvenido/a a la familia! Estamos muy contentos de tenerte con nosotros. Juntos hacemos que cada día sea increíble para nuestros peludos. 🐶🐱',
+                  wrap: true,
+                  horizontalAlignment: 'center',
+                  size: 'medium',
+                },
+                {
+                  type: 'TextBlock',
+                  text: '— **Black Dog Panamá** 🖤🐕',
+                  wrap: true,
+                  horizontalAlignment: 'center',
+                  spacing: 'medium',
+                  weight: 'bolder',
+                  isSubtle: true,
+                },
+              ],
+            },
+          ],
+        },
+      }],
+    };
+
+    try {
+      const teamsRes = await fetch(teamsWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(card),
+      });
+
+      if (teamsRes.ok) {
+        console.log(`🆕 [New Hires] ✅ Bienvenida enviada para ${fullName}`);
+        announcedNewHires.add(emp.id);
+      } else {
+        const errText = await teamsRes.text();
+        console.error(`🆕 [New Hires] ❌ Error Teams para ${fullName}: ${teamsRes.status} ${errText}`);
+      }
+    } catch (err: any) {
+      console.error(`🆕 [New Hires] ❌ Error enviando bienvenida para ${fullName}:`, err?.message);
+    }
+
+    // Esperar entre mensajes
+    if (toAnnounce.length > 1) {
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  // Limpiar IDs viejos del Set (más de 24h) para no acumular memoria indefinidamente
+  if (announcedNewHires.size > 500) {
+    announcedNewHires.clear();
+  }
 }
 
 run();

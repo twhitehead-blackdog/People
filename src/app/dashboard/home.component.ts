@@ -397,36 +397,52 @@ export class HomeComponent {
 
   // Calcular ingresos y salidas del mes
   // Only calculate when executive section is active
+  // Usa comparación de strings yyyy-MM-dd para evitar problemas de timezone
+  // Salidas = terminaciones formales + empleados con end_date en el mes
   public monthlyHiresAndExits = computed(() => {
     if (this.activeSection() !== 'executive') {
       return { hires: 0, exits: 0 };
     }
 
     const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    const monthStartStr = format(startOfMonth(now), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(now), 'yyyy-MM-dd');
 
     // Empleados que ingresaron este mes (start_date en el mes actual)
     const hires = this.employees
       .entities()
-      .filter(
-        (x) =>
-          x.start_date &&
-          new Date(x.start_date) >= monthStart &&
-          new Date(x.start_date) <= monthEnd
-      ).length;
+      .filter((x) => {
+        if (!x.start_date) return false;
+        const sd = String(x.start_date).slice(0, 10);
+        return sd >= monthStartStr && sd <= monthEndStr;
+      }).length;
 
-    // Empleados que salieron este mes - usar tabla terminations
+    // Salidas: terminaciones formales + empleados con end_date este mes
+    const exitIds = new Set<string>();
+
+    // 1) Tabla terminations
     const terminations = this.terminationsApi.value() ?? [];
-    const exits = terminations.filter((t) => {
-      if (!t.date) return false;
-      const terminationDate = new Date(t.date);
-      return terminationDate >= monthStart && terminationDate <= monthEnd;
-    }).length;
+    terminations.forEach((t) => {
+      if (!t.date) return;
+      const td = String(t.date).slice(0, 10);
+      if (td >= monthStartStr && td <= monthEndStr) {
+        exitIds.add(t.employee_id);
+      }
+    });
+
+    // 2) Empleados con end_date en el mes actual
+    this.employees.entities().forEach((emp: any) => {
+      if (emp.is_active || exitIds.has(emp.id)) return;
+      if (!emp.end_date) return;
+      const ed = String(emp.end_date).slice(0, 10);
+      if (ed >= monthStartStr && ed <= monthEndStr) {
+        exitIds.add(emp.id);
+      }
+    });
 
     return {
       hires,
-      exits,
+      exits: exitIds.size,
     };
   });
 
@@ -1090,20 +1106,11 @@ export class HomeComponent {
           }
         }
 
-        // Additional check: If employee is currently inactive and has no termination date,
-        // they might have been terminated but the date wasn't recorded properly.
-        // For past months, if they're inactive now and we can't find a termination date,
-        // we should be conservative and exclude them if the month is recent (within last 12 months)
-        // Otherwise, assume they were active if they passed all other checks
-        const monthsAgo = Math.floor(
-          (now.getTime() - monthEndTimestamp) / (1000 * 60 * 60 * 24 * 30)
-        );
-        if (!emp.is_active && monthsAgo <= 12) {
-          // If employee is inactive and month is recent, and we couldn't find termination date,
-          // they were likely terminated but date wasn't recorded - exclude them
-          if (!termination && !emp.end_date) {
-            return false;
-          }
+        // Si el empleado está inactivo y no tiene fecha de salida formal (end_date, termination),
+        // no sabemos cuándo salió. Excluirlo de todos los meses pasados ya que
+        // para el mes actual se usa is_active directamente.
+        if (!emp.is_active && !termination && !emp.end_date) {
+          return false;
         }
 
         // Employee passed all checks:
@@ -1425,6 +1432,7 @@ export class HomeComponent {
 
   // Get monthly hires list
   // Only calculate when executive section is active or dialog is open
+  // Usa comparación de strings yyyy-MM-dd para evitar problemas de timezone
   public monthlyHiresList = computed(() => {
     if (
       this.activeSection() !== 'executive' &&
@@ -1434,17 +1442,16 @@ export class HomeComponent {
     }
 
     const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    const monthStartStr = format(startOfMonth(now), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(now), 'yyyy-MM-dd');
 
     return this.employees
       .entities()
-      .filter(
-        (x) =>
-          x.start_date &&
-          new Date(x.start_date) >= monthStart &&
-          new Date(x.start_date) <= monthEnd
-      )
+      .filter((x) => {
+        if (!x.start_date) return false;
+        const sd = String(x.start_date).slice(0, 10);
+        return sd >= monthStartStr && sd <= monthEndStr;
+      })
       .map((x) => ({
         first_name: x.first_name,
         father_name: x.father_name,
@@ -1454,14 +1461,13 @@ export class HomeComponent {
       }))
       .sort((a, b) => {
         if (!a.start_date || !b.start_date) return 0;
-        return (
-          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-        );
+        return String(a.start_date).localeCompare(String(b.start_date));
       });
   });
 
   // Get monthly exits list
   // Only calculate when executive section is active or dialog is open
+  // Incluye: terminaciones formales + empleados con end_date este mes
   public monthlyExitsList = computed(() => {
     if (
       this.activeSection() !== 'executive' &&
@@ -1471,25 +1477,42 @@ export class HomeComponent {
     }
 
     const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    const monthStartStr = format(startOfMonth(now), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(now), 'yyyy-MM-dd');
+    const exitsList: { date: string; reason: string; employee: any }[] = [];
+    const addedIds = new Set<string>();
 
+    // 1) Terminaciones formales
     const terminations = this.terminationsApi.value() ?? [];
-    return terminations
-      .filter((t) => {
-        if (!t.date) return false;
-        const terminationDate = new Date(t.date);
-        return terminationDate >= monthStart && terminationDate <= monthEnd;
-      })
-      .map((t) => ({
-        date: t.date,
-        reason: t.reason,
-        employee: this.employees.entities().find((e) => e.id === t.employee_id),
-      }))
-      .sort((a, b) => {
-        if (!a.date || !b.date) return 0;
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      });
+    terminations.forEach((t) => {
+      if (!t.date) return;
+      const td = String(t.date).slice(0, 10);
+      if (td >= monthStartStr && td <= monthEndStr) {
+        addedIds.add(t.employee_id);
+        exitsList.push({
+          date: t.date,
+          reason: t.reason || 'Terminación',
+          employee: this.employees.entities().find((e) => e.id === t.employee_id),
+        });
+      }
+    });
+
+    // 2) Empleados con end_date en este mes (sin registro en terminations)
+    this.employees.entities().forEach((emp: any) => {
+      if (emp.is_active || addedIds.has(emp.id)) return;
+      if (!emp.end_date) return;
+      const ed = String(emp.end_date).slice(0, 10);
+      if (ed >= monthStartStr && ed <= monthEndStr) {
+        addedIds.add(emp.id);
+        exitsList.push({
+          date: ed,
+          reason: 'Baja',
+          employee: emp,
+        });
+      }
+    });
+
+    return exitsList.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   });
 
   public getHireDate(date: Date | undefined): string {
@@ -1515,7 +1538,11 @@ export class HomeComponent {
   }
 
   public openCurrentMonthHiresExitsDialog(): void {
-    this.openMonthHiresExitsDialog(this.currentMonth(), new Date().getMonth());
+    // El chart de headcount tiene 24 meses; el mes actual es siempre el último (index labels.length - 1)
+    const chartData: any = this.headcountChartData();
+    const labels = chartData?.labels || [];
+    const lastIndex = labels.length > 0 ? labels.length - 1 : 0;
+    this.openMonthHiresExitsDialog(this.currentMonth(), lastIndex);
   }
 
   // Get hires list for selected month from headcount chart
@@ -1591,6 +1618,7 @@ export class HomeComponent {
 
   // Get exits list for selected month from headcount chart
   // Only calculate when executive section is active or dialog is open
+  // Incluye: terminaciones formales + empleados con end_date en ese mes
   public selectedMonthExitsList = computed(() => {
     if (
       this.activeSection() !== 'executive' &&
@@ -1606,7 +1634,6 @@ export class HomeComponent {
     const labels = data?.labels || [];
     if (monthIndex >= labels.length) return [];
 
-    // Parse month/year from label (e.g., "Ene 2024")
     const label = labels[monthIndex];
     const monthNames = [
       'Ene',
@@ -1629,53 +1656,44 @@ export class HomeComponent {
 
     if (monthIndexNum === -1 || isNaN(year)) return [];
 
-    const monthStart = new Date(year, monthIndexNum, 1);
-    const monthEnd = endOfMonth(monthStart);
+    const monthStartStr = `${year}-${String(monthIndexNum + 1).padStart(2, '0')}-01`;
+    const monthEnd = endOfMonth(new Date(year, monthIndexNum, 1));
+    const monthEndStr = format(monthEnd, 'yyyy-MM-dd');
 
+    const exitsList: { date: string; reason: string; employee: any }[] = [];
+    const addedIds = new Set<string>();
+
+    // 1) Terminaciones formales
     const terminations = this.terminationsApi.value() ?? [];
-    return terminations
-      .filter((t) => {
-        if (!t.date) return false;
-        const termDateValue: Date | string = t.date as any;
-        const terminationDate =
-          termDateValue instanceof Date
-            ? termDateValue
-            : parseISO(termDateValue);
-        const termDateNormalized = new Date(
-          terminationDate.getFullYear(),
-          terminationDate.getMonth(),
-          terminationDate.getDate()
-        );
-        const monthStartNormalized = new Date(
-          monthStart.getFullYear(),
-          monthStart.getMonth(),
-          monthStart.getDate()
-        );
-        const monthEndNormalized = new Date(
-          monthEnd.getFullYear(),
-          monthEnd.getMonth(),
-          monthEnd.getDate()
-        );
-        return (
-          termDateNormalized >= monthStartNormalized &&
-          termDateNormalized <= monthEndNormalized
-        );
-      })
-      .map((t) => ({
-        date: t.date,
-        reason: t.reason,
-        employee: this.employees.entities().find((e) => e.id === t.employee_id),
-      }))
-      .sort((a, b) => {
-        if (!a.date || !b.date) return 0;
-        const aDateValue: Date | string = a.date as any;
-        const bDateValue: Date | string = b.date as any;
-        const aDate =
-          aDateValue instanceof Date ? aDateValue : parseISO(aDateValue);
-        const bDate =
-          bDateValue instanceof Date ? bDateValue : parseISO(bDateValue);
-        return aDate.getTime() - bDate.getTime();
-      });
+    terminations.forEach((t) => {
+      if (!t.date) return;
+      const td = String(t.date).slice(0, 10);
+      if (td >= monthStartStr && td <= monthEndStr) {
+        addedIds.add(t.employee_id);
+        exitsList.push({
+          date: t.date,
+          reason: t.reason || 'Terminación',
+          employee: this.employees.entities().find((e) => e.id === t.employee_id),
+        });
+      }
+    });
+
+    // 2) Empleados con end_date en este mes
+    this.employees.entities().forEach((emp: any) => {
+      if (emp.is_active || addedIds.has(emp.id)) return;
+      if (!emp.end_date) return;
+      const ed = String(emp.end_date).slice(0, 10);
+      if (ed >= monthStartStr && ed <= monthEndStr) {
+        addedIds.add(emp.id);
+        exitsList.push({
+          date: ed,
+          reason: 'Baja',
+          employee: emp,
+        });
+      }
+    });
+
+    return exitsList.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   });
 
   // Only calculate when structure section is active
