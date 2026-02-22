@@ -248,8 +248,12 @@ export class ScheduleAuditService {
    */
   private async getClientIP(): Promise<string> {
     try {
-      // Intentar obtener IP de un servicio externo
-      const response = await fetch('https://api.ipify.org?format=json');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch('https://api.ipify.org?format=json', {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
       const data = await response.json();
       return data.ip || 'unknown';
     } catch {

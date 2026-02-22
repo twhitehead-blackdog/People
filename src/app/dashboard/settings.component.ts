@@ -74,15 +74,11 @@ interface EmailConfig {
             Notificaciones
           </p-tab>
           <p-tab value="2">
-            <i class="pi pi-comments mr-2"></i>
-            Wassenger
-          </p-tab>
-          <p-tab value="3">
             <i class="pi pi-shopping-cart mr-2"></i>
             M-Pets Precios
           </p-tab>
           @if (canManageSchedules()) {
-          <p-tab value="4">
+          <p-tab value="3">
             <i class="pi pi-clock mr-2"></i>
             Marcación Manual
           </p-tab>
@@ -648,135 +644,8 @@ interface EmailConfig {
           </p-card>
         </p-tabpanel>
 
-        <!-- Tab: Wassenger -->
-        <p-tabpanel value="2">
-          <p-card styleClass="[&_.p-card-body]:py-2">
-            <ng-template #title>Configuración de Wassenger</ng-template>
-            <ng-template #subtitle>
-              Configura la integración con Wassenger para envío de mensajes
-            </ng-template>
-
-            <div class="flex flex-col gap-6">
-              <!-- Estado de la integración -->
-              <div
-                class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-              >
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-semibold text-white">
-                    Estado de la Integración
-                  </label>
-                  <p class="text-xs text-gray-400">
-                    Activa o desactiva la integración con Wassenger
-                  </p>
-                </div>
-                <p-toggleSwitch
-                  [(ngModel)]="wassengerEnabled"
-                  (ngModelChange)="onWassengerEnabledChange()"
-                  [disabled]="saving()"
-                />
-              </div>
-
-              <!-- API Key -->
-              <div class="flex flex-col gap-2">
-                <label class="text-sm font-semibold text-white">
-                  API Key de Wassenger
-                </label>
-                <p class="text-xs text-gray-400 mb-2">
-                  Ingresa tu API Key de Wassenger. Esta clave se almacenará de
-                  forma segura.
-                </p>
-                <div class="flex gap-2">
-                  <input
-                    pInputText
-                    type="password"
-                    [(ngModel)]="wassengerApiKey"
-                    placeholder="Ingresa tu API Key"
-                    class="flex-1"
-                    [disabled]="saving()"
-                  />
-                  <p-button
-                    label="Guardar"
-                    icon="pi pi-save"
-                    [loading]="saving()"
-                    [disabled]="!wassengerApiKey().trim()"
-                    (click)="saveWassengerApiKey()"
-                  />
-                </div>
-                @if(wassengerApiKeyValue()) {
-                <p class="text-xs text-green-400 mt-1">
-                  <i class="pi pi-check-circle mr-1"></i>
-                  API Key configurada (oculta por seguridad)
-                </p>
-                }
-              </div>
-
-              <!-- Información -->
-              <div
-                class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
-              >
-                <div class="flex items-start gap-3">
-                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
-                  <div class="flex-1">
-                    <p class="text-blue-300 font-semibold mb-2">
-                      Información sobre Wassenger
-                    </p>
-                    <ul
-                      class="text-sm text-gray-300 space-y-1 list-disc list-inside"
-                    >
-                      <li>
-                        La integración con Wassenger está disponible para uso
-                        futuro
-                      </li>
-                      <li>
-                        Puedes configurar el API Key ahora, pero la
-                        funcionalidad se activará en futuras actualizaciones
-                      </li>
-                      <li>
-                        El API Key se almacena de forma segura y encriptada
-                      </li>
-                      <li>
-                        Puedes desactivar la integración en cualquier momento
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Estado actual -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-                >
-                  <div class="text-sm text-gray-400 mb-1">Estado</div>
-                  <div
-                    class="text-lg font-semibold"
-                    [class.text-green-400]="wassengerEnabled()"
-                    [class.text-gray-400]="!wassengerEnabled()"
-                  >
-                    {{ wassengerEnabled() ? 'Activa' : 'Inactiva' }}
-                  </div>
-                </div>
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-                >
-                  <div class="text-sm text-gray-400 mb-1">API Key</div>
-                  <div
-                    class="text-lg font-semibold"
-                    [class.text-green-400]="wassengerApiKeyValue()"
-                    [class.text-gray-400]="!wassengerApiKeyValue()"
-                  >
-                    {{
-                      wassengerApiKeyValue() ? 'Configurada' : 'No configurada'
-                    }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </p-card>
-        </p-tabpanel>
-
         <!-- Tab: M-Pets Precios -->
-        <p-tabpanel value="3">
+        <p-tabpanel value="2">
           <p-card styleClass="[&_.p-card-body]:py-2">
             <ng-template #title>
               <div class="flex items-center gap-2">
@@ -832,7 +701,7 @@ interface EmailConfig {
 
         <!-- Tab: Marcación Manual -->
         @if (canManageSchedules()) {
-        <p-tabpanel value="4">
+        <p-tabpanel value="3">
           <pt-manual-timelog />
         </p-tabpanel>
         }
@@ -860,9 +729,6 @@ export class SettingsComponent {
   public canManageSchedules = this.store.canManageSchedules;
 
   public saving = signal(false);
-  public wassengerEnabled = signal(false);
-  public wassengerApiKey = signal('');
-  public wassengerApiKeyValue = signal<string | null>(null);
 
   // Master switch global
   public emailEnabled = signal(true);
@@ -901,7 +767,7 @@ export class SettingsComponent {
   public settingsApi = httpResource<Setting[]>(() => {
     const url = this.apiUrl.build('rest/v1/settings', {
       select: 'id,key,value',
-      key: `in.(email_enabled,wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory,hr_email_notify_vacations,hr_email_notify_uniform,hr_email_notify_timelog_correction,hr_email_recipients_compensatory,hr_email_recipients_documents,hr_email_recipients_disabilities,hr_email_recipients_vacations,hr_email_recipients_uniform,hr_email_recipients_timelog_correction,employee_email_notify_approvals,employee_email_notify_rejections)`,
+      key: `in.(email_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory,hr_email_notify_vacations,hr_email_notify_uniform,hr_email_notify_timelog_correction,hr_email_recipients_compensatory,hr_email_recipients_documents,hr_email_recipients_disabilities,hr_email_recipients_vacations,hr_email_recipients_uniform,hr_email_recipients_timelog_correction,employee_email_notify_approvals,employee_email_notify_rejections)`,
       order: 'key.asc',
     });
     return {
@@ -917,10 +783,6 @@ export class SettingsComponent {
       if (settings) {
         // Helper para obtener setting por key
         const getSetting = (key: string) => settings.find((s) => s.key === key);
-
-        // Wassenger
-        const wassengerKey = getSetting('wassenger_api_key');
-        const wassengerEnabledSetting = getSetting('wassenger_enabled');
 
         // Email global
         const emailEnabledSetting = getSetting('email_enabled');
@@ -972,14 +834,6 @@ export class SettingsComponent {
         const hrEmailRecipientsTimelogCorrectionSetting = getSetting(
           'hr_email_recipients_timelog_correction'
         );
-
-        // Set Wassenger values
-        if (wassengerKey) {
-          this.wassengerApiKeyValue.set(wassengerKey.value ? '***' : null);
-        }
-        if (wassengerEnabledSetting) {
-          this.wassengerEnabled.set(wassengerEnabledSetting.value === 'true');
-        }
 
         // Set email enabled (master switch)
         this.emailEnabled.set(
@@ -1052,30 +906,6 @@ export class SettingsComponent {
           hrEmailRecipientsTimelogCorrectionSetting?.value || defaultEmail
         );
       }
-    });
-  }
-
-  public onWassengerEnabledChange(): void {
-    this.saveSetting(
-      'wassenger_enabled',
-      this.wassengerEnabled() ? 'true' : 'false',
-      { category: 'integrations' }
-    );
-  }
-
-  public saveWassengerApiKey(): void {
-    if (!this.wassengerApiKey().trim()) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Campo Requerido',
-        detail: 'Por favor ingresa un API Key válido',
-      });
-      return;
-    }
-
-    this.saveSetting('wassenger_api_key', this.wassengerApiKey().trim(), {
-      category: 'integrations',
-      isEncrypted: true,
     });
   }
 
@@ -1222,11 +1052,6 @@ export class SettingsComponent {
           detail: 'Configuración guardada correctamente',
         });
 
-        if (key === 'wassenger_api_key') {
-          this.wassengerApiKey.set('');
-          this.wassengerApiKeyValue.set('***');
-        }
-
         this.settingsApi.reload();
         this.saving.set(false);
       },
@@ -1248,11 +1073,6 @@ export class SettingsComponent {
                 summary: 'Éxito',
                 detail: 'Configuración guardada correctamente',
               });
-
-              if (key === 'wassenger_api_key') {
-                this.wassengerApiKey.set('');
-                this.wassengerApiKeyValue.set('***');
-              }
 
               this.settingsApi.reload();
               this.saving.set(false);

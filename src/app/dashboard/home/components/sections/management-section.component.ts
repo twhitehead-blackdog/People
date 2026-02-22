@@ -118,6 +118,7 @@ import { HomeDataService, EmployeeAuditLog } from '../../services/home-data.serv
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- Audit Log -->
@@ -235,6 +236,7 @@ import { HomeDataService, EmployeeAuditLog } from '../../services/home-data.serv
             <span class="value">{{ state.womenOnLeave() }}</span>
           </div>
         </div>
+
       </div>
     }
   `,

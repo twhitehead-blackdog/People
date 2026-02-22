@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   model,
   signal,
@@ -9,12 +10,14 @@ import {
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DialogModule } from 'primeng/dialog';
+import { DeviceService } from '../../../../services/device.service';
 
 @Component({
   selector: 'pt-hires-exits-dialog',
   standalone: true,
   imports: [CommonModule, DialogModule],
   template: `
+    @if (device.isDesktop()) {
     <p-dialog
       [visible]="visible()"
       (visibleChange)="visible.set($event)"
@@ -132,6 +135,121 @@ import { DialogModule } from 'primeng/dialog';
         } }
       </div>
     </p-dialog>
+    } @else {
+    <p-dialog
+      [visible]="visible()"
+      (visibleChange)="visible.set($event)"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [style]="{ width: '95vw', 'max-height': '90vh' }"
+      position="bottom"
+      [header]="headerTitle()"
+      styleClass="late-details-dialog hires-exits-dialog"
+    >
+      <div class="p-2">
+        <!-- Mobile Tab Pills -->
+        <div class="flex gap-2 mb-3">
+          <button
+            class="flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-all"
+            [class]="activeTab() === 'hires' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-neutral-800/60 text-gray-400 border border-neutral-700/30'"
+            (click)="activeTab.set('hires')"
+          >
+            <i class="pi pi-arrow-down text-xs"></i>
+            Ingresos ({{ hires().length }})
+          </button>
+          <button
+            class="flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-all"
+            [class]="activeTab() === 'exits' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-neutral-800/60 text-gray-400 border border-neutral-700/30'"
+            (click)="activeTab.set('exits')"
+          >
+            <i class="pi pi-arrow-up text-xs"></i>
+            Salidas ({{ exits().length }})
+          </button>
+        </div>
+
+        <!-- Hires Cards -->
+        @if (activeTab() === 'hires') {
+          @if (hires().length === 0) {
+          <div class="text-sm text-gray-400 text-center py-4">No hay ingresos registrados.</div>
+          } @else {
+          <div class="flex flex-col gap-2.5 max-h-[70vh] overflow-y-auto">
+            @for (hire of hires(); track hire.id) {
+            <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+              <div class="flex items-center gap-3">
+                <div class="icon-box icon-hire flex-shrink-0">
+                  <i class="pi pi-user-plus"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-white font-medium truncate">
+                    {{ hire.first_name }} {{ hire.father_name }}
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                    <span class="text-xs text-gray-400 flex items-center gap-1">
+                      <i class="pi pi-building text-[10px]"></i>
+                      {{ hire.branch?.name || 'Sin sucursal' }}
+                    </span>
+                    @if (hire.position) {
+                    <span class="text-xs text-gray-400 flex items-center gap-1">
+                      <i class="pi pi-briefcase text-[10px]"></i>
+                      {{ hire.position.name }}
+                    </span>
+                    }
+                  </div>
+                </div>
+                <div class="text-sm font-semibold text-emerald-400 flex-shrink-0">
+                  {{ formatDate(hire.start_date) }}
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+        }
+
+        <!-- Exits Cards -->
+        @if (activeTab() === 'exits') {
+          @if (exits().length === 0) {
+          <div class="text-sm text-gray-400 text-center py-4">No hay salidas registradas.</div>
+          } @else {
+          <div class="flex flex-col gap-2.5 max-h-[70vh] overflow-y-auto">
+            @for (exit of exits(); track exit.id || $index) {
+            <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+              <div class="flex items-center gap-3">
+                <div class="icon-box icon-exit flex-shrink-0">
+                  <i class="pi pi-user-minus"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-white font-medium truncate">
+                    {{ exit.employee?.first_name }} {{ exit.employee?.father_name }}
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                    <span class="text-xs text-gray-400 flex items-center gap-1">
+                      <i class="pi pi-building text-[10px]"></i>
+                      {{ exit.employee?.branch?.name || 'Sin sucursal' }}
+                    </span>
+                    @if (exit.reason) {
+                    <span class="text-xs text-gray-400 flex items-center gap-1">
+                      <i class="pi pi-info-circle text-[10px]"></i>
+                      {{ exit.reason }}
+                    </span>
+                    }
+                  </div>
+                </div>
+                <div class="text-sm font-semibold text-red-400 flex-shrink-0">
+                  {{ formatDate(exit.date) }}
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+        }
+      </div>
+    </p-dialog>
+    }
   `,
   styles: [
     `
@@ -273,6 +391,7 @@ import { DialogModule } from 'primeng/dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HiresExitsDialogComponent {
+  protected device = inject(DeviceService);
   visible = model.required<boolean>();
   hires = input.required<any[]>();
   exits = input.required<any[]>();

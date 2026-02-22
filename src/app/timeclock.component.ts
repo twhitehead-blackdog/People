@@ -48,8 +48,11 @@ import {
 import { TrimPipe } from './pipes/trim.pipe';
 import { ApiUrlService } from './services/api-url.service';
 import { DiagnosticService } from './services/diagnostic.service';
+import { IpDetectionService } from './services/ip-detection.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
+import { TimeclockAudioService } from './services/timeclock-audio.service';
+import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
 import { getEnv } from './utils/env.utils';
 
@@ -95,20 +98,23 @@ import { getEnv } from './utils/env.utils';
         'blackdog-theme': isBlackDogCompany(),
         'timeclock-mobile-kiosk': isMobileKiosk()
       }"
-      style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
+      style="width: 100%; position: relative; height: 100%; overflow: hidden;"
     >
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
       <div
         class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
-        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
+        style="max-width: 100%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem; overflow: hidden;"
       >
         @if (isKioskMode()) {
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2 flex-shrink-0"
-          style="max-width: 90%; height: auto;"
+          class="w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2 flex-shrink-0"
+          style="max-width: 90%; height: 5rem;"
         />
         }
+        <div class="timeclock-card-wrapper">
+        <div class="animated-border-box">
+          <div class="animated-border-glow"></div>
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
             <div
@@ -203,9 +209,12 @@ import { getEnv } from './utils/env.utils';
                 [disabled]="!canChangeBranch()"
               />
               @if (!canChangeBranch() && form.get('branch_id')?.value) {
-              <p class="text-xs text-gray-400 mt-1 text-center">
-                Sucursal detectada automáticamente por IP
-              </p>
+              <div class="flex items-center justify-center gap-1.5 mt-1.5">
+                <i class="pi pi-wifi text-emerald-400 text-[10px] animate-pulse"></i>
+                <span class="text-[10px] text-emerald-400/80 font-medium tracking-wide uppercase">
+                  Sucursal detectada por red
+                </span>
+              </div>
               }
             </div>
             }
@@ -234,6 +243,18 @@ import { getEnv } from './utils/env.utils';
                 </ng-template>
               </p-select>
             </div>
+
+            <!-- Suggested Type Badge -->
+            @if (suggestedType()) {
+            <div class="suggested-type-badge"
+              [style.background]="'linear-gradient(135deg, ' + suggestedTypeColor() + '22, ' + suggestedTypeColor() + '11)'"
+              [style.borderColor]="suggestedTypeColor() + '66'"
+            >
+              <i [class]="suggestedTypeIcon()" [style.color]="suggestedTypeColor()"></i>
+              <span class="suggested-type-label" [style.color]="suggestedTypeColor()">{{ suggestedTypeLabel() }}</span>
+            </div>
+            }
+
             <div class="input-container w-full">
               <p-select
                 formControlName="type"
@@ -249,12 +270,18 @@ import { getEnv } from './utils/env.utils';
             <!-- PIN Input Section -->
             <div
               class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
+              [class]="'otp-container otp-filled-' + otpLength()"
             >
-              <label
-                class="text-gray-300 font-medium text-[11px] sm:text-xs md:text-sm text-center mb-1"
-              >
-                Ingrese su PIN
-              </label>
+              <div class="flex items-center gap-2 mb-1">
+                <label class="text-gray-300 font-medium text-[11px] sm:text-xs md:text-sm text-center">
+                  Ingrese su PIN
+                </label>
+                @if (form.get('employee')?.value && !isMobileKiosk() && !showKeypad()) {
+                <button type="button" class="numpad-toggle-btn" (click)="showKeypad.set(true)" title="Abrir teclado">
+                  <i class="pi pi-th-large"></i>
+                </button>
+                }
+              </div>
               <div class="w-full flex justify-center items-center">
                 <p-inputOtp
                   #otpInput
@@ -314,12 +341,57 @@ import { getEnv } from './utils/env.utils';
             }
           </form>
         </p-card>
+        </div>
+
+        <!-- Floating Draggable Numpad (desktop only) -->
+        @if (showKeypad() && !isMobileKiosk()) {
+        <div class="numpad-popup"
+          [style.transform]="numpadPos() ? 'translate(' + numpadPos()!.x + 'px, ' + numpadPos()!.y + 'px)' : ''"
+        >
+          <div class="numpad-popup-header"
+            (mousedown)="onNumpadDragStart($event)"
+            (touchstart)="onNumpadDragStart($event)"
+          >
+            <span class="numpad-popup-title">
+              <i class="pi pi-th-large"></i>
+              Teclado
+            </span>
+            <button type="button" class="numpad-popup-close" (click)="showKeypad.set(false)">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+          <div class="numpad-pin-preview">
+            @for (i of [0,1,2,3,4,5]; track i) {
+            <div class="numpad-dot" [class.numpad-dot-filled]="otpLength() > i" [class.numpad-dot-active]="otpLength() === i"></div>
+            }
+          </div>
+          <div class="numpad-grid">
+            @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+            <button type="button" class="numpad-btn" (click)="addNumberToOtp(num)">
+              <span class="numpad-btn-num">{{ num }}</span>
+              <span class="numpad-btn-ripple"></span>
+            </button>
+            }
+            <button type="button" class="numpad-btn numpad-fn" (click)="clearOtp()">
+              <span class="numpad-btn-label">CLR</span>
+            </button>
+            <button type="button" class="numpad-btn" (click)="addNumberToOtp('0')">
+              <span class="numpad-btn-num">0</span>
+              <span class="numpad-btn-ripple"></span>
+            </button>
+            <button type="button" class="numpad-btn numpad-fn numpad-delete" (click)="deleteFromOtp()">
+              <i class="pi pi-delete-left"></i>
+            </button>
+          </div>
+        </div>
+        }
+        </div>
       </div>
       } @else {
       <!-- Mensaje de acceso restringido en modo kiosko -->
       <div
         class="flex flex-col gap-3 sm:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10"
-        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
+        style="max-width: 100%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem; overflow: hidden;"
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
@@ -347,670 +419,97 @@ import { getEnv } from './utils/env.utils';
               </h1>
             </div>
           </ng-template>
-          <div class="space-y-4 text-gray-300 text-center">
-            <p class="text-base md:text-lg text-white font-medium">
-              Dirección IP no autorizada
-            </p>
-            <p class="text-sm md:text-base leading-relaxed">
-              Tu dirección IP actual no está autorizada para usar el modo
-              kiosko.
-            </p>
+          <div class="flex flex-col items-center gap-4 text-center">
+            <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+              <i class="pi pi-shield text-3xl text-red-400"></i>
+            </div>
+            <div class="space-y-2">
+              <p class="text-base md:text-lg text-white font-semibold">
+                Red no autorizada
+              </p>
+              <p class="text-sm text-gray-400 leading-relaxed max-w-xs">
+                Esta red no tiene permiso para acceder al modo kiosko.
+              </p>
+            </div>
             @if (currentIP()) {
             <div
-              class="mt-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700"
+              class="w-full p-3 bg-red-500/5 rounded-xl border border-red-500/20 backdrop-blur-sm"
             >
-              <p class="text-xs text-gray-400 mb-1">IP detectada:</p>
-              <p
-                class="text-sm text-red-400 font-mono font-semibold text-center"
-              >
+              <div class="flex items-center justify-center gap-2">
+                <i class="pi pi-globe text-red-400/60 text-xs"></i>
+                <span class="text-[11px] text-gray-500 uppercase tracking-wider">IP detectada</span>
+              </div>
+              <p class="text-sm text-red-400 font-mono font-bold mt-1.5 select-all">
                 {{ currentIP() }}
               </p>
             </div>
             }
-            <p class="text-xs md:text-sm text-gray-400 italic">
-              Si cambias de red o tu IP cambia, el acceso será bloqueado
-              automáticamente.
+            <p class="text-xs text-gray-500 flex items-center gap-1.5">
+              <i class="pi pi-info-circle text-[10px]"></i>
+              Contacta a RRHH si necesitas acceso
             </p>
           </div>
         </p-card>
       </div>
       }
+
+      <!-- Success Overlay -->
+      @if (successOverlay(); as overlay) {
+      <div class="success-overlay" (click)="dismissOverlay()">
+        <!-- Ambient glow -->
+        <div class="success-glow" [class.success-glow-late]="overlay.isLate"></div>
+        <div class="success-overlay-card" [class.success-overlay-late]="overlay.isLate">
+          <!-- Confetti particles -->
+          @if (!overlay.isLate) {
+          <div class="confetti-container">
+            <div class="confetti c1"></div>
+            <div class="confetti c2"></div>
+            <div class="confetti c3"></div>
+            <div class="confetti c4"></div>
+            <div class="confetti c5"></div>
+            <div class="confetti c6"></div>
+            <div class="confetti c7"></div>
+            <div class="confetti c8"></div>
+          </div>
+          }
+          <!-- Animated checkmark with glow ring -->
+          <div class="success-icon-container">
+            <div class="success-glow-ring" [class.late-glow-ring]="overlay.isLate"></div>
+            <div class="success-checkmark" [class.late-checkmark]="overlay.isLate">
+              <svg viewBox="0 0 52 52" class="checkmark-svg">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                @if (overlay.isLate) {
+                <path class="checkmark-icon" fill="none" d="M18 18 34 34 M34 18 18 34"/>
+                } @else {
+                <path class="checkmark-icon" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                }
+              </svg>
+            </div>
+          </div>
+          <div class="success-name">{{ overlay.name }}</div>
+          <div class="success-divider"></div>
+          <div class="success-type">{{ overlay.type }}</div>
+          <div class="success-time">{{ overlay.time }}</div>
+          @if (overlay.isLate && overlay.lateMsg) {
+          <div class="success-late-badge">
+            <i class="pi pi-clock"></i>
+            Tardanza: {{ overlay.lateMsg }}
+          </div>
+          }
+          @if (overlay.phrase) {
+          <div class="success-phrase">
+            {{ overlay.phrase }}
+          </div>
+          }
+          <!-- Countdown progress bar -->
+          <div class="success-countdown-bar">
+            <div class="success-countdown-fill" [class.success-countdown-late]="overlay.isLate"></div>
+          </div>
+        </div>
+      </div>
+      }
     </div>`,
-  styles: `
-    .animated-gradient-container {
-      position: relative;
-      min-height: 100vh;
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.3s ease;
-    }
-
-    :host-context(html.dark) .animated-gradient-container {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
-    }
-
-    :host-context(html.light) .animated-gradient-container {
-      background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
-    }
-    
-    /* Beautiful custom scrollbar */
-    .animated-gradient-container::-webkit-scrollbar {
-      width: 10px;
-    }
-    
-    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
-      margin: 10px 0;
-    }
-
-    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.05);
-      border-radius: 10px;
-      margin: 10px 0;
-    }
-    
-    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.4) 100%);
-      border-radius: 10px;
-      border: 2px solid rgba(0, 0, 0, 0.2);
-      box-shadow: 0 0 10px rgba(107, 114, 128, 0.3);
-      transition: all 0.3s ease;
-    }
-
-    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.4) 0%, rgba(107, 114, 128, 0.3) 100%);
-      border-radius: 10px;
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 0 10px rgba(107, 114, 128, 0.2);
-      transition: all 0.3s ease;
-    }
-    
-    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.8) 0%, rgba(107, 114, 128, 0.6) 100%);
-      box-shadow: 0 0 15px rgba(107, 114, 128, 0.5);
-    }
-
-    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.5) 100%);
-      box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
-    }
-    
-    .animated-gradient-container::-webkit-scrollbar-thumb:active {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 1) 0%, rgba(107, 114, 128, 0.8) 100%);
-    }
-    
-    /* Firefox scrollbar */
-    .animated-gradient-container {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(107, 114, 128, 0.6) rgba(0, 0, 0, 0.3);
-    }
-    
-    .timeclock-content {
-      flex-shrink: 0;
-    }
-
-    /* Versión móvil modo kiosko: logo más grande, controles táctiles más grandes */
-    .timeclock-mobile-kiosk .timeclock-content img {
-      height: 4rem !important;
-      max-height: 80px !important;
-    }
-    .timeclock-mobile-kiosk .timeclock-content {
-      padding: 1.5rem 0.75rem !important;
-      gap: 1rem !important;
-    }
-    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-body,
-    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-content {
-      padding: 1.25rem !important;
-    }
-    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-select,
-    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-inputotp {
-      min-height: 3rem;
-    }
-    .timeclock-mobile-kiosk .mark-button ::ng-deep .p-button {
-      min-height: 3.5rem;
-      font-size: 1.125rem;
-    }
-    
-    @media (max-width: 640px) {
-      .timeclock-content {
-        padding: 0.75rem 0.25rem !important;
-      }
-    }
-    
-    @media (max-height: 700px) {
-      .timeclock-content {
-        padding: 0.5rem 0.25rem !important;
-      }
-    }
-    
-    @media (max-height: 600px) {
-      .timeclock-content {
-        padding: 0.25rem 0.25rem !important;
-      }
-    }
-    
-    
-    .timeclock-card {
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
-      border-radius: 12px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 114, 128, 0.2) !important;
-      backdrop-filter: blur(10px);
-      background: rgba(38, 38, 38, 0.95) !important;
-      animation: cardEntrance 0.25s ease-out;
-    }
-    
-    @media (max-width: 640px) {
-      .timeclock-card ::ng-deep .p-card-body {
-        padding: 0.75rem !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-title {
-        padding: 0.5rem 0.75rem !important;
-        overflow: visible !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle {
-        padding: 0.5rem 0.75rem !important;
-        overflow: visible !important;
-        min-height: auto !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-title *,
-      .timeclock-card ::ng-deep .p-card-subtitle * {
-        position: relative !important;
-        z-index: 1 !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle .flex {
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle .flex > div {
-        flex-shrink: 0 !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle span {
-        display: inline-block !important;
-        text-align: center !important;
-        line-height: 1.4 !important;
-      }
-    }
-    
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .timeclock-card ::ng-deep .p-card-body {
-        padding: 1.25rem !important;
-      }
-    }
-    
-    /* Desactivar animaciones solo si el usuario explícitamente prefiere movimiento reducido */
-    @media (prefers-reduced-motion: reduce) {
-      .clock-time {
-        animation: none !important;
-      }
-      
-      .timeclock-card {
-        animation: none !important;
-      }
-    }
-    
-    @keyframes cardEntrance {
-      from {
-        opacity: 0;
-        transform: scale(1.03);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
-    
-    .clock-display {
-      border: 1px solid rgba(107, 114, 128, 0.5) !important;
-    }
-    
-    .clock-time {
-      text-shadow: 0 0 10px rgba(107, 114, 128, 0.8);
-      animation: clockPulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes clockPulse {
-      0%, 100% {
-        text-shadow: 0 0 10px rgba(107, 114, 128, 0.8);
-      }
-      50% {
-        text-shadow: 0 0 20px rgba(107, 114, 128, 1), 0 0 30px rgba(107, 114, 128, 0.6);
-      }
-    }
-    
-    .timeclock-card ::ng-deep .p-card {
-      border-radius: 12px !important;
-      border: none !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-card-body {
-      border-radius: 12px !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-select {
-      border-radius: 8px !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-select .p-select-trigger {
-      border-radius: 8px !important;
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(107, 114, 128, 0.8) !important;
-      box-shadow: 0 0 10px rgba(107, 114, 128, 0.3) !important;
-    }
-    
-    .error-border ::ng-deep .p-select .p-select-trigger {
-      border-color: rgba(239, 68, 68, 0.5) !important;
-    }
-    
-    .error-border ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(239, 68, 68, 0.8) !important;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3) !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-inputotp {
-      display: flex !important;
-      justify-content: center !important;
-      align-items: center !important;
-      gap: 0.5rem !important;
-      width: 100% !important;
-      margin: 0 auto !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-inputotp-input {
-      width: auto !important;
-      min-width: 36px !important;
-      max-width: 48px !important;
-      height: 40px !important;
-      font-size: 0.95rem !important;
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
-      border-radius: 8px !important;
-      background: rgba(31, 41, 55, 0.8) !important;
-      color: #9ca3af !important;
-      font-weight: bold !important;
-      flex: 0 0 auto !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-inputotp-input:focus {
-      border-color: rgba(107, 114, 128, 0.9) !important;
-      box-shadow: 0 0 15px rgba(107, 114, 128, 0.4) !important;
-      outline: none !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-inputotp-input:not(:placeholder-shown) {
-      border-color: rgba(107, 114, 128, 0.7) !important;
-    }
-    
-    @media (max-width: 640px) {
-      .timeclock-card ::ng-deep .p-inputotp {
-        gap: 0.375rem !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-inputotp-input {
-        min-width: 30px !important;
-        max-width: 36px !important;
-        height: 36px !important;
-        font-size: 0.8125rem !important;
-      }
-    }
-    
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .timeclock-card ::ng-deep .p-inputotp-input {
-        min-width: 38px !important;
-        max-width: 44px !important;
-        height: 42px !important;
-        font-size: 0.9rem !important;
-      }
-    }
-    
-    .input-container ::ng-deep .p-select {
-      width: 100%;
-    }
-    
-    .input-container ::ng-deep .p-select .p-select-trigger {
-      padding: 0.5rem 0.75rem;
-      min-height: 42px;
-      font-size: 0.875rem;
-    }
-    
-    @media (max-width: 640px) {
-      .input-container ::ng-deep .p-select .p-select-trigger {
-        padding: 0.45rem 0.65rem;
-        min-height: 40px;
-        font-size: 0.8125rem;
-      }
-    }
-    
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .input-container ::ng-deep .p-select .p-select-trigger {
-        padding: 0.55rem 0.8rem;
-        min-height: 44px;
-        font-size: 0.9rem;
-      }
-    }
-    
-    .timeclock-card ::ng-deep .mark-button {
-      margin: 0 auto !important;
-      display: block !important;
-    }
-    
-    .timeclock-card ::ng-deep .mark-button.w-full {
-      width: 100% !important;
-    }
-    
-    .timeclock-card ::ng-deep .mark-button.w-full button {
-      width: 100% !important;
-    }
-    
-    .timeclock-card ::ng-deep .mark-button button {
-      margin: 0 auto !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: 0.5rem !important;
-      flex-direction: row !important;
-      padding: 0.625rem 1.5rem !important;
-      font-size: 0.875rem !important;
-    }
-    
-    @media (max-width: 640px) {
-      .timeclock-card ::ng-deep .mark-button button {
-        padding: 0.5rem 1.25rem !important;
-        font-size: 0.8125rem !important;
-        min-height: 42px !important;
-      }
-    }
-    
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .timeclock-card ::ng-deep .mark-button button {
-        padding: 0.75rem 1.75rem !important;
-        font-size: 0.9rem !important;
-      }
-    }
-    
-    .timeclock-card ::ng-deep .p-button {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-button .p-button-content {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: 0.5rem !important;
-      flex-direction: row !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-button .p-button-icon {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      margin: 0 !important;
-      line-height: 1 !important;
-      font-size: 1rem !important;
-      position: relative !important;
-      top: -2px !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-button .p-button-label {
-      display: inline-flex !important;
-      align-items: center !important;
-      line-height: 1 !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-button .p-button-icon-left {
-      margin-right: 0.5rem !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-    
-    .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(107, 114, 128, 0.6) !important;
-      filter: brightness(1.1);
-    }
-    
-    .timeclock-card ::ng-deep .p-button:not(:disabled):active {
-      transform: translateY(0);
-    }
-    
-    @keyframes rotate {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    
-    .timeclock-card ::ng-deep .p-button[loading] .p-button-icon,
-    .timeclock-card ::ng-deep .p-button .pi-spinner {
-      animation: rotate 0.6s linear infinite;
-    }
-
-    /* ============================================
-       TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
-       ============================================ */
-    
-    /* Fondo Naz - negro con animación de lava lamp plateada */
-    .naz-theme .animated-gradient-container {
-      /* Background handled by theme service */
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Animación de lava lamp plateada para timeclock Naz */
-    .naz-theme .animated-gradient-container::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          45deg,
-          rgba(255, 255, 255, 0.5) 0%,
-          rgba(255, 255, 255, 0.6) 2%,
-          rgba(229, 226, 223, 0.65) 4%,
-          rgba(198, 194, 191, 0.55) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(198, 194, 191, 0.5) 14%,
-          rgba(229, 226, 223, 0.6) 16%,
-          rgba(255, 255, 255, 0.55) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(229, 226, 223, 0.7) 25%,
-          rgba(198, 194, 191, 0.6) 50%,
-          rgba(229, 226, 223, 0.65) 75%,
-          rgba(255, 255, 255, 0.55) 100%
-        );
-      animation: silverLavaFlow 25s ease-in-out infinite;
-      z-index: 0;
-      filter: blur(25px);
-      pointer-events: none;
-    }
-
-    .naz-theme .animated-gradient-container::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          -45deg,
-          rgba(229, 226, 223, 0.55) 0%,
-          rgba(255, 255, 255, 0.65) 2%,
-          rgba(198, 194, 191, 0.6) 4%,
-          rgba(229, 226, 223, 0.5) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(255, 255, 255, 0.55) 14%,
-          rgba(198, 194, 191, 0.65) 16%,
-          rgba(229, 226, 223, 0.6) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          -135deg,
-          rgba(198, 194, 191, 0.7) 0%,
-          rgba(229, 226, 223, 0.75) 30%,
-          rgba(255, 255, 255, 0.65) 60%,
-          rgba(198, 194, 191, 0.6) 100%
-        );
-      animation: silverLavaFlow 30s ease-in-out infinite reverse;
-      z-index: 0;
-      filter: blur(30px);
-      pointer-events: none;
-    }
-
-    @keyframes silverLavaFlow {
-      0% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
-      }
-      25% {
-        transform: translate(10%, 5%) rotate(5deg) scale(1.1);
-        opacity: 1;
-      }
-      50% {
-        transform: translate(5%, 15%) rotate(-3deg) scale(0.95);
-        opacity: 0.85;
-      }
-      75% {
-        transform: translate(-10%, 8%) rotate(4deg) scale(1.05);
-        opacity: 0.95;
-      }
-      100% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
-      }
-    }
-
-    /* ============================================
-       TEMA BLACK DOG - ESTILOS AMARILLOS
-       ============================================ */
-    
-    /* Aplicar colores amarillos cuando es Black Dog */
-    .blackdog-theme .timeclock-card {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-card-body {
-      background: rgba(38, 38, 38, 0.95) !important;
-      border-radius: 12px !important;
-    }
-    
-    .blackdog-theme .clock-display {
-      border: 1px solid rgba(251, 191, 36, 0.5) !important;
-    }
-    
-    .blackdog-theme .clock-time {
-      color: #fbbf24 !important;
-      text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
-      animation: clockPulseYellow 2s ease-in-out infinite;
-    }
-    
-    @keyframes clockPulseYellow {
-      0%, 100% {
-        text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
-      }
-      50% {
-        text-shadow: 0 0 20px rgba(251, 191, 36, 1), 0 0 30px rgba(251, 191, 36, 0.6);
-      }
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-select .p-select-trigger {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(251, 191, 36, 0.8) !important;
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
-      color: #fbbf24 !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:focus {
-      border-color: rgba(251, 191, 36, 0.9) !important;
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.4) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:not(:placeholder-shown) {
-      border-color: rgba(251, 191, 36, 0.7) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
-      box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .mark-button button {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4) !important;
-    }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .mark-button button:disabled {
-      background: linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%) !important;
-      box-shadow: none !important;
-    }
-    
-    /* Scrollbar amarillo para Black Dog */
-    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 0.6) 0%, rgba(251, 191, 36, 0.4) 100%);
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-    }
-    
-    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 0.8) 0%, rgba(251, 191, 36, 0.6) 100%);
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
-    }
-    
-    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:active {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 1) 0%, rgba(251, 191, 36, 0.8) 100%);
-    }
-    
-    .blackdog-theme .animated-gradient-container {
-      scrollbar-color: rgba(251, 191, 36, 0.6) rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Iconos amarillos para Black Dog */
-    .blackdog-theme .pi-building,
-    .blackdog-theme .pi-user {
-      color: #fbbf24 !important;
-    }
-
-  `,
+  styleUrl: './timeclock.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimeclockComponent implements OnDestroy {
@@ -1024,15 +523,11 @@ export class TimeclockComponent implements OnDestroy {
   private timeSync = inject(TimeSyncService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
+  private ipDetection = inject(IpDetectionService);
+  private audio = inject(TimeclockAudioService);
+  private phrases = inject(TimeclockPhrasesService);
   private readonly DISPLAY_TIMEZONE = 'America/Panama';
-  /** Empleado con sonido personalizado al marcar exitosamente */
-  private readonly EMPLOYEE_PERSONALIZED_SOUND_ID = '202c46ab-04f9-41e8-a572-d9f50f7f31b6';
-  /** Sonidos personalizados para empleado específico (squirrel/cockatoo al azar) */
-  private readonly PERSONALIZED_SUCCESS_SOUNDS = ['/sounds/squirrel.mp3', '/sounds/cockatoo.mp3'];
-  /** Sonidos para empleados en general (meow/bark al azar) */
-  private readonly GENERAL_SUCCESS_SOUNDS = ['/sounds/meow.mp3', '/sounds/bark.mp3'];
-  // Get IP address - try multiple methods to get real IP even from localhost
-  public currentIP = signal<string>('127.0.0.1');
+  public currentIP = this.ipDetection.currentIP;
   public isProcessing = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
@@ -1040,6 +535,52 @@ export class TimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
+  public suggestedType = signal<string>('');
+  public otpLength = signal<number>(0);
+  public successOverlay = signal<{
+    name: string;
+    type: string;
+    time: string;
+    isLate: boolean;
+    lateMsg: string;
+    phrase: string;
+  } | null>(null);
+  public numpadPos = signal<{ x: number; y: number } | null>(null);
+  private numpadDragging = false;
+  private numpadDragStart = { x: 0, y: 0, posX: 0, posY: 0 };
+  private inactivityTimer: any;
+  private readonly INACTIVITY_TIMEOUT = 60_000;
+  private inactivityHandler = () => this.resetInactivityTimer();
+
+  public suggestedTypeLabel = computed(() => {
+    const map: Record<string, string> = {
+      entry: 'Entrada',
+      lunch_start: 'Inicio Almuerzo',
+      lunch_end: 'Fin Almuerzo',
+      exit: 'Salida',
+    };
+    return map[this.suggestedType()] || '';
+  });
+
+  public suggestedTypeIcon = computed(() => {
+    const map: Record<string, string> = {
+      entry: 'pi pi-sign-in',
+      lunch_start: 'pi pi-clock',
+      lunch_end: 'pi pi-clock',
+      exit: 'pi pi-sign-out',
+    };
+    return map[this.suggestedType()] || '';
+  });
+
+  public suggestedTypeColor = computed(() => {
+    const map: Record<string, string> = {
+      entry: '#22c55e',
+      lunch_start: '#f97316',
+      lunch_end: '#3b82f6',
+      exit: '#ef4444',
+    };
+    return map[this.suggestedType()] || '#6b7280';
+  });
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
   public isBlackDogCompany = computed(() =>
@@ -1077,7 +618,7 @@ export class TimeclockComponent implements OnDestroy {
     this.availableTypes.set(this.types);
 
     // Try to get real IP address using multiple methods
-    this.detectIP();
+    this.ipDetection.detect();
 
     // Si está en modo kiosko y NO es Naz, monitorear la IP continuamente
     if (isKioskRoute && !this.isNazCompany()) {
@@ -1085,6 +626,25 @@ export class TimeclockComponent implements OnDestroy {
     } else if (isKioskRoute && this.isNazCompany()) {
       // Para Naz, siempre considerar la IP como válida
       this.isIPValid.set(true);
+    }
+
+    // Ensure numeric keyboard on mobile for OTP inputs
+    setTimeout(() => {
+      this.applyNumericInputMode();
+      const observer = new MutationObserver(() => this.applyNumericInputMode());
+      const container = document.querySelector('.animated-gradient-container');
+      if (container) {
+        observer.observe(container, { childList: true, subtree: true });
+      }
+      this.destroyRef.onDestroy(() => observer.disconnect());
+    }, 200);
+
+    // Setup inactivity timer for kiosk mode
+    if (isKioskRoute) {
+      document.addEventListener('touchstart', this.inactivityHandler, { passive: true });
+      document.addEventListener('click', this.inactivityHandler);
+      document.addEventListener('keydown', this.inactivityHandler);
+      this.resetInactivityTimer();
     }
 
     // Monitorear errores de recursos httpResource
@@ -1285,155 +845,13 @@ export class TimeclockComponent implements OnDestroy {
     if (this.isKioskMode()) {
       this.ipMonitor.stopMonitoring();
     }
-  }
-
-  // Detect IP address using multiple methods
-  private detectIP() {
-    // Method 1: Try WebRTC (works even from localhost)
-    this.getIPViaWebRTC()
-      .then((ip) => {
-        if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-          this.currentIP.set(ip);
-          return;
-        }
-
-        // Method 2: Try ipify.org (may have CORS issues in dev)
-        this.getIPViaHttp()
-          .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
-            }
-          })
-          .catch(() => {
-            // Method 3: Try alternative service
-            this.getIPViaAlternative()
-              .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
-                }
-              })
-              .catch(() => {
-                // Keep default 127.0.0.1 if all methods fail
-              });
-          });
-      })
-      .catch(() => {
-        // If WebRTC fails, try HTTP methods
-        this.getIPViaHttp()
-          .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
-            }
-          })
-          .catch(() => {
-            this.getIPViaAlternative()
-              .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
-                }
-              })
-              .catch(() => {
-                // Keep default
-              });
-          });
-      });
-  }
-
-  // Method 1: Get IP via WebRTC (works from localhost)
-  private getIPViaWebRTC(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const RTCPeerConnection =
-        (window as any).RTCPeerConnection ||
-        (window as any).webkitRTCPeerConnection ||
-        (window as any).mozRTCPeerConnection;
-
-      if (!RTCPeerConnection) {
-        reject(new Error('WebRTC not supported'));
-        return;
-      }
-
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-      });
-
-      const ips: string[] = [];
-
-      pc.createDataChannel('');
-
-      pc.onicecandidate = (event: any) => {
-        if (event.candidate) {
-          const candidate = event.candidate.candidate;
-          const match = candidate.match(
-            /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/
-          );
-          if (match) {
-            const ip = match[1];
-            if (
-              ips.indexOf(ip) === -1 &&
-              !ip.startsWith('127.') &&
-              ip !== '::1'
-            ) {
-              ips.push(ip);
-            }
-          }
-        } else {
-          // All candidates received
-          if (ips.length > 0) {
-            pc.close();
-            resolve(ips[0]);
-          } else {
-            pc.close();
-            reject(new Error('No IP found'));
-          }
-        }
-      };
-
-      pc.createOffer()
-        .then((offer: any) => pc.setLocalDescription(offer))
-        .catch((err: any) => {
-          pc.close();
-          reject(err);
-        });
-
-      // Timeout after 3 seconds
-      setTimeout(() => {
-        if (ips.length > 0) {
-          pc.close();
-          resolve(ips[0]);
-        } else {
-          pc.close();
-          reject(new Error('WebRTC timeout'));
-        }
-      }, 3000);
-    });
-  }
-
-  // Method 2: Get IP via HTTP (ipify.org)
-  private getIPViaHttp(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      this.http
-        .get<{ ip: string }>('https://api.ipify.org?format=json', {
-          headers: { Accept: 'application/json' },
-        })
-        .subscribe({
-          next: (data) => resolve(data.ip),
-          error: () => reject(new Error('HTTP method failed')),
-        });
-    });
-  }
-
-  // Method 3: Get IP via alternative service
-  private getIPViaAlternative(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      this.http
-        .get<{ ip: string }>('https://api64.ipify.org?format=json', {
-          headers: { Accept: 'application/json' },
-        })
-        .subscribe({
-          next: (data) => resolve(data.ip),
-          error: () => reject(new Error('Alternative method failed')),
-        });
-    });
+    // Clean up inactivity timer
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+    }
+    document.removeEventListener('touchstart', this.inactivityHandler);
+    document.removeEventListener('click', this.inactivityHandler);
+    document.removeEventListener('keydown', this.inactivityHandler);
   }
 
   // Update available types based on last timelog
@@ -1481,7 +899,9 @@ export class TimeclockComponent implements OnDestroy {
   addNumberToOtp(num: string) {
     const currentOtp = this.form.get('otp')?.value || '';
     if (currentOtp.length < 6) {
-      this.form.get('otp')?.setValue(currentOtp + num);
+      const newVal = currentOtp + num;
+      this.form.get('otp')?.setValue(newVal);
+      this.otpLength.set(newVal.length);
     }
   }
 
@@ -1489,13 +909,16 @@ export class TimeclockComponent implements OnDestroy {
   deleteFromOtp() {
     const currentOtp = this.form.get('otp')?.value || '';
     if (currentOtp.length > 0) {
-      this.form.get('otp')?.setValue(currentOtp.slice(0, -1));
+      const newVal = currentOtp.slice(0, -1);
+      this.form.get('otp')?.setValue(newVal);
+      this.otpLength.set(newVal.length);
     }
   }
 
   // Clear OTP
   clearOtp() {
     this.form.get('otp')?.setValue('');
+    this.otpLength.set(0);
   }
 
   // Format time for display (12-hour format with AM/PM)
@@ -1954,15 +1377,16 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   onEmployeeSelected(employee: Employee | undefined) {
-    // Inicializar audio con interacción del usuario
-    this.getAudioContext();
-    
+    // Audio warmup no longer needed - handled by TimeclockAudioService
+
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
           const nextType = this.getNextTimelogType(lastTimelog?.type || null);
           this.updateAvailableTypes(lastTimelog?.type || null);
           this.form.get('type')?.setValue(nextType);
+          this.suggestedType.set(nextType);
+          this.showKeypad.set(true);
           // Focus OTP input when employee is selected
           this.focusOtpInput();
         },
@@ -1970,12 +1394,16 @@ export class TimeclockComponent implements OnDestroy {
           // Default to entry if error
           this.updateAvailableTypes(null);
           this.form.get('type')?.setValue('entry');
+          this.suggestedType.set('entry');
+          this.showKeypad.set(true);
           // Focus OTP input when employee is selected
           this.focusOtpInput();
         },
       });
     } else {
       this.updateAvailableTypes(null);
+      this.suggestedType.set('');
+      this.showKeypad.set(false);
     }
   }
 
@@ -1985,16 +1413,53 @@ export class TimeclockComponent implements OnDestroy {
     if (target && target.value && target.nextElementSibling) {
       target.nextElementSibling.focus();
     }
+    // Track OTP length
+    const otpVal = this.form.get('otp')?.value || '';
+    this.otpLength.set(otpVal.length);
+  }
+
+  private applyNumericInputMode() {
+    const otpInputs = document.querySelectorAll(
+      '.p-inputotp-input'
+    ) as NodeListOf<HTMLInputElement>;
+    otpInputs.forEach((input) => {
+      if (!input.getAttribute('inputmode')) {
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('pattern', '[0-9]*');
+        input.setAttribute('type', 'tel');
+        // Fix backspace on mobile keyboards
+        input.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (e.key === 'Backspace') {
+            e.preventDefault();
+            const currentOtp = this.form.get('otp')?.value || '';
+            if (currentOtp.length > 0) {
+              const newVal = currentOtp.slice(0, -1);
+              this.form.get('otp')?.setValue(newVal);
+              this.otpLength.set(newVal.length);
+              // Focus the previous input
+              const prev = input.previousElementSibling as HTMLInputElement;
+              if (prev && prev.tagName === 'INPUT') {
+                prev.focus();
+              }
+            }
+          }
+        });
+      }
+    });
   }
 
   focusOtpInput() {
-    // Focus first OTP input when employee is selected
+    // Focus first OTP input and ensure numeric keyboard on mobile
     setTimeout(() => {
-      const firstInput = document.querySelector(
+      const otpInputs = document.querySelectorAll(
         '.p-inputotp-input'
-      ) as HTMLInputElement;
-      if (firstInput) {
-        firstInput.focus();
+      ) as NodeListOf<HTMLInputElement>;
+      otpInputs.forEach((input) => {
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('pattern', '[0-9]*');
+      });
+      if (otpInputs.length > 0) {
+        otpInputs[0].focus();
       }
     }, 100);
   }
@@ -2136,13 +1601,14 @@ export class TimeclockComponent implements OnDestroy {
       if (validation === null) {
         this.isProcessing.set(false);
         // Reproducir sonido de error
-        this.playFailureSound();
+        this.audio.playFailureSound();
         this.message.add({
           severity: 'error',
           summary: 'Error',
           detail: 'Código incorrecto',
         });
         this.form.get('otp')?.reset();
+        this.otpLength.set(0);
         return;
       }
 
@@ -2234,7 +1700,7 @@ export class TimeclockComponent implements OnDestroy {
         catchError((error) => {
           this.isProcessing.set(false);
           // Reproducir sonido de error
-          this.playFailureSound();
+          this.audio.playFailureSound();
           const isNaz = this.isNazCompany();
           console.error('Error al procesar timelog:', error);
 
@@ -2323,7 +1789,7 @@ export class TimeclockComponent implements OnDestroy {
           if (!result.success) {
             this.isProcessing.set(false);
             // Reproducir sonido de error
-            this.playFailureSound();
+            this.audio.playFailureSound();
             this.message.add({
               severity: 'error',
               summary: 'Error',
@@ -2434,143 +1900,58 @@ export class TimeclockComponent implements OnDestroy {
     this.showConfirmationDialogWithSound(message, false);
   }
 
-  // Mostrar diálogo de confirmación con sonido según tardanza
+  // Mostrar overlay de confirmación con sonido según tardanza
   private showConfirmationDialogWithSound(message: string, isLate: boolean, employeeId?: string): void {
     this.isProcessing.set(false);
     // Reproducir sonido según si llegó tarde o no
     if (isLate) {
-      this.playLateSound();
+      this.audio.playLateSound();
     } else {
-      this.playSuccessSound(employeeId);
+      this.audio.playSuccessSound(employeeId);
     }
-    this.confirmation.confirm({
-      message,
-      key: 'confirm1',
-      header: isLate ? 'Registrado con Tardanza' : 'Éxito',
-      icon: isLate ? 'pi pi-clock' : 'pi pi-check',
-      acceptLabel: 'Aceptar',
-      rejectVisible: false,
-      accept: () => {
-        this.form.get('otp')?.reset();
-        this.form.get('employee')?.reset();
-        this.showKeypad.set(false);
-        // Solo validar IP si NO es Naz
-        if (!this.isNazCompany() && !this.validIP()) {
-          this.alertInvalidIP();
-        }
-      },
+
+    // Get employee name and type for overlay
+    const employee = this.form.get('employee')?.value;
+    const typeName = this.form.get('type')?.value || '';
+    const typeLabel = this.types.find((t) => t.value === typeName)?.label || typeName;
+    const employeeName = employee
+      ? `${employee.first_name || ''} ${employee.father_name || ''}`.trim()
+      : '';
+    const timeStr = this.formattedTime();
+
+    // Extract late message from the HTML message
+    let lateMsg = '';
+    if (isLate) {
+      const match = message.match(/Tardanza:\s*([^<]+)/);
+      lateMsg = match ? match[1].trim() : '';
+    }
+
+    this.successOverlay.set({
+      name: employeeName,
+      type: typeLabel,
+      time: timeStr,
+      isLate,
+      lateMsg,
+      phrase: this.phrases.getPhrase(isLate),
     });
+
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      this.dismissOverlay();
+    }, 4000);
   }
 
-  // AudioContext compartido para evitar límites del navegador
-  private audioContext: AudioContext | null = null;
-
-  private getAudioContext(): AudioContext | null {
-    try {
-      if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
-      }
-      // Resumir si está suspendido (política de autoplay)
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-      return this.audioContext;
-    } catch (error) {
-      console.warn('Audio no soportado:', error);
-      return null;
-    }
-  }
-
-  // Reproducir sonido de éxito: empleado personalizado (squirrel/cockatoo al azar), resto (meow/bark al azar)
-  private playSuccessSound(employeeId?: string): void {
-    try {
-      let src: string;
-      if (employeeId === this.EMPLOYEE_PERSONALIZED_SOUND_ID && this.PERSONALIZED_SUCCESS_SOUNDS.length > 0) {
-        const idx = Math.floor(Math.random() * this.PERSONALIZED_SUCCESS_SOUNDS.length);
-        src = this.PERSONALIZED_SUCCESS_SOUNDS[idx];
-      } else {
-        const idx = Math.floor(Math.random() * this.GENERAL_SUCCESS_SOUNDS.length);
-        src = this.GENERAL_SUCCESS_SOUNDS[idx];
-      }
-      const audio = new Audio(src);
-      audio.volume = 0.7;
-      audio.play().then(() => {
-        console.log('🔊 Sonido de éxito reproducido');
-      }).catch((error) => {
-        console.warn('Error reproduciendo sonido de éxito:', error);
-      });
-    } catch (error) {
-      console.warn('Error reproduciendo sonido de éxito:', error);
-    }
-  }
-
-  // Reproducir sonido de fracaso
-  private playFailureSound(): void {
-    const audioContext = this.getAudioContext();
-    if (!audioContext) return;
-
-    try {
-      const now = audioContext.currentTime;
-
-      // Tono de error: dos beeps cortos descendentes
-      const osc1 = audioContext.createOscillator();
-      const gain1 = audioContext.createGain();
-      osc1.frequency.value = 400;
-      osc1.type = 'square';
-      gain1.gain.setValueAtTime(0.2, now);
-      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc1.connect(gain1);
-      gain1.connect(audioContext.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.15);
-
-      // Segundo beep más bajo
-      const osc2 = audioContext.createOscillator();
-      const gain2 = audioContext.createGain();
-      osc2.frequency.value = 300;
-      osc2.type = 'square';
-      gain2.gain.setValueAtTime(0, now);
-      gain2.gain.setValueAtTime(0.2, now + 0.2);
-      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      osc2.connect(gain2);
-      gain2.connect(audioContext.destination);
-      osc2.start(now + 0.2);
-      osc2.stop(now + 0.4);
-
-      console.log('🔊 Sonido de error reproducido');
-    } catch (error) {
-      console.warn('Error reproduciendo sonido de error:', error);
-    }
-  }
-
-  // Reproducir sonido de advertencia (tardanza)
-  private playLateSound(): void {
-    const audioContext = this.getAudioContext();
-    if (!audioContext) return;
-
-    try {
-      const now = audioContext.currentTime;
-
-      // Tono de advertencia: tres beeps de alerta
-      for (let i = 0; i < 3; i++) {
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        osc.frequency.value = 880; // A5 - tono alto de alerta
-        osc.type = 'triangle';
-        const startTime = now + i * 0.25;
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.setValueAtTime(0.25, startTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-        osc.start(startTime);
-        osc.stop(startTime + 0.15);
-      }
-
-      console.log('🔊 Sonido de tardanza reproducido');
-    } catch (error) {
-      console.warn('Error reproduciendo sonido de tardanza:', error);
+  /** Dismiss the success overlay and reset form */
+  dismissOverlay(): void {
+    this.successOverlay.set(null);
+    this.form.get('otp')?.reset();
+    this.form.get('employee')?.reset();
+    this.showKeypad.set(false);
+    this.suggestedType.set('');
+    this.otpLength.set(0);
+    // Solo validar IP si NO es Naz
+    if (!this.isNazCompany() && !this.validIP()) {
+      this.alertInvalidIP();
     }
   }
 
@@ -2710,6 +2091,62 @@ export class TimeclockComponent implements OnDestroy {
       month: now.getMonth() + 1,
       day: now.getDate(),
     };
+  }
+
+  /** Reset inactivity timer (kiosk mode) */
+  private resetInactivityTimer(): void {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+    }
+    this.inactivityTimer = setTimeout(() => {
+      // Reset form after inactivity
+      this.form.get('otp')?.reset();
+      this.form.get('employee')?.reset();
+      this.showKeypad.set(false);
+      this.suggestedType.set('');
+      this.otpLength.set(0);
+      this.successOverlay.set(null);
+    }, this.INACTIVITY_TIMEOUT);
+  }
+
+  /** Start dragging the numpad */
+  onNumpadDragStart(e: MouseEvent | TouchEvent): void {
+    this.numpadDragging = true;
+    const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+    const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+    const pos = this.numpadPos();
+    this.numpadDragStart = {
+      x: clientX,
+      y: clientY,
+      posX: pos?.x ?? 0,
+      posY: pos?.y ?? 0,
+    };
+    e.preventDefault();
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      if (!this.numpadDragging) return;
+      const cx = ev instanceof MouseEvent ? ev.clientX : ev.touches[0].clientX;
+      const cy = ev instanceof MouseEvent ? ev.clientY : ev.touches[0].clientY;
+      const dx = cx - this.numpadDragStart.x;
+      const dy = cy - this.numpadDragStart.y;
+      this.numpadPos.set({
+        x: this.numpadDragStart.posX + dx,
+        y: this.numpadDragStart.posY + dy,
+      });
+    };
+
+    const onEnd = () => {
+      this.numpadDragging = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
   }
 
   private alertInvalidIP() {

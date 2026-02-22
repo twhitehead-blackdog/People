@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -10,7 +10,6 @@ import {
   signal,
 } from '@angular/core';
 import {
-  differenceInMinutes,
   eachMonthOfInterval,
   endOfMonth,
   format,
@@ -19,11 +18,26 @@ import {
   subMonths,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { BaseChartDirective } from 'ng2-charts';
 import { ApiUrlService } from '../services/api-url.service';
+import { DeviceService } from '../services/device.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
+import {
+  barChartOptions as importedBarChartOptions,
+  genderChartOptions as importedGenderChartOptions,
+  hiresExitsChartOptions as importedHiresExitsChartOptions,
+  generateCorporateColors,
+} from './home/utils/home-chart.utils';
+import {
+  getPanamaNowParts,
+  getDaysInMonth,
+  calcTimeDiff,
+  getMonthNameSpanish,
+  calcScheduleComplianceIndex,
+  calcWorkClimateIndex,
+  getCurrentMonthName,
+} from './home/utils/home-calculations.utils';
 
 // New Components
 import { HomeSidebarComponent } from './home/components/home-sidebar/home-sidebar.component';
@@ -34,6 +48,7 @@ import { ChartsSectionComponent } from './home/components/sections/charts-sectio
 import { EventsSectionComponent } from './home/components/sections/events-section.component';
 import { ManagementSectionComponent } from './home/components/sections/management-section.component';
 import { PeluqueriaSectionComponent } from './home/components/sections/peluqueria-section.component';
+import { ClinicaSectionComponent } from './home/components/sections/clinica-section.component';
 import { BirthdaysDialogComponent } from './home/components/dialogs/birthdays-dialog.component';
 import { HiresExitsDialogComponent } from './home/components/dialogs/hires-exits-dialog.component';
 import { LateDetailsDialogComponent } from './home/components/dialogs/late-details-dialog.component';
@@ -53,6 +68,7 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
     EventsSectionComponent,
     ManagementSectionComponent,
     PeluqueriaSectionComponent,
+    ClinicaSectionComponent,
     BirthdaysDialogComponent,
     HiresExitsDialogComponent,
     LateDetailsDialogComponent,
@@ -60,11 +76,13 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
     TopAbsencesDialogComponent
   ],
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <div class="dashboard-wrapper">
       @if (sidebarOpen()) {
         <div class="sidebar-overlay md:hidden" (click)="toggleSidebar()"></div>
       }
-      
+
       <pt-home-sidebar
         [isOpen]="sidebarOpen()"
         [activeSection]="activeSection()"
@@ -114,6 +132,9 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
           @case ('peluqueria') {
             <pt-peluqueria-section></pt-peluqueria-section>
           }
+          @case ('clinica') {
+            <pt-clinica-section></pt-clinica-section>
+          }
           @case ('charts') {
             <pt-charts-section
               [branchData]="branchData()"
@@ -129,10 +150,10 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
             <pt-management-section></pt-management-section>
           }
         }
-    
+
         <!-- Dialogs -->
-        <pt-birthdays-dialog 
-            [(visible)]="birthdaysDialogVisible" 
+        <pt-birthdays-dialog
+            [(visible)]="birthdaysDialogVisible"
             [birthDates]="state.birthDates()"
         ></pt-birthdays-dialog>
 
@@ -163,9 +184,157 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
             [list]="topAbsencesList()"
         ></pt-top-absences-dialog>
       </main>
-    </div>`,
+    </div>
+
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
+      <!-- Section nav -->
+      <div class="flex-shrink-0 bg-[#0a0a0a]">
+        <div class="mobile-section-nav" style="scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-x: auto; display: flex; gap: 0; padding: 0 12px;">
+          @for (item of sidebarMenuItems(); track item.id) {
+          <button
+            class="mobile-section-tab"
+            [class.mobile-section-tab--active]="activeSection() === item.id"
+            style="-webkit-tap-highlight-color: transparent;"
+            (click)="selectSection(item.id)"
+          >
+            <i [class]="item.icon" style="font-size: 1rem;"></i>
+            <span>{{ item.label }}</span>
+            @if (activeSection() === item.id) {
+            <div class="mobile-section-tab__indicator"></div>
+            }
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- Content area -->
+      <div class="flex-1 overflow-y-auto">
+        @switch (activeSection()) {
+          @case ('executive') {
+            <pt-executive-section
+              [headcountChartData]="headcountChartData()"
+              [headcountChartOptions]="headcountChartOptions"
+              [genderChartData]="genderChartData()"
+              [genderChartOptions]="genderChartOptions"
+              [genderCounts]="{ male: getGenderCount('M'), female: getGenderCount('F') }"
+              [genderPercentages]="{ male: getGenderPercentage('M'), female: getGenderPercentage('F') }"
+              [monthlyLates]="getMonthlyLates()"
+              [latesDailyChartData]="latesDailyChartData()"
+              [latesChartOptions]="latesChartOptions"
+              [topLatesCount]="getTopLatesCount()"
+              [topLatesEmployeeName]="getTopLatesEmployeeName()"
+              [topAbsencesCount]="getTopAbsencesCount()"
+              [topAbsencesEmployeeName]="getTopAbsencesEmployeeName()"
+              [monthlyBirthdaysCount]="monthlyBirthdaysCount()"
+              [hiresExitsChartData]="hiresExitsChartData()"
+              [hiresExitsChartOptions]="hiresExitsChartOptions"
+              [hiresExitsCounts]="{ hires: getHiresExitsCount('hires'), exits: getHiresExitsCount('exits') }"
+              [workClimateIndex]="getWorkClimateIndex()"
+              [scheduleComplianceIndex]="getScheduleComplianceIndex()"
+              (openTopLates)="openTopLatesDialog()"
+              (openTopAbsences)="openTopAbsencesDialog()"
+              (openHiresExits)="openCurrentMonthHiresExitsDialog()"
+              (openBirthdays)="openBirthdaysDialog()"
+            ></pt-executive-section>
+          }
+          @case ('financial') {
+            <pt-financial-section></pt-financial-section>
+          }
+          @case ('structure') {
+            <pt-structure-section></pt-structure-section>
+          }
+          @case ('peluqueria') {
+            <pt-peluqueria-section></pt-peluqueria-section>
+          }
+          @case ('clinica') {
+            <pt-clinica-section></pt-clinica-section>
+          }
+          @case ('charts') {
+            <pt-charts-section
+              [branchData]="branchData()"
+              [branchLabels]="branchLabels()"
+              [barChartOptions]="barChartOptions"
+              [ageRanges]="ageRanges"
+            ></pt-charts-section>
+          }
+          @case ('events') {
+            <pt-events-section [currentMonth]="currentMonth()"></pt-events-section>
+          }
+          @case ('management') {
+            <pt-management-section></pt-management-section>
+          }
+        }
+
+        <!-- Dialogs (shared) -->
+        <pt-birthdays-dialog
+            [(visible)]="birthdaysDialogVisible"
+            [birthDates]="state.birthDates()"
+        ></pt-birthdays-dialog>
+        <pt-hires-exits-dialog
+            [(visible)]="monthHiresExitsDialogVisible"
+            [hires]="selectedMonthHiresList()"
+            [exits]="selectedMonthExitsList()"
+            [headerTitle]="'Ingresos y Salidas - ' + selectedMonthLabel()"
+        ></pt-hires-exits-dialog>
+        <pt-late-details-dialog
+            [(visible)]="lateDialogVisible"
+            [details]="lateDialogDetails()"
+            [headerTitle]="lateDialogTitle()"
+        ></pt-late-details-dialog>
+        <pt-top-lates-dialog
+            [(visible)]="topLatesDialogVisible"
+            [list]="topLatesList()"
+        ></pt-top-lates-dialog>
+        <pt-top-absences-dialog
+            [(visible)]="topAbsencesDialogVisible"
+            [list]="topAbsencesList()"
+        ></pt-top-absences-dialog>
+      </div>
+    </div>
+    }`,
   styles: [`
     :host { display: block; height: 100%; overflow: hidden; }
+
+    .mobile-section-nav {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mobile-section-tab {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px 8px;
+      min-width: 64px;
+      background: transparent;
+      border: none;
+      color: #71717a;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color 0.2s ease;
+      touch-action: manipulation;
+    }
+
+    .mobile-section-tab--active {
+      color: #fbbf24;
+    }
+
+    .mobile-section-tab__indicator {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 2px;
+      background: #fbbf24;
+      border-radius: 1px;
+    }
   `],
   styleUrls: ['./home/home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -177,18 +346,9 @@ export class HomeComponent {
     return String(n).padStart(2, '0');
   }
 
-  private getPanamaNowParts(): { year: number; month: number; day: number } {
-    const now = new Date();
-    const year = parseInt(formatInTimeZone(now, this.TIMEZONE, 'yyyy'), 10);
-    const month = parseInt(formatInTimeZone(now, this.TIMEZONE, 'MM'), 10); // 1-12
-    const day = parseInt(formatInTimeZone(now, this.TIMEZONE, 'd'), 10);
-    return { year, month, day };
-  }
-
-  private getDaysInMonth(year: number, month: number): number {
-    // month: 1-12
-    return new Date(Date.UTC(year, month, 0)).getUTCDate();
-  }
+  private getPanamaNowParts = getPanamaNowParts;
+  private getDaysInMonth = getDaysInMonth;
+  public device = inject(DeviceService);
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
   private apiUrl = inject(ApiUrlService);
@@ -199,6 +359,20 @@ export class HomeComponent {
     typeof window !== 'undefined' && window.innerWidth >= 769
   );
   public activeSection = signal('executive');
+
+  // Menu items for mobile pill nav (mirrors sidebar items)
+  public sidebarMenuItems = computed(() => {
+    return [
+      { id: 'executive', label: 'Resumen', icon: 'pi pi-th-large' },
+      { id: 'financial', label: 'Finanzas', icon: 'pi pi-dollar' },
+      { id: 'management', label: 'Personal', icon: 'pi pi-users' },
+      { id: 'structure', label: 'Estructura', icon: 'pi pi-sitemap' },
+      { id: 'peluqueria', label: 'Peluquería', icon: 'pi pi-building' },
+      { id: 'clinica', label: 'Clínica', icon: 'pi pi-heart' },
+      { id: 'charts', label: 'Análisis', icon: 'pi pi-chart-bar' },
+      { id: 'events', label: 'Eventos', icon: 'pi pi-calendar' },
+    ];
+  });
 
   // Computed para contar cumpleañeros del mes
   // Only calculate when executive or events section is active
@@ -626,112 +800,6 @@ export class HomeComponent {
               return bMinutes - aMinutes;
             });
 
-            const dayNum = idx + 1;
-            const { month } = this.getPanamaNowParts();
-            const monthName = this.getMonthNameSpanish(month - 1);
-            const title = `Tardanzas - Día ${dayNum} ${monthName}`;
-
-            this.lateDialogTitle.set(title);
-            this.lateDialogDetails.set(sortedDetails);
-            this.lateDialogVisible.set(true);
-          }
-        }
-      },
-    };
-  }
-
-  // Mini line chart options for KPI sparkline - Improved with better styling
-  public get sparklineOptions(): any {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: {
-        duration: 1000,
-        easing: 'easeInOutQuart',
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          backgroundColor: '#18181b',
-          titleColor: '#fbbf24',
-          bodyColor: '#ffffff',
-          borderColor: 'rgba(251, 191, 36, 0.3)',
-          borderWidth: 1,
-          padding: 12,
-          displayColors: false,
-          callbacks: {
-            label: (ctx: any) => {
-              const y = ctx.parsed?.y ?? ctx.parsed ?? 0;
-              const label = ctx.dataset?.label;
-              return label ? `${label}: ${y}` : `${y}`;
-            },
-            afterLabel: (ctx: any) => {
-              const names: string[] | undefined = (ctx.dataset as any)
-                ?.customNames?.[ctx.dataIndex];
-              if (!names || names.length === 0) return '';
-              // Return full list (one name per line)
-              return names.map((n) => ` ${n}`);
-            },
-            title: (ctx: any) => {
-              // Show month/year in title for headcount chart
-              const data: any = this.headcountChartData();
-              const labels = data?.labels || [];
-              const index = ctx[0]?.dataIndex;
-              if (index !== undefined && labels[index]) {
-                return labels[index];
-              }
-              // Fallback for other charts (like lates)
-              const dayNum = ctx[0]?.dataIndex + 1;
-              return `Día ${dayNum}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          display: false,
-          grid: { display: false },
-        },
-        y: {
-          display: false,
-          beginAtZero: false,
-          grid: { display: false },
-        },
-      },
-      elements: {
-        line: {
-          tension: 0.4,
-          borderWidth: 3,
-          borderJoinStyle: 'round',
-          borderCapStyle: 'round',
-        },
-        point: {
-          radius: 0,
-          hoverRadius: 6,
-          hitRadius: 10,
-          hoverBorderWidth: 2,
-        },
-      },
-      onClick: (evt: any, active: any[]) => {
-        // Handle click directly in options
-        if (active && active.length > 0) {
-          const idx = active[0].index;
-          const data: any = this.latesDailyChartData();
-
-          if (data && data.datasets && data.datasets.length > 0) {
-            const ds: any = data.datasets[0];
-            const labels: any[] = data.labels || [];
-            const details = (ds?.customDetails?.[idx] ?? []) as any[];
-
-            // Sort details by minutesLate descending (highest first)
-            const sortedDetails = [...details].sort((a, b) => {
-              const aMinutes = a.minutesLate ?? 0;
-              const bMinutes = b.minutesLate ?? 0;
-              return bMinutes - aMinutes; // Descending order
-            });
-
-            // Format title: "Día 1 Nov"
             const dayNum = idx + 1;
             const { month } = this.getPanamaNowParts();
             const monthName = this.getMonthNameSpanish(month - 1);
@@ -1321,18 +1389,6 @@ export class HomeComponent {
       });
   });
 
-  public getHireDate(date: Date | undefined): string {
-    if (!date) return 'Sin fecha';
-    const d = new Date(date);
-    return `${d.getDate()} de ${this.getBirthdayMonth(date)}`;
-  }
-
-  public getExitDate(date: Date | string | undefined): string {
-    if (!date) return 'Sin fecha';
-    const d = new Date(date);
-    return `${d.getDate()} de ${this.getBirthdayMonth(d)}`;
-  }
-
   public openMonthHiresExitsDialog(
     monthLabel: string,
     monthIndex: number
@@ -1535,46 +1591,7 @@ export class HomeComponent {
     ];
   });
 
-  public barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: '#18181b',
-        titleColor: '#fbbf24',
-        bodyColor: '#ffffff',
-        borderColor: 'rgba(251, 191, 36, 0.5)',
-        borderWidth: 1,
-      },
-    },
-    scales: {
-      x: {
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.7)',
-          font: {
-            size: 12,
-          },
-        },
-        grid: {
-          color: 'rgba(251, 191, 36, 0.1)',
-        },
-      },
-      y: {
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.7)',
-          font: {
-            size: 12,
-          },
-        },
-        grid: {
-          color: 'rgba(251, 191, 36, 0.1)',
-        },
-      },
-    },
-  };
+  public barChartOptions = importedBarChartOptions;
 
   // Computed signals for gender percentages
   public malePercentage = computed(() => {
@@ -1622,39 +1639,7 @@ export class HomeComponent {
    * Chart.js options for semicircular donut chart
    * Configured to show only top half (semicircle)
    */
-  public genderChartOptions: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '85%',
-    rotation: -90,
-    circumference: 180,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: true,
-        backgroundColor: '#18181b',
-        titleColor: '#fbbf24',
-        bodyColor: '#ffffff',
-        borderColor: 'rgba(107, 114, 128, 0.3)',
-        borderWidth: 1,
-        callbacks: {
-          label: (context: any) => {
-            const label = context.label || '';
-            const value = context.parsed || 0;
-            const total = context.dataset.data.reduce(
-              (a: number, b: number) => a + b,
-              0
-            );
-            const percentage =
-              total > 0 ? Math.round((value / total) * 100) : 0;
-            return `${label}: ${value} (${percentage}%)`;
-          },
-        },
-      },
-    },
-  };
+  public genderChartOptions = importedGenderChartOptions;
 
   /**
    * Chart.js data for hires/exits distribution donut chart
@@ -1686,39 +1671,7 @@ export class HomeComponent {
    * Chart.js options for semicircular donut chart (hires/exits)
    * Configured to show only top half (semicircle)
    */
-  public hiresExitsChartOptions: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '85%',
-    rotation: -90,
-    circumference: 180,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: true,
-        backgroundColor: '#18181b',
-        titleColor: '#fbbf24',
-        bodyColor: '#ffffff',
-        borderColor: 'rgba(107, 114, 128, 0.3)',
-        borderWidth: 1,
-        callbacks: {
-          label: (context: any) => {
-            const label = context.label || '';
-            const value = context.parsed || 0;
-            const total = context.dataset.data.reduce(
-              (a: number, b: number) => a + b,
-              0
-            );
-            const percentage =
-              total > 0 ? Math.round((value / total) * 100) : 0;
-            return `${label}: ${value} (${percentage}%)`;
-          },
-        },
-      },
-    },
-  };
+  public hiresExitsChartOptions = importedHiresExitsChartOptions;
 
   // Helper methods for gender data
   public getGenderCount(gender: 'M' | 'F'): number {
@@ -2215,61 +2168,19 @@ export class HomeComponent {
     this.topAbsencesDialogVisible.set(true);
   }
 
-  // Helper function to calculate time difference in minutes
-  // Returns positive minutes if actualTime is later than scheduledTime (person is late)
-  // Returns negative minutes if actualTime is earlier than scheduledTime (person is early)
-  private calcTimeDiff(actualTime: string, scheduledTime: string): number {
-    if (!actualTime || !scheduledTime) return 0;
-    const actual = new Date();
-    const scheduled = new Date();
-    const actualParts = actualTime.split(':');
-    const scheduledParts = scheduledTime.split(':');
-
-    if (actualParts.length < 2 || scheduledParts.length < 2) return 0;
-
-    actual.setHours(+actualParts[0], +actualParts[1], 0, 0);
-    scheduled.setHours(+scheduledParts[0], +scheduledParts[1], 0, 0);
-
-    // Return actual - scheduled: positive if late, negative if early
-    return differenceInMinutes(actual, scheduled);
-  }
+  private calcTimeDiff = calcTimeDiff;
 
   public getScheduleComplianceIndex(): number {
-    // Placeholder: índice de cumplimiento de horario
-    // En una implementación real, esto se calcularía basado en:
-    // - Registros de entrada/salida vs horarios programados
-    // - Tardanzas
-    const lates = this.getMonthlyLates();
-    const totalEmployees = this.state.headCount();
-
-    if (totalEmployees === 0) return 100;
-
-    // Cálculo aproximado: 100% menos tardanzas
-    const latesPercentage = (lates / totalEmployees) * 100;
-    const compliance = Math.max(0, 100 - latesPercentage);
-    return Math.round(compliance);
+    return calcScheduleComplianceIndex(this.getMonthlyLates(), this.state.headCount());
   }
 
   public getWorkClimateIndex(): number {
-    // Placeholder: índice de clima laboral
-    // En una implementación real, esto vendría de encuestas de satisfacción
-    // Por ahora, calculamos un índice basado en otros KPIs:
-    const retention = this.state.retentionRate();
-    const exits = this.monthlyHiresAndExits().exits;
-    const totalEmployees = this.state.headCount();
-    const absenteeism = totalEmployees > 0 ? (exits / totalEmployees) * 100 : 0;
-    const turnover = this.state.monthlyTurnover();
-
-    // Índice aproximado basado en retención alta, ausentismo bajo y rotación baja
-    const baseIndex = retention;
-    const absenteeismPenalty = absenteeism * 0.5; // Penalización por ausentismo
-    const turnoverPenalty = turnover * 0.3; // Penalización por rotación
-
-    const climateIndex = Math.max(
-      0,
-      Math.min(100, baseIndex - absenteeismPenalty - turnoverPenalty)
+    return calcWorkClimateIndex(
+      this.state.retentionRate(),
+      this.monthlyHiresAndExits().exits,
+      this.state.headCount(),
+      this.state.monthlyTurnover(),
     );
-    return Math.round(climateIndex);
   }
 
   public getAgeCount(range: string): number {
@@ -2291,117 +2202,9 @@ export class HomeComponent {
     return Math.round((distribution[type] / total) * 100);
   }
 
-  public currentMonth = computed(() => {
-    const months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
-    ];
-    return months[new Date().getMonth()];
-  });
+  public currentMonth = computed(() => getCurrentMonthName());
 
-  public getBirthdayDay(date: Date | undefined): string {
-    if (!date) return '??';
-    return new Date(date).getDate().toString();
-  }
-
-  public getBirthdayMonth(date: Date | undefined): string {
-    if (!date) return '???';
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-    return months[new Date(date).getMonth()];
-  }
-
-  public hasBirthdayPassed(date: Date | undefined): boolean {
-    if (!date) return false;
-    const today = new Date();
-    const birthDate = new Date(date);
-    return (
-      birthDate.getDate() < today.getDate() &&
-      birthDate.getMonth() === today.getMonth()
-    );
-  }
-
-  public isBirthdayToday(date: Date | undefined): boolean {
-    if (!date) return false;
-    const today = new Date();
-    const birthDate = new Date(date);
-    return (
-      birthDate.getDate() === today.getDate() &&
-      birthDate.getMonth() === today.getMonth()
-    );
-  }
-
-  public getSortedBirthdays() {
-    const birthdays = [...this.state.birthDates()];
-    const today = new Date();
-    const currentDay = today.getDate();
-
-    return birthdays.sort((a, b) => {
-      if (!a.birth_date || !b.birth_date) return 0;
-
-      const dayA = new Date(a.birth_date).getDate();
-      const dayB = new Date(b.birth_date).getDate();
-
-      // Los de hoy primero
-      const isTodayA = dayA === currentDay;
-      const isTodayB = dayB === currentDay;
-      if (isTodayA && !isTodayB) return -1;
-      if (!isTodayA && isTodayB) return 1;
-
-      // Luego los que vienen (día mayor al actual)
-      const isUpcomingA = dayA > currentDay;
-      const isUpcomingB = dayB > currentDay;
-      if (isUpcomingA && !isUpcomingB) return -1;
-      if (!isUpcomingA && isUpcomingB) return 1;
-
-      // Dentro de cada grupo, ordenar por día
-      return dayA - dayB;
-    });
-  }
-
-  private generateCorporateColors(count: number): {
-    backgroundColor: string[];
-    borderColor: string[];
-  } {
-    const baseColors = [
-      { bg: 'rgba(251, 191, 36, 0.2)', border: 'rgba(251, 191, 36, 0.8)' },
-      { bg: 'rgba(251, 191, 36, 0.15)', border: 'rgba(251, 191, 36, 0.7)' },
-      { bg: 'rgba(251, 191, 36, 0.1)', border: 'rgba(251, 191, 36, 0.6)' },
-    ];
-
-    const backgroundColor: string[] = [];
-    const borderColor: string[] = [];
-
-    for (let i = 0; i < count; i++) {
-      const color = baseColors[i % baseColors.length];
-      backgroundColor.push(color.bg);
-      borderColor.push(color.border);
-    }
-
-    return { backgroundColor, borderColor };
-  }
+  private generateCorporateColors = generateCorporateColors;
 
   // Late details dialog state
   public lateDialogVisible = signal(false);
@@ -2434,64 +2237,5 @@ export class HomeComponent {
   // Top Absences Dialog
   public topAbsencesDialogVisible = signal(false);
 
-  // Helper to get month name in Spanish (mes 0-11)
-  private getMonthNameSpanish(monthIndex: number): string {
-    const months = [
-      'Ene',
-      'Feb',
-      'Mar',
-      'Abr',
-      'May',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dic',
-    ];
-    return months[monthIndex] ?? '';
-  }
-
-  public onLatesChartClick(evt: any) {
-    // Chart.js click event structure: { event: MouseEvent, active: Array }
-    const activePoints = evt?.active;
-    if (!activePoints || activePoints.length === 0) {
-      return;
-    }
-
-    const firstPoint = activePoints[0];
-    const idx = firstPoint?.index;
-
-    if (idx == null || idx < 0) {
-      return;
-    }
-
-    const data: any = this.latesDailyChartData();
-
-    if (!data || !data.datasets || data.datasets.length === 0) {
-      return;
-    }
-
-    const ds: any = data.datasets[0];
-    const labels: any[] = data.labels || [];
-    const details = (ds?.customDetails?.[idx] ?? []) as any[];
-
-    // Sort details by minutesLate descending (highest first)
-    const sortedDetails = [...details].sort((a, b) => {
-      const aMinutes = a.minutesLate ?? 0;
-      const bMinutes = b.minutesLate ?? 0;
-      return bMinutes - aMinutes; // Descending order
-    });
-
-    // Format title: "Día 1 Nov"
-    const dayNum = idx + 1;
-    const { month } = this.getPanamaNowParts();
-    const monthName = this.getMonthNameSpanish(month - 1);
-    const title = `Tardanzas - Día ${dayNum} ${monthName}`;
-
-    this.lateDialogTitle.set(title);
-    this.lateDialogDetails.set(sortedDetails);
-    this.lateDialogVisible.set(true);
-  }
+  private getMonthNameSpanish = getMonthNameSpanish;
 }

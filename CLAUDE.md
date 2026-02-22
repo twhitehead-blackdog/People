@@ -166,6 +166,46 @@ const select = `*,creator:employees!timelogs_created_by_fkey(id,first_name)`;
 - Do not modify overtime/payroll calculation logic without extreme care
 - Do not mix refactoring with feature work
 
+## Frontend Module/Route Registration (OBLIGATORIO)
+
+**Cada vez que se cree un nuevo módulo o submódulo (ruta nueva), se DEBE registrar en TODOS estos lugares:**
+
+### Checklist para nuevos módulos/submódulos
+
+1. **SYSTEM_MODULES** (`src/app/dashboard/pt-permissions/module-permissions.types.ts`)
+   - Agregar el submódulo con `id`, `label`, `description`, `icon`, `route`
+   - El `label` DEBE coincidir con el texto que se muestra en la navegación
+
+2. **Route con guard** (`src/app/dashboard/dashboard.routes.ts` o archivo de rutas correspondiente)
+   - Agregar `canActivate: [modulePermissionGuard('moduleId', 'subModuleId')]`
+   - Las rutas hijas de `loadChildren` TAMBIÉN deben tener guards individuales
+
+3. **Navegación** (componente padre: `admin.component.ts`, `time-management.component.ts`, etc.)
+   - Agregar link en el template (desktop Y móvil)
+   - Envolver con `@if (subs().submodule_id)` para respetar permisos
+   - Agregar al computed `subs` correspondiente (`adminSubs`, `hrSubs`, `tmSubs`, etc.)
+
+4. **Dashboard access** (`src/app/stores/dashboard.store.ts`)
+   - Si el nuevo módulo es un módulo principal (no submódulo de admin), agregarlo a `hasFrontendDashboardAccess()`
+
+### Ejemplo completo
+
+```typescript
+// 1. module-permissions.types.ts → SYSTEM_MODULES
+{ id: 'mi_feature', label: 'Mi Feature', description: '...', icon: 'pi pi-star', route: 'mi-feature' }
+
+// 2. dashboard.routes.ts
+{ path: 'mi-feature', canActivate: [modulePermissionGuard('admin', 'mi_feature')], loadComponent: ... }
+
+// 3. admin.component.ts → template
+@if (adminSubs().mi_feature) { <a routerLink="mi-feature">...</a> }
+
+// 3. admin.component.ts → computed
+mi_feature: this.permissionsService.canAccessSubModule('admin', 'mi_feature'),
+```
+
+**Si falta cualquiera de estos pasos, el módulo no será controlable por permisos o no será accesible desde la navegación.**
+
 ## File Upload Pattern (Supabase Storage)
 
 Cuando un formulario necesita subir archivos a Supabase Storage, seguir este patrón exacto:

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -15,6 +16,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
+import { DeviceService } from '../../services/device.service';
 
 @Component({
   selector: 'pt-employee-portal-documents',
@@ -33,6 +35,8 @@ import { TooltipModule } from 'primeng/tooltip';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center gap-2">
@@ -322,9 +326,195 @@ import { TooltipModule } from 'primeng/tooltip';
       </div>
       }
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">
+            {{ (documentRequests?.length ?? 0) > 0 ? 'Mis Solicitudes' : 'Solicitar Documentos' }}
+          </h2>
+          <p class="text-xs text-gray-400 m-0">
+            {{ (documentRequests?.length ?? 0) > 0
+              ? 'Visualiza tus solicitudes'
+              : 'Cartas de trabajo u otros documentos' }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (requestsLoading) {
+      <div class="flex justify-center items-center py-12">
+        <div class="flex flex-col items-center gap-3">
+          <i class="pi pi-spin pi-spinner text-3xl text-green-400"></i>
+          <p class="text-gray-400 text-sm">Cargando solicitudes...</p>
+        </div>
+      </div>
+      } @else if ((documentRequests?.length ?? 0) > 0) {
+      <!-- List View - Card style for mobile -->
+      <div class="space-y-3">
+        @for (request of documentRequests; track request.id) {
+        <div
+          class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30"
+          [ngClass]="{
+            'border-yellow-500/30': request.status === 'pending',
+            'border-green-500/30': request.status === 'approved',
+            'border-red-500/30': request.status === 'rejected'
+          }"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-white">
+              {{ getDocumentTypeLabel(request.document_type) }}
+            </span>
+            <span
+              class="px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1"
+              [class.text-yellow-300]="request.status === 'pending'"
+              [class.text-green-300]="request.status === 'approved'"
+              [class.text-red-300]="request.status === 'rejected'"
+              [ngClass]="{
+                'bg-yellow-500/20': request.status === 'pending',
+                'bg-green-500/20': request.status === 'approved',
+                'bg-red-500/20': request.status === 'rejected'
+              }"
+            >
+              @if (request.status === 'approved') {
+              <i class="pi pi-check-circle text-xs"></i>
+              } @else if (request.status === 'rejected') {
+              <i class="pi pi-times-circle text-xs"></i>
+              } @else {
+              <i class="pi pi-hourglass text-xs"></i>
+              }
+              {{ request.status === 'pending' ? 'Pendiente' : request.status === 'approved' ? 'Aprobado' : 'Rechazado' }}
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">
+            Solicitado el {{ request.created_at | date : 'dd/MM/yyyy' }}
+          </p>
+          <div class="grid grid-cols-1 gap-2">
+            @if (request.required_date) {
+            <div class="bg-neutral-900/50 rounded-lg p-2">
+              <span class="text-xs text-gray-400">Fecha Requerida</span>
+              <p class="text-sm text-white font-medium m-0">{{ request.required_date | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+            </div>
+            }
+            @if (request.reason) {
+            <div class="bg-neutral-900/50 rounded-lg p-2">
+              <span class="text-xs text-gray-400">Dirigido a</span>
+              <p class="text-sm text-gray-300 m-0">{{ request.reason }}</p>
+            </div>
+            }
+          </div>
+          @if (request.rejection_comment) {
+          <div class="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+            <p class="text-xs text-red-300 font-semibold mb-1">Motivo del Rechazo</p>
+            <p class="text-xs text-red-200 m-0">{{ request.rejection_comment }}</p>
+          </div>
+          }
+          @if (request.status === 'approved' && request.document_url) {
+          <div class="mt-2">
+            <p-button
+              label="Descargar"
+              icon="pi pi-download"
+              severity="success"
+              size="small"
+              [outlined]="true"
+              (onClick)="downloadDocument(request.document_url)"
+              styleClass="w-full"
+            />
+          </div>
+          }
+        </div>
+        }
+      </div>
+      } @else {
+      <!-- Create Form View - Mobile -->
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Tipo de Documento -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-file text-green-400"></i>
+            Tipo de Documento
+          </h3>
+          <p-select
+            [ngModel]="documentType"
+            (ngModelChange)="documentTypeChange.emit($event)"
+            [options]="documentTypeOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Tipo de documento"
+            styleClass="w-full"
+            appendTo="body"
+          />
+          @if (documentType === 'other') {
+          <div class="mt-2">
+            <textarea
+              pInputTextarea
+              [ngModel]="customDocumentType"
+              (ngModelChange)="customDocumentTypeChange.emit($event)"
+              placeholder="Especifica el tipo de documento"
+              rows="2"
+              class="w-full"
+            ></textarea>
+          </div>
+          }
+        </div>
+
+        <!-- Detalles -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-file-edit text-green-400"></i>
+            Detalles de la Solicitud
+          </h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Dirigido a</label>
+              <textarea
+                pInputTextarea
+                [ngModel]="documentReason"
+                (ngModelChange)="documentReasonChange.emit($event)"
+                placeholder="Para quién es dirigido este documento"
+                rows="3"
+                class="w-full"
+              ></textarea>
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha requerida</label>
+              <p-datepicker
+                [ngModel]="documentRequiredDate"
+                (ngModelChange)="documentRequiredDateChange.emit($event)"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha requerida"
+                [minDate]="today"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Enviar Solicitud"
+          icon="pi pi-check"
+          [disabled]="!canSubmit"
+          [loading]="submitting"
+          (onClick)="submitDocument.emit()"
+          severity="success"
+          styleClass="w-full min-h-[44px]"
+        />
+      </div>
+      }
+    </div>
+    }
   `,
 })
 export class EmployeePortalDocumentsComponent {
+  protected device = inject(DeviceService);
   @Input() documentTypeOptions: Array<{ label: string; value: string }> = [];
   @Input() documentType = 'work_letter';
   @Output() documentTypeChange = new EventEmitter<string>();

@@ -65,14 +65,6 @@ import { invalidateEmployeeCache } from '../guards/employee-portal.guard';
           <div class="flex flex-col gap-3">
             <div class="flex items-center gap-2">
               <p-toggleswitch
-                formControlName="dashboard_access"
-                inputId="dashboard_access"
-              />
-              <label for="dashboard_access">Acceso al Dashboard</label>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <p-toggleswitch
                 formControlName="admin"
                 inputId="admin"
               />
@@ -150,7 +142,6 @@ export class PositionsFormComponent implements OnInit {
     admin: new FormControl(false, { nonNullable: true }),
     schedule_admin: new FormControl(false, { nonNullable: true }),
     schedule_approver: new FormControl(false, { nonNullable: true }),
-    dashboard_access: new FormControl(false, { nonNullable: true }),
     default_view: new FormControl('', { nonNullable: true }),
   });
 
@@ -200,7 +191,6 @@ export class PositionsFormComponent implements OnInit {
         admin: position.admin || false,
         schedule_admin: position.schedule_admin || false,
         schedule_approver: position.schedule_approver || false,
-        dashboard_access: position.dashboard_access || false,
         default_view: position.default_view || '',
       });
     }

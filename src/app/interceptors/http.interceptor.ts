@@ -36,7 +36,6 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/departments',
   '/rest/v1/schedules',
   '/rest/v1/terminations',
-  '/rest/v1/employee_terminations',
   '/rest/v1/timelogs',
   '/rest/v1/employee_schedules',
   '/rest/v1/attendance_sheets',
@@ -66,6 +65,14 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/devices',
   '/rest/v1/device_assignments',
   '/rest/v1/org_structure',
+  '/rest/v1/branch_daily_pet_count',
+  '/rest/v1/surveys',
+  '/rest/v1/survey_questions',
+  '/rest/v1/survey_question_options',
+  '/rest/v1/survey_assignments',
+  '/rest/v1/survey_responses',
+  '/rest/v1/survey_response_answers',
+  '/rest/v1/work_permits',
 ]);
 // Prefijos que no se pueden resolver con Set (rutas parciales)
 const SERVICE_ROLE_PREFIXES = ['/rest/v1/rpc/', '/storage/v1/object/'];
@@ -123,9 +130,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       .set('apikey', supabaseKey)
       .set('Authorization', `Bearer ${supabaseKey}`);
 
-    // No agregar Content-Type para Storage API (dejar que el navegador lo establezca con boundary)
-    // No agregar Prefer para Storage API
-    if (!req.url.includes('/storage/v1/')) {
+    // No agregar Content-Type/Prefer para Storage API ni Edge Functions
+    if (!req.url.includes('/storage/v1/') && !req.url.includes('/functions/v1/')) {
       // Respetar Prefer si ya viene seteado (ej: upsert requiere resolution=merge-duplicates)
       const existingPrefer = req.headers.get('Prefer');
       const preferValue =

@@ -25,9 +25,9 @@ export const EmployeesStore = signalStore(
   withCustomEntities<Employee>({
     name: 'employees',
     // Query base - se adaptará automáticamente para naz_* cuando corresponda
-    // Nota: naz_positions no tiene dashboard_access ni default_view, así que no los incluimos
+    // Nota: naz_positions no tiene default_view, así que no lo incluimos
     query:
-      'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,uniform_size,end_date,email,phone_number,is_active,company_id,branch_id,department_id,position_id,created_at,branch:branches(id,name,short_name),department:departments(id,name),position:positions(id,name,admin,schedule_admin,schedule_approver,dashboard_access,default_view),work_email,has_portal_access,account_approved,frontend_permissions_override,legacy_permissions_override,code_uri',
+      'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,uniform_size,end_date,email,phone_number,is_active,company_id,branch_id,department_id,position_id,created_at,branch:branches(id,name,short_name),department:departments(id,name),position:positions(id,name,admin,schedule_admin,schedule_approver,default_view),work_email,has_portal_access,account_approved,frontend_permissions_override,legacy_permissions_override,code_uri,hr_pin',
     detailsQuery:
       '*, branch:branches(*), department:departments(*), position:positions(*)',
   }),
@@ -190,7 +190,7 @@ export const EmployeesStore = signalStore(
     ensureEmployeeLoaded: (employeeId: string) => {
       // Query completa con todas las relaciones necesarias
       const query =
-        'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,phone_number,work_phone_number,is_active,uniform_size,company_id,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,code_uri,branch:branches(id,name,short_name),department:departments(id,name),position:positions(id,name,admin,schedule_admin,schedule_approver,dashboard_access,default_view),address,emergency_contact_name,emergency_contact_phone,emergency_contact_relationship,work_email,has_portal_access,account_approved,total_lunch_exceeded_minutes,frontend_permissions_override,legacy_permissions_override';
+        'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,phone_number,work_phone_number,is_active,uniform_size,company_id,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,code_uri,branch:branches(id,name,short_name),department:departments(id,name),position:positions(id,name,admin,schedule_admin,schedule_approver,default_view),address,emergency_contact_name,emergency_contact_phone,emergency_contact_relationship,work_email,has_portal_access,account_approved,total_lunch_exceeded_minutes,frontend_permissions_override,legacy_permissions_override';
 
       // NO filtrar por company_id para asegurar que se cargue el empleado
       const params: any = {

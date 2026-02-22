@@ -36,7 +36,6 @@ import { v4 } from 'uuid';
 import { Bank, Employee, UniformSize } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
-import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import {
   generateNextEmployeeNumber,
@@ -981,7 +980,6 @@ export class EmployeeFormComponent implements OnInit {
   });
 
   private confirmationService = inject(ConfirmationService);
-  private wassengerService = inject(WassengerService);
   public organizationService = inject(OrganizationService);
   currentSalary = toSignal(
     this.form.get('monthly_salary')!.valueChanges.pipe(debounceTime(500)),
@@ -1456,43 +1454,8 @@ export class EmployeeFormComponent implements OnInit {
         // Recargar la lista de empleados
         this.store.employees.reloadItems();
 
-        // Después de crear, preguntar si quiere invitar por Wassenger
-        const phoneNumber = this.combinePhoneNumber('phone_number');
-        if (phoneNumber && dataToSave.work_email) {
-          this.confirmationService.confirm({
-            message: `¿Deseas enviar una invitación por Wassenger a ${dataToSave.first_name} ${dataToSave.father_name}?`,
-            header: 'Invitación por Wassenger',
-            icon: 'pi pi-comments',
-            acceptLabel: 'Sí, enviar',
-            rejectLabel: 'No, después',
-            accept: () => {
-              const employeeName = `${dataToSave.first_name} ${dataToSave.father_name}`;
-              this.wassengerService
-                .sendEmployeeInvitation(
-                  employeeName,
-                  phoneNumber,
-                  dataToSave.work_email
-                )
-                .then((success) => {
-                  if (success) {
-                    this.message.add({
-                      severity: 'success',
-                      summary: 'Invitación enviada',
-                      detail:
-                        'La invitación se envió correctamente por Wassenger',
-                    });
-                  }
-                });
-            },
-            reject: () => {
-              // Navegar de vuelta a la lista después de rechazar
-              this.router.navigate(['/admin/employees']);
-            },
-          });
-        } else {
-          // Si no hay datos para Wassenger, navegar directamente
-          this.router.navigate(['/admin/employees']);
-        }
+        // Navegar de vuelta a la lista después de crear
+        this.router.navigate(['/admin/employees']);
       },
       error: (error) => {
         console.error('Error al crear empleado:', error);

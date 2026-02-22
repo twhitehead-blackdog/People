@@ -26,7 +26,6 @@ describe('PermissionsService', () => {
             admin: true,
             schedule_admin: true,
             schedule_approver: true,
-            dashboard_access: true,
           },
           branch: { name: 'Branch 1' },
         },
@@ -43,7 +42,6 @@ describe('PermissionsService', () => {
             admin: false,
             schedule_admin: false,
             schedule_approver: false,
-            dashboard_access: false,
           },
         },
       ]),
@@ -99,10 +97,10 @@ describe('PermissionsService', () => {
     expect(empProfile?.userType).toBe('employee');
   });
 
-  it('should delegate updatePositionPermissions to PositionsStore', async () => {
+  it('should have deprecated updatePositionPermissions that does nothing', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
     await service.updatePositionPermissions('pos1', { admin: false });
-    expect(mockPositionsStore.editItem).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'pos1', admin: false })
-    );
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 });

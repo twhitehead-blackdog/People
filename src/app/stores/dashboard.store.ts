@@ -36,7 +36,7 @@ import { SchedulesStore } from './schedules.store';
  */
 function getEmployeePermission(
   employee: Employee | undefined,
-  key: 'admin' | 'schedule_admin' | 'schedule_approver' | 'dashboard_access'
+  key: 'admin' | 'schedule_admin' | 'schedule_approver'
 ): boolean {
   if (!employee) return false;
 
@@ -57,6 +57,29 @@ function getEmployeePermission(
   const position = employee.position;
   if (!position) return false;
   return !!(position as any)[key];
+}
+
+/**
+ * Helper: checks if employee has any dashboard-level frontend module enabled.
+ * Avoids importing PermissionsService (circular dependency).
+ */
+function hasFrontendDashboardAccess(employee: Employee | undefined): boolean {
+  if (!employee) return false;
+  const raw = employee.frontend_permissions_override;
+  if (!raw) return false;
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const modules = parsed?.modules as Record<string, { enabled?: boolean }> | undefined;
+    if (!modules) return false;
+    return !!(
+      modules['admin']?.enabled ||
+      modules['payroll']?.enabled ||
+      modules['hr']?.enabled ||
+      modules['performance']?.enabled
+    );
+  } catch {
+    return false;
+  }
 }
 
 type State = {
@@ -152,11 +175,11 @@ export const DashboardStore = signalStore(
 
         // Derivar de flags: si ningún permiso está activo, solo tiene acceso al portal
         const isAdminPerm = getEmployeePermission(employee, 'admin');
-        const hasDashboard = getEmployeePermission(employee, 'dashboard_access');
         const hasScheduleAdmin = getEmployeePermission(employee, 'schedule_admin');
         const hasScheduleApprover = getEmployeePermission(employee, 'schedule_approver');
+        const hasFrontendAccess = hasFrontendDashboardAccess(employee);
 
-        return !isAdminPerm && !hasDashboard && !hasScheduleAdmin && !hasScheduleApprover;
+        return !isAdminPerm && !hasFrontendAccess && !hasScheduleAdmin && !hasScheduleApprover;
       });
       const isScheduleAdmin = computed(
         () => getEmployeePermission(currentEmployee(), 'schedule_admin')
@@ -180,8 +203,10 @@ export const DashboardStore = signalStore(
 
       const hasDashboardAccess = computed(() => {
         const employee = currentEmployee();
-        // Usar legacy_permissions_override > position fallback
-        return getEmployeePermission(employee, 'dashboard_access');
+        // Admin siempre tiene acceso al dashboard
+        if (getEmployeePermission(employee, 'admin')) return true;
+        // Derivar de frontend_permissions_override
+        return hasFrontendDashboardAccess(employee);
       });
 
       const isScheduleApprover = computed(() => {

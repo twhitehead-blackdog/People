@@ -43,6 +43,8 @@ type CompensatoryFormState = TimeRange & {
   selectedEmployeeId: string | null;
 };
 
+export type NotificationFilter = 'all' | 'unread' | 'requests' | 'approvals';
+
 type EmployeePortalState = {
   activeSection: string;
   dateRange: Date[];
@@ -56,6 +58,7 @@ type EmployeePortalState = {
   documentForm: DocumentFormState;
   vacationForm: VacationFormState;
   compensatoryForm: CompensatoryFormState;
+  notificationFilter: NotificationFilter;
 };
 
 const initialDateRange: Date[] = [
@@ -103,6 +106,7 @@ const initialState: EmployeePortalState = {
     compensatoryFile: null,
     selectedEmployeeId: null,
   },
+  notificationFilter: 'all' as NotificationFilter,
 };
 
 const roundToHour = (date: Date | null): Date | null => {
@@ -403,6 +407,9 @@ export const EmployeePortalStore = signalStore(
           selectedEmployeeId: value,
         },
       });
+    },
+    setNotificationFilter(filter: NotificationFilter) {
+      patchState(state, { notificationFilter: filter });
     },
   }))
 );

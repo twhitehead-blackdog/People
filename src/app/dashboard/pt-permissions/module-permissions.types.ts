@@ -26,11 +26,21 @@ export interface ModuleDefinition {
 
 export const SYSTEM_MODULES: ModuleDefinition[] = [
   {
+    id: 'home',
+    label: 'Inicio',
+    description: 'Página principal del dashboard',
+    icon: 'pi pi-home',
+    route: '/home',
+    subModules: [
+      { id: 'home_access', label: 'Acceso a Inicio', description: 'Permite ver la página principal del dashboard', icon: 'pi pi-home', route: '' },
+    ],
+  },
+  {
     id: 'admin',
     label: 'Administración',
     description: 'Gestión administrativa del sistema',
     icon: 'pi pi-cog',
-    route: '/dashboard/admin',
+    route: '/admin',
     subModules: [
       { id: 'employees', label: 'Empleados', description: 'Lista y gestión de empleados', icon: 'pi pi-users', route: 'employees' },
       { id: 'organigrama', label: 'Organigrama', description: 'Vista jerárquica de la organización', icon: 'pi pi-sitemap', route: 'organigrama' },
@@ -43,7 +53,8 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'permissions', label: 'Permisos', description: 'Control de permisos por cargo/usuario', icon: 'pi pi-lock', route: 'permissions' },
       { id: 'complaints', label: 'Quejas y Sugerencias', description: 'Buzón de quejas anónimas', icon: 'pi pi-inbox', route: 'complaints-inbox' },
       { id: 'job_applications', label: 'Postulaciones', description: 'Gestión de postulaciones de empleo', icon: 'pi pi-file-edit', route: 'job-applications' },
-      { id: 'audit_tasks', label: 'Auditoría de Tareas', description: 'Seguimiento de tareas de auditoría', icon: 'pi pi-check-square', route: 'audit-tasks' },
+      { id: 'audit_tasks', label: 'Control de Tareas', description: 'Seguimiento y control de tareas de auditoría', icon: 'pi pi-check-square', route: 'audit-tasks' },
+      { id: 'device_inventory', label: 'Inventario de Dispositivos', description: 'Gestión de dispositivos y equipos', icon: 'pi pi-mobile', route: 'device-inventory' },
     ],
   },
   {
@@ -51,7 +62,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Gestión de Tiempo',
     description: 'Control de asistencia, horarios y turnos',
     icon: 'pi pi-clock',
-    route: '/dashboard/time-management',
+    route: '/time-management',
     subModules: [
       { id: 'timelogs', label: 'Registros de Tiempo', description: 'Marcaciones de entrada/salida', icon: 'pi pi-clock', route: 'timelogs' },
       { id: 'timetables', label: 'Horarios', description: 'Gestión de horarios de empleados', icon: 'pi pi-calendar', route: 'timetables' },
@@ -66,7 +77,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Nómina',
     description: 'Gestión de pagos, planillas y acreedores',
     icon: 'pi pi-money-bill',
-    route: '/dashboard/payroll',
+    route: '/payroll',
     subModules: [
       { id: 'payrolls', label: 'Planillas', description: 'Gestión de planillas de pago', icon: 'pi pi-list', route: 'payrolls' },
       { id: 'creditors', label: 'Acreedores', description: 'Gestión de acreedores', icon: 'pi pi-users', route: 'creditors' },
@@ -78,10 +89,11 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Recursos Humanos',
     description: 'Módulos específicos de RRHH',
     icon: 'pi pi-briefcase',
-    route: '/dashboard/admin/hr',
+    route: '/admin/hr',
     subModules: [
       { id: 'hr_time_dashboard', label: 'Dashboard de Tiempo', description: 'Panel de control de asistencia', icon: 'pi pi-chart-bar', route: 'time-dashboard' },
       { id: 'hr_disabilities', label: 'Incapacidades', description: 'Gestión de incapacidades', icon: 'pi pi-file-o', route: 'disabilities' },
+      { id: 'hr_surveys', label: 'Encuestas', description: 'Gestión de encuestas de RRHH', icon: 'pi pi-chart-bar', route: 'surveys' },
     ],
   },
   {
@@ -89,7 +101,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Evaluación 360°',
     description: 'Evaluación de desempeño',
     icon: 'pi pi-star',
-    route: '/dashboard/admin/performance',
+    route: '/admin/performance',
     subModules: [
       { id: 'perf_dashboard', label: 'Dashboard', description: 'Resumen de evaluaciones', icon: 'pi pi-chart-pie', route: '' },
       { id: 'perf_templates', label: 'Plantillas', description: 'Plantillas de evaluación', icon: 'pi pi-copy', route: 'templates' },
@@ -102,7 +114,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Gestión de Sucursal',
     description: 'Panel de gestión para gerentes de sucursal',
     icon: 'pi pi-shop',
-    route: '/dashboard/branch-manager',
+    route: '/branch-manager',
     subModules: [
       { id: 'bm_dashboard', label: 'Dashboard', description: 'Panel principal de sucursal', icon: 'pi pi-home', route: '' },
       { id: 'bm_gestiones', label: 'Gestiones', description: 'Gestiones de sucursal', icon: 'pi pi-tasks', route: 'gestiones' },
@@ -113,7 +125,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Portal del Empleado',
     description: 'Acceso al portal para empleados',
     icon: 'pi pi-user',
-    route: '/dashboard/my-portal',
+    route: '/my-portal',
     subModules: [
       { id: 'portal_access', label: 'Acceso al Portal', description: 'Permite acceder al portal del empleado', icon: 'pi pi-sign-in', route: '' },
     ],
@@ -123,7 +135,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Reloj Checador',
     description: 'Acceso al sistema de marcado de asistencia',
     icon: 'pi pi-stopwatch',
-    route: '/dashboard/timeclock',
+    route: '/timeclock',
     subModules: [
       { id: 'timeclock_access', label: 'Marcar Asistencia', description: 'Permite marcar entrada y salida', icon: 'pi pi-clock', route: '' },
     ],

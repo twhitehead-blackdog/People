@@ -4,6 +4,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { readFileSync } from 'fs';
 import helmet from 'helmet';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import nodemailer from 'nodemailer';
 import path from 'path';
 
@@ -73,10 +74,10 @@ export function app(): express.Express {
     crossOriginEmbedderPolicy: false, // Permitir carga de recursos externos
   }));
 
-  // Rate limiting — prevenir abuso y DDoS (solo endpoints sensibles)
+  // Rate limiting — prevenir abuso y DDoS
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 1000, // máximo 1000 requests por IP cada 15 min
+    max: 300, // máximo 300 requests por IP cada 15 min
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later' },
@@ -137,8 +138,14 @@ export function app(): express.Express {
   });
 
   // Middleware de autenticación para endpoints protegidos
-  // Verifica que el request tenga un JWT válido (Supabase o Auth0)
-  const requireAuth: express.RequestHandler = (req, res, next) => {
+  // Verifica firma JWT contra JWKS de Auth0 + valida expiración y audience
+  const auth0Domain = process.env['ENV_AUTH0_DOMAIN'];
+  const auth0Audience = process.env['ENV_AUTH0_AUDIENCE'];
+  const JWKS = auth0Domain
+    ? createRemoteJWKSet(new URL(`https://${auth0Domain}/.well-known/jwks.json`))
+    : null;
+
+  const requireAuth: express.RequestHandler = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ error: 'Authorization header required' });
@@ -151,18 +158,32 @@ export function app(): express.Express {
       return;
     }
 
-    // Decodificar JWT para verificar expiración (sin verificación de firma completa)
-    try {
-      const payload = JSON.parse(
-        Buffer.from(token.split('.')[1], 'base64').toString()
-      );
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        res.status(401).json({ error: 'Token expired' });
+    // Verificar firma JWT contra JWKS de Auth0
+    if (JWKS) {
+      try {
+        await jwtVerify(token, JWKS, {
+          issuer: `https://${auth0Domain}/`,
+          audience: auth0Audience || undefined,
+        });
+      } catch (err: any) {
+        const message = err?.code === 'ERR_JWT_EXPIRED' ? 'Token expired' : 'Invalid token';
+        res.status(401).json({ error: message });
         return;
       }
-    } catch {
-      res.status(401).json({ error: 'Invalid token format' });
-      return;
+    } else {
+      // Fallback: si Auth0 no está configurado, solo validar formato y expiración
+      try {
+        const payload = JSON.parse(
+          Buffer.from(token.split('.')[1], 'base64').toString()
+        );
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          res.status(401).json({ error: 'Token expired' });
+          return;
+        }
+      } catch {
+        res.status(401).json({ error: 'Invalid token format' });
+        return;
+      }
     }
 
     next();
@@ -170,7 +191,6 @@ export function app(): express.Express {
 
   // Aplicar auth a endpoints sensibles
   server.use('/api/odoo', requireAuth);
-  server.use('/api/wassenger', requireAuth);
   server.use('/api/email', requireAuth);
 
   /**
@@ -269,6 +289,7 @@ export function app(): express.Express {
         'amount_total',
         'amount_untaxed',
         'user_id',
+        'warehouse_id',
         // Campos del módulo sale_order_comanda_mascotas
         'nombres_mascotas',
         'count_peluqueria',
@@ -301,86 +322,6 @@ export function app(): express.Express {
       return res.status(500).json({
         error: 'Error al obtener órdenes de Odoo',
         message: error?.message || 'Error desconocido',
-      });
-    }
-  });
-
-  // Endpoint proxy para Wassenger (evita problemas de CORS)
-  server.post('/api/wassenger/send-message', async (req, res) => {
-    try {
-      const { phoneNumber, message, apiKey } = req.body;
-
-      if (!phoneNumber || !message || !apiKey) {
-        return res.status(400).json({
-          error: 'Missing required fields: phoneNumber, message, apiKey',
-        });
-      }
-
-      // Formatear número de teléfono
-      const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
-
-      // Hacer solicitud a Wassenger desde el servidor (sin problemas de CORS)
-      const wassengerResponse = await fetch(
-        'https://api.wassenger.com/v1/messages',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone: cleanPhone,
-            message: message,
-          }),
-          signal: AbortSignal.timeout(15000),
-        }
-      );
-
-      let responseData: any;
-      const contentType = wassengerResponse.headers.get('content-type');
-
-      try {
-        // Leer el body como texto primero
-        const textData = await wassengerResponse.text();
-
-        if (
-          contentType &&
-          contentType.includes('application/json') &&
-          textData
-        ) {
-          try {
-            responseData = JSON.parse(textData);
-          } catch {
-            responseData = {
-              message: textData || 'Error desconocido de Wassenger',
-            };
-          }
-        } else {
-          responseData = {
-            message: textData || 'Error desconocido de Wassenger',
-          };
-        }
-      } catch (parseError) {
-        // Si no se puede parsear la respuesta, usar un mensaje genérico
-        responseData = { message: 'Error al procesar respuesta de Wassenger' };
-      }
-
-      if (!wassengerResponse.ok) {
-        return res.status(wassengerResponse.status).json({
-          error:
-            responseData.message ||
-            responseData.error ||
-            'Error al enviar mensaje por Wassenger',
-          details: responseData,
-        });
-      }
-
-      return res.json({ success: true, data: responseData });
-    } catch (error: any) {
-      safeLogger.error('Error en proxy de Wassenger', error);
-      return res.status(500).json({
-        error: 'Error interno del servidor',
-        message: error.message,
       });
     }
   });
@@ -1202,7 +1143,6 @@ export function app(): express.Express {
           version: '/api/version',
           clientIp: '/api/client-ip',
           serverTime: '/api/server-time',
-          wassenger: '/api/wassenger/send-message',
           email: '/api/email/send',
           odooSaleOrders: '/api/odoo/sale-orders',
         },

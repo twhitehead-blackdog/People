@@ -14,7 +14,6 @@ type EmployeeWithPosition = {
   position?: {
     name: string;
     admin: boolean;
-    dashboard_access: boolean;
     schedule_admin: boolean;
     schedule_approver: boolean;
     default_view?: string;
@@ -110,7 +109,7 @@ function resolvePermissions(
 
   // Base: flags de la posición
   let isAdmin = pos?.admin === true;
-  let hasDashboardAccess = pos?.dashboard_access === true;
+  let hasDashboardAccess = false;
   let hasTimeManagementAccess =
     pos?.schedule_admin === true || pos?.schedule_approver === true;
   let isScheduleApprover = pos?.schedule_approver === true;
@@ -122,7 +121,6 @@ function resolvePermissions(
         ? JSON.parse(employee.legacy_permissions_override)
         : employee.legacy_permissions_override;
       if (legacy.admin !== undefined) isAdmin = legacy.admin === true;
-      if (legacy.dashboard_access !== undefined) hasDashboardAccess = legacy.dashboard_access === true;
       if (legacy.schedule_admin !== undefined || legacy.schedule_approver !== undefined) {
         hasTimeManagementAccess = legacy.schedule_admin === true || legacy.schedule_approver === true;
       }
@@ -130,7 +128,12 @@ function resolvePermissions(
     } catch (e) { /* ignore parse errors */ }
   }
 
-  // Override: frontend_permissions_override — si tiene módulos activos, no es portal-only
+  // hasDashboardAccess se deriva de admin flag + frontend_permissions_override
+  if (isAdmin) {
+    hasDashboardAccess = true;
+  }
+
+  // frontend_permissions_override determina acceso al dashboard por módulos
   if (employee.frontend_permissions_override) {
     try {
       const frontend = typeof employee.frontend_permissions_override === 'string'
@@ -139,10 +142,10 @@ function resolvePermissions(
       if (frontend?.modules) {
         const modules = frontend.modules as Record<string, { enabled?: boolean }>;
         if (modules['admin']?.enabled) hasDashboardAccess = true;
-        if (modules['time_management']?.enabled) hasTimeManagementAccess = true;
         if (modules['payroll']?.enabled) hasDashboardAccess = true;
         if (modules['hr']?.enabled) hasDashboardAccess = true;
         if (modules['performance']?.enabled) hasDashboardAccess = true;
+        if (modules['time_management']?.enabled) hasTimeManagementAccess = true;
         if (modules['branch_manager']?.enabled) hasTimeManagementAccess = true;
         if (modules['timeclock']?.enabled) hasTimeManagementAccess = true;
       }
@@ -190,28 +193,52 @@ function resolveNavigation(
     state.url === '/' ||
     state.url === '';
 
-  // Admin tiene acceso a todo
-  if (perms.isAdmin) {
-    return true;
-  }
-
-  // Solo admins pueden acceder a /home — gerentes, tienda y demás se redirigen
-  if (!perms.isAdmin && isHomeRoute) {
+  // Home route requiere acceso al dashboard (admin o módulos frontend habilitados)
+  if (isHomeRoute && !perms.hasDashboardAccess) {
     if (perms.hasTimeManagementAccess) {
       return router.createUrlTree(['/time-management']);
     }
-    // Usuarios con dashboard_access pero sin time management → redirigir a su vista por defecto
-    if (employee.position?.default_view && employee.position.default_view !== 'home') {
-      const defaultRouteMap: Record<string, string> = {
-        admin: '/admin',
-        payroll: '/payroll',
-        'time-management': '/time-management',
-        timeclock: '/timeclock',
-        'employee-portal': '/my-portal',
-      };
-      return router.createUrlTree([defaultRouteMap[employee.position.default_view] || '/my-portal']);
-    }
     return router.createUrlTree(['/my-portal']);
+  }
+
+  // Home route: si el módulo 'home' está desactivado en frontend_permissions_override, redirigir
+  if (isHomeRoute && perms.hasDashboardAccess) {
+    let homeDisabled = false;
+    let modules: Record<string, { enabled?: boolean }> = {};
+    if (employee.frontend_permissions_override) {
+      try {
+        const fp = typeof employee.frontend_permissions_override === 'string'
+          ? JSON.parse(employee.frontend_permissions_override)
+          : employee.frontend_permissions_override;
+        modules = (fp?.modules || {}) as Record<string, { enabled?: boolean }>;
+        const homeModule = modules['home'];
+        if (homeModule && homeModule.enabled === false) {
+          homeDisabled = true;
+        }
+      } catch (e) { /* ignore */ }
+    }
+    if (homeDisabled) {
+      // Buscar primer módulo disponible (no home)
+      const fallbackOrder = [
+        { id: 'admin', route: '/admin' },
+        { id: 'time_management', route: '/time-management' },
+        { id: 'payroll', route: '/payroll' },
+        { id: 'branch_manager', route: '/branch-manager' },
+        { id: 'timeclock', route: '/timeclock' },
+      ];
+      for (const fb of fallbackOrder) {
+        if (modules[fb.id]?.enabled) {
+          return router.createUrlTree([fb.route]);
+        }
+      }
+      // Si ningún módulo está habilitado, ir al portal
+      return router.createUrlTree(['/my-portal']);
+    }
+  }
+
+  // Admin tiene acceso a todo (excepto home sin hasDashboardAccess, ya filtrado arriba)
+  if (perms.isAdmin) {
+    return true;
   }
 
   // Si tiene acceso a gestión de tiempo, permitir time-management, timeclock y branch-manager
@@ -308,10 +335,14 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       }
 
       // Super admin bypass (solo si no está en modo de prueba restringido)
+      // Para /home NO hacemos bypass: necesitamos verificar si home está deshabilitado
+      const isHomeRoute =
+        state.url.includes('/home') || state.url === '/' || state.url === '';
       if (
         userEmail &&
         superAdminEmails.includes(userEmail) &&
-        (currentTestMode === null || currentTestMode === 'admin')
+        (currentTestMode === null || currentTestMode === 'admin') &&
+        !isHomeRoute
       ) {
         return of(true);
       }
@@ -343,7 +374,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       const params: any = {
         work_email: `eq.${user.email}`,
         select:
-          'id,work_email,position:positions(name,admin,dashboard_access,schedule_admin,schedule_approver,default_view),has_portal_access,account_approved,legacy_permissions_override,frontend_permissions_override',
+          'id,work_email,position:positions(name,admin,schedule_admin,schedule_approver,default_view),has_portal_access,account_approved,legacy_permissions_override,frontend_permissions_override',
       };
 
       if (companyId) {

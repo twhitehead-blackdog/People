@@ -31,9 +31,7 @@ import { Employee, ExportColumn } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { DeviceService } from '../services/device.service';
 import { OrganizationService } from '../services/organization.service';
-import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
-import { getEnv } from '../utils/env.utils';
 import { EmployeeFormComponent } from './employee-form.component';
 
 @Component({
@@ -706,7 +704,6 @@ export class EmployeeListComponent implements OnInit {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
-  private wassengerService = inject(WassengerService);
   private organizationService = inject(OrganizationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -929,7 +926,7 @@ export class EmployeeListComponent implements OnInit {
     }
 
     this.confirmationService.confirm({
-      message: `¿Deseas invitar a ${employee.first_name} ${employee.father_name} al portal de empleados? Se enviará un mensaje por Wassenger con las instrucciones de acceso.`,
+      message: `¿Deseas invitar a ${employee.first_name} ${employee.father_name} al portal de empleados?`,
       header: 'Invitar al Portal',
       icon: 'pi pi-user-plus',
       acceptLabel: 'Sí, invitar',
@@ -960,32 +957,12 @@ export class EmployeeListComponent implements OnInit {
             )
           );
 
-          // Enviar invitación por Wassenger
-          const portalUrl = `${getEnv('ENV_APP_URL')}/my-portal`;
-          const employeeName = `${employee.first_name} ${employee.father_name}`;
-          const success = await this.wassengerService.sendPortalInvitation(
-            employeeName,
-            employee.phone_number,
-            employee.work_email,
-            portalUrl
-          );
-
-          if (success) {
-            this.messageService.add({
+          this.messageService.add({
               severity: 'success',
-              summary: 'Invitación enviada',
-              detail: `${employeeName} ahora tiene acceso al portal y se le ha enviado un mensaje por Wassenger`,
+              summary: 'Invitación exitosa',
+              detail: 'Empleado invitado al portal exitosamente',
             });
             this.store.employees.reloadItems();
-          } else {
-            // Aunque falló el envío, el acceso al portal ya fue otorgado
-            this.messageService.add({
-              severity: 'warn',
-              summary: 'Acceso otorgado',
-              detail: `${employeeName} ahora tiene acceso al portal, pero no se pudo enviar el mensaje por Wassenger`,
-            });
-            this.store.employees.reloadItems();
-          }
         } catch (error: any) {
           console.error('Error inviting to portal:', error);
           this.messageService.add({

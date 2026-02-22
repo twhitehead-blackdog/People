@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   input,
   output,
@@ -10,6 +11,7 @@ import { BaseChartDirective } from 'ng2-charts';
 import { TooltipModule } from 'primeng/tooltip';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { DeviceService } from '../../../../services/device.service';
+import { HomeDataService } from '../../services/home-data.service';
 
 @Component({
   selector: 'pt-executive-section',
@@ -221,6 +223,46 @@ import { DeviceService } from '../../../../services/device.service';
               </div>
             </div>
           </div>
+
+          <!-- Columna 4: Gestión de Solicitudes -->
+          <div class="pc-metrics-group">
+            <div class="group-header">
+              <i class="pi pi-file-edit"></i>
+              <span>Gestión de Solicitudes</span>
+            </div>
+            <div class="group-cards">
+              <div class="metric-card" pTooltip="Empleados con más incapacidades aprobadas" tooltipPosition="top">
+                <div class="metric-icon amber"><i class="pi pi-heart"></i></div>
+                <div class="metric-data">
+                  <span class="metric-label" style="margin-bottom:0.25rem">Top Incapacidades</span>
+                  @for (emp of topDisabilities(); track emp.name; let i = $index) {
+                    <div class="top-row">
+                      <span class="top-name">{{ i + 1 }}. {{ emp.name }}</span>
+                      <span class="top-count amber-text">{{ emp.count }}</span>
+                    </div>
+                  } @empty {
+                    <span class="metric-sub">Sin datos</span>
+                  }
+                </div>
+              </div>
+
+              <div class="metric-card" pTooltip="Empleados con más compensatorios aprobados" tooltipPosition="top">
+                <div class="metric-icon amber"><i class="pi pi-clock"></i></div>
+                <div class="metric-data">
+                  <span class="metric-label" style="margin-bottom:0.25rem">Top Compensatorios</span>
+                  @for (emp of topCompensatory(); track emp.name; let i = $index) {
+                    <div class="top-row">
+                      <span class="top-name">{{ i + 1 }}. {{ emp.name }}</span>
+                      <span class="top-count amber-text">{{ emp.count }}</span>
+                    </div>
+                  } @empty {
+                    <span class="metric-sub">Sin datos</span>
+                  }
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
 
         <!-- ROW 3: Additional KPIs -->
@@ -362,6 +404,25 @@ import { DeviceService } from '../../../../services/device.service';
               <span>{{ genderCounts().female }} F</span>
             </div>
           </div>
+        </div>
+
+        <div class="mobile-stats">
+          <div class="stat-row">
+            <span class="stat-label" style="font-weight:600;color:#f59e0b">Gestión de Solicitudes</span>
+            <span></span>
+          </div>
+          @for (emp of topDisabilities(); track emp.name; let i = $index) {
+            <div class="stat-row">
+              <span class="stat-label">{{ i + 1 }}. {{ emp.name }}</span>
+              <span class="stat-value" style="color:#f59e0b">{{ emp.count }} incap.</span>
+            </div>
+          }
+          @for (emp of topCompensatory(); track emp.name; let i = $index) {
+            <div class="stat-row">
+              <span class="stat-label">{{ i + 1 }}. {{ emp.name }}</span>
+              <span class="stat-value" style="color:#f59e0b">{{ emp.count }} comp.</span>
+            </div>
+          }
         </div>
       </div>
     }
@@ -660,7 +721,7 @@ import { DeviceService } from '../../../../services/device.service';
     /* ===== ROW 2: Metrics Groups ===== */
     .pc-row-2 {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 1rem;
     }
 
@@ -741,6 +802,7 @@ import { DeviceService } from '../../../../services/device.service';
       &.cyan { background: rgba(6, 182, 212, 0.12); i { color: #06b6d4; } }
       &.green { background: rgba(34, 197, 94, 0.12); i { color: #22c55e; } }
       &.emerald { background: rgba(16, 185, 129, 0.12); i { color: #10b981; } }
+      &.amber { background: rgba(245, 158, 11, 0.12); i { color: #f59e0b; } }
     }
 
     .metric-data {
@@ -817,6 +879,34 @@ import { DeviceService } from '../../../../services/device.service';
         transition: width 0.4s ease;
       }
     }
+
+    /* Top rankings styles */
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 0.2rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      &:last-child { border-bottom: none; }
+    }
+
+    .top-name {
+      font-size: 0.7rem;
+      color: #a1a1aa;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 75%;
+    }
+
+    .top-count {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .amber-text { color: #f59e0b; }
 
     /* ===== ROW 3: Extra KPIs ===== */
     .pc-row-3 {
@@ -1020,6 +1110,25 @@ import { DeviceService } from '../../../../services/device.service';
 export class ExecutiveSectionComponent {
   state = inject(DashboardStore);
   device = inject(DeviceService);
+  private homeData = inject(HomeDataService);
+
+  // Computed: Top rankings from HomeDataService
+  topDisabilities = computed(() => this.buildTopRanking(this.homeData.approvedDisabilities.value() ?? []));
+  topCompensatory = computed(() => this.buildTopRanking(this.homeData.approvedCompensatory.value() ?? []));
+
+  private buildTopRanking(records: { employee_id: string; employee?: { first_name?: string; father_name?: string } }[]): { name: string; count: number }[] {
+    const counts = new Map<string, { name: string; count: number }>();
+    for (const r of records) {
+      const existing = counts.get(r.employee_id);
+      if (existing) {
+        existing.count++;
+      } else {
+        const name = r.employee ? `${r.employee.first_name || ''} ${r.employee.father_name || ''}`.trim() : 'Desconocido';
+        counts.set(r.employee_id, { name, count: 1 });
+      }
+    }
+    return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 3);
+  }
 
   // Data Inputs
   headcountChartData = input.required<any>();

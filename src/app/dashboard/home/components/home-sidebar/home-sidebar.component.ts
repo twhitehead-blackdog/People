@@ -236,6 +236,7 @@ export class HomeSidebarComponent {
     { id: 'management', label: 'Gestión de Personal', icon: 'pi pi-users' },
     { id: 'structure', label: 'Estructura', icon: 'pi pi-sitemap' },
     { id: 'peluqueria', label: 'Peluquería', icon: 'pi pi-building' },
+    { id: 'clinica', label: 'Clínica Veterinaria', icon: 'pi pi-heart' },
     { id: 'charts', label: 'Análisis', icon: 'pi pi-chart-bar' },
     { id: 'events', label: 'Eventos', icon: 'pi pi-calendar' },
   ];

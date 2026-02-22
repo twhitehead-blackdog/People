@@ -167,6 +167,7 @@ export interface OdooSaleOrder {
   amount_total?: number;
   amount_untaxed?: number;
   user_id?: number | [number, string];
+  warehouse_id?: number | [number, string] | false;
   nombres_mascotas?: string;
   count_peluqueria?: number;
   count_veterinaria?: number;
@@ -199,6 +200,8 @@ export class HomeDataService {
     this.timelogsExitToday.reload();
     this.timelogsEntryForPeluqueriaView.reload();
     this.timelogsExitForPeluqueriaView.reload();
+    this.timelogsEntryForClinicaView.reload();
+    this.timelogsExitForClinicaView.reload();
   });
 
   // Terminations API for calculating exits/turnover
@@ -207,8 +210,7 @@ export class HomeDataService {
     if (!companyId) return undefined;
 
     return {
-      url: this.apiUrl.build('rest/v1/employee_terminations', {
-        company_id: `eq.${companyId}`,
+      url: this.apiUrl.build('rest/v1/terminations', {
         select: 'id,employee_id,date,reason',
       }),
     };
@@ -257,6 +259,7 @@ export class HomeDataService {
 
   /** Fecha seleccionada para la vista Peluquería (por defecto hoy) */
   peluqueriaViewDate = signal(new Date());
+  clinicaViewDate = signal(new Date());
 
   /** Asignaciones de peluquería para hoy (sucursal + empleado) */
   groomerAssignmentsToday = httpResource<any[]>(() => {
@@ -361,6 +364,56 @@ export class HomeDataService {
     };
   });
 
+  /** Marcaciones de entrada para la fecha seleccionada en vista Clínica */
+  timelogsEntryForClinicaView = httpResource<any[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
+    const dayStart = startOfDay(viewDate);
+    const nextDay = addDays(dayStart, 1);
+    const startStr = format(dayStart, "yyyy-MM-dd'T'HH:mm:ss");
+    const endStr = format(nextDay, "yyyy-MM-dd'T'HH:mm:ss");
+    return {
+      url: this.apiUrl.build('rest/v1/timelogs', {
+        company_id: `eq.${companyId}`,
+        type: 'eq.entry',
+        and: `(created_at.gte.${startStr},created_at.lt.${endStr})`,
+        select: 'id,employee_id,branch_id,created_at,punched_at,branch:branches(id,name,short_name),employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,position:positions(id,name))',
+      }),
+    };
+  });
+
+  /** Marcaciones de salida para la fecha seleccionada en vista Clínica */
+  timelogsExitForClinicaView = httpResource<any[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
+    const dayStart = startOfDay(viewDate);
+    const nextDay = addDays(dayStart, 1);
+    const startStr = format(dayStart, "yyyy-MM-dd'T'HH:mm:ss");
+    const endStr = format(nextDay, "yyyy-MM-dd'T'HH:mm:ss");
+    return {
+      url: this.apiUrl.build('rest/v1/timelogs', {
+        company_id: `eq.${companyId}`,
+        type: 'eq.exit',
+        and: `(created_at.gte.${startStr},created_at.lt.${endStr})`,
+        select: 'id,employee_id,branch_id,created_at,punched_at',
+      }),
+    };
+  });
+
+  /** Órdenes de venta de Odoo para la fecha seleccionada en vista Clínica */
+  odooSaleOrdersForClinicaView = httpResource<{ success: boolean; data: OdooSaleOrder[] }>(() => {
+    const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
+    const dayStart = startOfDay(viewDate);
+    const nextDay = addDays(dayStart, 1);
+    const dateFrom = format(dayStart, 'yyyy-MM-dd');
+    const dateTo = format(nextDay, 'yyyy-MM-dd');
+    return {
+      url: `/api/odoo/sale-orders?date_from=${dateFrom}&date_to=${dateTo}&limit=100`,
+    };
+  });
+
   /** Mes/año seleccionado para datos financieros */
   financialMonth = signal(new Date().getMonth() + 1); // 1-12
   financialYear = signal(new Date().getFullYear());
@@ -435,6 +488,36 @@ export class HomeDataService {
       }),
     };
   });
+
+  // ===== HR Requests (Top rankings para Resumen Ejecutivo) =====
+
+  /** Incapacidades aprobadas (para top ranking) */
+  approvedDisabilities = httpResource<{ id: string; employee_id: string; employee?: { first_name?: string; father_name?: string } }[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    return {
+      url: this.apiUrl.build('rest/v1/employee_disabilities', {
+        company_id: `eq.${companyId}`,
+        status: 'eq.approved',
+        select: 'id,employee_id,employee:employees!employee_disabilities_employee_id_fkey(first_name,father_name)',
+      }),
+    };
+  });
+
+  /** Compensatorios aprobados (para top ranking) */
+  approvedCompensatory = httpResource<{ id: string; employee_id: string; employee?: { first_name?: string; father_name?: string } }[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    return {
+      url: this.apiUrl.build('rest/v1/timeoffs', {
+        company_id: `eq.${companyId}`,
+        type_id: 'eq.f2d92995-96a0-414f-b64a-9823db776745',
+        review_status: 'eq.approved',
+        select: 'id,employee_id,employee:employees!time_offs_employee_id_fkey(first_name,father_name)',
+      }),
+    };
+  });
+
 
   /** Últimos cambios en empleados (audit log) */
   employeeAuditLog = httpResource<EmployeeAuditLog[]>(() => {

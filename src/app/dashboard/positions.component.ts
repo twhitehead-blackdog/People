@@ -75,7 +75,6 @@ import { PositionsFormComponent } from './positions-form.component';
               <th>Admin</th>
               <th>Horarios</th>
               <th>App. horarios</th>
-              <th>Dashboard</th>
               <th>Vista pred.</th>
               <th></th>
             </tr>
@@ -87,7 +86,6 @@ import { PositionsFormComponent } from './positions-form.component';
               <td>@if(item.admin) { <i class="pi pi-check-circle text-green-400 text-xl"></i> } @else { <i class="pi pi-times-circle text-red-400 text-xl"></i> }</td>
               <td>@if(item.schedule_admin) { <i class="pi pi-check-circle text-green-400 text-xl"></i> } @else { <i class="pi pi-times-circle text-red-400 text-xl"></i> }</td>
               <td>@if(item.schedule_approver) { <i class="pi pi-check-circle text-green-400 text-xl"></i> } @else { <i class="pi pi-times-circle text-red-400 text-xl"></i> }</td>
-              <td>@if(item.dashboard_access) { <i class="pi pi-check-circle text-green-400 text-xl"></i> } @else { <i class="pi pi-times-circle text-red-400 text-xl"></i> }</td>
               <td class="text-gray-300 text-sm">{{ getDefaultViewLabel(item.default_view) }}</td>
               <td>
                 <div class="flex gap-1 sm:gap-2">
@@ -98,7 +96,7 @@ import { PositionsFormComponent } from './positions-form.component';
             </tr>
           </ng-template>
           <ng-template #empty>
-            <tr><td colspan="8" class="text-center py-8 text-gray-400">No hay cargos o no coinciden con la búsqueda.</td></tr>
+            <tr><td colspan="7" class="text-center py-8 text-gray-400">No hay cargos o no coinciden con la búsqueda.</td></tr>
           </ng-template>
         </p-table>
       </div>

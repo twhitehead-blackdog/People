@@ -132,8 +132,27 @@
     <meta charset="utf-8" />
     <title>People | Registro de Empleados</title>
     <base href="/" />
-    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // Manifest dinámico según dominio
+      (function() {
+        var m = document.createElement('link');
+        m.rel = 'manifest';
+        m.href = location.hostname === 'portal.blackdogpanama.com'
+          ? 'portal-manifest.webmanifest'
+          : 'manifest.webmanifest';
+        document.head.appendChild(m);
+        // Título dinámico para portal
+        if (location.hostname === 'portal.blackdogpanama.com') {
+          document.title = 'Portal | Black Dog Panama';
+        }
+      })();
+    </script>
     <link href="favicon.ico" rel="icon" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="icons/pwa/icon-192x192.png" />
     <!-- Preconnect: Supabase API + Auth0 -->
     <link rel="preconnect" href="https://dzyckfezcmcqvnmagafq.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://dzyckfezcmcqvnmagafq.supabase.co" />
@@ -158,6 +177,23 @@
   </head>
   <body class="dark">
     <pt-root>
+      <style>
+        /* Portal skeleton */
+        .portal-sk-wrap{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:9999}
+        .portal-sk-wrap .psk-inner{display:flex;flex-direction:column;align-items:center;gap:2rem}
+        .portal-sk-wrap .psk-logo{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c);animation:sk-p 1.8s ease-in-out infinite}
+        .portal-sk-wrap .psk-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:rgba(251,191,36,.6);border-radius:50%;animation:psk-r 0.8s linear infinite}
+        @keyframes psk-r{to{transform:rotate(360deg)}}
+        /* Ocultar dashboard skeleton cuando estamos en portal */
+        .is-portal .sk{display:none!important}
+      </style>
+      <script>
+        // Mostrar skeleton portal o dashboard según dominio
+        if (location.hostname === 'portal.blackdogpanama.com') {
+          document.body.classList.add('is-portal');
+          document.write('<div class="portal-sk-wrap"><div class="psk-inner"><div class="psk-logo"></div><div class="psk-spin"></div></div></div>');
+        }
+      </script>
       <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         .sk{display:flex;flex-direction:column;height:100vh;background:#0a0a0a;font-family:Inter,system-ui,sans-serif;overflow:hidden}
@@ -231,7 +267,7 @@
           .sk-bottom{grid-template-columns:1fr}
         }
       </style>
-      <div class="sk">
+      <div class="sk" id="dashboard-skeleton">
         <!-- Top Navbar -->
         <div class="sk-nav sk-pulse">
           <div class="sk-nav-logo"></div>

@@ -21,6 +21,7 @@ import { PermissionsService } from '../../services/permissions.service';
 import { DeviceService } from '../../services/device.service';
 import { DashboardStore } from '../../stores/dashboard.store';
 import { PermissionEditorDialogComponent } from './permission-editor-dialog.component';
+import { PermissionPreviewDialogComponent } from './permission-preview-dialog.component';
 import { UserPermissionProfile } from './permissions.types';
 import { SYSTEM_MODULES } from './module-permissions.types';
 
@@ -110,6 +111,7 @@ import { SYSTEM_MODULES } from './module-permissions.types';
               </td>
               <td class="text-right">
                 <div class="flex justify-end gap-1">
+                  <p-button icon="pi pi-eye" [rounded]="true" [text]="true" severity="info" pTooltip="Vista previa" tooltipPosition="left" (onClick)="openPreview(profile)"></p-button>
                   <p-button icon="pi pi-user-edit" [rounded]="true" [text]="true" pTooltip="Editar permisos" tooltipPosition="left" (onClick)="openEmployeeEditor(profile)"></p-button>
                 </div>
               </td>
@@ -159,7 +161,10 @@ import { SYSTEM_MODULES } from './module-permissions.types';
                           }
                         </div>
                       </div>
-                      <p-button icon="pi pi-user-edit" (onClick)="openEmployeeEditor(profile)" rounded text size="small" class="min-w-[36px] min-h-[36px]" pTooltip="Editar permisos" tooltipPosition="top"></p-button>
+                      <div class="flex flex-col gap-1">
+                        <p-button icon="pi pi-eye" (onClick)="openPreview(profile)" rounded text size="small" severity="info" class="min-w-[36px] min-h-[36px]" pTooltip="Vista previa" tooltipPosition="top"></p-button>
+                        <p-button icon="pi pi-user-edit" (onClick)="openEmployeeEditor(profile)" rounded text size="small" class="min-w-[36px] min-h-[36px]" pTooltip="Editar permisos" tooltipPosition="top"></p-button>
+                      </div>
                     </div>
                   </div>
                 }
@@ -244,6 +249,19 @@ export class PermissionsManagementComponent {
     }
 
     return summary.filter(s => s.hasAccess);
+  }
+
+  public openPreview(profile: UserPermissionProfile) {
+    this.dialogService.open(PermissionPreviewDialogComponent, {
+      header: `Vista Previa: ${profile.employeeName}`,
+      width: '600px',
+      modal: true,
+      dismissableMask: true,
+      closeOnEscape: true,
+      data: { profile },
+      contentStyle: { overflow: 'auto' },
+      baseZIndex: 10000,
+    });
   }
 
   public openEmployeeEditor(profile: UserPermissionProfile) {

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -14,6 +15,7 @@ import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { Textarea } from 'primeng/textarea';
 import { FileUpload } from 'primeng/fileupload';
+import { DeviceService } from '../../services/device.service';
 
 @Component({
   selector: 'pt-employee-portal-maternity',
@@ -21,6 +23,8 @@ import { FileUpload } from 'primeng/fileupload';
   imports: [CommonModule, FormsModule, Card, DatePicker, Textarea, FileUpload, Button, TableModule, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
@@ -312,9 +316,182 @@ import { FileUpload } from 'primeng/fileupload';
         </div>
       </div>
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">Licencia de Maternidad</h2>
+          <p class="text-xs text-gray-400 m-0">Solicita tu licencia con beneficios legales</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Congrats -->
+        <div class="bg-pink-500/10 border border-pink-500/30 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <i class="pi pi-heart-fill text-pink-400"></i>
+            <div>
+              <p class="text-pink-300 font-semibold text-sm mb-1">Felicitaciones!</p>
+              <p class="text-xs text-gray-300 m-0">
+                Recibirás tu salario completo durante todo el período de licencia.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dates -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3">Fecha de Parto</h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha Probable de Parto <span class="text-red-400">*</span></label>
+              <p-datepicker
+                [ngModel]="expectedDeliveryDate"
+                (ngModelChange)="expectedDeliveryDateChange.emit($event)"
+                appendTo="body"
+                [minDate]="minMaternityDate"
+                styleClass="w-full"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Selecciona fecha"
+              />
+              @if (expectedDeliveryDate) {
+              <p class="text-xs text-gray-500 mt-1 m-0">
+                Licencia inicia: {{ calculateMaternityStartDate() | date : 'dd/MM/yyyy' }}
+              </p>
+              }
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Regreso</label>
+              <input
+                type="text"
+                [value]="calculateMaternityEndDate() | date : 'dd/MM/yyyy'"
+                class="w-full p-2 bg-neutral-700 border border-neutral-600 rounded text-white text-sm"
+                readonly
+              />
+              <p class="text-xs text-gray-500 mt-1 m-0">Calculada automáticamente</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <label class="text-xs text-gray-400 mb-1 block">Información Adicional (opcional)</label>
+          <textarea
+            pTextarea
+            [ngModel]="maternityNotes"
+            (ngModelChange)="maternityNotesChange.emit($event)"
+            rows="3"
+            placeholder="Información adicional sobre tu embarazo..."
+            class="w-full"
+            maxlength="1000"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1 m-0">{{ maternityNotes.length }}/1000</p>
+        </div>
+
+        <!-- File Upload -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <label class="text-xs text-gray-400 mb-1 block">Documentos de Apoyo (opcional)</label>
+          <p-fileUpload
+            mode="basic"
+            accept="image/*,.pdf"
+            maxFileSize="5000000"
+            [auto]="false"
+            chooseLabel="Seleccionar Archivo"
+            (onSelect)="onFileSelect($event)"
+            class="w-full"
+          />
+          <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG (máx. 5MB)</p>
+        </div>
+
+        <!-- Benefits -->
+        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
+          <p class="text-xs text-green-300 font-semibold mb-1">Beneficios</p>
+          <ul class="text-xs text-gray-300 space-y-1 m-0 pl-4">
+            <li>12 semanas con goce de sueldo completo</li>
+            <li>Protección laboral durante el embarazo</li>
+            <li>Extensión posible por complicaciones</li>
+          </ul>
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Solicitar Licencia"
+          icon="pi pi-send"
+          severity="success"
+          [loading]="submitting"
+          [disabled]="!canSubmit || submitting"
+          (onClick)="submitRequest.emit()"
+          styleClass="w-full min-h-[44px]"
+        />
+
+        <!-- Requests List -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-white m-0">Mis Solicitudes</h3>
+            <button class="text-gray-400 hover:text-white" (click)="reloadList.emit()">
+              <i class="pi pi-refresh text-sm" [class.pi-spin]="requestsLoading"></i>
+            </button>
+          </div>
+
+          @if (maternityRequests.length === 0 && !requestsLoading) {
+          <div class="text-center py-6">
+            <i class="pi pi-heart text-2xl text-pink-400 mb-2"></i>
+            <p class="text-xs text-gray-400 m-0">No hay solicitudes todavía</p>
+          </div>
+          } @else if (requestsLoading) {
+          <div class="flex justify-center py-6">
+            <i class="pi pi-spin pi-spinner text-2xl text-pink-400"></i>
+          </div>
+          } @else {
+          <div class="space-y-2">
+            @for (request of maternityRequests; track request.id || $index) {
+            <div class="bg-neutral-900/50 rounded-lg p-2 border border-neutral-700/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-gray-400">{{ request.created_at | date : 'dd/MM/yyyy' }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+                  [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
+                  [class.text-green-300]="request.is_approved"
+                  [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
+                  [ngClass]="{
+                    'bg-yellow-500/20': !request.is_approved && isDateFuture(request.date_from),
+                    'bg-green-500/20': request.is_approved,
+                    'bg-red-500/20': !request.is_approved && !isDateFuture(request.date_from)
+                  }"
+                >
+                  {{ request.is_approved ? 'Aprobada' : isDateFuture(request.date_from) ? 'Pendiente' : 'Rechazada' }}
+                </span>
+              </div>
+              <p class="text-sm text-white font-medium m-0">
+                Parto: {{ request.expected_delivery_date | date : 'dd/MM/yyyy' }}
+              </p>
+              <p class="text-xs text-gray-400 m-0 mt-1">
+                {{ request.date_from | date : 'dd/MM' }} - {{ request.date_to | date : 'dd/MM' }}
+                <span class="text-pink-400 ml-1">({{ calculateDaysBetween(request.date_from, request.date_to) }}d)</span>
+              </p>
+              @if (request.document_url) {
+              <button class="text-green-400 text-xs mt-1 flex items-center gap-1" (click)="downloadDocument(request.document_url)">
+                <i class="pi pi-download text-xs"></i> Descargar
+              </button>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
   `,
 })
 export class EmployeePortalMaternityComponent {
+  protected device = inject(DeviceService);
   @Input() minMaternityDate: Date = new Date();
   @Input() expectedDeliveryDate: Date | null = null;
   @Output() expectedDeliveryDateChange = new EventEmitter<Date | null>();

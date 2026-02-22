@@ -11,6 +11,7 @@ import { DiagnosticPanelComponent } from './components/diagnostic-panel.componen
 import { DiagnosticService } from './services/diagnostic.service';
 import { ThemeService } from './services/theme.service';
 import { VersionCheckService } from './services/version-check.service';
+import { isPortalDomain } from './utils/domain.utils';
 
 @Component({
   imports: [RouterOutlet, DiagnosticPanelComponent, DialogModule, Button],
@@ -18,6 +19,14 @@ import { VersionCheckService } from './services/version-check.service';
   selector: 'pt-root',
   template: `
     @if (showSkeleton()) {
+      @if (isPortal) {
+        <div class="sk-overlay portal-sk">
+          <div class="portal-sk-inner">
+            <div class="portal-sk-logo"></div>
+            <div class="portal-sk-spinner"></div>
+          </div>
+        </div>
+      } @else {
       <div class="sk-overlay">
         <div class="sk-dash">
           <!-- Top Navbar -->
@@ -82,6 +91,7 @@ import { VersionCheckService } from './services/version-check.service';
           </div>
         </div>
       </div>
+      }
     }
     <router-outlet />
     <pt-diagnostic-panel />
@@ -161,6 +171,12 @@ import { VersionCheckService } from './services/version-check.service';
     .ic-yw{background:rgba(234,179,8,.15)}
     @media(max-width:1023px){.sk-side{display:none}.sk-nav{height:56px}.sk-nav-links,.sk-nav-uname{display:none}.sk-hero{grid-template-columns:1fr}.sk-kpi{grid-template-columns:repeat(2,1fr)}.sk-bot{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:640px){.sk-kpi{grid-template-columns:1fr}.sk-bot{grid-template-columns:1fr}}
+    /* Portal skeleton */
+    .portal-sk{display:flex;align-items:center;justify-content:center}
+    .portal-sk-inner{display:flex;flex-direction:column;align-items:center;gap:2rem}
+    .portal-sk-logo{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c);animation:sk-p 1.8s ease-in-out infinite}
+    .portal-sk-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:rgba(251,191,36,.6);border-radius:50%;animation:portal-spin 0.8s linear infinite}
+    @keyframes portal-spin{to{transform:rotate(360deg)}}
   `,
 })
 export class AppComponent implements OnInit {
@@ -171,6 +187,9 @@ export class AppComponent implements OnInit {
   private themeService = inject(ThemeService);
   readonly versionCheck = inject(VersionCheckService);
 
+  /** Detecta si estamos en el dominio del portal */
+  readonly isPortal = isPortalDomain();
+
   /** Skeleton overlay visible durante carga post-login */
   readonly showSkeleton = signal(false);
 
@@ -179,6 +198,15 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Portal: ajustar título y manifest dinámicamente
+    if (this.isPortal) {
+      document.title = 'Portal | Black Dog Panama';
+      const manifestLink = document.querySelector('link[rel="manifest"]');
+      if (manifestLink) {
+        manifestLink.setAttribute('href', 'portal-manifest.webmanifest');
+      }
+    }
+
     // Iniciar polling de versión para detectar actualizaciones
     this.versionCheck.startPolling();
 

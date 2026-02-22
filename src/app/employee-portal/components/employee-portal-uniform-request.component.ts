@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -13,6 +14,7 @@ import { InputNumber } from 'primeng/inputnumber';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
+import { DeviceService } from '../../services/device.service';
 
 type SelectOption = {
   label: string;
@@ -34,6 +36,8 @@ type SelectOption = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center gap-2">
@@ -160,9 +164,112 @@ type SelectOption = {
         />
       </div>
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">Solicitud de Uniforme</h2>
+          <p class="text-xs text-gray-400 m-0">Solicita uniformes o prendas de trabajo</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Tipo y Talla -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-box text-teal-400"></i>
+            Tipo de Prenda
+          </h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Tipo de prenda</label>
+              <p-select
+                [options]="itemTypes"
+                [ngModel]="itemType"
+                (ngModelChange)="itemTypeChange.emit($event)"
+                placeholder="Selecciona tipo"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Talla</label>
+              <p-select
+                [options]="sizes"
+                [ngModel]="size"
+                (ngModelChange)="sizeChange.emit($event)"
+                placeholder="Selecciona talla"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Cantidad -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-calculator text-teal-400"></i>
+            Cantidad
+          </h3>
+          <p-inputNumber
+            [ngModel]="quantity"
+            (ngModelChange)="quantityChange.emit($event)"
+            [min]="1"
+            [max]="10"
+            [showButtons]="true"
+            buttonLayout="horizontal"
+            incrementButtonIcon="pi pi-plus"
+            decrementButtonIcon="pi pi-minus"
+            styleClass="w-full"
+          />
+        </div>
+
+        <!-- Notas -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-comment text-teal-400"></i>
+            Notas (Opcional)
+          </h3>
+          <textarea
+            pInputTextarea
+            [ngModel]="notes"
+            (ngModelChange)="notesChange.emit($event)"
+            rows="3"
+            placeholder="Notas adicionales..."
+            class="w-full"
+          ></textarea>
+        </div>
+
+        <!-- Summary -->
+        <div class="bg-teal-500/10 border border-teal-400/30 rounded-xl p-3">
+          <p class="text-xs text-gray-400 m-0">Resumen</p>
+          <p class="text-sm font-bold text-teal-300 m-0">
+            {{ quantity }}x {{ getItemTypeLabel(itemType) }} - Talla {{ size || 'N/A' }}
+          </p>
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Enviar Solicitud"
+          icon="pi pi-send"
+          [loading]="submitting"
+          [disabled]="!canSubmit || submitting"
+          (onClick)="submitRequest.emit()"
+          styleClass="w-full min-h-[44px]"
+        />
+      </div>
+    </div>
+    }
   `,
 })
 export class EmployeePortalUniformRequestComponent {
+  protected device = inject(DeviceService);
   @Input() itemType = '';
   @Output() itemTypeChange = new EventEmitter<string>();
   @Input() size = '';

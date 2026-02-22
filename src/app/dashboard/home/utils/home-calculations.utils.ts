@@ -13,14 +13,14 @@ export const DIA_LIBRE_SCHEDULE_ID = 'c01dff8f-ce0d-498f-a473-46418576e589';
 /**
  * Get current Panama time parts
  */
-export function getPanamaNowParts(): { year: number; month: number; daysSoFar: number } {
+export function getPanamaNowParts(): { year: number; month: number; day: number } {
   const now = new Date();
   const panamaStr = formatInTimeZone(now, PANAMA_TIMEZONE, 'yyyy-MM-dd');
   const [yearStr, monthStr, dayStr] = panamaStr.split('-');
   return {
     year: parseInt(yearStr, 10),
     month: parseInt(monthStr, 10),
-    daysSoFar: parseInt(dayStr, 10),
+    day: parseInt(dayStr, 10),
   };
 }
 
