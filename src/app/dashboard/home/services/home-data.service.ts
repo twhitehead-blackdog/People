@@ -352,8 +352,22 @@ export class HomeDataService {
     };
   });
 
+  /** Track Odoo availability to prevent infinite retry loops on 503 */
+  private odooAvailable = signal(true);
+  private odooRetryTimer: any = null;
+
+  private markOdooDown() {
+    if (this.odooAvailable()) {
+      this.odooAvailable.set(false);
+      // Retry after 5 minutes
+      clearTimeout(this.odooRetryTimer);
+      this.odooRetryTimer = setTimeout(() => this.odooAvailable.set(true), 5 * 60 * 1000);
+    }
+  }
+
   /** Órdenes de venta de Odoo (peluquería) para la fecha seleccionada en vista Peluquería */
   odooSaleOrdersForPeluqueriaView = httpResource<{ success: boolean; data: OdooSaleOrder[] }>(() => {
+    if (!this.odooAvailable()) return undefined;
     const viewDate = toZonedTime(this.peluqueriaViewDate(), this.TZ);
     const dayStart = startOfDay(viewDate);
     const nextDay = addDays(dayStart, 1);
@@ -404,6 +418,7 @@ export class HomeDataService {
 
   /** Órdenes de venta de Odoo para la fecha seleccionada en vista Clínica */
   odooSaleOrdersForClinicaView = httpResource<{ success: boolean; data: OdooSaleOrder[] }>(() => {
+    if (!this.odooAvailable()) return undefined;
     const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
     const dayStart = startOfDay(viewDate);
     const nextDay = addDays(dayStart, 1);
@@ -412,6 +427,15 @@ export class HomeDataService {
     return {
       url: `/api/odoo/sale-orders?date_from=${dateFrom}&date_to=${dateTo}&limit=100`,
     };
+  });
+
+  // Watch for Odoo errors and mark as down to prevent infinite retry loops
+  private odooErrorWatcher = effect(() => {
+    const e1 = this.odooSaleOrdersForPeluqueriaView.error?.();
+    const e2 = this.odooSaleOrdersForClinicaView.error?.();
+    if (e1 || e2) {
+      this.markOdooDown();
+    }
   });
 
   /** Mes/año seleccionado para datos financieros */

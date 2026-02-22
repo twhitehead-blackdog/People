@@ -251,6 +251,12 @@ import {
                     >Empleado Activo</label
                   >
                 </div>
+                @if (!form.get('is_active')?.value) {
+                  <div class="mt-2 p-2 rounded bg-red-900/40 border border-red-500/50 text-red-300 text-sm flex items-center gap-2">
+                    <i class="pi pi-exclamation-triangle text-red-400"></i>
+                    <span>Para desactivar un empleado debe ingresar la <strong>Fecha de salida</strong> en la pestaña Laboral.</span>
+                  </div>
+                }
               </div>
             </div>
           </p-tabpanel>
@@ -596,8 +602,13 @@ import {
                     [showOnFocus]="false"
                   />
                 </div>
-                <div class="input-container">
-                  <label for="end_date">Fecha de salida</label>
+                <div class="input-container" [class.exit-date-required]="!form.get('is_active')?.value && !form.get('end_date')?.value">
+                  <label for="end_date" [class.text-red-400]="!form.get('is_active')?.value && !form.get('end_date')?.value">
+                    Fecha de salida
+                    @if (!form.get('is_active')?.value && !form.get('end_date')?.value) {
+                      <span class="text-red-400 text-xs ml-1">(Requerida)</span>
+                    }
+                  </label>
                   <p-datepicker
                     inputId="end_date"
                     formControlName="end_date"
@@ -679,6 +690,16 @@ import {
     ::ng-deep .p-datepicker.p-focus {
       border-color: #fbbf24 !important;
       box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
+    }
+
+    .exit-date-required ::ng-deep .p-datepicker {
+      border: 2px solid #ef4444 !important;
+      animation: pulse-red 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
     }
 
     /* Asegurar que los botones y elementos del datepicker funcionen correctamente */
@@ -1363,6 +1384,23 @@ export class EmployeeFormComponent implements OnInit {
       });
       return;
     }
+
+    // Validación: No se puede desactivar un empleado sin fecha de salida
+    const isActive = this.form.get('is_active')?.value;
+    const endDate = this.form.get('end_date')?.value;
+    if (!isActive && !endDate) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Fecha de salida requerida',
+        detail:
+          'Para desactivar un empleado debe ingresar la fecha de salida.',
+      });
+      // Marcar el campo end_date como touched para mostrar error visual
+      this.form.get('end_date')?.markAsTouched();
+      this.form.get('end_date')?.markAsDirty();
+      return;
+    }
+
     if (!this.employee_id()) {
       // Es un empleado nuevo
       this.addTimeclockQR();

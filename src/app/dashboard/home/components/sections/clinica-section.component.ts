@@ -879,6 +879,7 @@ export class ClinicaSectionComponent {
   });
 
   /** Persiste conteo de mascotas por sucursal en Supabase */
+  private petCountDebounce: any = null;
   private persistPetCountsEffect = effect(() => {
     const rows = this.branchRows();
     const orders = this.odooOrdersAll();
@@ -886,7 +887,9 @@ export class ClinicaSectionComponent {
     const today = format(toZonedTime(new Date(), TZ), 'yyyy-MM-dd');
     const rowsWithPets = rows.filter((r) => r.petCount > 0);
     if (rowsWithPets.length === 0) return;
-    setTimeout(() => this.upsertPetCounts(rowsWithPets, today));
+    // Debounce: esperar 2s de estabilidad antes de persistir
+    clearTimeout(this.petCountDebounce);
+    this.petCountDebounce = setTimeout(() => this.upsertPetCounts(rowsWithPets, today), 2000);
   });
 
   private upsertPetCounts(rows: BranchClinicaRow[], recordDate: string): void {
@@ -902,8 +905,8 @@ export class ClinicaSectionComponent {
         updated_at: new Date().toISOString(),
       };
       this.http
-        .post(`${baseUrl}/rest/v1/branch_daily_pet_count`, body, {
-          headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+        .post(`${baseUrl}/rest/v1/branch_daily_pet_count?on_conflict=branch_name,record_date,service_type`, body, {
+          headers: { Prefer: 'resolution=merge-duplicates' },
         })
         .subscribe({
           error: (err) =>

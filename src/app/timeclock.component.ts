@@ -55,6 +55,8 @@ import { TimeclockAudioService } from './services/timeclock-audio.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
 import { getEnv } from './utils/env.utils';
+import { APP_VERSION } from './version';
+import { PwaService } from './services/pwa.service';
 
 @Component({
   selector: 'pt-timeclock',
@@ -118,7 +120,7 @@ import { getEnv } from './utils/env.utils';
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
             <div
-              class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1"
+              class="flex flex-col gap-[0.5vh] items-center px-2 py-[0.3vh]"
             >
               <div
                 class="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center w-full break-words"
@@ -135,7 +137,7 @@ import { getEnv } from './utils/env.utils';
                 "
               >
                 <div
-                  class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time break-words text-center"
+                  class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-mono font-bold clock-time break-words text-center"
                   [ngClass]="
                     isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'
                   "
@@ -177,7 +179,7 @@ import { getEnv } from './utils/env.utils';
           </ng-template>
           <form
             [formGroup]="form"
-            class="flex flex-col gap-2.5 sm:gap-3 md:gap-4 items-center w-full"
+            class="flex flex-col gap-[1vh] sm:gap-[1.2vh] md:gap-[1.5vh] items-center w-full"
             (keydown.enter)="onEnterKey($event)"
           >
             @if (!form.get('company_id')?.value) {
@@ -283,6 +285,20 @@ import { getEnv } from './utils/env.utils';
                 }
               </div>
               <div class="w-full flex justify-center items-center">
+                @if (isMobileKiosk()) {
+                <input
+                  type="tel"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="6"
+                  placeholder="000000"
+                  class="mobile-pin-input"
+                  [value]="form.get('otp')?.value || ''"
+                  (input)="onMobilePinInput($event)"
+                  (keydown.enter)="onEnterKey($event)"
+                  autocomplete="one-time-code"
+                />
+                } @else {
                 <p-inputOtp
                   #otpInput
                   formControlName="otp"
@@ -292,6 +308,7 @@ import { getEnv } from './utils/env.utils';
                   (input)="onOtpInput($event)"
                   styleClass="p-inputotp-input"
                 />
+                }
               </div>
             </div>
 
@@ -386,6 +403,12 @@ import { getEnv } from './utils/env.utils';
         </div>
         }
         </div>
+        <div class="version-badge" [ngClass]="{ 'naz-version': isNazCompany(), 'version-badge--pop': easterEggPop() }" (click)="onVersionClick()" title="¡Tócame!">
+          v{{ appVersion }}
+        </div>
+        @if (easterEggBurst()) {
+          <div class="easter-egg-burst" [class.easter-egg-burst--visible]="easterEggBurst()">{{ easterEggBurst() }}</div>
+        }
       </div>
       } @else {
       <!-- Mensaje de acceso restringido en modo kiosko -->
@@ -450,6 +473,33 @@ import { getEnv } from './utils/env.utils';
             </p>
           </div>
         </p-card>
+      </div>
+      }
+
+      <!-- IP Alert Overlay -->
+      @if (ipAlertVisible()) {
+      <div class="ip-alert-overlay" (click)="dismissIPAlert()">
+        <div class="ip-alert-card" (click)="$event.stopPropagation()">
+          <div class="ip-alert-icon-wrap">
+            <div class="ip-alert-pulse"></div>
+            <i class="pi pi-shield ip-alert-icon"></i>
+          </div>
+          <div class="ip-alert-title">IP No Autorizada</div>
+          <div class="ip-alert-desc">
+            La dirección IP detectada no coincide con ninguna sucursal registrada. Este incidente ha sido registrado.
+          </div>
+          @if (currentIP()) {
+          <div class="ip-alert-ip">
+            <i class="pi pi-globe"></i>
+            {{ currentIP() }}
+          </div>
+          }
+          <div class="ip-alert-hint">
+            <i class="pi pi-info-circle"></i>
+            Contacte a Recursos Humanos si cree que es un error
+          </div>
+          <button class="ip-alert-btn" (click)="dismissIPAlert()">Entendido</button>
+        </div>
       </div>
       }
 
@@ -526,6 +576,7 @@ export class TimeclockComponent implements OnDestroy {
   private ipDetection = inject(IpDetectionService);
   private audio = inject(TimeclockAudioService);
   private phrases = inject(TimeclockPhrasesService);
+  private pwaService = inject(PwaService);
   private readonly DISPLAY_TIMEZONE = 'America/Panama';
   public currentIP = this.ipDetection.currentIP;
   public isProcessing = signal<boolean>(false);
@@ -535,6 +586,13 @@ export class TimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
+  public readonly appVersion = APP_VERSION;
+  easterEggBurst = signal<string | null>(null);
+  easterEggPop = signal(false);
+  private versionSoundIndex = 0;
+  private readonly VERSION_SOUNDS = ['/sounds/bark.mp3', '/sounds/meow.mp3', '/sounds/squirrel.mp3', '/sounds/cockatoo.mp3'];
+  private readonly VERSION_EMOJIS = ['🐕', '🐱', '🐿️', '🦜'];
+
   public suggestedType = signal<string>('');
   public otpLength = signal<number>(0);
   public successOverlay = signal<{
@@ -582,10 +640,16 @@ export class TimeclockComponent implements OnDestroy {
     return map[this.suggestedType()] || '#6b7280';
   });
   // Usar el servicio de organización como fuente principal
-  public isNazCompany = computed(() => this.organizationService.isNaz());
-  public isBlackDogCompany = computed(() =>
-    this.organizationService.isBlackDog()
-  );
+  public isNazCompany = computed(() => {
+    const ready = this.organizationService.companyIdsReady();
+    if (ready) return this.organizationService.isNaz();
+    return this.organizationService.currentOrganization === 'naz';
+  });
+  public isBlackDogCompany = computed(() => {
+    const ready = this.organizationService.companyIdsReady();
+    if (ready) return this.organizationService.isBlackDog();
+    return this.organizationService.currentOrganization === 'blackdog';
+  });
   // Ya no hay tablas naz_*, todo es por company_id
   private employeesTable = computed(() => 'employees');
 
@@ -604,7 +668,11 @@ export class TimeclockComponent implements OnDestroy {
     // Detectar si está en modo kiosko y si es versión móvil
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
-    this.isMobileKiosk.set(this.router.url.includes('/timeclock-kiosk-mobile'));
+    const isMobileDevice = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+    this.isMobileKiosk.set(
+      this.router.url.includes('/timeclock-kiosk-mobile') || isMobileDevice
+    );
 
     // Sincronizar reloj con hora del servidor (sin tocar DB).
     // Esto evita depender del reloj/zona horaria del dispositivo.
@@ -677,6 +745,8 @@ export class TimeclockComponent implements OnDestroy {
         );
       }
     });
+
+    // (mobile keyboard handled natively by PrimeNG InputOtp)
 
     // Auto-select company and branch when data loads
     effect(
@@ -1407,6 +1477,14 @@ export class TimeclockComponent implements OnDestroy {
     }
   }
 
+  onMobilePinInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const val = input.value.replace(/\D/g, '').slice(0, 6);
+    input.value = val;
+    this.form.get('otp')?.setValue(val);
+    this.otpLength.set(val.length);
+  }
+
   onOtpInput(event: any) {
     // Auto-advance to next input when a digit is entered
     const target = event.target;
@@ -1935,6 +2013,12 @@ export class TimeclockComponent implements OnDestroy {
       phrase: this.phrases.getPhrase(isLate),
     });
 
+    // Send push notification if enabled
+    this.pwaService.sendNotification(
+      `${typeLabel} - ${employeeName}`,
+      `${timeStr}${isLate ? ' (Tardanza)' : ''}`,
+    );
+
     // Auto-dismiss after 4 seconds
     setTimeout(() => {
       this.dismissOverlay();
@@ -2150,13 +2234,55 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   private alertInvalidIP() {
-    this.confirmation.confirm({
-      message: `La IP actual no coincide con la IP de ninguna sucursal, por favor verifique con Recursos Humanos`,
-      header: 'Advertencia',
-      key: 'confirm2',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Aceptar',
-      rejectVisible: false,
-    });
+    this.ipAlertVisible.set(true);
+    this.logIPSecurityIncident();
+  }
+
+  public ipAlertVisible = signal(false);
+
+  dismissIPAlert() {
+    this.ipAlertVisible.set(false);
+  }
+
+  onVersionClick(): void {
+    const idx = this.versionSoundIndex % this.VERSION_SOUNDS.length;
+    const src = this.VERSION_SOUNDS[idx];
+    const emoji = this.VERSION_EMOJIS[idx];
+    this.versionSoundIndex += 1;
+
+    try {
+      const audio = new Audio(src);
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    } catch {}
+
+    this.easterEggPop.set(true);
+    this.easterEggBurst.set(emoji);
+    setTimeout(() => this.easterEggPop.set(false), 220);
+    setTimeout(() => this.easterEggBurst.set(null), 1400);
+  }
+
+  /** Log IP mismatch to security_audit_log */
+  private logIPSecurityIncident() {
+    const ip = this.currentIP() || 'unknown';
+    const url = this.apiUrl.build('rest/v1/security_audit_log');
+    this.http.post(url, {
+      event_type: 'ip_mismatch_timeclock',
+      table_name: 'timeclock',
+      user_email: null,
+      ip_address: ip,
+      details: {
+        detected_ip: ip,
+        route: window.location.pathname,
+        user_agent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        organization: this.isNazCompany() ? 'naz' : 'blackdog',
+      },
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+    }).pipe(catchError(() => EMPTY)).subscribe();
   }
 }

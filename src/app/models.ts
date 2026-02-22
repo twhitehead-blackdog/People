@@ -68,6 +68,7 @@ export type Employee = {
   emergency_contact_relationship?: string;
   end_date?: Date;
   created_at?: Date;
+  updated_at?: Date;
   is_active: boolean;
   uniform_size?: UniformSize;
   timeoffs?: TimeOff[];

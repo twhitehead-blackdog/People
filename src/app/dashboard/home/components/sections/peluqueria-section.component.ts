@@ -1001,6 +1001,7 @@ export class PeluqueriaSectionComponent {
   });
 
   /** Persiste conteo de mascotas por sucursal en Supabase (branch_daily_pet_count) */
+  private petCountDebounce: any = null;
   private persistPetCountsEffect = effect(() => {
     const rows = this.branchRows();
     const orders = this.odooOrders();
@@ -1010,8 +1011,9 @@ export class PeluqueriaSectionComponent {
     const rowsWithPets = rows.filter((r) => r.petCount > 0);
     if (rowsWithPets.length === 0) return;
 
-    // Fire-and-forget fuera del effect para evitar NG0600
-    setTimeout(() => this.upsertPetCounts(rowsWithPets, today));
+    // Debounce: esperar 2s de estabilidad antes de persistir
+    clearTimeout(this.petCountDebounce);
+    this.petCountDebounce = setTimeout(() => this.upsertPetCounts(rowsWithPets, today), 2000);
   });
 
   private async upsertPetCounts(rows: BranchPeluqueriaRow[], recordDate: string): Promise<void> {
@@ -1029,9 +1031,9 @@ export class PeluqueriaSectionComponent {
           updated_at: new Date().toISOString(),
         };
         this.http
-          .post(`${baseUrl}/rest/v1/branch_daily_pet_count`, body, {
+          .post(`${baseUrl}/rest/v1/branch_daily_pet_count?on_conflict=branch_name,record_date,service_type`, body, {
             headers: {
-              Prefer: 'resolution=merge-duplicates,return=representation',
+              Prefer: 'resolution=merge-duplicates',
             },
           })
           .subscribe({
