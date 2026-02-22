@@ -46,8 +46,6 @@ type EmployeeWithDays = {
               [employeeId]="employee.id"
               [canManageSchedules]="canManageSchedules()"
               [canApprove]="canApproveSchedules()"
-              [selectionMode]="selectionMode()"
-              [isSelected]="isShiftSelected(day.shift?.id, day.date)"
               [isStoreManager]="isStoreManager()"
               [scheduleWarning]="day.scheduleWarning ?? null"
               (edit)="onEditShift($event)"
@@ -55,7 +53,6 @@ type EmployeeWithDays = {
               (approve)="onApproveShift($event)"
               (add)="onAddShift($event)"
               (viewAudit)="onViewAudit($event)"
-              (toggleSelection)="onToggleSelection($event)"
             />
           </div>
           }
@@ -108,15 +105,12 @@ type EmployeeWithDays = {
                 [employeeId]="item.id"
                 [canManageSchedules]="canManageSchedules()"
                 [canApprove]="canApproveSchedules()"
-                [selectionMode]="selectionMode()"
-                [isSelected]="isShiftSelected(day.shift?.id, day.date)"
                 [isStoreManager]="isStoreManager()"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
                 (approve)="onApproveShift($event)"
                 (add)="onAddShift($event)"
                 (viewAudit)="onViewAudit($event)"
-                (toggleSelection)="onToggleSelection($event)"
               />
             </td>
             }
@@ -146,10 +140,6 @@ export class TimetableGridComponent {
   public canApproveSchedules = input.required<boolean>();
   public captionTemplate = input<TemplateRef<any>>();
 
-  // Selection inputs from parent
-  public selectionMode = input<boolean>(false);
-  public selectedKeys = input<Set<string>>(new Set());
-
   // Indica si el usuario es gerente de tienda (para ocultar estados de aprobación)
   public isStoreManager = input<boolean>(false);
 
@@ -164,18 +154,8 @@ export class TimetableGridComponent {
   }>();
   public deleteShift = output<{ shift: any; date?: Date }>();
   public approveShift = output<string>();
-  public confirmWeek = output<EmployeeWithDays>();
   public addShift = output<{ employee_id: string; date: Date }>();
   public viewAudit = output<{ employeeId: string; date: Date }>();
-  public batchApprove = output<string[]>();
-  public toggleSelection = output<{ shiftId: string; date: Date }>();
-
-  // Check if a shift is selected using composite key
-  public isShiftSelected(shiftId: string | undefined, date: Date): boolean {
-    if (!shiftId) return false;
-    const key = `${shiftId}|${date.toISOString()}`;
-    return this.selectedKeys().has(key);
-  }
 
   constructor() {
     // Note: Do NOT access required inputs in constructor - they are not yet available
@@ -193,20 +173,12 @@ export class TimetableGridComponent {
     this.approveShift.emit(shiftId);
   }
 
-  public onConfirmWeek(employee: EmployeeWithDays): void {
-    this.confirmWeek.emit(employee);
-  }
-
   public onAddShift(event: { employeeId: string; date: Date }): void {
     this.addShift.emit({ employee_id: event.employeeId, date: event.date });
   }
 
   public onViewAudit(event: { employeeId: string; date: Date }): void {
     this.viewAudit.emit(event);
-  }
-
-  public onToggleSelection(event: { shiftId: string; date: Date }): void {
-    this.toggleSelection.emit(event);
   }
 
   public hasPendingShifts(employee: EmployeeWithDays): boolean {

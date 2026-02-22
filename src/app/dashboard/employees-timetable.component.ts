@@ -27,6 +27,7 @@ import { toDate } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
+import { ConfirmDialog } from 'primeng/confirmdialog';
 import { Calendar } from 'primeng/calendar';
 import { Card } from 'primeng/card';
 import { Dialog } from 'primeng/dialog';
@@ -83,6 +84,7 @@ import {
     DynamicDialogRef,
     TimetablePermissionsService,
     TimetableFilterService,
+    ConfirmationService,
   ],
   imports: [
     Card,
@@ -101,6 +103,7 @@ import {
     TimetableHeaderComponent,
     TimetableGridComponent,
     MonthWeekSelectorComponent,
+    ConfirmDialog,
   ],
   template: `<p-card>
       <ng-template #title> Turnos </ng-template>
@@ -138,46 +141,20 @@ import {
               [menuItems]="menuItems"
             />
             <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-              @if(permissionsService.canApproveSchedules()) { @if
-              (!bulkSelectionMode()) {
+              @if(permissionsService.canApproveSchedules()) {
               <p-button
-                [label]="'Seleccionar (' + totalPendingCount() + ')'"
-                icon="pi pi-check-square"
-                severity="info"
-                [outlined]="true"
+                [label]="'Aprobar semana (' + pendingCountForBranch() + ')'"
+                icon="pi pi-check-double"
+                severity="success"
+                outlined
+                rounded
                 size="small"
-                pTooltip="Seleccionar múltiples turnos para aprobar"
+                [disabled]="!filterService.currentBranch() || pendingCountForBranch() === 0"
+                pTooltip="Selecciona una sucursal para aprobar todos los horarios pendientes de la semana"
                 tooltipPosition="top"
-                (onClick)="toggleBulkSelectionMode()"
-                [disabled]="totalPendingCount() === 0"
+                (onClick)="approveWeekByBranch()"
               />
-              } @else {
-              <div
-                class="flex items-center gap-2 bg-neutral-700/50 rounded-lg px-2 py-1"
-              >
-                <span class="text-xs text-cyan-400 font-medium">
-                  <i class="pi pi-check-square mr-1"></i
-                  >{{ selectedShiftsCount() }} seleccionados
-                </span>
-                @if (selectedShiftsCount() > 0) {
-                <p-button
-                  [label]="'Aprobar (' + selectedShiftsCount() + ')'"
-                  icon="pi pi-check"
-                  severity="success"
-                  size="small"
-                  (onClick)="onBulkApprove()"
-                />
-                }
-                <p-button
-                  label="Cancelar"
-                  icon="pi pi-times"
-                  severity="secondary"
-                  [outlined]="true"
-                  size="small"
-                  (onClick)="cancelBulkSelection()"
-                />
-              </div>
-              } } @if(permissionsService.canAddEmployees()) {
+              } @if(permissionsService.canAddEmployees()) {
               <p-button
                 label="¿No aparece un empleado?"
                 icon="pi pi-user-plus"
@@ -222,17 +199,13 @@ import {
         [days]="days()"
         [canManageSchedules]="store.canManageSchedules()"
         [canApproveSchedules]="permissionsService.canApproveSchedules()"
-        [selectionMode]="bulkSelectionMode()"
-        [selectedKeys]="selectedSelectionKeys()"
         [isStoreManager]="permissionsService.isStoreManager()"
         [disablePagination]="!!filterService.currentBranch()"
         (editShift)="editSchedule($event)"
         (deleteShift)="deleteSchedule($event.shift, $event.date)"
         (approveShift)="approveSchedule($event)"
-        (confirmWeek)="confirmEmployeeWeek($event)"
         (addShift)="editSchedule($event)"
         (viewAudit)="onViewSpecificAudit($event)"
-        (toggleSelection)="toggleShiftSelection($event)"
       />
     </p-card>
     <p-dialog
@@ -499,6 +472,8 @@ import {
       </div>
     </p-dialog>
 
+    <p-confirmDialog />
+
     <!-- Dialog de Historial de Auditoría Específica -->
     <p-dialog
       [visible]="showSpecificAuditDialog()"
@@ -618,13 +593,7 @@ export class EmployeesTimetableComponent implements OnInit {
   public selectedActionFilter = signal<string | null>(null);
   public auditSearchText = signal<string>('');
 
-  // Bulk selection mode - managed from parent, passed to grid
-  public bulkSelectionMode = signal<boolean>(false);
-  public selectedSelectionKeys = signal<Set<string>>(new Set());
-  public selectedShiftsCount = computed(
-    () => this.selectedSelectionKeys().size
-  );
-  public totalPendingCount = computed(() => {
+  public pendingCountForBranch = computed(() => {
     let count = 0;
     const employees = this.employeeSchedulesList();
     for (const emp of employees) {
@@ -1719,83 +1688,51 @@ export class EmployeesTimetableComponent implements OnInit {
     });
   }
 
-  // ========== Bulk Selection Methods ==========
-  public toggleBulkSelectionMode(): void {
-    this.bulkSelectionMode.set(true);
-    this.selectedSelectionKeys.set(new Set());
-  }
+  public approveWeekByBranch(): void {
+    const branchId = this.filterService.currentBranch();
+    if (!branchId) return;
 
-  public cancelBulkSelection(): void {
-    this.bulkSelectionMode.set(false);
-    this.selectedSelectionKeys.set(new Set());
-  }
+    const employees = this.employeeSchedulesList();
+    const approvableIds = new Set<string>();
+    let totalPendingVisual = 0;
 
-  public toggleShiftSelection(event: { shiftId: string; date: Date }): void {
-    if (!event.shiftId) return;
-    const key = `${event.shiftId}|${event.date.toISOString()}`;
-    const current = this.selectedSelectionKeys();
-    const newSet = new Set(current);
-    if (newSet.has(key)) {
-      newSet.delete(key);
-    } else {
-      newSet.add(key);
-    }
-    this.selectedSelectionKeys.set(newSet);
-  }
-
-  public isShiftSelected(shiftId: string | undefined): boolean {
-    // Note: This method is less useful now with composite keys from parent perspective
-    // preventing logic errors, we just return false or rely on the grid to check keys
-    return false;
-  }
-
-  public onBulkApprove(): void {
-    const keys = Array.from(this.selectedSelectionKeys());
-    if (keys.length === 0) return;
-
-    // Extract unique shift IDs from composite keys
-    const shiftIds = new Set<string>();
-    keys.forEach((key) => {
-      const parts = key.split('|');
-      if (parts.length > 0) {
-        shiftIds.add(parts[0]);
-      }
-    });
-
-    const uniqueIds = Array.from(shiftIds);
-    if (uniqueIds.length === 0) return;
-
-    // Si algún horario seleccionado tiene advertencia, no permitir aprobación en lote
-    const list = this.employeeSchedulesList();
-    const idsWithWarnings = new Set<string>();
-    for (const emp of list) {
+    for (const emp of employees) {
       for (const day of emp.days) {
-        if (day.shift?.id && day.scheduleWarning) {
-          idsWithWarnings.add(day.shift.id);
+        if (day.shift && !day.shift.approved) {
+          approvableIds.add(day.shift.id);
+          totalPendingVisual++;
         }
       }
     }
-    const selectedWithWarnings = uniqueIds.filter((id) => idsWithWarnings.has(id));
-    if (selectedWithWarnings.length > 0) {
+
+    if (approvableIds.size === 0) {
       this.message.add({
-        severity: 'warn',
-        summary: 'Aprobación en lote no permitida',
-        detail: `${selectedWithWarnings.length} horario(s) tienen advertencias. Debes aprobarlos uno por uno desde cada celda.`,
+        severity: 'info',
+        summary: 'Sin horarios aprobables',
+        detail: 'No hay horarios pendientes para esta sucursal.',
       });
       return;
     }
 
-    this.batchApproveSchedules(uniqueIds, keys.length);
+    const branch = this.store.branches.entities().find((b) => b.id === branchId);
+    const branchName = branch?.name || 'sucursal';
+
+    this.batchApproveSchedules(
+      Array.from(approvableIds),
+      totalPendingVisual,
+      { header: `Aprobar semana - ${branchName}` }
+    );
   }
 
   public batchApproveSchedules(
     ids: string[],
-    visualCount: number = ids.length
+    visualCount: number = ids.length,
+    context?: { header?: string }
   ): void {
     if (ids.length === 0) return;
 
     this.confirm.confirm({
-      header: 'Aprobar múltiples horarios?',
+      header: context?.header || 'Aprobar múltiples horarios?',
       message: `¿Estás seguro de aprobar ${visualCount} turno${visualCount > 1 ? 's' : ''
         } (correspondientes a ${ids.length} registro${ids.length > 1 ? 's' : ''
         } de horario)?`,
@@ -1890,117 +1827,6 @@ export class EmployeesTimetableComponent implements OnInit {
                 severity: 'success',
                 summary: 'Éxito',
                 detail: `${ids.length} registro(s) aprobado(s) correctamente`,
-              });
-              this.cancelBulkSelection();
-              this.schedulesResource.reload();
-            },
-          });
-      },
-    });
-  }
-
-  public async confirmEmployeeWeek(employee: any) {
-    const pendingShifts = employee.days
-      .filter((d: any) => d.shift && !d.shift.approved)
-      .map((d: any) => d.shift);
-
-    if (pendingShifts.length === 0) return;
-
-    // Si algún horario de la semana tiene advertencia, no permitir aprobar toda la semana
-    const pendingWithWarnings = employee.days.filter(
-      (d: any) => d.shift && !d.shift.approved && d.scheduleWarning
-    );
-    if (pendingWithWarnings.length > 0) {
-      this.message.add({
-        severity: 'warn',
-        summary: 'Aprobación en lote no permitida',
-        detail: `${pendingWithWarnings.length} horario(s) tienen advertencias. Debes aprobarlos uno por uno desde cada celda.`,
-      });
-      return;
-    }
-
-    this.confirm.confirm({
-      header: 'Confirmar semana?',
-      message: `¿Estás seguro de aprobar todos los horarios (${pendingShifts.length}) de ${employee.first_name} para esta semana?`,
-      icon: 'pi pi-info-circle',
-      rejectButtonProps: {
-        label: 'Cancelar',
-        severity: 'secondary',
-        outlined: true,
-      },
-      acceptButtonProps: {
-        label: 'Aprobar todo',
-        severity: 'success',
-      },
-      accept: async () => {
-        const companyId = this.organizationService.getCurrentCompanyId();
-        const currentEmployeeId = this.store.currentEmployee()?.id;
-        const shiftIds = pendingShifts.map((s: any) => s.id);
-
-        if (currentEmployeeId) {
-          // Auditoría para cada turno
-          for (const shiftToApprove of pendingShifts) {
-            const schedule = this.store.schedules
-              .entities()
-              .find((s) => s.id === shiftToApprove.schedule_id);
-            const employeeData = this.store.employees
-              .entities()
-              .find((e) => e.id === shiftToApprove.employee_id);
-            const branch = this.store.branches
-              .entities()
-              .find((b) => b.id === shiftToApprove.branch_id);
-
-            const startDateFormatted = format(
-              toDate(shiftToApprove.start_date, { timeZone: 'America/Panama' }),
-              'dd/MM/yyyy'
-            );
-            const endDateFormatted = format(
-              toDate(shiftToApprove.end_date, { timeZone: 'America/Panama' }),
-              'dd/MM/yyyy'
-            );
-
-            await this.auditService.logChange({
-              employeeScheduleId: shiftToApprove.id,
-              changedBy: currentEmployeeId,
-              action: 'approved',
-              oldStatus: false,
-              newStatus: true,
-              comment: `Aprobación masiva semanal: Horario "${schedule?.name || 'Desconocido'
-                }" aprobado para ${employeeData
-                  ? `${employeeData.first_name} ${employeeData.father_name}`
-                  : 'empleado'
-                } (${startDateFormatted} - ${endDateFormatted})`,
-            });
-          }
-        }
-
-        // Actualización masiva en Supabase
-        const params: any = { id: `in.(${shiftIds.join(',')})` };
-        if (companyId) params.company_id = `eq.${companyId}`;
-
-        this.http
-          .patch(
-            this.apiUrl.build('rest/v1/employee_schedules'),
-            { approved: true },
-            { params }
-          )
-          .pipe(
-            catchError((error) => {
-              console.error('🔴 [APROBAR SEMANA] Error:', error);
-              this.message.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Ha ocurrido un error al aprobar los horarios',
-              });
-              return EMPTY;
-            })
-          )
-          .subscribe({
-            next: () => {
-              this.message.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: `Se han aprobado ${pendingShifts.length} horarios correctamente`,
               });
               this.schedulesResource.reload();
             },
