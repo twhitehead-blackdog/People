@@ -843,4 +843,47 @@ export class TimelogCorrectionsComponent {
       });
     }
   }
+
+  // --- Export ---
+  public async exportData(): Promise<void> {
+    try {
+      const xlsxModule = await import('xlsx-js-style');
+      const XLSX = (xlsxModule as any).default || xlsxModule;
+      const { format } = await import('date-fns');
+      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
+      const items = this.filteredRequests();
+      if (items.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay correcciones de marcación para exportar con los filtros aplicados' }); return; }
+      const data = items.map((r) => ({
+        Empleado: `${r.employee?.first_name || ''} ${r.employee?.father_name || ''}`.trim(),
+        Email: r.employee?.work_email || 'N/A',
+        'Posición': r.employee?.position?.name || 'N/A',
+        Sucursal: r.employee?.branch?.name || 'N/A',
+        'Fecha Marcación': r.metadata?.timelog_date ? format(new Date(r.metadata.timelog_date), 'dd/MM/yyyy') : '',
+        'Tipo Marcación': this.getTimelogTypeLabel(r.metadata?.timelog_type || ''),
+        Motivo: r.reason || '',
+        Estado: getStatusLabel(r.status),
+        'Comentario Rechazo': r.rejection_comment || '',
+        'Fecha Solicitud': r.created_at ? format(new Date(r.created_at), 'dd/MM/yyyy HH:mm') : '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Omisiones de Marcación');
+      ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 18 }, { wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 18 }];
+      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['timelog_correction']);
+      const summaryData = [
+        ['Resumen - Omisión de Marcación'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Total Solicitudes', items.length], ['Pendientes', this.pendingCount()],
+        ['Completadas', this.completedCount()], ['Rechazadas', this.rejectedCount()],
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
+      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['timelog_correction']);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+      XLSX.writeFile(wb, `Omision_Marcacion_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
+      this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${items.length} solicitudes` });
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar los datos' });
+    }
+  }
 }

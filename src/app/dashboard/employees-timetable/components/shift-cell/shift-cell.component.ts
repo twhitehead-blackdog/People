@@ -17,8 +17,8 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       [ngClass]="{
         'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
         'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !isStoreManager(),
-        'cursor-pointer hover:scale-105 hover:shadow-md': !(isStoreManager() && shiftValue?.approved),
-        'cursor-default': isStoreManager() && shiftValue?.approved
+        'cursor-pointer hover:scale-105 hover:shadow-md': !isStoreManager(),
+        'cursor-default': isStoreManager()
       }"
       [pTooltip]="tooltipContent"
       tooltipPosition="top"
@@ -56,7 +56,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
           <span class="text-amber-300 text-xs block mt-1">{{ warn }}</span>
         }
         @if (shiftValue?.approved) {
-          <span class="font-bold">Aprobado por RRHH</span>
+          <span class="font-bold">Aprobado por {{ shiftValue?.approved_by_employee?.first_name ? (shiftValue.approved_by_employee!.first_name + ' ' + shiftValue.approved_by_employee!.father_name) : 'RRHH' }}</span>
         } @else if (!isStoreManager()) {
           <span class="italic">Pendiente por aprobacion</span>
         }
@@ -75,8 +75,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         }
         <span class="font-medium block mb-2 pr-6">Opciones</span>
         <ul class="list-non flex flex-col">
-          @if (canManageSchedules()) {
-          @if (!isStoreManager() || !shift()?.approved) {
+          @if (canManageSchedules() && !isStoreManager()) {
           <li
             class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
             (click)="onEdit(); options.hide()"
@@ -91,7 +90,6 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
             <i class="pi pi-trash text-red-700"></i>
             Eliminar
           </li>
-          }
           } @if (canApprove()) {
           <li
             class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
@@ -104,7 +102,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         </ul>
       </div>
     </p-popover>
-    } @else { @if (canManageSchedules()) {
+    } @else { @if (canManageSchedules() && !isStoreManager()) {
     <p-button
       icon="pi pi-plus"
       outlined
@@ -147,8 +145,8 @@ export class ShiftCellComponent {
   public handleClick(event: Event): void {
     const shiftValue = this.shift();
 
-    // Gerentes de tienda no pueden abrir el menú en horarios aprobados
-    if (this.isStoreManager() && shiftValue?.approved) {
+    // Gerentes de tienda solo pueden visualizar horarios (sin acciones)
+    if (this.isStoreManager()) {
       return;
     }
 

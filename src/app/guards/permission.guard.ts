@@ -28,13 +28,14 @@ async function waitForEmployee(dashboardStore: InstanceType<typeof DashboardStor
 function findFirstAvailableRoute(permissions: PermissionsService): string {
   // Orden de prioridad para redirect
   // NOTA: las rutas del dashboard están montadas en path '' (raíz), NO en /dashboard
+  // Home va al final porque contiene información sensible (headcount, salarios, tardanzas)
   const moduleRouteMap: { moduleId: string; route: string }[] = [
-    { moduleId: 'home', route: '/home' },
-    { moduleId: 'admin', route: '/admin' },
-    { moduleId: 'time_management', route: '/time-management' },
-    { moduleId: 'payroll', route: '/payroll' },
     { moduleId: 'branch_manager', route: '/branch-manager' },
+    { moduleId: 'time_management', route: '/time-management' },
     { moduleId: 'timeclock', route: '/timeclock' },
+    { moduleId: 'admin', route: '/admin' },
+    { moduleId: 'payroll', route: '/payroll' },
+    { moduleId: 'home', route: '/home' },
   ];
 
   for (const entry of moduleRouteMap) {

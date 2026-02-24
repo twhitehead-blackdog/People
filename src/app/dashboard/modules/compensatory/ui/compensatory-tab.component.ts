@@ -1638,13 +1638,15 @@ export class CompensatoryTabComponent {
   // Export
   public async exportData(): Promise<void> {
     try {
-      const { utils, writeFile } = await import('xlsx');
+      const xlsxModule = await import('xlsx-js-style');
+      const XLSX = (xlsxModule as any).default || xlsxModule;
+      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
       const requests = this.filteredRequests();
       if (requests.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay solicitudes para exportar con los filtros aplicados' }); return; }
       const data = await Promise.all(requests.map(async (req) => {
         const reviewedByName = req.reviewed_by ? await this.getEmployeeNameById(req.reviewed_by) : 'N/A';
         return {
-          'ID Solicitud': req.id, 'Fecha Solicitud': req.created_at ? format(new Date(req.created_at), 'dd/MM/yyyy HH:mm') : '',
+          'Fecha Solicitud': req.created_at ? format(new Date(req.created_at), 'dd/MM/yyyy HH:mm') : '',
           Empleado: this.getEmployeeName(req), Email: this.getEmployeeEmail(req),
           Posición: req.employee?.position?.name || 'N/A', Sucursal: req.employee?.branch?.name || 'N/A',
           'Fecha Desde': req.date_from ? format(new Date(req.date_from), 'dd/MM/yyyy') : '',
@@ -1652,28 +1654,30 @@ export class CompensatoryTabComponent {
           Tipo: req.compensatory_type === 'hours' ? 'Horas' : 'Días',
           Cantidad: req.compensatory_amount || req.hours || 0,
           'Horas Totales': req.hours || (req.compensatory_amount || 0) * 8,
+          Motivo: this.getCompensatoryReasonFromNotes(req) || '',
           Estado: this.getStatusLabel(req), 'Revisado Por': reviewedByName,
           'Fecha Revisión': req.reviewed_at ? format(new Date(req.reviewed_at), 'dd/MM/yyyy HH:mm') : '',
-          'Comentario Rechazo': req.rejection_comment || '', Motivo: req.reason || '',
-          Notas: Array.isArray(req.notes) ? req.notes.join('; ') : req.notes || '',
+          'Comentario Rechazo': req.rejection_comment || '',
         };
       }));
-      const ws = utils.json_to_sheet(data);
-      const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, 'Solicitudes');
-      ws['!cols'] = [{ wch: 36 }, { wch: 18 }, { wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 30 }, { wch: 30 }, { wch: 50 }];
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
+      ws['!cols'] = [{ wch: 18 }, { wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 30 }];
+      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['compensatory']);
       const summaryData = [
-        ['Resumen de Exportación'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Resumen - Tiempo Compensatorio'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
         ['Total Solicitudes', requests.length], ['Pendientes', this.pendingCount()],
         ['Aprobadas', this.approvedCount()], ['Rechazadas', this.rejectedCount()],
         [''], ['Filtros Aplicados'], ['Búsqueda', this.searchText() || 'Ninguna'],
         ['Estado', this.selectedStatus() ? this.statusOptions.find(o => o.value === this.selectedStatus())?.label || 'Todos' : 'Todos'],
         ['Rango Fechas', this.dateRange() ? `${format(this.dateRange()![0], 'dd/MM/yyyy')} - ${format(this.dateRange()![1], 'dd/MM/yyyy')}` : 'Todos'],
       ];
-      const summaryWs = utils.aoa_to_sheet(summaryData);
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
       summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
-      utils.book_append_sheet(wb, summaryWs, 'Resumen');
-      writeFile(wb, `Tiempo_Compensatorio_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
+      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['compensatory']);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+      XLSX.writeFile(wb, `Tiempo_Compensatorio_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
       this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${requests.length} solicitudes` });
     } catch (error) {
       console.error('Error exportando datos:', error);

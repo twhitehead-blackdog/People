@@ -1969,10 +1969,11 @@ export class BranchManagerComponent {
           params.company_id = `eq.${companyId}`;
         }
 
+        const approverEmployeeId = this.store.currentEmployee()?.id;
         this.http
           .patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            { approved: true, approved_at: new Date().toISOString() },
+            { approved: true, approved_at: new Date().toISOString(), ...(approverEmployeeId ? { approved_by: approverEmployeeId } : {}) },
             { params }
           )
           .subscribe({
@@ -2017,7 +2018,8 @@ export class BranchManagerComponent {
       tooltip += `Sucursal: ${shift.branch?.name || 'N/A'}\n`;
     }
     if (shift.approved) {
-      tooltip += 'Aprobado por RRHH';
+      const approver = shift.approved_by_employee;
+      tooltip += approver ? `Aprobado por ${approver.first_name} ${approver.father_name}` : 'Aprobado por RRHH';
     } else {
       tooltip += 'Pendiente por aprobación';
     }

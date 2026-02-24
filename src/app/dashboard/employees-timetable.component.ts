@@ -823,6 +823,20 @@ export class EmployeesTimetableComponent implements OnInit {
     return null;
   }
 
+  private getPositionOrder(name: string | undefined): number {
+    if (!name) return 99;
+    const n = name.toLowerCase();
+    if (n.includes('gerente') && !n.includes('sub')) return 1;
+    if (n.includes('sub gerente') || n.includes('subgerente') || n.includes('sub-gerente')) return 2;
+    if (n.includes('piso de venta')) return 3;
+    if (n.includes('peluquero') && !n.includes('asistente')) return 4;
+    if (n.includes('asistente') && n.includes('peluquer')) return 5;
+    if (n.includes('conductor')) return 6;
+    if ((n.includes('médic') || n.includes('medic')) && n.includes('veterinar')) return 7;
+    if (n.includes('asistente') && n.includes('vet')) return 8;
+    return 99;
+  }
+
   public employeeSchedulesList = computed(() => {
     const employees = this.currentEmployees();
     const intervalsMap = this.shiftIntervalsByEmployeeId();
@@ -849,7 +863,15 @@ export class EmployeesTimetableComponent implements OnInit {
         );
         return { ...day, shift, scheduleWarning };
       }),
-    }));
+    })).sort((a, b) => {
+      // Si hay filtro de sucursal activo, ordenar por cargo y luego por nombre
+      if (this.filterService.currentBranch()) {
+        const orderA = this.getPositionOrder(a.position.name);
+        const orderB = this.getPositionOrder(b.position.name);
+        if (orderA !== orderB) return orderA - orderB;
+      }
+      return a.first_name.localeCompare(b.first_name);
+    });
   });
 
   /** Claves (date|branch_id|schedule_id) donde hay 2+ Gerentes/Subgerentes en el mismo turno/sucursal/día. */
@@ -1650,10 +1672,11 @@ export class EmployeesTimetableComponent implements OnInit {
 
         // Ahora aprobar el horario
         console.log('🔵 [APROBAR] Enviando PATCH...');
+        const approverEmployeeId = currentEmployeeId;
         this.http
           .patch(
             this.apiUrl.build('rest/v1/employee_schedules'),
-            { approved: true },
+            { approved: true, ...(approverEmployeeId ? { approved_by: approverEmployeeId } : {}) },
             { params }
           )
           .pipe(
@@ -1807,8 +1830,9 @@ export class EmployeesTimetableComponent implements OnInit {
 
         const fullUrl = `${url}?${queryParams.join('&')}`;
 
+        const batchCurrentEmployeeId = this.store.currentEmployee()?.id;
         this.http
-          .patch(fullUrl, { approved: true })
+          .patch(fullUrl, { approved: true, ...(batchCurrentEmployeeId ? { approved_by: batchCurrentEmployeeId } : {}) })
           .pipe(
             catchError((error) => {
               console.error('🔴 [BATCH APROBAR] Error:', error);

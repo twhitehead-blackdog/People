@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
-import { modulePermissionGuard, permissionGuard } from '../guards/permission.guard';
+import { modulePermissionGuard, permissionGuard, homeGuard } from '../guards/permission.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -17,7 +17,7 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'home',
         loadComponent: () =>
           import('./home.component').then((x) => x.HomeComponent),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, homeGuard],
       },
       {
         path: 'admin',
@@ -240,7 +240,8 @@ export const DASHBOARD_ROUTES: Routes = [
             loadComponent: () =>
               import('./shifts.component').then((x) => x.ShiftsComponent),
           },
-          { path: '', redirectTo: 'timetables', pathMatch: 'full' },
+          // No default redirect - TimeManagementComponent handles dynamic redirect
+          // based on user's sub-module permissions
         ],
       },
       {

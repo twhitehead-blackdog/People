@@ -2,6 +2,6 @@
  * Versión de la aplicación
  * Este archivo se genera automáticamente desde package.json
  * Ejecuta: npm run update-version
- * Última actualización: 2026-02-22T17:04:54.670Z
+ * Última actualización: 2026-02-24T21:29:11.105Z
  */
-export const APP_VERSION = '5.2.14';
+export const APP_VERSION = '5.5.0';

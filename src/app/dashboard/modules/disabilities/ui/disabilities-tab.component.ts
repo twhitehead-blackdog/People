@@ -2043,4 +2043,48 @@ export class DisabilitiesTabComponent {
     };
     return colors[action] || 'text-gray-400';
   }
+
+  // --- Export ---
+  public async exportData(): Promise<void> {
+    try {
+      const xlsxModule = await import('xlsx-js-style');
+      const XLSX = (xlsxModule as any).default || xlsxModule;
+      const { format } = await import('date-fns');
+      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
+      const items = this.filteredDisabilities();
+      if (items.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay incapacidades para exportar con los filtros aplicados' }); return; }
+      const data = items.map((d) => ({
+        Empleado: `${d.employee?.first_name || ''} ${d.employee?.father_name || ''}`.trim(),
+        Email: d.employee?.work_email || 'N/A',
+        'Posición': d.employee?.position?.name || 'N/A',
+        Sucursal: d.employee?.branch?.name || 'N/A',
+        Inicio: d.start_date ? format(new Date(d.start_date), 'dd/MM/yyyy') : '',
+        Fin: d.end_date ? format(new Date(d.end_date), 'dd/MM/yyyy') : '',
+        'Días': this.calculateDays(d.start_date, d.end_date),
+        'Descripción': d.description || '',
+        Estado: this.getStatusLabel(d.status),
+        'Comentario Rechazo': d.rejection_comment || '',
+        'Fecha Solicitud': d.created_at ? format(new Date(d.created_at), 'dd/MM/yyyy HH:mm') : '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Incapacidades');
+      ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 40 }, { wch: 15 }, { wch: 30 }, { wch: 18 }];
+      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['disabilities']);
+      const summaryData = [
+        ['Resumen - Incapacidades'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Total Incapacidades', items.length], ['Pendientes', this.pendingCount()],
+        ['Aprobadas', this.approvedCount()], ['Rechazadas', this.rejectedCount()],
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
+      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['disabilities']);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+      XLSX.writeFile(wb, `Incapacidades_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
+      this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${items.length} incapacidades` });
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar los datos' });
+    }
+  }
 }

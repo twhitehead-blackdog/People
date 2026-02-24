@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, input, output, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { format } from 'date-fns';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
@@ -11,7 +12,7 @@ import { Employee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 
 export interface VetBranchSelectionResult {
-  branchId: string;
+  employeeId: string;
   startDate: Date;
   endDate: Date;
 }
@@ -30,7 +31,7 @@ export interface VetBranchSelectionResult {
   ],
   template: `
     <p-dialog
-      header="Seleccionar Sucursal"
+      header="Asignar Veterinario"
       [modal]="true"
       [closable]="true"
       [dismissableMask]="true"
@@ -41,7 +42,7 @@ export interface VetBranchSelectionResult {
       <div class="p-4">
         <div class="mb-4">
           <label class="block text-sm font-medium mb-2">
-            Empleado: {{ employee()?.first_name }} {{ employee()?.father_name }}
+            Sucursal: <strong>{{ branchName() }}</strong>
           </label>
         </div>
 
@@ -67,7 +68,6 @@ export interface VetBranchSelectionResult {
             [(ngModel)]="startDate"
             dateFormat="dd/mm/yy"
             [showIcon]="true"
-            [minDate]="minDate"
             styleClass="w-full"
             appendTo="body"
           />
@@ -79,7 +79,6 @@ export interface VetBranchSelectionResult {
                 [(ngModel)]="startDate"
                 dateFormat="dd/mm/yy"
                 [showIcon]="true"
-                [minDate]="minDate"
                 styleClass="w-full"
                 appendTo="body"
               />
@@ -90,7 +89,7 @@ export interface VetBranchSelectionResult {
                 [(ngModel)]="endDate"
                 dateFormat="dd/mm/yy"
                 [showIcon]="true"
-                [minDate]="startDate || minDate"
+                [minDate]="startDate!"
                 styleClass="w-full"
                 appendTo="body"
               />
@@ -105,23 +104,35 @@ export interface VetBranchSelectionResult {
         </div>
 
         <div class="mb-4">
-          <label for="branch-select" class="block text-sm font-medium mb-2">
-            Sucursal
+          <label for="employee-select" class="block text-sm font-medium mb-2">
+            Veterinario
           </label>
           <p-dropdown
-            id="branch-select"
-            [options]="branches()"
-            optionLabel="name"
+            id="employee-select"
+            [options]="filteredEmployees()"
+            optionLabel="first_name"
             optionValue="id"
-            [(ngModel)]="selectedBranchId"
-            placeholder="Seleccione una sucursal"
+            [(ngModel)]="selectedEmployeeId"
+            placeholder="Seleccione un veterinario"
             class="w-full"
             [showClear]="true"
+            [filter]="true"
+            filterBy="first_name,father_name"
             appendTo="body"
             [panelStyle]="{ 'max-height': '200px' }"
             [virtualScroll]="true"
             [virtualScrollItemSize]="35"
-          />
+          >
+            <ng-template let-emp #item>
+              <div class="flex flex-col">
+                <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+                <span class="text-xs text-gray-400">{{ emp.position?.name }}</span>
+              </div>
+            </ng-template>
+            <ng-template let-emp #selectedItem>
+              <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+            </ng-template>
+          </p-dropdown>
         </div>
 
         <div class="flex justify-end gap-2">
@@ -146,9 +157,11 @@ export class VetBranchSelectionDialogComponent implements OnChanges {
 
   // Inputs
   visible = input<boolean>(false);
-  employee = input<Employee | undefined>();
+  branchId = input<string | undefined>();
   date = input<Date | undefined>();
-  currentBranchId = input<string | undefined>();
+  availableEmployees = input<Employee[]>([]);
+  nonWorkingMap = input<Record<string, string>>({});
+  assignedEmployeeIdsForDate = input<Map<string, Set<string>>>(new Map());
 
   // Outputs
   visibleChange = output<boolean>();
@@ -156,15 +169,11 @@ export class VetBranchSelectionDialogComponent implements OnChanges {
   cancel = output<void>();
 
   // State
-  selectedBranchId: string | null = null;
+  selectedEmployeeId: string | null = null;
   dateType: 'single' | 'range' = 'single';
   startDate: Date | null = null;
   endDate: Date | null = null;
-  minDate: Date | undefined = undefined; // Allow past dates by default
 
-  // Persistence State
-  private lastEmployeeId: string | null = null;
-  private lastBranchId: string | null = null;
   private wasVisible = false;
 
   dateTypeOptions = [
@@ -172,25 +181,37 @@ export class VetBranchSelectionDialogComponent implements OnChanges {
     { label: 'Rango de fechas', value: 'range' },
   ];
 
-  // Computed
-  branches = () =>
-    this.store.branches.entities().filter(
-      (branch) =>
-        branch.is_active &&
-        branch.name !== 'Bodega Dos Caminos' &&
-        branch.id !== '7862b9be-890d-4432-8a2f-9329a15a2853' // Oficina Central
-    );
+  branchName = computed(() => {
+    const id = this.branchId();
+    if (!id) return '';
+    const branch = this.store.branches.entities().find((b) => b.id === id);
+    return branch?.name || '';
+  });
+
+  // Filtrar empleados: quitar los que están en día libre el día seleccionado
+  filteredEmployees = computed(() => {
+    const allVets = this.availableEmployees();
+    if (!this.startDate) return allVets;
+    const dateKey = format(this.startDate, 'yyyy-MM-dd');
+    const nwMap = this.nonWorkingMap();
+    const assigned = this.assignedEmployeeIdsForDate().get(dateKey) || new Set();
+
+    return allVets.filter((e) => {
+      const key = `${e.id}|${dateKey}`;
+      if (nwMap[key]) return false;
+      if (assigned.has(e.id)) return false;
+      return true;
+    });
+  });
 
   dayCount = computed(() => {
     if (!this.startDate || !this.endDate) return 0;
-    const diffTime = Math.abs(
-      this.endDate.getTime() - this.startDate.getTime()
-    );
+    const diffTime = Math.abs(this.endDate.getTime() - this.startDate.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   });
 
   canConfirm(): boolean {
-    if (!this.selectedBranchId) return false;
+    if (!this.selectedEmployeeId) return false;
     if (!this.startDate) return false;
     if (this.dateType === 'range') {
       if (!this.endDate) return false;
@@ -199,63 +220,35 @@ export class VetBranchSelectionDialogComponent implements OnChanges {
     return true;
   }
 
-  // Effect-like logic via ngOnChanges to handle "On Open"
   ngOnChanges(): void {
     if (this.visible() && !this.wasVisible) {
-      // Dialog just opened
       this.initDialogState();
     }
     this.wasVisible = this.visible();
   }
 
   private initDialogState(): void {
-    // 1. Initialize Dates
     if (this.date()) {
-      // CLONE dates to avoid reference issues
       this.startDate = new Date(this.date()!);
       this.endDate = null;
     } else {
       this.startDate = new Date();
-      this.endDate = new Date();
+      this.endDate = null;
     }
-
-    // 2. Initialize Branch Selection
-    const empId = this.employee()?.id;
-    const editBranch = this.currentBranchId();
-
-    if (editBranch) {
-      // Editing existing: always use that
-      this.selectedBranchId = editBranch;
-    } else {
-      // Adding new: check memory
-      if (empId && empId === this.lastEmployeeId && this.lastBranchId) {
-        this.selectedBranchId = this.lastBranchId;
-      } else {
-        this.selectedBranchId = null; // Reset if different employee or no memory
-      }
-    }
-
-    // Default to single
+    this.selectedEmployeeId = null;
     this.dateType = 'single';
   }
 
   confirmSelection(): void {
-    if (this.selectedBranchId && this.startDate) {
+    if (this.selectedEmployeeId && this.startDate) {
       const result: VetBranchSelectionResult = {
-        branchId: this.selectedBranchId,
+        employeeId: this.selectedEmployeeId,
         startDate: this.startDate,
         endDate:
           this.dateType === 'range' && this.endDate
             ? this.endDate
             : this.startDate,
       };
-
-      // Save to memory
-      if (this.employee()?.id) {
-        this.lastEmployeeId = this.employee()!.id;
-        this.lastBranchId = this.selectedBranchId;
-      }
-
       this.confirm.emit(result);
       this.closeDialog();
     }
@@ -267,7 +260,7 @@ export class VetBranchSelectionDialogComponent implements OnChanges {
   }
 
   private closeDialog(): void {
-    this.selectedBranchId = null;
+    this.selectedEmployeeId = null;
     this.startDate = null;
     this.endDate = null;
     this.dateType = 'single';

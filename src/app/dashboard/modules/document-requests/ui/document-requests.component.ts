@@ -1295,4 +1295,46 @@ export class DocumentRequestsComponent {
       });
     }
   }
+
+  // --- Export ---
+  public async exportData(): Promise<void> {
+    try {
+      const xlsxModule = await import('xlsx-js-style');
+      const XLSX = (xlsxModule as any).default || xlsxModule;
+      const { format } = await import('date-fns');
+      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
+      const items = this.filteredDocuments();
+      if (items.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay solicitudes de documentos para exportar con los filtros aplicados' }); return; }
+      const data = items.map((d) => ({
+        Empleado: `${d.employee?.first_name || ''} ${d.employee?.father_name || ''}`.trim(),
+        Email: d.employee?.work_email || 'N/A',
+        'Posición': d.employee?.position?.name || 'N/A',
+        Sucursal: d.employee?.branch?.name || 'N/A',
+        'Tipo Documento': this.getDocumentTypeLabel(d.document_type),
+        Motivo: d.reason || '',
+        Estado: getStatusLabel(d.status),
+        'Comentario Rechazo': d.rejection_comment || '',
+        'Fecha Solicitud': d.created_at ? format(new Date(d.created_at), 'dd/MM/yyyy HH:mm') : '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Documentos');
+      ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 22 }, { wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 18 }];
+      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['documents']);
+      const summaryData = [
+        ['Resumen - Solicitudes de Documentos'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Total Solicitudes', items.length], ['Pendientes', this.pendingCount()],
+        ['Completadas', this.completedCount()], ['Rechazadas', this.rejectedCount()],
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
+      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['documents']);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+      XLSX.writeFile(wb, `Solicitudes_Documentos_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
+      this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${items.length} solicitudes` });
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar los datos' });
+    }
+  }
 }

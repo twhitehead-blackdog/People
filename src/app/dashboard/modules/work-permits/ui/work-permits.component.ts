@@ -983,4 +983,51 @@ export class WorkPermitsComponent {
       console.error('Error sending notification', e);
     }
   }
+
+  // --- Export ---
+  public async exportData(): Promise<void> {
+    try {
+      const xlsxModule = await import('xlsx-js-style');
+      const XLSX = (xlsxModule as any).default || xlsxModule;
+      const { format } = await import('date-fns');
+      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
+      const items = this.filteredPermits();
+      if (items.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay permisos para exportar con los filtros aplicados' }); return; }
+      const data = items.map((p) => ({
+        Empleado: `${p.employee?.first_name || ''} ${p.employee?.father_name || ''}`.trim(),
+        Email: p.employee?.work_email || 'N/A',
+        'Posición': p.employee?.position?.name || 'N/A',
+        Sucursal: p.employee?.branch?.name || 'N/A',
+        'Tipo Permiso': this.getPermitTypeLabel(p.permit_type),
+        Inicio: p.start_date ? format(new Date(p.start_date), 'dd/MM/yyyy') : '',
+        Fin: p.end_date ? format(new Date(p.end_date), 'dd/MM/yyyy') : '',
+        'Hora Inicio': p.start_time || '',
+        'Hora Fin': p.end_time || '',
+        Equivalente: p.equivalent_value ? `${p.equivalent_value} ${p.equivalent_unit === 'hours' ? 'horas' : 'días'}` : '',
+        Observaciones: p.observations || '',
+        Estado: getStatusLabel(p.status),
+        'Comentario Rechazo': p.rejection_comment || '',
+        'Fecha Solicitud': p.created_at ? format(new Date(p.created_at), 'dd/MM/yyyy HH:mm') : '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Permisos');
+      ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 18 }];
+      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['work_permits']);
+      const summaryData = [
+        ['Resumen - Permisos'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Total Permisos', items.length], ['Pendientes', this.pendingCount()],
+        ['Aprobados', this.approvedCount()], ['Rechazados', this.rejectedCount()],
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
+      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['work_permits']);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+      XLSX.writeFile(wb, `Permisos_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
+      this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${items.length} permisos` });
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar los datos' });
+    }
+  }
 }

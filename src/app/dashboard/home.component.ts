@@ -1004,9 +1004,27 @@ export class HomeComponent {
         }
 
         // Si el empleado está inactivo y no tiene fecha de salida formal (end_date, termination),
-        // no sabemos cuándo salió. Excluirlo de todos los meses pasados ya que
-        // para el mes actual se usa is_active directamente.
+        // usar updated_at como proxy de la fecha de desactivación.
         if (!emp.is_active && !termination && !emp.end_date) {
+          if (emp.updated_at) {
+            try {
+              const updatedAtDate = parseISO(String(emp.updated_at));
+              const updatedAtTimestamp = new Date(
+                updatedAtDate.getFullYear(),
+                updatedAtDate.getMonth(),
+                updatedAtDate.getDate(),
+                0, 0, 0, 0
+              ).getTime();
+              // Si fue desactivado en o antes del fin de este mes, excluir
+              if (updatedAtTimestamp <= monthEndTimestamp) {
+                return false;
+              }
+              // Si fue desactivado después de este mes, aún estaba activo
+              return true;
+            } catch {
+              return false;
+            }
+          }
           return false;
         }
 

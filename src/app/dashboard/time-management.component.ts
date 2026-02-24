@@ -3,10 +3,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Menu } from 'primeng/menu';
 import { OrganizationService } from '../services/organization.service';
@@ -248,6 +249,30 @@ export class TimeManagementComponent {
   public store = inject(DashboardStore);
   public organizationService = inject(OrganizationService);
   private permissionsService = inject(PermissionsService);
+  private router = inject(Router);
+
+  // Redirigir al primer sub-módulo disponible cuando la URL es exactamente /time-management
+  private redirectEffect = effect(() => {
+    const subs = this.tmSubs();
+    const url = this.router.url;
+    if (url === '/time-management' || url === '/time-management/') {
+      const subModuleRoutes: { key: keyof typeof subs; route: string }[] = [
+        { key: 'timetables', route: 'timetables' },
+        { key: 'shifts', route: 'shifts' },
+        { key: 'schedules', route: 'schedules' },
+        { key: 'timelogs', route: 'timelogs' },
+        { key: 'vet_schedule', route: 'vet-schedule' },
+        { key: 'salon_schedule', route: 'salon-schedule' },
+      ];
+      for (const sub of subModuleRoutes) {
+        if (subs[sub.key]) {
+          this.router.navigate(['/time-management', sub.route]);
+          return;
+        }
+      }
+      this.router.navigate(['/my-portal']);
+    }
+  });
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());

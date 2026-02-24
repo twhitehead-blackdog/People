@@ -292,6 +292,8 @@ export type EmployeeSchedule = {
   time_off_type?: 'vacation' | 'compensatory_day' | 'compensatory_hours' | 'disability' | null;
   time_off_source_id?: string | null;
   compensatory_hours_amount?: number | null;
+  approved_by?: string;
+  approved_by_employee?: { id: string; first_name: string; father_name: string };
 };
 
 export type VetBranchAssignment = {
@@ -637,6 +639,8 @@ export type NazEmployeeSchedule = {
   end_date: Date;
   approved?: boolean;
   approved_at?: Date;
+  approved_by?: string;
+  approved_by_employee?: { id: string; first_name: string; father_name: string };
   created_at?: Date;
   updated_at?: Date;
 };
@@ -708,6 +712,7 @@ export interface EmployeeScheduleData {
   start_date: string;
   end_date: string;
   approved: boolean;
+  approved_by?: string;
   schedule?: Schedule;
 }
 

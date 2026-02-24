@@ -27,8 +27,8 @@ type EmployeeWithDays = {
       <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
         <div class="flex items-center justify-between mb-3">
           <div>
-            <p class="font-semibold text-white">{{ employee.first_name }} {{ employee.father_name }}</p>
             <p class="text-xs text-gray-400">{{ employee.position.name || 'Sin cargo' }}</p>
+            <p class="font-semibold text-white">{{ employee.first_name }} {{ employee.father_name }}</p>
           </div>
         </div>
         <div class="grid grid-cols-7 gap-1">
@@ -79,8 +79,8 @@ type EmployeeWithDays = {
         }
         <ng-template #header>
           <tr>
-            <th pFrozenColumn class="min-w-[150px]">Nombre</th>
-            <th class="min-w-[120px]">Cargo</th>
+            <th pFrozenColumn class="min-w-[120px]">Cargo</th>
+            <th class="min-w-[150px]">Nombre</th>
             @for(day of days(); track day.date){
             <th class="text-center min-w-[80px] lg:min-w-[100px]">
               <div class="flex flex-col items-center gap-0 leading-[1.1]">
@@ -95,8 +95,8 @@ type EmployeeWithDays = {
         </ng-template>
         <ng-template #body let-item>
           <tr>
-            <td pFrozenColumn class="whitespace-nowrap">{{ item.first_name }} {{ item.father_name }}</td>
-            <td class="whitespace-nowrap">{{ item.position.name }}</td>
+            <td pFrozenColumn class="whitespace-nowrap">{{ item.position.name }}</td>
+            <td class="whitespace-nowrap">{{ item.first_name }} {{ item.father_name }}</td>
             @for(day of item.days; track day.date){
             <td class="text-center">
               <pt-shift-cell
