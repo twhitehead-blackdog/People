@@ -148,7 +148,7 @@ import { PermissionsService } from '../services/permissions.service';
                   class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
                 >
                   <i class="pi pi-money-bill text-base flex-shrink-0"></i>
-                  <span>Nómina</span></a
+                  <span>Planilla</span></a
                 >
                 } @if((store.isAdmin() || store.hasTimeManagementAccess()) && canAccessTimeManagement()) {
                 <a
@@ -265,7 +265,7 @@ import { PermissionsService } from '../services/permissions.service';
               [class.text-white]="isPayrollActive()"
               [class.shadow-md]="isPayrollActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
+              ><i class="pi pi-money-bill text-lg"></i> <span>Planilla</span></a
             >
             } @if((store.isAdmin() || store.hasDashboardAccess() || store.hasTimeManagementAccess()) && canAccessTimeclock()) {
             <a

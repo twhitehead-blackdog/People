@@ -255,6 +255,13 @@ export const DASHBOARD_ROUTES: Routes = [
             loadComponent: () =>
               import('./banks.component').then((x) => x.BanksComponent),
           },
+          {
+            path: 'admin',
+            loadComponent: () =>
+              import('./payroll-admin.component').then(
+                (x) => x.PayrollAdminComponent
+              ),
+          },
           { path: '', redirectTo: 'payrolls', pathMatch: 'full' },
         ],
       },

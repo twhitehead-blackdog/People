@@ -1204,6 +1204,9 @@ export function app(): express.Express {
       });
     } else {
       // Para peticiones del navegador, servir index.html directamente
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(path.join(distFolder, 'index.html'), (err) => {
         if (err) {
           safeLogger.error('Error sirviendo index.html en /', err);

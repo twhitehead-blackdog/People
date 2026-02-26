@@ -59,6 +59,18 @@ import { PermissionsService } from '../services/permissions.service';
               ><i class="pi pi-building-columns text-base"></i> <span>Bancos</span></a
             >
             }
+            <a
+              routerLink="admin"
+              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+              [routerLinkActive]="[
+                'bg-gradient-to-r',
+                'from-amber-500/20',
+                'to-amber-600/20',
+                'text-amber-300',
+                'shadow-md'
+              ]"
+              ><i class="pi pi-cog text-base"></i> <span>Administración</span></a
+            >
           </div>
         </div>
       </div>
