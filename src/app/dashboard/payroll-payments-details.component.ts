@@ -55,9 +55,11 @@ import {
   TimeLogEnum,
 } from '../models';
 import { roundNumber } from '../services/util.service';
+import { PayrollService } from '../services/payroll.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { LateCompensatoryFormComponent } from './late-compensatory-form.component';
 import { PaymentItemFormComponent } from './payment-item-form.component';
+import { Tag } from 'primeng/tag';
 
 @Component({
   selector: 'pt-payroll-payments-details',
@@ -72,12 +74,100 @@ import { PaymentItemFormComponent } from './payment-item-form.component';
     Card,
     KeyValuePipe,
     RouterLink,
+    Tag,
   ],
   providers: [DynamicDialogRef, DialogService],
   template: `<div class="flex flex-col gap-4">
-    <h1 class="text-2xl font-bold text-gray-700 dark:text-gray-200">
-      Planilla: {{ payment.value()?.[0]?.payroll?.name }}
-    </h1>
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div class="flex items-center gap-3">
+        <i class="pi pi-calculator text-3xl text-amber-400"></i>
+        <div>
+          <h1 class="text-2xl font-bold text-white m-0">
+            {{ payment.value()?.[0]?.title ?? payment.value()?.[0]?.payroll?.name }}
+          </h1>
+          <p class="text-sm text-gray-400 m-0 mt-1">
+            {{ payment.value()?.[0]?.start_date | date:'dd/MM/yyyy' }} -
+            {{ payment.value()?.[0]?.end_date | date:'dd/MM/yyyy' }}
+            @if (payment.value()?.[0]?.payment_date) {
+              &middot; Pago: {{ payment.value()?.[0]?.payment_date | date:'dd/MM/yyyy' }}
+            }
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        @if (payment.value()?.[0]?.status; as status) {
+          @switch (status) {
+            @case ('DRAFT') {
+              <p-tag value="Borrador" severity="secondary" rounded />
+            }
+            @case ('CALCULATED') {
+              <p-tag value="Calculado" severity="info" rounded />
+            }
+            @case ('REVIEWED') {
+              <p-tag value="Revisado" severity="warn" rounded />
+            }
+            @case ('APPROVED') {
+              <p-tag value="Aprobado" severity="success" rounded />
+            }
+            @case ('PAID') {
+              <p-tag value="Pagado" severity="contrast" rounded />
+            }
+          }
+        }
+        @if (payment.value()?.[0]?.status === 'DRAFT' || payment.value()?.[0]?.status === 'CALCULATED') {
+          <p-button
+            label="Calcular"
+            icon="pi pi-calculator"
+            severity="info"
+            rounded
+            size="small"
+            [loading]="calculating()"
+            (click)="calculateBatch()"
+          />
+        }
+        @if (payment.value()?.[0]?.status === 'CALCULATED') {
+          <p-button
+            label="Marcar Revisado"
+            icon="pi pi-eye"
+            severity="warn"
+            rounded
+            size="small"
+            [loading]="updatingStatus()"
+            (click)="updateStatus('REVIEWED')"
+          />
+        }
+        @if (payment.value()?.[0]?.status === 'REVIEWED') {
+          <p-button
+            label="Aprobar"
+            icon="pi pi-check-circle"
+            severity="success"
+            rounded
+            size="small"
+            [loading]="updatingStatus()"
+            (click)="updateStatus('APPROVED')"
+          />
+        }
+        @if (payment.value()?.[0]?.status === 'APPROVED') {
+          <p-button
+            label="Marcar Pagado"
+            icon="pi pi-wallet"
+            severity="contrast"
+            rounded
+            size="small"
+            [loading]="updatingStatus()"
+            (click)="updateStatus('PAID')"
+          />
+        }
+        <p-button
+          label="Borrador"
+          severity="secondary"
+          icon="pi pi-file"
+          rounded
+          size="small"
+          routerLink="draft"
+        />
+      </div>
+    </div>
     <div class="flex gap-4 items-center">
       <p-select
         id="employee"
@@ -375,9 +465,12 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   public payment_id = input.required<string>();
   public currentEmployee = model<string>();
   public loading = signal(false);
+  public calculating = signal(false);
+  public updatingStatus = signal(false);
   private message = inject(MessageService);
   private organizationService = inject(OrganizationService);
   private apiUrl = inject(ApiUrlService);
+  private payrollService = inject(PayrollService);
   public absenceCauses = [
     { value: 'PERSONAL', label: 'Personal' },
     { value: 'INJUSTIFICADA', label: 'Injustificada' },
@@ -621,6 +714,58 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
           }
         },
       });
+  }
+
+  async updateStatus(status: 'REVIEWED' | 'APPROVED' | 'PAID') {
+    const paymentId = this.payment_id();
+    this.updatingStatus.set(true);
+    try {
+      await this.payrollService.updatePeriodStatus(paymentId, status);
+      const labels: Record<string, string> = {
+        REVIEWED: 'Periodo marcado como revisado',
+        APPROVED: 'Periodo aprobado',
+        PAID: 'Periodo marcado como pagado',
+      };
+      this.message.add({
+        severity: 'success',
+        summary: 'Estado Actualizado',
+        detail: labels[status],
+      });
+      this.payment.reload();
+    } catch (err: any) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: err?.message ?? 'Error al actualizar estado',
+      });
+    }
+    this.updatingStatus.set(false);
+  }
+
+  async calculateBatch() {
+    const payrollId = this.payment.value()?.[0]?.payroll_id;
+    const paymentId = this.payment_id();
+    if (!payrollId) return;
+
+    this.calculating.set(true);
+    try {
+      const result = await this.payrollService.calculatePayroll(payrollId, paymentId);
+      await this.payrollService.saveCalculation(paymentId, result.results);
+      this.message.add({
+        severity: 'success',
+        summary: 'Planilla Calculada',
+        detail: `${result.totals.employee_count} empleados procesados. Neto: $${result.totals.total_net.toFixed(2)}`,
+      });
+      this.payment.reload();
+      this.completed.reload();
+    } catch (err: any) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error al calcular',
+        detail: err?.message ?? 'Error inesperado',
+      });
+    }
+    this.calculating.set(false);
   }
 
   approvePayment(id: string) {
@@ -917,7 +1062,10 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     absence_amount: this.summary().absence_hours_payment,
     income_amount: this.totalIncome(),
     deduction_amount: this.totalDeductions(),
-    overtime_amount: this.summary().sunday_payment,
+    overtime_amount: 0,
+    sunday_amount: this.summary().sunday_payment,
+    holiday_amount: 0,
+    employer_cost: 0,
   }));
 
   generateAttendanceSheet() {

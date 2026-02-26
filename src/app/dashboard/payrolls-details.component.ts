@@ -9,6 +9,7 @@ import { PayrollDebtsComponent } from './payroll-debts.component';
 import { PayrollDeductionsComponent } from './payroll-deductions.component';
 import { PayrollEmployeesComponent } from './payroll-employees.component';
 import { PayrollPaymentsComponent } from './payroll-payments.component';
+import { PayrollSettingsComponent } from './payroll-settings.component';
 
 @Component({
   selector: 'pt-payrolls-details',
@@ -19,6 +20,7 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
     PayrollEmployeesComponent,
     PayrollPaymentsComponent,
     PayrollDebtsComponent,
+    PayrollSettingsComponent,
   ],
   template: `@if(payroll.isLoading()) {
     <div class="flex flex-col md:grid grid-cols-4 md:gap-4 ">
@@ -52,7 +54,7 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
       <p-tabs value="0" styleClass="custom-tabs">
         <p-tablist>
           <p-tab value="0">
-            <i class="pi pi-money-bill mr-2"></i> Pagos
+            <i class="pi pi-calendar mr-2"></i> Periodos
           </p-tab>
           <p-tab value="1">
             <i class="pi pi-users mr-2"></i> Empleados
@@ -62,6 +64,9 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
           </p-tab>
           <p-tab value="3">
             <i class="pi pi-credit-card mr-2"></i> Deudas
+          </p-tab>
+          <p-tab value="4">
+            <i class="pi pi-cog mr-2"></i> Configuracion
           </p-tab>
         </p-tablist>
         <p-tabpanels>
@@ -77,6 +82,9 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
           <p-tabpanel value="3">
             <pt-payroll-debts [payrollId]="payroll_id()" />
           </p-tabpanel>
+          <p-tabpanel value="4">
+            <pt-payroll-settings [payrollId]="payroll_id()" />
+          </p-tabpanel>
         </p-tabpanels>
       </p-tabs>
     </div>
@@ -88,25 +96,25 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
         border-bottom: 1px solid rgba(251, 191, 36, 0.2);
         padding: 0.5rem;
       }
-      
+
       .p-tab {
         color: #9ca3af !important;
         padding: 0.75rem 1.5rem !important;
         border-radius: 0.5rem 0.5rem 0 0 !important;
         transition: all 0.2s ease !important;
       }
-      
+
       .p-tab:hover {
         color: #ffffff !important;
         background: rgba(251, 191, 36, 0.1) !important;
       }
-      
+
       .p-tab[aria-selected="true"] {
         color: #fbbf24 !important;
         background: rgba(251, 191, 36, 0.15) !important;
         border-bottom: 2px solid #fbbf24 !important;
       }
-      
+
       .p-tabpanels {
         background: #18181b;
         padding: 1.5rem 0;
@@ -119,19 +127,19 @@ export class PayrollsDetailsComponent {
   public payroll_id = input.required<string>();
   private apiUrl = inject(ApiUrlService);
   private organizationService = inject(OrganizationService);
-  
+
   public payroll = httpResource<Payroll[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
       select: `*, company:companies(*), employees:employee_payrolls(*), deductions:payroll_deductions(*)`,
       id: `eq.${this.payroll_id()}`,
     };
-    
+
     // Agregar filtro por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
-    
+
     const url = this.apiUrl.build('rest/v1/payrolls', params);
     return {
       url,

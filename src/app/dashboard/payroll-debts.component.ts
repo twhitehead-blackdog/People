@@ -1,4 +1,5 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { Tag } from 'primeng/tag';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -18,17 +19,19 @@ import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MultiSelect } from 'primeng/multiselect';
 import { TableModule } from 'primeng/table';
+import { Tooltip } from 'primeng/tooltip';
 import { PayrollDebt } from '../models';
 import { CreditorsStore } from '../stores/creditors.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
 import { getEnv } from '../utils/env.utils';
+import { PayrollDebtHistoryComponent } from './payroll-debt-history.component';
 import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
 
 @Component({
   selector: 'pt-payroll-debts',
   providers: [DynamicDialogRef, DialogService],
-  imports: [TableModule, Button, CurrencyPipe, MultiSelect, FormsModule, Card],
+  imports: [TableModule, Button, CurrencyPipe, MultiSelect, FormsModule, Card, Tag, DatePipe, Tooltip],
   template: `<p-card>
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
@@ -61,12 +64,13 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
           Empleado
           <p-sortIcon field="employee" />
         </th>
+        <th>Tipo</th>
         <th>Acreedor</th>
+        <th>Descripcion</th>
         <th>Monto</th>
-        <th>Fecha de inicio</th>
-        <th>Fecha de vencimiento</th>
+        <th>Cuota</th>
         <th>Saldo</th>
-        <th>Descripción</th>
+        <th>Estado</th>
         <th></th>
       </tr>
       <tr>
@@ -92,6 +96,7 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
             </ng-template>
           </p-columnFilter>
         </th>
+        <th></th>
         <th>
           <p-columnFilter
             field="creditor"
@@ -124,14 +129,59 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
     </ng-template>
     <ng-template #body let-item>
       <tr>
-        <td>{{ item.employee.first_name }} {{ item.employee.father_name }}</td>
-        <td>{{ item.creditor.name }}</td>
-        <td>{{ item.amount | currency : '$' }}</td>
-        <td>{{ item.start_date }}</td>
-        <td>{{ item.due_date }}</td>
-        <td>{{ item.balance | currency : '$' }}</td>
-        <td>{{ item.description }}</td>
+        <td>{{ item.employee?.first_name }} {{ item.employee?.father_name }}</td>
         <td>
+          @switch (item.debt_type) {
+            @case ('company_loan') {
+              <p-tag value="Empresa" severity="info" rounded />
+            }
+            @case ('bank_loan') {
+              <p-tag value="Banco" severity="warn" rounded />
+            }
+            @case ('creditor') {
+              <p-tag value="Acreedor" severity="secondary" rounded />
+            }
+            @default {
+              <span class="text-gray-500">-</span>
+            }
+          }
+        </td>
+        <td>{{ item.creditor?.name ?? '-' }}</td>
+        <td>{{ item.description }}</td>
+        <td>{{ item.amount | currency : '$' }}</td>
+        <td>
+          @if (item.installment_amount) {
+            {{ item.installment_amount | currency : '$' }}
+          } @else {
+            <span class="text-gray-500">-</span>
+          }
+        </td>
+        <td>{{ item.balance | currency : '$' }}</td>
+        <td>
+          @switch (item.status) {
+            @case ('active') {
+              <p-tag value="Activo" severity="success" rounded />
+            }
+            @case ('paused') {
+              <p-tag value="Pausado" severity="warn" rounded />
+            }
+            @case ('completed') {
+              <p-tag value="Completado" severity="info" rounded />
+            }
+            @case ('cancelled') {
+              <p-tag value="Cancelado" severity="danger" rounded />
+            }
+          }
+        </td>
+        <td>
+          <p-button
+            severity="info"
+            text
+            rounded
+            icon="pi pi-history"
+            pTooltip="Historial de pagos"
+            (onClick)="viewHistory(item)"
+          />
           <p-button
             severity="success"
             text
@@ -151,7 +201,10 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
     </ng-template>
     <ng-template #emptymessage>
       <tr>
-        <td colspan="10" class="text-center">No hay deudas</td>
+        <td colspan="9" class="text-center text-gray-400 py-8">
+          <i class="pi pi-credit-card text-3xl mb-2 block"></i>
+          No hay deudas registradas
+        </td>
       </tr>
     </ng-template>
   </p-table>
@@ -202,6 +255,17 @@ export class PayrollDebtsComponent implements OnInit {
         return filter.map((x) => x.id).includes(value.id);
       }
     );
+  }
+
+  public viewHistory(debt: PayrollDebt) {
+    this.dialogService.open(PayrollDebtHistoryComponent, {
+      data: { debt },
+      modal: true,
+      width: '48rem',
+      header: `Historial de Pagos - ${debt.description}`,
+      dismissableMask: true,
+      closeOnEscape: true,
+    });
   }
 
   public editDebt(debt?: PayrollDebt) {

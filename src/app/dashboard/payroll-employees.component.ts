@@ -18,6 +18,7 @@ import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { PayrollEmployee } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeesStore } from '../stores/employees.store';
@@ -46,6 +47,7 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
     InputText,
     Card,
     FormsModule,
+    Tag,
   ],
   providers: [DynamicDialogRef, DialogService],
   template: `
@@ -102,6 +104,8 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
             <th pSortableColumn="employee.first_name" pSortIcon>
               Nombre <p-sortIcon field="employee.first_name" />
             </th>
+            <th>Tipo</th>
+            <th>Sucursal</th>
             <th pSortableColumn="monthly_salary" pSortIcon>
               Salario Mensual <p-sortIcon field="monthly_salary" />
             </th>
@@ -117,6 +121,14 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
               {{ employee.employee?.first_name }}
               {{ employee.employee?.father_name }}
             </td>
+            <td>
+              @if (employee.employee?.payroll_type === 'honorarios') {
+                <p-tag value="Honorarios" severity="warn" rounded />
+              } @else {
+                <p-tag value="Regular" severity="info" rounded />
+              }
+            </td>
+            <td>{{ employee.employee?.branch?.short_name ?? '-' }}</td>
             <td>{{ employee?.monthly_salary | currency : '$' }}</td>
             <td>{{ employee?.hourly_salary | currency : '$' }}</td>
             <td>
@@ -169,7 +181,7 @@ export class PayrollEmployeesComponent {
   public employees = httpResource<PayrollEmployee[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: `*, employee:employees!inner(id, first_name, father_name, monthly_salary, hourly_salary, is_active)`,
+      select: `*, employee:employees!inner(id, first_name, father_name, monthly_salary, hourly_salary, is_active, payroll_type, branch:branches(id, name, short_name))`,
       payroll_id: `eq.${this.payrollId()}`,
       'employee.is_active': `eq.true`, // Solo empleados activos
     };

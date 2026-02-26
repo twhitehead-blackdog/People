@@ -11,13 +11,14 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { PayrollDeduction } from '../models';
 import { getEnv } from '../utils/env.utils';
 import { PayrollDeductionsFormComponent } from './payroll-deductions-form.component';
 
 @Component({
   selector: 'pt-payroll-deductions',
-  imports: [TableModule, Button, DecimalPipe, CurrencyPipe, Card],
+  imports: [TableModule, Button, DecimalPipe, CurrencyPipe, Card, Tag],
   providers: [DynamicDialogRef, DialogService],
   template: `<p-card>
       <ng-template #title>
@@ -43,22 +44,58 @@ import { PayrollDeductionsFormComponent } from './payroll-deductions-form.compon
     <ng-template pTemplate="header">
       <tr>
         <th>Nombre</th>
-        <th>Valor</th>
-        <th>Tipo de Calculo</th>
-        <th>Salario Minimo</th>
-        <th>Impuesto sobre la renta</th>
+        <th>Valor Empleado</th>
+        <th>Valor Patronal</th>
+        <th>Tipo</th>
+        <th>Aplica a</th>
+        <th>ISR</th>
         <th></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-deduction>
       <tr>
-        <td>{{ deduction.name }}</td>
-        <td>{{ deduction.value | number : '1.2-2' }}</td>
+        <td>
+          <span class="font-medium">{{ deduction.name }}</span>
+        </td>
+        <td>
+          @if (!deduction.is_employer_portion && !deduction.income_tax) {
+            {{ deduction.value | number : '1.2-2' }}{{ deduction.calculation_type === 'percentage' ? '%' : '' }}
+          } @else if (deduction.income_tax) {
+            <span class="text-gray-500 italic">Calculado</span>
+          } @else {
+            <span class="text-gray-500">-</span>
+          }
+        </td>
+        <td>
+          @if (deduction.is_employer_portion && deduction.employer_value) {
+            {{ deduction.employer_value | number : '1.2-2' }}{{ deduction.calculation_type === 'percentage' ? '%' : '' }}
+          } @else {
+            <span class="text-gray-500">-</span>
+          }
+        </td>
         <td>
           {{ deduction.calculation_type === 'fixed' ? 'Fijo' : 'Porcentaje' }}
         </td>
-        <td>{{ deduction.min_salary | currency : '$' }}</td>
-        <td>{{ deduction.income_tax ? 'SI' : 'NO' }}</td>
+        <td>
+          @switch (deduction.applies_to) {
+            @case ('regular') {
+              <p-tag value="Regular" severity="info" rounded />
+            }
+            @case ('honorarios') {
+              <p-tag value="Honorarios" severity="warn" rounded />
+            }
+            @case ('all') {
+              <p-tag value="Todos" severity="success" rounded />
+            }
+          }
+        </td>
+        <td>
+          @if (deduction.income_tax) {
+            <p-tag value="ISR" severity="warn" rounded />
+          } @else {
+            <span class="text-gray-500">-</span>
+          }
+        </td>
         <td>
           <p-button
             icon="pi pi-pencil"
@@ -88,7 +125,7 @@ export class PayrollDeductionsComponent {
     url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_deductions`,
     method: 'GET',
     params: {
-      select: 'id,payroll_id,name,value,calculation_type,min_salary,income_tax',
+      select: 'id,payroll_id,name,value,calculation_type,min_salary,income_tax,applies_to,is_employer_portion,employer_value',
       payroll_id: `eq.${this.payrollId()}`,
     },
   }));

@@ -1409,6 +1409,10 @@ export function app(): express.Express {
     }
 
     // Servir index.html para todas las demás rutas (SPA routing)
+    // No cachear index.html para asegurar que el navegador siempre obtenga la versión más reciente
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(distFolder, 'index.html'), (err) => {
       if (err) {
         safeLogger.error('Error sirviendo index.html', err);

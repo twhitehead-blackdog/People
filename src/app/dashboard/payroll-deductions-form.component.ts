@@ -40,21 +40,22 @@ import { markGroupDirty } from '../services/util.service';
           <input pInputText formControlName="name" id="name" />
         </div>
         <div class="input-container">
-          <label for="value">Valor</label>
-          <p-inputnumber
-            id="value"
-            formControlName="value"
-            mode="decimal"
-            minFractionDigits="2"
-            maxFractionDigits="2"
-          />
-        </div>
-        <div class="input-container">
           <label for="calculation_type">Tipo de Calculo</label>
           <p-select
             inputId="calculation_type"
             formControlName="calculation_type"
             [options]="calculationTypes"
+            optionLabel="name"
+            optionValue="value"
+            appendTo="body"
+          />
+        </div>
+        <div class="input-container">
+          <label for="applies_to">Aplica a</label>
+          <p-select
+            inputId="applies_to"
+            formControlName="applies_to"
+            [options]="appliesOptions"
             optionLabel="name"
             optionValue="value"
             appendTo="body"
@@ -67,16 +68,42 @@ import { markGroupDirty } from '../services/util.service';
             formControlName="min_salary"
             mode="currency"
             currency="USD"
-            minFractionDigits="2"
-            maxFractionDigits="2"
           />
         </div>
         <div class="input-container">
-          <label for="income_tax">Impuesto sobre la renta</label>
-          <p-toggleSwitch formControlName="income_tax" inputId="income_tax" />
+          <label for="value">Valor Empleado (%)</label>
+          <p-inputnumber
+            id="value"
+            formControlName="value"
+            mode="decimal"
+            minFractionDigits="2"
+            maxFractionDigits="4"
+          />
+        </div>
+        <div class="input-container">
+          <label for="employer_value">Valor Patronal (%)</label>
+          <p-inputnumber
+            id="employer_value"
+            formControlName="employer_value"
+            mode="decimal"
+            minFractionDigits="2"
+            maxFractionDigits="4"
+          />
+        </div>
+        <div class="input-container flex items-end">
+          <div class="flex items-center gap-3 pb-2">
+            <div class="flex items-center gap-2">
+              <p-toggleSwitch formControlName="income_tax" inputId="income_tax" />
+              <label for="income_tax" class="mb-0 cursor-pointer">ISR</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <p-toggleSwitch formControlName="is_employer_portion" inputId="is_employer" />
+              <label for="is_employer" class="mb-0 cursor-pointer">Solo patronal</label>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="dialog-actions pt-1">
+      <div class="dialog-actions pt-4">
         <p-button
           label="Cancelar"
           severity="secondary"
@@ -103,6 +130,13 @@ export class PayrollDeductionsFormComponent implements OnInit {
     { name: 'Fijo', value: 'fixed' },
     { name: 'Porcentaje', value: 'percentage' },
   ];
+
+  public appliesOptions = [
+    { name: 'Solo Regular (CSS)', value: 'regular' },
+    { name: 'Solo Honorarios', value: 'honorarios' },
+    { name: 'Todos', value: 'all' },
+  ];
+
   public form = new FormGroup({
     id: new FormControl(v4(), { nonNullable: true }),
     name: new FormControl('', {
@@ -110,10 +144,9 @@ export class PayrollDeductionsFormComponent implements OnInit {
       nonNullable: true,
     }),
     value: new FormControl(0, {
-      validators: [Validators.required],
       nonNullable: true,
     }),
-    calculation_type: new FormControl('fixed', {
+    calculation_type: new FormControl('percentage', {
       validators: [Validators.required],
       nonNullable: true,
     }),
@@ -123,6 +156,9 @@ export class PayrollDeductionsFormComponent implements OnInit {
     }),
     min_salary: new FormControl(0, { nonNullable: true }),
     income_tax: new FormControl(false, { nonNullable: true }),
+    applies_to: new FormControl('regular', { nonNullable: true }),
+    is_employer_portion: new FormControl(false, { nonNullable: true }),
+    employer_value: new FormControl(0, { nonNullable: true }),
   });
 
   ngOnInit(): void {

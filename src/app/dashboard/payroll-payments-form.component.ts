@@ -1,11 +1,10 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   inject,
   OnInit,
+  signal,
 } from '@angular/core';
-import { ApiUrlService } from '../services/api-url.service';
 import {
   FormControl,
   FormGroup,
@@ -14,49 +13,81 @@ import {
 } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { DatePicker } from 'primeng/datepicker';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { InputText } from 'primeng/inputtext';
+import { InputNumber } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
 import { markGroupDirty } from '../services/util.service';
+import { PayrollService } from '../services/payroll.service';
+
+const MONTHS = [
+  { label: 'Enero', value: 1 },
+  { label: 'Febrero', value: 2 },
+  { label: 'Marzo', value: 3 },
+  { label: 'Abril', value: 4 },
+  { label: 'Mayo', value: 5 },
+  { label: 'Junio', value: 6 },
+  { label: 'Julio', value: 7 },
+  { label: 'Agosto', value: 8 },
+  { label: 'Septiembre', value: 9 },
+  { label: 'Octubre', value: 10 },
+  { label: 'Noviembre', value: 11 },
+  { label: 'Diciembre', value: 12 },
+];
+
+const PERIODS = [
+  { label: 'Primera quincena (corte dia 10)', value: 1 },
+  { label: 'Segunda quincena (corte dia 25)', value: 2 },
+];
 
 @Component({
   selector: 'pt-payroll-payments-form',
-  imports: [ReactiveFormsModule, DatePicker, Button, InputText],
+  imports: [ReactiveFormsModule, Button, InputNumber, SelectModule],
   template: `
     <form [formGroup]="form" (ngSubmit)="saveChanges()">
-      <div class="flex flex-col md:grid grid-cols-2 md:gap-4">
+      <div class="flex flex-col md:grid grid-cols-3 md:gap-4">
         <div class="input-container">
-          <label for="title">Titulo</label>
-          <input
-            pInputText
-            id="title"
-            name="title"
-            formControlName="title"
-            placeholder="Titulo"
+          <label for="year">Ano</label>
+          <p-input-number
+            inputId="year"
+            formControlName="year"
+            fluid
+            [useGrouping]="false"
+            [min]="2020"
+            [max]="2040"
           />
         </div>
         <div class="input-container">
-          <label for="start_date">Fecha Inicio</label>
-          <p-datepicker
-            inputId="start_date"
-            formControlName="start_date"
-            iconDisplay="input"
-            [showIcon]="true"
+          <label for="month">Mes</label>
+          <p-select
+            inputId="month"
+            formControlName="month"
+            fluid
+            [options]="months"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Seleccione un mes"
             appendTo="body"
-            placeholder="dd/mm/yyyy"
           />
         </div>
         <div class="input-container">
-          <label for="end_date">Fecha Fin</label>
-          <p-datepicker
-            inputId="end_date"
-            formControlName="end_date"
-            iconDisplay="input"
-            [showIcon]="true"
+          <label for="period">Quincena</label>
+          <p-select
+            inputId="period"
+            formControlName="period_number"
+            fluid
+            [options]="periods"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Seleccione la quincena"
             appendTo="body"
-            placeholder="dd/mm/yyyy"
           />
         </div>
+      </div>
+      <div class="mt-3 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
+        <p class="text-sm text-gray-400 m-0">
+          <i class="pi pi-info-circle mr-1"></i>
+          Las fechas de corte y pago se calculan automaticamente segun la configuracion de planilla.
+        </p>
       </div>
       <div class="dialog-actions pt-4">
         <p-button
@@ -68,11 +99,12 @@ import { markGroupDirty } from '../services/util.service';
           (click)="modalRef.close()"
         />
         <p-button
-          label="Guardar"
+          label="Generar Periodo"
           type="submit"
-          form="employee-form"
-          icon="pi pi-check"
+          icon="pi pi-calendar-plus"
           rounded
+          severity="success"
+          [loading]="saving()"
         />
       </div>
     </form>
@@ -81,38 +113,33 @@ import { markGroupDirty } from '../services/util.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PayrollPaymentsFormComponent implements OnInit {
+  public modalRef = inject(DynamicDialogRef);
+  public dialogConfig = inject(DynamicDialogConfig);
+  private payrollService = inject(PayrollService);
+  private message = inject(MessageService);
+  public saving = signal(false);
+
+  public months = MONTHS;
+  public periods = PERIODS;
+
   form = new FormGroup({
-    title: new FormControl('', {
+    year: new FormControl(new Date().getFullYear(), {
       validators: [Validators.required],
       nonNullable: true,
     }),
-    start_date: new FormControl(new Date(), {
+    month: new FormControl(new Date().getMonth() + 1, {
       validators: [Validators.required],
       nonNullable: true,
     }),
-    end_date: new FormControl(new Date(), {
-      validators: [Validators.required],
-      nonNullable: true,
-    }),
-    status: new FormControl('pending'),
-    payroll_id: new FormControl('', {
+    period_number: new FormControl<1 | 2>(1, {
       validators: [Validators.required],
       nonNullable: true,
     }),
   });
-  public modalRef = inject(DynamicDialogRef);
-  public dialogConfig = inject(DynamicDialogConfig);
-  private http = inject(HttpClient);
-  private apiUrl = inject(ApiUrlService);
-  private message = inject(MessageService);
 
-  public ngOnInit(): void {
-    this.form.patchValue({
-      payroll_id: this.dialogConfig.data.payrollId,
-    });
-  }
+  public ngOnInit(): void {}
 
-  public saveChanges(): void {
+  public async saveChanges(): Promise<void> {
     if (this.form.invalid) {
       this.message.add({
         severity: 'error',
@@ -122,11 +149,32 @@ export class PayrollPaymentsFormComponent implements OnInit {
       markGroupDirty(this.form);
       return;
     }
-    const url = this.apiUrl.build('rest/v1/payroll_payments');
-    this.http
-      .post(url, this.form.value)
-      .subscribe(() => {
-        this.modalRef.close();
+
+    this.saving.set(true);
+    try {
+      const { year, month, period_number } = this.form.getRawValue();
+      const payrollId = this.dialogConfig.data.payrollId;
+
+      const payment = await this.payrollService.generatePeriod(
+        payrollId,
+        year,
+        month,
+        period_number
+      );
+
+      this.message.add({
+        severity: 'success',
+        summary: 'Periodo Creado',
+        detail: payment.title,
       });
+      this.modalRef.close(payment);
+    } catch (err: any) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: err?.error?.message ?? 'Error al generar periodo',
+      });
+    }
+    this.saving.set(false);
   }
 }

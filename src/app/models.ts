@@ -79,6 +79,7 @@ export type Employee = {
   bank_account_type?: 'Ahorros' | 'Corriente';
   full_name?: string;
   hourly_salary?: number;
+  payroll_type?: 'regular' | 'honorarios';
   debts?: PayrollDebt[];
   has_portal_access?: boolean;
   account_approved?: boolean;
@@ -168,6 +169,44 @@ export type Payroll = {
   company_id?: string;
   company?: Company;
   deductions?: PayrollDeduction[];
+  settings?: PayrollSettings;
+  created_at?: Date;
+};
+
+export type PayrollSettings = {
+  id: string;
+  company_id: string;
+  cut_off_day_1: number;
+  cut_off_day_2: number;
+  payment_day_1: number;
+  payment_day_2: number;
+  adjust_payment_on_sunday: boolean;
+  monthly_hours: number;
+  periods_per_year: number;
+  created_at?: Date;
+  updated_at?: Date;
+};
+
+export type PayrollHoliday = {
+  id: string;
+  company_id: string;
+  name: string;
+  date: Date | string;
+  is_recurring: boolean;
+  created_at?: Date;
+};
+
+export type PayrollSalaryHistory = {
+  id: string;
+  employee_id: string;
+  employee?: Partial<Employee>;
+  previous_monthly_salary?: number;
+  new_monthly_salary: number;
+  previous_hourly_salary?: number;
+  new_hourly_salary: number;
+  effective_date: Date | string;
+  reason?: string;
+  created_by?: string;
   created_at?: Date;
 };
 
@@ -179,6 +218,9 @@ export type PayrollDeduction = {
   min_salary: number;
   income_tax?: boolean;
   calculation_type: 'fixed' | 'percentage';
+  applies_to: 'regular' | 'honorarios' | 'all';
+  is_employer_portion?: boolean;
+  employer_value?: number;
   created_at?: Date;
 };
 
@@ -192,6 +234,8 @@ export type PayrollEmployee = {
   created_at?: Date;
 };
 
+export type PayrollPaymentStatus = 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'APPROVED' | 'PAID';
+
 export type PayrollPayment = {
   id: string;
   title: string;
@@ -199,7 +243,15 @@ export type PayrollPayment = {
   payroll?: Payroll;
   start_date: Date;
   end_date: Date;
-  status: 'PENDING' | 'PAID';
+  payment_date?: Date;
+  period_number?: 1 | 2;
+  month?: number;
+  year?: number;
+  status: PayrollPaymentStatus;
+  calculated_at?: Date;
+  approved_at?: Date;
+  approved_by?: string;
+  notes?: string;
   created_at?: Date;
 };
 
@@ -317,6 +369,9 @@ export type GroomerBranchAssignment = {
   employee?: Employee;
 };
 
+export type PayrollDebtType = 'company_loan' | 'bank_loan' | 'creditor' | 'other';
+export type PayrollDebtStatus = 'active' | 'completed' | 'cancelled' | 'paused';
+
 export type PayrollDebt = {
   id: string;
   payroll_id: string;
@@ -331,6 +386,24 @@ export type PayrollDebt = {
   start_date: Date;
   due_date: Date;
   balance: number;
+  debt_type: PayrollDebtType;
+  installment_amount?: number;
+  total_installments?: number;
+  paid_installments?: number;
+  status: PayrollDebtStatus;
+  notes?: string;
+  payments?: PayrollDebtPayment[];
+  created_at?: Date;
+};
+
+export type PayrollDebtPayment = {
+  id: string;
+  debt_id: string;
+  payroll_payment_id: string;
+  payment_employee_id?: string;
+  amount: number;
+  payment_date: Date;
+  notes?: string;
   created_at?: Date;
 };
 
@@ -340,13 +413,21 @@ export type PayrollPaymentEmployee = {
   employee_id: string;
   payroll_payment_id: string;
   employee?: Partial<Employee>;
+  branch_id?: string;
+  branch?: Branch;
+  department_id?: string;
+  payroll_type?: 'regular' | 'honorarios';
   total_amount: number;
+  income_amount: number;
+  deduction_amount: number;
   debt_amount: number;
   late_amount: number;
   absence_amount: number;
+  overtime_amount: number;
+  sunday_amount: number;
+  holiday_amount: number;
+  employer_cost: number;
   items?: PayrollPaymentEmployeeItem[];
-  income_amount: number;
-  deduction_amount: number;
   created_at?: Date;
 };
 
