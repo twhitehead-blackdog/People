@@ -13,6 +13,7 @@ import { DashboardStore } from '../stores/dashboard.store';
 
 export interface GroomerBranchSelectionResult {
   branchId: string;
+  employeeId: string;
   startDate: Date;
   endDate: Date;
 }
@@ -151,6 +152,10 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
   employee = input<Employee | undefined>();
   date = input<Date | undefined>();
   currentBranchId = input<string | undefined>();
+  branchId = input<string | undefined>();
+  availableEmployees = input<Employee[]>([]);
+  nonWorkingMap = input<Record<string, string>>({});
+  assignedEmployeeIdsForDate = input<string[]>([]);
 
   // Outputs
   visibleChange = output<boolean>();
@@ -159,6 +164,7 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
 
   // State
   selectedBranchId: string | null = null;
+  selectedEmployeeId: string | null = null;
   dateType: 'single' | 'range' = 'single';
   startDate: Date | null = null;
   endDate: Date | null = null;
@@ -189,6 +195,7 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
   });
 
   canConfirm(): boolean {
+    if (!this.selectedEmployeeId) return false;
     if (!this.selectedBranchId) return false;
     if (!this.startDate) return false;
     if (this.dateType === 'range') {
@@ -238,9 +245,10 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
   }
 
   confirmSelection(): void {
-    if (this.selectedBranchId && this.startDate) {
+    if (this.selectedEmployeeId && this.startDate) {
       const result: GroomerBranchSelectionResult = {
-        branchId: this.selectedBranchId,
+        branchId: this.branchId() || this.selectedBranchId || '',
+        employeeId: this.selectedEmployeeId,
         startDate: this.startDate,
         endDate:
           this.dateType === 'range' && this.endDate
@@ -266,6 +274,7 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
 
   private closeDialog(): void {
     this.selectedBranchId = null;
+    this.selectedEmployeeId = null;
     this.startDate = null;
     this.endDate = null;
     this.dateType = 'single';

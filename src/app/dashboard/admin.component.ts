@@ -88,7 +88,7 @@ import { DashboardStore } from '../stores/dashboard.store';
             <!-- Título IT -->
             <div
               class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-              [class.selected]="isActiveRoute('device-inventory')"
+              [class.selected]="isActiveRoute('device-inventory') || isActiveRoute('user-management')"
             >
               <i class="pi pi-desktop text-base"></i>
               <span>IT</span>
@@ -111,6 +111,17 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-box text-sm"></i>
                 <span>Inventario de Dispositivos</span>
               </a>
+              @if (adminSubs().user_management) {
+              <a
+                routerLink="user-management"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('user-management')"
+                [class.text-amber-300]="isActiveRoute('user-management')"
+              >
+                <i class="pi pi-user-edit text-sm"></i>
+                <span>Gestión de Usuarios</span>
+              </a>
+              }
             </div>
           </div>
           }
@@ -127,6 +138,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               [class.selected]="
                 isActiveRoute('hr/time-dashboard') ||
                 isActiveRoute('hr/disabilities') ||
+                isActiveRoute('surveys') ||
                 (!isNaz() && isActiveRoute('job-applications'))
               "
             >
@@ -164,6 +176,19 @@ import { DashboardStore } from '../stores/dashboard.store';
               >
                 <i class="pi pi-heart text-sm"></i>
                 <span>Gestión de Solicitudes</span>
+              </a>
+              }
+
+              <!-- Encuestas HR -->
+              @if (hrSubs().surveys) {
+              <a
+                routerLink="surveys"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('surveys')"
+                [class.text-amber-300]="isActiveRoute('surveys')"
+              >
+                <i class="pi pi-chart-bar text-sm"></i>
+                <span>Encuestas</span>
               </a>
               }
 
@@ -353,6 +378,9 @@ import { DashboardStore } from '../stores/dashboard.store';
             @if (canViewITModule()) {
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
             <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
+            @if (adminSubs().user_management) {
+            <a routerLink="user-management" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('user-management')" [class.text-amber-300]="isActiveRoute('user-management')"><i class="pi pi-user-edit text-sm"></i><span>Gestión de Usuarios</span></a>
+            }
             }
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">RRHH</div>
             @if (hrSubs().time_dashboard) {
@@ -360,6 +388,9 @@ import { DashboardStore } from '../stores/dashboard.store';
             }
             @if (hrSubs().disabilities) {
             <a routerLink="hr/disabilities" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('hr/disabilities')" [class.text-amber-300]="isActiveRoute('hr/disabilities')"><i class="pi pi-heart text-sm"></i><span>Gestión de Solicitudes</span></a>
+            }
+            @if (hrSubs().surveys) {
+            <a routerLink="surveys" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('surveys')" [class.text-amber-300]="isActiveRoute('surveys')"><i class="pi pi-chart-bar text-sm"></i><span>Encuestas</span></a>
             }
             @if (!isNaz() && adminSubs().job_applications) {
               <a routerLink="job-applications" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('job-applications')" [class.text-amber-300]="isActiveRoute('job-applications')"><i class="pi pi-briefcase text-sm"></i><span>Feria de empleo</span></a>
@@ -526,6 +557,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   public hrSubs = computed(() => ({
     time_dashboard: this.permissionsService.canAccessSubModule('hr', 'hr_time_dashboard'),
     disabilities: this.permissionsService.canAccessSubModule('hr', 'hr_disabilities'),
+    surveys: this.permissionsService.canAccessSubModule('hr', 'hr_surveys'),
   }));
 
   // Computed: acceso al módulo de performance

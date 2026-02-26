@@ -98,6 +98,21 @@ export class BranchManagerService {
     };
   });
 
+  public workPermitsApi = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return undefined;
+
+    return {
+      url: this.apiUrl.build('rest/v1/work_permits'),
+      params: {
+        select: `id,employee_id,permit_type,start_date,end_date,start_time,end_time,equivalent_value,equivalent_unit,observations,status,reviewed_by,reviewed_at,rejection_comment,document_url,created_by,created_at,company_id,employee:employees!work_permits_employee_id_fkey(id,first_name,father_name,work_email,company_id,branch_id,position:positions(name),branch:branches(name))`,
+        company_id: `eq.${companyId}`,
+        order: 'created_at.desc',
+      },
+      method: 'GET',
+    };
+  });
+
   public notificationsResource = httpResource<Notification[]>(() => {
     const branchId = this.currentBranch()?.id;
     const currentEmployeeId = this.store.auth.currentEmployeeId();
@@ -397,5 +412,6 @@ export class BranchManagerService {
     this.disabilitiesApi.reload();
     this.vacationsApi.reload();
     this.documentRequestsApi.reload();
+    this.workPermitsApi.reload();
   }
 }

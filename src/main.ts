@@ -12,5 +12,14 @@ if (isDevMode()) {
 
 bootstrapApplication(AppComponent, appConfig).catch((err) => {
   console.error('Error fatal al iniciar aplicación:', err);
-  // En producción, aquí se podría mostrar una página de error amigable
 });
+
+// Register service worker for PWA (portal usa su propio SW)
+if (!isDevMode() && 'serviceWorker' in navigator) {
+  const swFile = window.location.hostname === 'portal.blackdogpanama.com'
+    ? '/portal-sw.js'
+    : '/sw.js';
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swFile).catch(() => {});
+  });
+}

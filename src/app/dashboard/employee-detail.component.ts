@@ -29,7 +29,6 @@ import { SeniorityPipe } from '../pipes/seniority.pipe';
 import { DeviceService } from '../services/device.service';
 import { OrganizationService } from '../services/organization.service';
 import { QrService } from '../services/qr.service';
-import { WassengerService } from '../services/wassenger.service';
 import { BanksStore } from '../stores/banks.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { EmployeeFormComponent } from './employee-form.component';
@@ -172,7 +171,7 @@ import { TimeOffsComponent } from './time-offs.component';
                         <dt>Cargo</dt><dd>{{ currentEmployee()?.position?.name || '-' }}</dd>
                         <dt>Salario mensual</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()?.monthly_salary | currency:'$' }}</dd>
                         <dt>Salario/hora</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()?.hourly_salary | currency:'$' }}</dd>
-                        <dt>Fecha ingreso</dt><dd>{{ currentEmployee()?.start_date | date:'mediumDate' }} ({{ currentEmployee()?.start_date! | seniority }})</dd>
+                        <dt>Fecha ingreso</dt><dd>{{ currentEmployee()?.start_date | date:'mediumDate' }} @if(currentEmployee()?.start_date) { ({{ currentEmployee()!.start_date | seniority }}) }</dd>
                         <dt>Estado</dt>
                         <dd>
                           <span [ngClass]="currentEmployee()?.is_active ? 'text-green-400' : 'text-red-400'" class="font-semibold">
@@ -367,9 +366,6 @@ import { TimeOffsComponent } from './time-offs.component';
                             El empleado debe tener un número de teléfono
                             registrado
                           </li>
-                          <li>
-                            Wassenger debe estar configurado en Configuración
-                          </li>
                         </ul>
                         @if(!canInvite()) {
                         <div
@@ -410,8 +406,7 @@ import { TimeOffsComponent } from './time-offs.component';
                     class="w-full md:w-auto"
                   />
                   <p class="text-xs text-gray-400 m-0">
-                    Se enviará un mensaje por Wassenger con las instrucciones de
-                    acceso al portal
+                    Se otorgará acceso al portal de empleados
                   </p>
                   } @else {
                   <div
@@ -536,7 +531,7 @@ import { TimeOffsComponent } from './time-offs.component';
                       <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Sucursal</span><span class="text-sm text-white">{{ currentEmployee()?.branch?.name || '-' }}</span></div>
                       <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Cargo</span><span class="text-sm text-white">{{ currentEmployee()?.position?.name || '-' }}</span></div>
                       <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Salario mensual</span><span class="text-sm text-green-400 font-semibold">{{ currentEmployee()?.monthly_salary | currency:'$' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Ingreso</span><span class="text-sm text-white">{{ currentEmployee()?.start_date | date:'shortDate' }} ({{ currentEmployee()?.start_date! | seniority }})</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Ingreso</span><span class="text-sm text-white">{{ currentEmployee()?.start_date | date:'shortDate' }} @if(currentEmployee()?.start_date) { ({{ currentEmployee()!.start_date | seniority }}) }</span></div>
                       <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Estado</span>
                         <span [ngClass]="currentEmployee()?.is_active ? 'text-green-400' : 'text-red-400'" class="text-sm font-semibold">
                           <i [class]="currentEmployee()?.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'" class="mr-1"></i>
@@ -735,7 +730,6 @@ export class EmployeeDetailComponent implements OnInit {
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
-  private wassengerService = inject(WassengerService);
   private organizationService = inject(OrganizationService);
   private qrService = inject(QrService);
 
@@ -895,7 +889,7 @@ export class EmployeeDetailComponent implements OnInit {
     }
 
     this.confirmationService.confirm({
-      message: `¿Deseas invitar a ${employee.first_name} ${employee.father_name} al portal de empleados? Se enviará un mensaje por Wassenger con las instrucciones de acceso.`,
+      message: `¿Deseas invitar a ${employee.first_name} ${employee.father_name} al portal de empleados? Se otorgará acceso al portal de empleados.`,
       header: 'Invitar al Portal',
       icon: 'pi pi-user-plus',
       acceptLabel: 'Sí, invitar',
@@ -926,34 +920,15 @@ export class EmployeeDetailComponent implements OnInit {
             )
           );
 
-          // Enviar invitación por Wassenger
           const employeeName = `${employee.first_name} ${employee.father_name}`;
-          const success = await this.wassengerService.sendPortalInvitation(
-            employeeName,
-            employee.phone_number!,
-            employee.work_email!,
-            this.portalUrl
-          );
-
-          if (success) {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Invitación enviada',
-              detail: `${employeeName} ahora tiene acceso al portal y se le ha enviado un mensaje por Wassenger`,
-            });
-            // Recargar datos del empleado
-            this.employee.reload();
-            this.state.fetchItems();
-          } else {
-            // Aunque falló el envío, el acceso al portal ya fue otorgado
-            this.messageService.add({
-              severity: 'warn',
-              summary: 'Acceso otorgado',
-              detail: `${employeeName} ahora tiene acceso al portal, pero no se pudo enviar el mensaje por Wassenger`,
-            });
-            this.employee.reload();
-            this.state.fetchItems();
-          }
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Acceso otorgado',
+            detail: `${employeeName} ahora tiene acceso al portal de empleados`,
+          });
+          // Recargar datos del empleado
+          this.employee.reload();
+          this.state.fetchItems();
         } catch (error: any) {
           console.error('Error inviting to portal:', error);
           this.messageService.add({

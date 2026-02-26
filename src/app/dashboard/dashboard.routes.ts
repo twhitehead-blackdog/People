@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
-import { modulePermissionGuard, permissionGuard } from '../guards/permission.guard';
+import { modulePermissionGuard, permissionGuard, homeGuard } from '../guards/permission.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -17,7 +17,7 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'home',
         loadComponent: () =>
           import('./home.component').then((x) => x.HomeComponent),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, homeGuard],
       },
       {
         path: 'admin',
@@ -27,6 +27,7 @@ export const DASHBOARD_ROUTES: Routes = [
         children: [
           {
             path: 'employees',
+            canActivate: [modulePermissionGuard('admin', 'employees')],
             children: [
               {
                 path: '',
@@ -61,6 +62,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'organigrama',
+            canActivate: [modulePermissionGuard('admin', 'organigrama')],
             loadComponent: () =>
               import('./organigrama.component').then(
                 (x) => x.OrganigramaComponent
@@ -68,11 +70,13 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'companies',
+            canActivate: [modulePermissionGuard('admin', 'companies')],
             loadComponent: () =>
               import('./companies.component').then((x) => x.CompaniesComponent),
           },
           {
             path: 'departments',
+            canActivate: [modulePermissionGuard('admin', 'departments')],
             loadComponent: () =>
               import('./departments.component').then(
                 (x) => x.DepartmentsComponent
@@ -80,21 +84,25 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'positions',
+            canActivate: [modulePermissionGuard('admin', 'positions')],
             loadComponent: () =>
               import('./positions.component').then((x) => x.PositionsComponent),
           },
           {
             path: 'branches',
+            canActivate: [modulePermissionGuard('admin', 'branches')],
             loadComponent: () =>
               import('./branches.component').then((x) => x.BranchesComponent),
           },
           {
             path: 'settings',
+            canActivate: [modulePermissionGuard('admin', 'settings')],
             loadComponent: () =>
               import('./settings.component').then((x) => x.SettingsComponent),
           },
           {
             path: 'user-management',
+            canActivate: [modulePermissionGuard('admin', 'user_management')],
             loadComponent: () =>
               import('./user-management.component').then(
                 (x) => x.UserManagementComponent
@@ -110,6 +118,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'complaints-inbox',
+            canActivate: [modulePermissionGuard('admin', 'complaints')],
             loadComponent: () =>
               import('./complaints-inbox.component').then(
                 (x) => x.ComplaintsInboxComponent
@@ -117,6 +126,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'job-applications',
+            canActivate: [modulePermissionGuard('admin', 'job_applications')],
             loadComponent: () =>
               import('./job-applications-list.component').then(
                 (x) => x.JobApplicationsListComponent
@@ -124,6 +134,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'device-inventory',
+            canActivate: [modulePermissionGuard('admin', 'device_inventory')],
             loadComponent: () =>
               import('./device-inventory.component').then(
                 (x) => x.DeviceInventoryComponent
@@ -131,9 +142,11 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'hr',
+            canActivate: [modulePermissionGuard('hr')],
             children: [
               {
                 path: 'time-dashboard',
+                canActivate: [modulePermissionGuard('hr', 'hr_time_dashboard')],
                 loadComponent: () =>
                   import('./hr-time-dashboard.component').then(
                     (x) => x.HRTimeDashboardComponent
@@ -141,6 +154,7 @@ export const DASHBOARD_ROUTES: Routes = [
               },
               {
                 path: 'disabilities',
+                canActivate: [modulePermissionGuard('hr', 'hr_disabilities')],
                 loadComponent: () =>
                   import('./hr-disabilities.component').then(
                     (x) => x.HRDisabilitiesComponent
@@ -151,6 +165,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'audit-tasks',
+            canActivate: [modulePermissionGuard('admin', 'audit_tasks')],
             loadComponent: () =>
               import('./audit-tasks.component').then(
                 (x) => x.AuditTasksComponent
@@ -158,9 +173,18 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'performance',
+            canActivate: [modulePermissionGuard('performance')],
             loadChildren: () =>
               import('./performance-360/performance-360.routes').then(
                 (m) => m.PERFORMANCE_360_ROUTES
+              ),
+          },
+          {
+            path: 'surveys',
+            canActivate: [modulePermissionGuard('hr', 'hr_surveys')],
+            loadChildren: () =>
+              import('./surveys/survey.routes').then(
+                (m) => m.SURVEY_ROUTES
               ),
           },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },
@@ -176,11 +200,13 @@ export const DASHBOARD_ROUTES: Routes = [
         children: [
           {
             path: 'timelogs',
+            canActivate: [modulePermissionGuard('time_management', 'timelogs')],
             loadComponent: () =>
               import('./timelogs.component').then((x) => x.TimelogsComponent),
           },
           {
             path: 'timetables',
+            canActivate: [modulePermissionGuard('time_management', 'timetables')],
             loadComponent: () =>
               import('./employees-timetable.component').then(
                 (x) => x.EmployeesTimetableComponent
@@ -188,11 +214,13 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'schedules',
+            canActivate: [modulePermissionGuard('time_management', 'schedules')],
             loadComponent: () =>
               import('./schedules.component').then((x) => x.SchedulesComponent),
           },
           {
             path: 'vet-schedule',
+            canActivate: [modulePermissionGuard('time_management', 'vet_schedule')],
             loadComponent: () =>
               import('./vet-schedule.component').then(
                 (x) => x.VetScheduleComponent
@@ -200,6 +228,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'salon-schedule',
+            canActivate: [modulePermissionGuard('time_management', 'salon_schedule')],
             loadComponent: () =>
               import('./salon-schedule.component').then(
                 (x) => x.SalonScheduleComponent
@@ -207,10 +236,12 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'shifts',
+            canActivate: [modulePermissionGuard('time_management', 'shifts')],
             loadComponent: () =>
               import('./shifts.component').then((x) => x.ShiftsComponent),
           },
-          { path: '', redirectTo: 'timetables', pathMatch: 'full' },
+          // No default redirect - TimeManagementComponent handles dynamic redirect
+          // based on user's sub-module permissions
         ],
       },
       {
@@ -221,11 +252,13 @@ export const DASHBOARD_ROUTES: Routes = [
         children: [
           {
             path: 'payrolls',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
             loadComponent: () =>
               import('./payrolls.component').then((x) => x.PayrollsComponent),
           },
           {
             path: 'payrolls/:payroll_id',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
             loadComponent: () =>
               import('./payrolls-details.component').then(
                 (x) => x.PayrollsDetailsComponent
@@ -233,6 +266,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'payrolls/:payroll_id/payments/:payment_id',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
             loadComponent: () =>
               import('./payroll-payments-details.component').then(
                 (x) => x.PayrollPaymentsDetailsComponent
@@ -240,6 +274,7 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'payrolls/:payroll_id/payments/:payment_id/draft',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
             loadComponent: () =>
               import('./payroll-summary.component').then(
                 (x) => x.PayrollSummaryComponent
@@ -247,11 +282,13 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           {
             path: 'creditors',
+            canActivate: [modulePermissionGuard('payroll', 'creditors')],
             loadComponent: () =>
               import('./creditors.component').then((x) => x.CreditorsComponent),
           },
           {
             path: 'banks',
+            canActivate: [modulePermissionGuard('payroll', 'banks')],
             loadComponent: () =>
               import('./banks.component').then((x) => x.BanksComponent),
           },

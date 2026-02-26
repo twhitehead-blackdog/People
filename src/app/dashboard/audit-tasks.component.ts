@@ -706,7 +706,7 @@ export class AuditTasksComponent {
       .employeesList()
       .filter(
         (e) =>
-          e.is_active && (e.position?.admin || e.position?.dashboard_access)
+          e.is_active && (e.position?.admin || e.position?.schedule_admin)
       )
       .map((e) => ({
         ...e,

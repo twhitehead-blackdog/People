@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -13,6 +14,7 @@ import { DatePicker } from 'primeng/datepicker';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { Textarea } from 'primeng/textarea';
+import { DeviceService } from '../../services/device.service';
 
 @Component({
   selector: 'pt-employee-portal-license',
@@ -20,6 +22,8 @@ import { Textarea } from 'primeng/textarea';
   imports: [CommonModule, FormsModule, Card, DatePicker, Textarea, Button, TableModule, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
@@ -276,9 +280,157 @@ import { Textarea } from 'primeng/textarea';
         </div>
       </div>
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">Solicitar Licencia</h2>
+          <p class="text-xs text-gray-400 m-0">Licencia sin goce de sueldo</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Form -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3">Nueva Solicitud</h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Inicio <span class="text-red-400">*</span></label>
+              <p-datepicker
+                [ngModel]="licenseStartDate"
+                (ngModelChange)="licenseStartDateChange.emit($event)"
+                appendTo="body"
+                [minDate]="minLicenseDate"
+                [maxDate]="maxLicenseDate"
+                styleClass="w-full"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha inicio"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Fin <span class="text-red-400">*</span></label>
+              <p-datepicker
+                [ngModel]="licenseEndDate"
+                (ngModelChange)="licenseEndDateChange.emit($event)"
+                appendTo="body"
+                [minDate]="licenseStartDate || minLicenseDate"
+                [maxDate]="maxLicenseDate"
+                styleClass="w-full"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha fin"
+              />
+            </div>
+          </div>
+          @if (licenseStartDate && licenseEndDate) {
+          <div class="mt-2 p-2 bg-orange-500/10 border border-orange-400/30 rounded-lg">
+            <p class="text-xs text-orange-300 m-0">
+              <i class="pi pi-info-circle mr-1"></i>
+              Días solicitados: <strong>{{ calculateLicenseDays() }}</strong>
+            </p>
+          </div>
+          }
+        </div>
+
+        <!-- Motivo -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <label class="text-xs text-gray-400 mb-1 block">Motivo de la Licencia <span class="text-red-400">*</span></label>
+          <textarea
+            pTextarea
+            [ngModel]="licenseReason"
+            (ngModelChange)="licenseReasonChange.emit($event)"
+            rows="3"
+            placeholder="Explica el motivo de tu licencia..."
+            class="w-full"
+            maxlength="1000"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1 m-0">{{ licenseReason.length }}/1000</p>
+        </div>
+
+        <!-- Warning -->
+        <div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3">
+          <p class="text-xs text-gray-300 m-0">
+            <i class="pi pi-exclamation-triangle text-orange-400 mr-1"></i>
+            Las licencias sin goce de sueldo requieren aprobación de RRHH. No recibirás remuneración durante este período.
+          </p>
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Solicitar Licencia"
+          icon="pi pi-send"
+          severity="warn"
+          [loading]="submitting"
+          [disabled]="!canSubmit || submitting"
+          (onClick)="submitRequest.emit()"
+          styleClass="w-full min-h-[44px]"
+        />
+
+        <!-- Requests List -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-white m-0">Mis Solicitudes</h3>
+            <button class="text-gray-400 hover:text-white" (click)="reloadList.emit()">
+              <i class="pi pi-refresh text-sm" [class.pi-spin]="requestsLoading"></i>
+            </button>
+          </div>
+
+          @if (licenseRequests.length === 0 && !requestsLoading) {
+          <div class="text-center py-6">
+            <i class="pi pi-calendar-times text-2xl text-orange-400 mb-2"></i>
+            <p class="text-xs text-gray-400 m-0">No hay solicitudes todavía</p>
+          </div>
+          } @else if (requestsLoading) {
+          <div class="flex justify-center py-6">
+            <i class="pi pi-spin pi-spinner text-2xl text-orange-400"></i>
+          </div>
+          } @else {
+          <div class="space-y-2">
+            @for (request of licenseRequests; track request.id || $index) {
+            <div class="bg-neutral-900/50 rounded-lg p-2 border border-neutral-700/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-gray-400">{{ request.created_at | date : 'dd/MM/yyyy' }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+                  [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
+                  [class.text-green-300]="request.is_approved"
+                  [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
+                  [ngClass]="{
+                    'bg-yellow-500/20': !request.is_approved && isDateFuture(request.date_from),
+                    'bg-green-500/20': request.is_approved,
+                    'bg-red-500/20': !request.is_approved && !isDateFuture(request.date_from)
+                  }"
+                >
+                  {{ request.is_approved ? 'Aprobada' : isDateFuture(request.date_from) ? 'Pendiente' : 'Rechazada' }}
+                </span>
+              </div>
+              <p class="text-sm text-white font-medium m-0">
+                {{ request.date_from | date : 'dd/MM' }} - {{ request.date_to | date : 'dd/MM' }}
+                <span class="text-orange-400 text-xs ml-1">({{ calculateDaysBetween(request.date_from, request.date_to) }}d)</span>
+              </p>
+              @if (request.notes && request.notes.length > 0 && request.notes[0]) {
+              <p class="text-xs text-gray-400 mt-1 m-0">
+                {{ request.notes[0].length > 60 ? request.notes[0].substring(0, 60) + '...' : request.notes[0] }}
+              </p>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
   `,
 })
 export class EmployeePortalLicenseComponent {
+  protected device = inject(DeviceService);
   @Input() minLicenseDate: Date = new Date();
   @Input() maxLicenseDate: Date = new Date();
   @Input() licenseStartDate: Date | null = null;

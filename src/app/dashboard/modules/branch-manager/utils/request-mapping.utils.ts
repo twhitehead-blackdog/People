@@ -22,6 +22,7 @@ export function mapBranchEmployeeRequests(
   disabilities: any[],
   vacations: any[],
   documents: any[],
+  workPermits: any[],
   branchEmployeeIds: Set<string>,
   branchId: string,
   employeeMap: Record<string, any>
@@ -93,11 +94,25 @@ export function mapBranchEmployeeRequests(
       };
     });
 
+  const enrichedWorkPermits = workPermits
+    .filter((r) => r.employee?.branch_id === branchId)
+    .map((r) => {
+      const reviewer = r.reviewed_by ? employeeMap[r.reviewed_by] : null;
+      return {
+        ...r,
+        reviewedByEmployee: reviewer
+          ? `${reviewer.first_name} ${reviewer.father_name}`
+          : r.reviewed_by,
+        requestType: 'work_permit' as const,
+      };
+    });
+
   return [
     ...enrichedCompensatory,
     ...enrichedDisabilities,
     ...enrichedVacations,
     ...enrichedDocuments,
+    ...enrichedWorkPermits,
   ].sort(
     (a, b) => compareDesc(new Date(a.created_at), new Date(b.created_at))
   );
@@ -244,6 +259,41 @@ export function mapUnifiedRequest(r: any): any {
     ];
     if (r.reason) details.push({ label: 'Motivo', value: r.reason });
     if (metadata.attachment_url) details.push({ label: 'Adjunto', value: 'Sí' });
+  } else if (r.requestType === 'work_permit') {
+    const startDate = parseUTCDateString(r.start_date);
+    const endDate = parseUTCDateString(r.end_date);
+    const start = startDate ? format(startDate, 'dd/MM/yyyy') : '-';
+    const end = endDate ? format(endDate, 'dd/MM/yyyy') : '-';
+
+    if (start === end) {
+      displayDate = start;
+      displayDateLabel = 'Fecha';
+    } else {
+      displayDate = `${start} – ${end}`;
+      displayDateLabel = 'Período';
+    }
+
+    const permitTypeLabels: Record<string, string> = {
+      family_death: 'Defunción',
+      personal: 'Personal',
+      medical: 'Tema Médico',
+      other: 'Otros',
+    };
+    const permitLabel = permitTypeLabels[r.permit_type] || r.permit_type || 'Permiso';
+    summary = `Permiso - ${permitLabel}`;
+    details = [
+      { label: 'Tipo de Permiso', value: permitLabel },
+      { label: 'Fecha de Inicio', value: start },
+      { label: 'Fecha de Fin', value: end },
+    ];
+    if (r.start_time && r.end_time) {
+      details.push({ label: 'Horario', value: `${r.start_time} – ${r.end_time}` });
+    }
+    if (r.equivalent_value) {
+      const unit = r.equivalent_unit === 'hours' ? 'hora(s)' : 'día(s)';
+      details.push({ label: 'Equivalente', value: `${r.equivalent_value} ${unit}` });
+    }
+    if (r.observations) details.push({ label: 'Observaciones', value: r.observations });
   }
 
   return {

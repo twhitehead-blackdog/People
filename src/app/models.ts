@@ -34,7 +34,6 @@ export type Position = {
   schedule_admin: boolean;
   admin: boolean;
   schedule_approver: boolean;
-  dashboard_access: boolean;
   default_view?: string;
   available_for_job_fair?: boolean;
   // NUEVO: Permisos de frontend por módulo/submódulo (JSON)
@@ -69,6 +68,7 @@ export type Employee = {
   emergency_contact_relationship?: string;
   end_date?: Date;
   created_at?: Date;
+  updated_at?: Date;
   is_active: boolean;
   uniform_size?: UniformSize;
   timeoffs?: TimeOff[];
@@ -86,6 +86,7 @@ export type Employee = {
   total_lunch_exceeded_minutes?: number;
   frontend_permissions_override?: string | Record<string, unknown>;
   legacy_permissions_override?: string | Record<string, boolean>;
+  hr_pin?: string;
 };
 
 export type TimeOffType = {
@@ -234,7 +235,7 @@ export type PayrollEmployee = {
   created_at?: Date;
 };
 
-export type PayrollPaymentStatus = 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'APPROVED' | 'PAID';
+export type PayrollPaymentStatus = 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'APPROVED' | 'PAID' | 'PENDING';
 
 export type PayrollPayment = {
   id: string;
@@ -343,6 +344,8 @@ export type EmployeeSchedule = {
   time_off_type?: 'vacation' | 'compensatory_day' | 'compensatory_hours' | 'disability' | null;
   time_off_source_id?: string | null;
   compensatory_hours_amount?: number | null;
+  approved_by?: string;
+  approved_by_employee?: { id: string; first_name: string; father_name: string };
 };
 
 export type VetBranchAssignment = {
@@ -717,6 +720,8 @@ export type NazEmployeeSchedule = {
   end_date: Date;
   approved?: boolean;
   approved_at?: Date;
+  approved_by?: string;
+  approved_by_employee?: { id: string; first_name: string; father_name: string };
   created_at?: Date;
   updated_at?: Date;
 };
@@ -788,6 +793,7 @@ export interface EmployeeScheduleData {
   start_date: string;
   end_date: string;
   approved: boolean;
+  approved_by?: string;
   schedule?: Schedule;
 }
 
@@ -854,7 +860,7 @@ export interface EmployeeOvertimeRecord {
 // ============================================
 
 export type LateRecordStatus = 'active' | 'justified' | 'compensated' | 'discarded';
-export type LateRecordSource = 'peluqueria' | 'manual' | 'kiosk' | 'api' | 'import';
+export type LateRecordSource = 'peluqueria' | 'clinica' | 'manual' | 'kiosk' | 'api' | 'import';
 
 export interface EmployeeLateRecord {
   id: string;
@@ -1211,4 +1217,119 @@ export const DEVICE_ASSIGNMENT_STATUS_OPTIONS: { label: string; value: DeviceAss
   { label: 'Devuelto', value: 'returned', severity: 'secondary' },
   { label: 'Perdido', value: 'lost', severity: 'danger' },
   { label: 'Dañado', value: 'damaged', severity: 'warn' },
+];
+
+// ============================================
+// HR SURVEY SYSTEM
+// ============================================
+
+export type SurveyStatus = 'draft' | 'active' | 'closed' | 'archived';
+export type SurveyQuestionType = 'single_choice' | 'multiple_choice' | 'text' | 'rating' | 'yes_no' | 'scale';
+export type SurveyAssignmentStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface ScaleConfig {
+  min: number;
+  max: number;
+  min_label?: string;
+  max_label?: string;
+}
+
+export interface Survey {
+  id: string;
+  company_id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  status: SurveyStatus;
+  is_anonymous: boolean;
+  allow_multiple_submissions: boolean;
+  due_date?: string;
+  is_template: boolean;
+  created_by?: string;
+  creator?: { first_name?: string; father_name?: string };
+  activated_at?: string;
+  closed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  questions?: SurveyQuestion[];
+  assignments_count?: number;
+  completed_count?: number;
+}
+
+export interface SurveyQuestion {
+  id: string;
+  survey_id: string;
+  question_text: string;
+  question_type: SurveyQuestionType;
+  is_required: boolean;
+  order_index: number;
+  scale_config?: ScaleConfig;
+  created_at?: string;
+  updated_at?: string;
+  options?: SurveyQuestionOption[];
+}
+
+export interface SurveyQuestionOption {
+  id: string;
+  question_id: string;
+  option_text: string;
+  order_index: number;
+  created_at?: string;
+}
+
+export interface SurveyAssignment {
+  id: string;
+  survey_id: string;
+  employee_id: string;
+  company_id: string;
+  status: SurveyAssignmentStatus;
+  assigned_at?: string;
+  completed_at?: string;
+  notified: boolean;
+  survey?: Survey;
+  employee?: { first_name?: string; father_name?: string };
+}
+
+export interface SurveyResponse {
+  id: string;
+  survey_id: string;
+  employee_id: string;
+  company_id: string;
+  submitted_at?: string;
+  answers?: SurveyResponseAnswer[];
+  employee?: { first_name?: string; father_name?: string };
+}
+
+export interface SurveyResponseAnswer {
+  id: string;
+  response_id: string;
+  question_id: string;
+  answer_text?: string;
+  answer_numeric?: number;
+  selected_option_ids?: string[];
+  created_at?: string;
+}
+
+export const SURVEY_STATUS_OPTIONS = [
+  { value: 'draft' as SurveyStatus, label: 'Borrador', severity: 'secondary', icon: 'pi pi-pencil' },
+  { value: 'active' as SurveyStatus, label: 'Activa', severity: 'success', icon: 'pi pi-check-circle' },
+  { value: 'closed' as SurveyStatus, label: 'Cerrada', severity: 'warn', icon: 'pi pi-lock' },
+  { value: 'archived' as SurveyStatus, label: 'Archivada', severity: 'info', icon: 'pi pi-inbox' },
+];
+
+export const SURVEY_CATEGORY_OPTIONS = [
+  { value: 'clima_laboral', label: 'Clima Laboral', icon: 'pi pi-sun' },
+  { value: 'satisfaccion', label: 'Satisfacción', icon: 'pi pi-heart' },
+  { value: 'onboarding', label: 'Onboarding', icon: 'pi pi-user-plus' },
+  { value: 'evaluacion', label: 'Evaluación', icon: 'pi pi-chart-bar' },
+  { value: 'otro', label: 'Otro', icon: 'pi pi-ellipsis-h' },
+];
+
+export const QUESTION_TYPE_OPTIONS = [
+  { value: 'single_choice' as SurveyQuestionType, label: 'Opción Única', icon: 'pi pi-circle' },
+  { value: 'multiple_choice' as SurveyQuestionType, label: 'Opción Múltiple', icon: 'pi pi-check-square' },
+  { value: 'text' as SurveyQuestionType, label: 'Texto Libre', icon: 'pi pi-align-left' },
+  { value: 'rating' as SurveyQuestionType, label: 'Calificación (1-5)', icon: 'pi pi-star' },
+  { value: 'yes_no' as SurveyQuestionType, label: 'Sí / No', icon: 'pi pi-thumbs-up' },
+  { value: 'scale' as SurveyQuestionType, label: 'Escala Numérica', icon: 'pi pi-sliders-h' },
 ];

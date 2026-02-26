@@ -1,15 +1,56 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { LegacyPermissionKey } from '../dashboard/pt-permissions/permissions.types';
+import { SYSTEM_MODULES } from '../dashboard/pt-permissions/module-permissions.types';
 import { PermissionsService } from '../services/permissions.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 /**
+ * Espera a que el empleado esté cargado en el store (máximo 5 segundos)
+ */
+async function waitForEmployee(dashboardStore: InstanceType<typeof DashboardStore>): Promise<boolean> {
+  const maxWait = 5000;
+  const checkInterval = 100;
+  let waited = 0;
+
+  while (!dashboardStore.currentEmployee() && waited < maxWait) {
+    await new Promise((resolve) => setTimeout(resolve, checkInterval));
+    waited += checkInterval;
+  }
+
+  return !!dashboardStore.currentEmployee();
+}
+
+/**
+ * Encuentra la primera ruta disponible basándose en los permisos del usuario.
+ * Orden de prioridad: home > admin > time-management > payroll > my-portal
+ */
+function findFirstAvailableRoute(permissions: PermissionsService): string {
+  // Orden de prioridad para redirect
+  // NOTA: las rutas del dashboard están montadas en path '' (raíz), NO en /dashboard
+  // Home va al final porque contiene información sensible (headcount, salarios, tardanzas)
+  const moduleRouteMap: { moduleId: string; route: string }[] = [
+    { moduleId: 'branch_manager', route: '/branch-manager' },
+    { moduleId: 'time_management', route: '/time-management' },
+    { moduleId: 'timeclock', route: '/timeclock' },
+    { moduleId: 'admin', route: '/admin' },
+    { moduleId: 'payroll', route: '/payroll' },
+    { moduleId: 'home', route: '/home' },
+  ];
+
+  for (const entry of moduleRouteMap) {
+    if (permissions.canAccessModule(entry.moduleId)) {
+      return entry.route;
+    }
+  }
+
+  // Fallback: portal del empleado (siempre accesible)
+  return '/my-portal';
+}
+
+/**
  * Guard para verificar si el usuario tiene un permiso específico (legacy).
  * Soporta verificar uno solo o una lista (OR logic).
- *
- * IMPORTANTE: Este guard ahora espera a que el empleado esté cargado
- * antes de verificar permisos para evitar race conditions.
  *
  * Uso: canActivate: [permissionGuard('admin')]
  * Uso múltiple: canActivate: [permissionGuard(['admin', 'schedule_admin'])]
@@ -26,63 +67,25 @@ export const permissionGuard = (
       ? requiredPermission
       : [requiredPermission];
 
-    console.log('========================================');
-    console.log('[PermissionGuard] *** GUARD ACTIVATED ***');
-    console.log('[PermissionGuard] Checking permissions:', keys);
-    console.log(
-      '[PermissionGuard] Current employee (before wait):',
-      dashboardStore.currentEmployee()
-    );
-
-    // Esperar hasta que el empleado esté cargado (máximo 5 segundos)
-    const maxWait = 5000;
-    const checkInterval = 100;
-    let waited = 0;
-
-    while (!dashboardStore.currentEmployee() && waited < maxWait) {
-      await new Promise((resolve) => setTimeout(resolve, checkInterval));
-      waited += checkInterval;
-    }
-
-    const currentEmployee = dashboardStore.currentEmployee();
-    console.log(
-      '[PermissionGuard] Current employee after wait:',
-      currentEmployee?.first_name,
-      currentEmployee?.father_name
-    );
-    console.log('[PermissionGuard] Position:', currentEmployee?.position);
-
-    if (!currentEmployee) {
-      console.warn(
-        '[PermissionGuard] No employee loaded after waiting, redirecting'
-      );
-      router.navigate(['/dashboard']);
+    const loaded = await waitForEmployee(dashboardStore);
+    if (!loaded) {
+      router.navigate(['/my-portal']);
       return false;
     }
 
-    // Verificar si tiene AL MENOS UNO de los permisos requeridos
-    const hasAccess = keys.some((key) => {
-      const result = permissions.canCurrentUser(key);
-      console.log(`[PermissionGuard] Permission ${key}: ${result}`);
-      return result;
-    });
-
-    console.log('[PermissionGuard] Has access:', hasAccess);
+    const hasAccess = keys.some((key) => permissions.canCurrentUser(key));
 
     if (hasAccess) {
       return true;
     }
 
-    // Redirigir si no tiene acceso
-    console.log('[PermissionGuard] Access denied, redirecting to dashboard');
-    router.navigate(['/dashboard']);
+    router.navigate([findFirstAvailableRoute(permissions)]);
     return false;
   };
 };
 
 /**
  * Guard para verificar acceso a un módulo/submódulo específico del frontend.
- * Este guard usa la nueva estructura de permisos por módulo.
  *
  * Uso: canActivate: [modulePermissionGuard('admin', 'employees')]
  * Uso solo módulo: canActivate: [modulePermissionGuard('admin')]
@@ -96,56 +99,32 @@ export const modulePermissionGuard = (
     const router = inject(Router);
     const dashboardStore = inject(DashboardStore);
 
-    console.log('========================================');
-    console.log('[ModulePermissionGuard] *** GUARD ACTIVATED ***');
-    console.log('[ModulePermissionGuard] Module:', moduleId);
-    console.log('[ModulePermissionGuard] SubModule:', subModuleId || '(any)');
-
-    // Esperar hasta que el empleado esté cargado
-    const maxWait = 5000;
-    const checkInterval = 100;
-    let waited = 0;
-
-    while (!dashboardStore.currentEmployee() && waited < maxWait) {
-      await new Promise((resolve) => setTimeout(resolve, checkInterval));
-      waited += checkInterval;
-    }
-
-    const currentEmployee = dashboardStore.currentEmployee();
-
-    if (!currentEmployee) {
-      console.warn('[ModulePermissionGuard] No employee loaded, redirecting');
-      router.navigate(['/dashboard']);
+    const loaded = await waitForEmployee(dashboardStore);
+    if (!loaded) {
+      router.navigate(['/my-portal']);
       return false;
     }
 
-    // Verificar acceso
     let hasAccess = false;
-    
+
     if (subModuleId) {
-      // Verificar acceso específico al submódulo
       hasAccess = permissions.canAccessSubModule(moduleId, subModuleId);
     } else {
-      // Verificar acceso al módulo completo (cualquier submódulo)
       hasAccess = permissions.canAccessModule(moduleId);
     }
-
-    console.log('[ModulePermissionGuard] Has access:', hasAccess);
 
     if (hasAccess) {
       return true;
     }
 
-    // Redirigir si no tiene acceso
-    console.log('[ModulePermissionGuard] Access denied, redirecting to dashboard');
-    router.navigate(['/dashboard']);
+    // Redirect inteligente: buscar la primera ruta disponible (evita loops)
+    router.navigate([findFirstAvailableRoute(permissions)]);
     return false;
   };
 };
 
 /**
  * Guard combinado que verifica permiso legacy O permiso de módulo.
- * Útil para la transición entre sistemas de permisos.
  *
  * Uso: canActivate: [combinedPermissionGuard('admin', 'admin', 'employees')]
  */
@@ -159,31 +138,14 @@ export const combinedPermissionGuard = (
     const router = inject(Router);
     const dashboardStore = inject(DashboardStore);
 
-    console.log('========================================');
-    console.log('[CombinedPermissionGuard] *** GUARD ACTIVATED ***');
-
-    // Esperar hasta que el empleado esté cargado
-    const maxWait = 5000;
-    const checkInterval = 100;
-    let waited = 0;
-
-    while (!dashboardStore.currentEmployee() && waited < maxWait) {
-      await new Promise((resolve) => setTimeout(resolve, checkInterval));
-      waited += checkInterval;
-    }
-
-    const currentEmployee = dashboardStore.currentEmployee();
-
-    if (!currentEmployee) {
-      console.warn('[CombinedPermissionGuard] No employee loaded, redirecting');
-      router.navigate(['/dashboard']);
+    const loaded = await waitForEmployee(dashboardStore);
+    if (!loaded) {
+      router.navigate(['/my-portal']);
       return false;
     }
 
-    // Verificar permiso legacy
     const hasLegacyAccess = permissions.canCurrentUser(legacyPermission);
-    
-    // Verificar permiso de módulo
+
     let hasModuleAccess = false;
     if (subModuleId) {
       hasModuleAccess = permissions.canAccessSubModule(moduleId, subModuleId);
@@ -193,16 +155,44 @@ export const combinedPermissionGuard = (
 
     const hasAccess = hasLegacyAccess || hasModuleAccess;
 
-    console.log('[CombinedPermissionGuard] Legacy access:', hasLegacyAccess);
-    console.log('[CombinedPermissionGuard] Module access:', hasModuleAccess);
-    console.log('[CombinedPermissionGuard] Has access:', hasAccess);
-
     if (hasAccess) {
       return true;
     }
 
-    console.log('[CombinedPermissionGuard] Access denied, redirecting to dashboard');
-    router.navigate(['/dashboard']);
+    router.navigate([findFirstAvailableRoute(permissions)]);
     return false;
   };
+};
+
+/**
+ * Guard para la ruta /home.
+ * Si el módulo 'home' está desactivado, redirige al primer módulo disponible.
+ * Si está activado (o el empleado aún no cargó), permite el acceso.
+ */
+export const homeGuard: CanActivateFn = async () => {
+  const permissions = inject(PermissionsService);
+  const router = inject(Router);
+  const dashboardStore = inject(DashboardStore);
+
+  const loaded = await waitForEmployee(dashboardStore);
+  if (!loaded) {
+    // Si no cargó el empleado, dejar pasar (employeePortalGuard ya maneja esto)
+    return true;
+  }
+
+  // Si home está habilitado, dejar pasar normalmente
+  if (permissions.canAccessModule('home')) {
+    return true;
+  }
+
+  // Home desactivado: buscar primera ruta disponible (excluyendo home)
+  const fallback = findFirstAvailableRoute(permissions);
+
+  // Si el fallback es home (porque home está primero en la lista), ir a admin directamente
+  if (fallback === '/home') {
+    router.navigate(['/admin']);
+  } else {
+    router.navigate([fallback]);
+  }
+  return false;
 };

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -14,6 +15,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
+import { DeviceService } from '../../services/device.service';
 
 @Component({
   selector: 'pt-employee-portal-vacations',
@@ -31,6 +33,8 @@ import { TooltipModule } from 'primeng/tooltip';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center gap-2">
@@ -379,9 +383,210 @@ import { TooltipModule } from 'primeng/tooltip';
       </div>
       }
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">
+            {{ (vacationRequests?.length ?? 0) > 0 ? 'Mis Solicitudes' : 'Solicitar Vacaciones' }}
+          </h2>
+          <p class="text-xs text-gray-400 m-0">
+            {{ (vacationRequests?.length ?? 0) > 0
+              ? 'Visualiza tus solicitudes'
+              : 'Solicita tus días de vacaciones' }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (requestsLoading) {
+      <div class="flex justify-center items-center py-12">
+        <div class="flex flex-col items-center gap-3">
+          <i class="pi pi-spin pi-spinner text-3xl text-purple-400"></i>
+          <p class="text-gray-400 text-sm">Cargando solicitudes...</p>
+        </div>
+      </div>
+      } @else if ((vacationRequests?.length ?? 0) > 0) {
+      <!-- List View - Card style for mobile -->
+      <div class="space-y-3">
+        @for (request of vacationRequests!; track request.id) {
+        <div
+          class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30"
+          [ngClass]="{
+            'border-yellow-500/30': request.status === 'pending',
+            'border-green-500/30': request.status === 'approved',
+            'border-red-500/30': request.status === 'rejected'
+          }"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-white">Solicitud de Vacaciones</span>
+            <span
+              class="px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1"
+              [class.text-yellow-300]="request.status === 'pending'"
+              [class.text-green-300]="request.status === 'approved'"
+              [class.text-red-300]="request.status === 'rejected'"
+              [ngClass]="{
+                'bg-yellow-500/20': request.status === 'pending',
+                'bg-green-500/20': request.status === 'approved',
+                'bg-red-500/20': request.status === 'rejected'
+              }"
+            >
+              @if (request.status === 'approved') {
+              <i class="pi pi-check-circle text-xs"></i>
+              } @else if (request.status === 'rejected') {
+              <i class="pi pi-times-circle text-xs"></i>
+              } @else {
+              <i class="pi pi-hourglass text-xs"></i>
+              }
+              {{ request.status === 'pending' ? 'Pendiente' : request.status === 'approved' ? 'Aprobado' : 'Rechazado' }}
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">
+            Solicitado el {{ request.created_at | date : 'dd/MM/yyyy' }}
+          </p>
+          <div class="grid grid-cols-1 gap-2">
+            <div class="bg-neutral-900/50 rounded-lg p-2">
+              <span class="text-xs text-gray-400">Período</span>
+              <p class="text-sm text-white font-medium m-0">
+                {{ request.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
+                @if (request.end_date) {
+                - {{ request.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
+                }
+              </p>
+            </div>
+            @if (request.reason) {
+            <div class="bg-neutral-900/50 rounded-lg p-2">
+              <span class="text-xs text-gray-400">Motivo</span>
+              <p class="text-sm text-gray-300 m-0">{{ request.reason }}</p>
+            </div>
+            }
+          </div>
+          @if (request.rejection_comment) {
+          <div class="mt-2 bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+            <p class="text-xs text-red-300 font-semibold mb-1">Motivo del Rechazo</p>
+            <p class="text-xs text-red-200 m-0">{{ request.rejection_comment }}</p>
+          </div>
+          }
+        </div>
+        }
+      </div>
+      } @else {
+      <!-- Create Form View - Mobile -->
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Período -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-calendar text-purple-400"></i>
+            Período de Vacaciones
+          </h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Inicio</label>
+              <p-datepicker
+                [ngModel]="vacationStartDate"
+                (ngModelChange)="vacationStartDateChange.emit($event)"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha de inicio"
+                [minDate]="minVacationDate"
+                [maxDate]="maxVacationDate"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Fin</label>
+              <p-datepicker
+                [ngModel]="vacationEndDate"
+                (ngModelChange)="vacationEndDateChange.emit($event)"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha de fin"
+                [minDate]="vacationStartDate || minVacationDate"
+                [maxDate]="maxVacationDate"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+          </div>
+          @if (vacationStartDate && vacationEndDate) {
+          <div class="mt-2 p-2 bg-purple-500/10 border border-purple-400/30 rounded-lg">
+            <p class="text-xs text-purple-300 m-0">
+              <i class="pi pi-info-circle mr-1"></i>
+              Total: <strong>{{ calculateVacationDays() }} día(s)</strong>
+            </p>
+          </div>
+          }
+        </div>
+
+        <!-- Motivo -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-file-edit text-purple-400"></i>
+            Motivo (Opcional)
+          </h3>
+          <textarea
+            pTextarea
+            [ngModel]="vacationReason"
+            (ngModelChange)="vacationReasonChange.emit($event)"
+            rows="3"
+            placeholder="Motivo o comentarios adicionales"
+            class="w-full"
+          ></textarea>
+        </div>
+
+        <!-- Documento -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-file text-purple-400"></i>
+            Documento (Opcional)
+          </h3>
+          <p-fileUpload
+            mode="basic"
+            accept=".pdf,.jpg,.jpeg,.png"
+            maxFileSize="5000000"
+            [auto]="false"
+            chooseLabel="Seleccionar Archivo"
+            (onSelect)="handleFileSelect($event)"
+            class="w-full"
+          />
+          <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG (máx. 5MB)</p>
+          @if (vacationFile) {
+          <div class="mt-2 p-2 bg-purple-500/10 border border-purple-400/30 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-file text-purple-400 text-sm"></i>
+              <span class="text-xs text-gray-300">{{ vacationFile.name }}</span>
+            </div>
+            <button class="text-red-400" (click)="vacationFileChange.emit(null)">
+              <i class="pi pi-times text-sm"></i>
+            </button>
+          </div>
+          }
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Solicitar Vacaciones"
+          icon="pi pi-check"
+          [disabled]="!canSubmit"
+          [loading]="submitting"
+          (onClick)="submitRequest.emit()"
+          severity="success"
+          styleClass="w-full min-h-[44px]"
+        />
+      </div>
+      }
+    </div>
+    }
   `,
 })
 export class EmployeePortalVacationsComponent {
+  protected device = inject(DeviceService);
   @Input() minVacationDate: Date = new Date();
   @Input() maxVacationDate: Date = new Date();
   @Input() vacationStartDate: Date | null = null;

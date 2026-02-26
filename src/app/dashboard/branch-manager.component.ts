@@ -306,7 +306,8 @@ import {
                 compensatoryTimeoffsApi.isLoading() ||
                 disabilitiesApi.isLoading() ||
                 vacationsApi.isLoading() ||
-                documentRequestsApi.isLoading()
+                documentRequestsApi.isLoading() ||
+                workPermitsApi.isLoading()
               "
               [isMobile]="isMobile()"
               [(requestTypeFilter)]="requestTypeFilter"
@@ -583,6 +584,7 @@ export class BranchManagerComponent {
   public get disabilitiesApi() { return this.service.disabilitiesApi; }
   public get vacationsApi() { return this.service.vacationsApi; }
   public get documentRequestsApi() { return this.service.documentRequestsApi; }
+  public get workPermitsApi() { return this.service.workPermitsApi; }
   public get timelogsResource() { return this.service.timelogsResource; }
   public get timelogSchedulesResource() { return this.service.timelogSchedulesResource; }
   public get enrichedNotifications() { return this.service.enrichedNotifications; }
@@ -603,6 +605,7 @@ export class BranchManagerComponent {
       this.disabilitiesApi.value() || [],
       this.vacationsApi.value() || [],
       this.documentRequestsApi.value() || [],
+      this.workPermitsApi.value() || [],
       branchEmployeeIds,
       branchId,
       this.employeesStore.entityMap()

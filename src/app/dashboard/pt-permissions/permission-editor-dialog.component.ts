@@ -17,6 +17,7 @@ import { BadgeModule } from 'primeng/badge';
 import { TabViewModule } from 'primeng/tabview';
 import { DividerModule } from 'primeng/divider';
 import { PermissionsService } from '../../services/permissions.service';
+import { invalidateEmployeeCache } from '../../guards/employee-portal.guard';
 import {
   FrontendPermissions,
   LegacyPermissionKey,
@@ -406,6 +407,9 @@ export class PermissionEditorDialogComponent {
           legacyUpdates[key] = this.tempPermissions[key];
         }
         await this.service.updateEmployeeLegacyPermissions(this.employeeId, legacyUpdates);
+
+        // Invalidar cache del guard para que los cambios se reflejen inmediatamente
+        invalidateEmployeeCache();
 
         this.messageService.add({
           severity: 'success',

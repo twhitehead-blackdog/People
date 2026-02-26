@@ -1,158 +1,184 @@
 import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { format } from 'date-fns';
 import { Button } from 'primeng/button';
 import { Popover } from 'primeng/popover';
+import { SelectModule } from 'primeng/select';
 import { Tooltip } from 'primeng/tooltip';
-import { VetBranchAssignment } from '../models';
+import { Employee, VetBranchAssignment } from '../models';
 
 @Component({
   selector: 'pt-vet-branch-cell',
   standalone: true,
-  imports: [DatePipe, Button, Popover, Tooltip],
+  imports: [DatePipe, Button, Popover, Tooltip, SelectModule, FormsModule],
   template: `
-    @if (isNonWorking()) {
-    <div
-      class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] border border-black/20 shadow-sm bg-neutral-700 text-gray-200 opacity-90"
-      [pTooltip]="nonWorkingTooltip"
-      tooltipPosition="top"
-    >
-      <span class="truncate max-w-[65px] font-semibold leading-tight">
-        {{ nonWorkingLabel() || 'NO LABORA' }}
-      </span>
-    </div>
-    <ng-template #nonWorkingTooltip>
-      <div class="flex flex-col gap-1">
-        <div class="font-bold">{{ nonWorkingLabel() || 'No laborable' }}</div>
-        <div>
-          Fecha:
-          <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' : 'UTC' }}</span>
-        </div>
-        <div class="italic">No se puede asignar sucursal este día.</div>
+    <div class="flex flex-col items-center gap-1 min-w-[100px]">
+      <!-- Asignaciones existentes -->
+      @for (a of assignments(); track a.id) {
+      <div
+        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm text-white opacity-80 hover:opacity-100"
+        [style.background-color]="getEmployeeColor(a)"
+        [pTooltip]="vetTooltip"
+        tooltipPosition="top"
+      >
+        @if (isEmployeeNonWorking(a.employee_id)) {
+        <span class="truncate max-w-[90px] font-semibold leading-tight line-through">
+          {{ a.employee?.first_name }} {{ a.employee?.father_name?.charAt(0) }}.
+        </span>
+        } @else {
+        <span class="truncate max-w-[90px] font-semibold leading-tight">
+          {{ a.employee?.first_name }} {{ a.employee?.father_name?.charAt(0) }}.
+        </span>
+        }
+        @if (canManage()) {
+        <i
+          class="pi pi-times text-[9px] cursor-pointer hover:text-red-300 ml-0.5"
+          (click)="onRemove(a); $event.stopPropagation()"
+        ></i>
+        }
       </div>
-    </ng-template>
-    } @else { @if (assignment(); as assignmentValue) {
-    <div
-      class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm text-white opacity-80 hover:opacity-100"
-      [style.background-color]="
-        getBranchColor(assignmentValue?.branch?.short_name || '')
-      "
-      [pTooltip]="tooltipContent"
-      tooltipPosition="top"
-      (click)="options.toggle($event)"
-    >
-      <span class="truncate max-w-[65px] font-semibold leading-tight">
-        {{ assignmentValue?.branch?.short_name }}
-      </span>
-    </div>
-    <ng-template #tooltipContent>
-      <div class="flex flex-col gap-1">
-        <div>
-          Sucursal:
-          <span class="font-bold">{{ assignmentValue?.branch?.name }}</span>
-        </div>
-        <div>
-          Fecha:
-          <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' : 'UTC' }}</span>
-        </div>
-        <div>
-          Médico:
-          <span class="font-bold"
-            >{{ assignmentValue?.employee?.first_name }}
-            {{ assignmentValue?.employee?.father_name }}</span
-          >
-        </div>
-      </div>
-    </ng-template>
-    <p-popover #options>
-      <div class="relative">
-        <span class="font-medium block mb-2">Opciones</span>
-        <ul class="list-non flex flex-col">
-          @if (canManage()) {
-          <li
-            class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-            (click)="onEdit()"
-          >
-            <i class="pi pi-pencil text-primary-600"></i>
-            Cambiar sucursal
-          </li>
-          <li
-            class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-            (click)="onDelete()"
-          >
-            <i class="pi pi-trash text-red-700"></i>
-            Remover asignación
-          </li>
+      <ng-template #vetTooltip>
+        <div class="flex flex-col gap-1">
+          <div>
+            Veterinario:
+            <span class="font-bold">{{ a.employee?.first_name }} {{ a.employee?.father_name }}</span>
+          </div>
+          <div>
+            Cargo:
+            <span class="font-bold">{{ a.employee?.position?.name || 'Veterinario' }}</span>
+          </div>
+          <div>
+            Fecha:
+            <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' : 'UTC' }}</span>
+          </div>
+          @if (isEmployeeNonWorking(a.employee_id)) {
+          <div class="text-yellow-300 italic">
+            {{ getNonWorkingLabel(a.employee_id) }}
+          </div>
           }
-        </ul>
+        </div>
+      </ng-template>
+      }
+
+      <!-- Botón para agregar -->
+      @if (canManage()) {
+      <div class="flex items-center gap-1">
+        <p-button
+          icon="pi pi-plus"
+          outlined
+          size="small"
+          severity="secondary"
+          (onClick)="addPopover.toggle($event)"
+          pTooltip="Agregar veterinario"
+          tooltipPosition="top"
+          class="hover:bg-neutral-700 hover:border-amber-400 hover:text-amber-400 transition-all"
+          [style]="{ width: '24px', height: '24px' }"
+        />
+        @if (assignments().length === 0) {
+        <p-button
+          icon="pi pi-calendar-plus"
+          outlined
+          size="small"
+          severity="info"
+          (onClick)="onBulkAssign()"
+          pTooltip="Asignar rango de fechas"
+          tooltipPosition="top"
+          [style]="{ width: '24px', height: '24px' }"
+        />
+        }
       </div>
-    </p-popover>
-    } @else { @if (canManage()) {
-    <p-button
-      icon="pi pi-plus"
-      outlined
-      size="small"
-      severity="secondary"
-      (onClick)="onAdd()"
-      class="hover:bg-neutral-700 hover:border-amber-400 hover:text-amber-400 transition-all"
-    />
-    } } }
+
+      <p-popover #addPopover>
+        <div class="w-52">
+          <span class="font-medium block mb-2 text-sm">Seleccionar veterinario</span>
+          @if (availableEmployees().length === 0) {
+          <p class="text-xs text-gray-400">No hay veterinarios disponibles</p>
+          } @else {
+          <p-select
+            [options]="availableEmployees()"
+            optionLabel="first_name"
+            placeholder="Buscar..."
+            [filter]="true"
+            filterBy="first_name,father_name"
+            [showClear]="false"
+            appendTo="body"
+            (onChange)="onSelectEmployee($event.value, addPopover)"
+            styleClass="w-full"
+          >
+            <ng-template let-emp #item>
+              <div class="flex flex-col">
+                <span class="text-sm font-medium">{{ emp.first_name }} {{ emp.father_name }}</span>
+                <span class="text-xs text-gray-400">{{ emp.position?.name }}</span>
+              </div>
+            </ng-template>
+            <ng-template let-emp #selectedItem>
+              <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+            </ng-template>
+          </p-select>
+          }
+        </div>
+      </p-popover>
+      }
+    </div>
   `,
 })
 export class VetBranchCellComponent {
-  // Mapa de colores por sucursal
-  private readonly branchColors: Record<string, string> = {
-    ' AF': '#6AA84F', // Albrook
-    ' BV': '#D5A6BD', // Bella Vista
-    ' CV': '#F1C232', // Costa Verde
-    ' PE': '#8E7CC3', // Plaza Emporio
-    ' SM': '#FCE5CD', // Santa Maria
-    VZ: '#CFE2F3', // Villa Zaita
-    ' OM': '#F28E86', // Ocean Mall
-    ' C50': '#B6D7A8', // Calle 50
-    ' BM': '#CBAB7F', // Brisas Mall
-    // Colores para sucursales adicionales
-    BN: '#10B981', // Brisas Norte
-    ' CDR': '#3B82F6', // Condado del Rey
-    CM: '#8B5CF6', // Coco Del Mar
-    DVD: '#EF4444', // David Chiriqui
-    OF: '#F59E0B', // Oficina Central
-    'BO-DC': '#EC4899', // Bodega Dos Caminos
-    'VS ': '#06B6D4', // Versalles
-    NZ: '#84CC16', // Naz
-  };
-
-  // Método para obtener el color de una sucursal
-  getBranchColor(shortName: string): string {
-    return this.branchColors[shortName] || '#6B7280'; // Color gris por defecto
-  }
   // Inputs
-  public assignment = input<VetBranchAssignment | null | undefined>();
+  public assignments = input<VetBranchAssignment[]>([]);
   public date = input.required<Date>();
-  public employeeId = input.required<string>();
+  public branchId = input.required<string>();
   public canManage = input.required<boolean>();
-  public isNonWorking = input<boolean>(false);
-  public nonWorkingLabel = input<string | null>(null);
+  public availableEmployees = input<Employee[]>([]);
+  public nonWorkingMap = input<Record<string, string>>({});
 
   // Outputs
-  public edit = output<{ assignment: VetBranchAssignment; date: Date }>();
-  public delete = output<{ assignment: VetBranchAssignment; date: Date }>();
-  public add = output<{ employeeId: string; date: Date }>();
+  public assign = output<{ branchId: string; date: Date; employeeId: string }>();
+  public remove = output<{ assignment: VetBranchAssignment }>();
+  public bulkAssign = output<{ branchId: string; date: Date }>();
 
-  public onEdit(): void {
-    const assignmentValue = this.assignment();
-    if (assignmentValue) {
-      this.edit.emit({ assignment: assignmentValue, date: this.date() });
+  // Colores alternos para distinguir empleados
+  private readonly empColors = [
+    '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B',
+    '#EF4444', '#06B6D4', '#EC4899', '#84CC16',
+  ];
+
+  getEmployeeColor(assignment: VetBranchAssignment): string {
+    // Color basado en el hash del employee_id para consistencia
+    const hash = assignment.employee_id
+      .split('')
+      .reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return this.empColors[hash % this.empColors.length];
+  }
+
+  isEmployeeNonWorking(employeeId: string): boolean {
+    const dateKey = format(this.date(), 'yyyy-MM-dd');
+    const key = `${employeeId}|${dateKey}`;
+    return !!this.nonWorkingMap()[key];
+  }
+
+  getNonWorkingLabel(employeeId: string): string {
+    const dateKey = format(this.date(), 'yyyy-MM-dd');
+    const key = `${employeeId}|${dateKey}`;
+    return this.nonWorkingMap()[key] || 'No laborable';
+  }
+
+  onSelectEmployee(employee: Employee, popover: Popover): void {
+    if (employee) {
+      this.assign.emit({
+        branchId: this.branchId(),
+        date: this.date(),
+        employeeId: employee.id,
+      });
+      popover.hide();
     }
   }
 
-  public onDelete(): void {
-    const assignmentValue = this.assignment();
-    if (assignmentValue) {
-      this.delete.emit({ assignment: assignmentValue, date: this.date() });
-    }
+  onRemove(assignment: VetBranchAssignment): void {
+    this.remove.emit({ assignment });
   }
 
-  public onAdd(): void {
-    this.add.emit({ employeeId: this.employeeId(), date: this.date() });
+  onBulkAssign(): void {
+    this.bulkAssign.emit({ branchId: this.branchId(), date: this.date() });
   }
 }

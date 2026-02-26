@@ -1013,7 +1013,7 @@ export class JobFairFormComponent implements OnInit {
           {
             params: {
               select:
-                'id,name,department_id,available_for_job_fair,admin,schedule_admin,schedule_approver,dashboard_access,default_view,department:departments(id, name)',
+                'id,name,department_id,available_for_job_fair,admin,schedule_admin,schedule_approver,default_view,department:departments(id, name)',
               company_id: `eq.${blackdogCompanyId}`,
               order: 'name',
             },

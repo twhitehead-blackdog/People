@@ -695,6 +695,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       return;
     }
 
+    // Gerentes de tienda solo pueden visualizar horarios
+    if (this.isStoreManager()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail: 'Los gerentes de tienda solo pueden visualizar horarios.',
+      });
+      this.loading.set(false);
+      return;
+    }
+
     const value = this.form.getRawValue();
     if (this.form.invalid) {
       this.message.add({
@@ -1018,6 +1029,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     if (companyId && !requestData.company_id) {
       requestData.company_id = companyId;
     }
+    if (requestData.approved) {
+      requestData.approved_by = this.store.currentEmployee()?.id || null;
+    }
 
     const createRequest = this.http.post(
       this.apiUrl.build('rest/v1/employee_schedules'),
@@ -1039,6 +1053,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     };
     if (companyId && !updateData.company_id) {
       updateData.company_id = companyId;
+    }
+    if (updateData.approved) {
+      updateData.approved_by = this.store.currentEmployee()?.id || null;
     }
 
     // Asegurar que schedule_id esté incluido si existe en el formulario
@@ -1347,6 +1364,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         start_date: format(day, 'yyyy-MM-dd'),
         end_date: format(day, 'yyyy-MM-dd'),
         approved: scheduleData.approved,
+        ...(scheduleData.approved ? { approved_by: this.store.currentEmployee()?.id || null } : {}),
       };
       if (companyId) {
         daySchedule.company_id = companyId;

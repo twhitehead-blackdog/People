@@ -108,20 +108,17 @@ export class PermissionsService {
       admin: false,
       schedule_admin: false,
       schedule_approver: false,
-      dashboard_access: false,
       view_salaries: false,
     };
 
     // 2. Build Legacy Permissions (from Employee Override ONLY)
     const legacyOverride = this.parseLegacyOverride(employee);
-    // Legacy override is now the ONLY source of permissions
 
     const finalPermissions: Record<LegacyPermissionKey, boolean> = { ...basePermissions };
     const sources: Record<LegacyPermissionKey, 'position' | 'user_override'> = {
       admin: 'user_override',
       schedule_admin: 'user_override',
       schedule_approver: 'user_override',
-      dashboard_access: 'user_override',
       view_salaries: 'user_override',
     };
 
@@ -136,7 +133,6 @@ export class PermissionsService {
       });
     } else {
       // FALLBACK: If no override exists (migration didn't run), use Position permissions
-      // This ensures admins don't lose access before migration
       if (position?.admin) {
         finalPermissions.admin = true;
         sources.admin = 'position';
@@ -149,10 +145,6 @@ export class PermissionsService {
         finalPermissions.schedule_approver = true;
         sources.schedule_approver = 'position';
       }
-      if (position?.dashboard_access) {
-        finalPermissions.dashboard_access = true;
-        sources.dashboard_access = 'position';
-      }
       if (checkSalaryAccess(position?.name)) {
         finalPermissions.view_salaries = true;
         sources.view_salaries = 'position';
@@ -160,9 +152,6 @@ export class PermissionsService {
     }
 
     // 3. Build Frontend Permissions (from Employee Override ONLY)
-    // We no longer read from Position. Defaults are all FALSE.
-    const defaultFrontend = { version: 1, modules: {} } as FrontendPermissions;
-
     // 4. Apply employee override if exists
     const employeeOverride = this.parseEmployeeOverride(employee);
     const hasFrontendOverride = employeeOverride !== null;
@@ -171,6 +160,9 @@ export class PermissionsService {
     const frontendPermissions = hasFrontendOverride
       ? employeeOverride
       : this.buildFrontendPermissions(position);
+
+    // 5. Fill in missing modules from SYSTEM_MODULES (handles newly added modules)
+    this.fillMissingModules(frontendPermissions, position);
 
     return {
       employeeId: employee.id,
@@ -183,24 +175,11 @@ export class PermissionsService {
       sources: sources,
       frontendPermissions: frontendPermissions,
       employeeFrontendPermissions: employeeOverride ?? undefined,
-      hasEmployeeOverride: true, // Always considered "custom"/employee-level now
+      hasEmployeeOverride: !!legacyOverride || hasFrontendOverride,
       userType: this.determineUserType(employee, finalPermissions),
       isSupportUser: this.store.testMode.isSupportUser(employee.work_email),
       testMode: false,
     };
-  }
-
-  /**
-   * Helper to create empty frontend permissions (all disabled)
-   */
-  private createEmptyFrontendPermissions(): FrontendPermissions {
-    const perms = createDefaultFrontendPermissions();
-    // Ensure everything is disabled
-    Object.values(perms.modules).forEach(m => {
-      m.enabled = false;
-      Object.keys(m.subModules).forEach(k => m.subModules[k] = false);
-    });
-    return perms;
   }
 
   /**
@@ -246,27 +225,6 @@ export class PermissionsService {
   }
 
   /**
-   * Mergea permisos de frontend: por cada módulo en override, reemplaza el módulo completo.
-   * Los módulos no definidos en override mantienen el valor del cargo.
-   */
-  private mergeFrontendPermissions(
-    base: FrontendPermissions,
-    override: FrontendPermissions
-  ): FrontendPermissions {
-    const merged: FrontendPermissions = {
-      version: override.version || base.version || 1,
-      modules: { ...base.modules },
-    };
-
-    // Override reemplaza módulo por módulo
-    for (const [moduleId, modulePerm] of Object.entries(override.modules)) {
-      merged.modules[moduleId] = { ...modulePerm };
-    }
-
-    return merged;
-  }
-
-  /**
    * Construye los permisos de frontend basados en el cargo
    * Si el cargo tiene frontend_permissions en la DB, los usa
    * Si no, usa los valores por defecto basados en el tipo de cargo
@@ -295,6 +253,47 @@ export class PermissionsService {
   }
 
   /**
+   * Rellena módulos/submódulos de SYSTEM_MODULES que no existan en los permisos.
+   * Cuando se agrega un módulo nuevo al sistema, los usuarios con override guardado
+   * no lo tendrían. Este método lo agrega con defaults según su cargo.
+   */
+  private fillMissingModules(perms: FrontendPermissions, position?: Position): void {
+    const isAdmin = !!position?.admin;
+    const isScheduleAdmin = !!position?.schedule_admin;
+
+    for (const moduleDef of SYSTEM_MODULES) {
+      if (!perms.modules[moduleDef.id]) {
+        // Módulo completamente nuevo - determinar default según cargo
+        // 'home' siempre habilitado para todos por defecto
+        const shouldEnable = moduleDef.id === 'home'
+          ? true
+          : isAdmin
+            ? (moduleDef.id !== 'employee_portal' && moduleDef.id !== 'timeclock')
+            : (isScheduleAdmin && moduleDef.id === 'time_management');
+
+        perms.modules[moduleDef.id] = {
+          moduleId: moduleDef.id,
+          enabled: shouldEnable,
+          subModules: {},
+        };
+
+        for (const sub of moduleDef.subModules) {
+          perms.modules[moduleDef.id].subModules[sub.id] = shouldEnable;
+        }
+      } else {
+        // Módulo existe - verificar submódulos nuevos
+        for (const sub of moduleDef.subModules) {
+          if (perms.modules[moduleDef.id].subModules[sub.id] === undefined) {
+            // Submódulo nuevo: habilitar si el módulo padre está habilitado y el usuario es admin
+            perms.modules[moduleDef.id].subModules[sub.id] =
+              isAdmin && perms.modules[moduleDef.id].enabled;
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Genera permisos por defecto basados en el tipo de cargo
    */
   private getDefaultFrontendPermissions(position?: Position): FrontendPermissions {
@@ -303,17 +302,17 @@ export class PermissionsService {
       modules: {},
     };
 
-    // Por defecto, todos los módulos están desactivados
+    // Por defecto, todos los módulos están desactivados excepto 'home'
     SYSTEM_MODULES.forEach(module => {
+      const isHome = module.id === 'home';
       perms.modules[module.id] = {
         moduleId: module.id,
-        enabled: false,
+        enabled: isHome, // 'home' habilitado para todos por defecto
         subModules: {},
       };
 
-      // Todos los submódulos desactivados por defecto
       module.subModules.forEach(sub => {
-        perms.modules[module.id].subModules[sub.id] = false;
+        perms.modules[module.id].subModules[sub.id] = isHome;
       });
     });
 
@@ -343,17 +342,6 @@ export class PermissionsService {
         tmModule.subModules['timetables'] = true;
         tmModule.subModules['schedules'] = true;
         tmModule.subModules['shifts'] = true;
-      }
-    }
-
-    // Dashboard access: acceso básico a admin
-    if (position.dashboard_access) {
-      const adminModule = perms.modules['admin'];
-      if (adminModule) {
-        adminModule.enabled = true;
-        // Solo acceso a empleados y organigrama por defecto
-        adminModule.subModules['employees'] = true;
-        adminModule.subModules['organigrama'] = true;
       }
     }
 

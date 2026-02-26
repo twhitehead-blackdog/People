@@ -2,18 +2,21 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   model,
 } from '@angular/core';
 import { format, getDate, getYear, getMonth, parseISO, setYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DialogModule } from 'primeng/dialog';
+import { DeviceService } from '../../../../services/device.service';
 
 @Component({
   selector: 'pt-birthdays-dialog',
   standalone: true,
   imports: [CommonModule, DialogModule],
   template: `
+    @if (device.isDesktop()) {
     <p-dialog
       [visible]="visible()"
       (visibleChange)="visible.set($event)"
@@ -121,6 +124,91 @@ import { DialogModule } from 'primeng/dialog';
         }
       </div>
     </p-dialog>
+    } @else {
+    <p-dialog
+      [visible]="visible()"
+      (visibleChange)="visible.set($event)"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [style]="{ width: '95vw', 'max-height': '90vh' }"
+      position="bottom"
+      header="Cumpleañeros del Mes"
+      styleClass="late-details-dialog birthdays-dialog"
+    >
+      <div class="p-2">
+        @if (birthDates().length === 0) {
+        <div class="text-sm text-gray-400 text-center py-4">No hay cumpleañeros este mes.</div>
+        } @else {
+        <div class="flex flex-col gap-2.5 max-h-[70vh] overflow-y-auto">
+          @for (birthday of getSortedBirthdays(); track birthday.id) {
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <div class="flex items-center gap-3">
+              <div
+                class="birthday-icon-box flex-shrink-0"
+                [class.icon-today]="isBirthdayToday(birthday.birth_date)"
+                [class.icon-upcoming]="
+                  !hasBirthdayPassed(birthday.birth_date) &&
+                  !isBirthdayToday(birthday.birth_date)
+                "
+                [class.icon-passed]="hasBirthdayPassed(birthday.birth_date)"
+              >
+                <i
+                  class="pi"
+                  [class.pi-gift]="isBirthdayToday(birthday.birth_date)"
+                  [class.pi-star]="
+                    !hasBirthdayPassed(birthday.birth_date) &&
+                    !isBirthdayToday(birthday.birth_date)
+                  "
+                  [class.pi-check-circle]="
+                    hasBirthdayPassed(birthday.birth_date)
+                  "
+                ></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm text-white font-medium truncate">
+                  {{ birthday.first_name + ' ' + birthday.father_name }}
+                </div>
+                <div class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                  <i class="pi pi-building text-[10px]"></i>
+                  {{ birthday.branch?.name || 'Sin sucursal' }}
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                <div class="text-sm font-bold text-white">
+                  {{ getBirthdayDay(birthday.birth_date) }}
+                  <span class="text-xs text-gray-400 font-normal uppercase">{{
+                    getBirthdayMonth(birthday.birth_date)
+                  }}</span>
+                </div>
+                <span
+                  class="birthday-status-badge text-[10px]"
+                  [class.status-today]="isBirthdayToday(birthday.birth_date)"
+                  [class.status-upcoming]="
+                    !hasBirthdayPassed(birthday.birth_date) &&
+                    !isBirthdayToday(birthday.birth_date)
+                  "
+                  [class.status-passed]="hasBirthdayPassed(birthday.birth_date)"
+                >
+                  @if (isBirthdayToday(birthday.birth_date)) {
+                    <i class="pi pi-star-fill"></i> HOY
+                  } @else if (!hasBirthdayPassed(birthday.birth_date)) {
+                    <i class="pi pi-clock"></i> Próximo
+                  } @else {
+                    <i class="pi pi-check-circle"></i> Pasado
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </p-dialog>
+    }
   `,
   styles: [
     `
@@ -278,6 +366,7 @@ import { DialogModule } from 'primeng/dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BirthdaysDialogComponent {
+  protected device = inject(DeviceService);
   visible = model.required<boolean>();
   birthDates = input.required<any[]>();
 

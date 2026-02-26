@@ -35,6 +35,7 @@ import { EmployeePortalDocumentsComponent } from './components/employee-portal-d
 import { EmployeePortalLatesComponent } from './components/employee-portal-lates.component';
 import { EmployeePortalManagementNavigationComponent } from './components/employee-portal-management-navigation.component';
 import { EmployeePortalMyRequestsComponent } from './components/employee-portal-my-requests.component';
+import { EmployeePortalNotificationCenterComponent } from './components/employee-portal-notification-center.component';
 import { EmployeePortalNotificationsComponent } from './components/employee-portal-notifications.component';
 import { EmployeePortalProfileComponent } from './components/employee-portal-profile.component';
 import { EmployeePortalRequestDetailsDialogComponent } from './components/employee-portal-request-details-dialog.component';
@@ -42,7 +43,11 @@ import { EmployeePortalTimelogCorrectionComponent } from './components/employee-
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
 import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
+import { EmployeePortalWorkPermitComponent } from './components/employee-portal-work-permit.component';
+import { EmployeePortalSurveysComponent } from './components/employee-portal-surveys.component';
 import { SalaryPinDialogComponent } from './components/salary-pin-dialog.component';
+import { DeviceService } from '../services/device.service';
+import { PushSubscriptionService } from '../services/push-subscription.service';
 import { EmployeePortalApiService } from './services/employee-portal-api.service';
 import { EmployeePortalProfileService } from './services/employee-portal-profile.service';
 import { EmployeePortalRequestsService } from './services/employee-portal-requests.service';
@@ -64,6 +69,7 @@ import {
   formatHoursMinutes,
   hasTimeInfo,
 } from './utils/employee-portal-time.utils';
+import { getEnv } from '../utils/env.utils';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -82,12 +88,15 @@ import {
     EmployeePortalCompensatoryComponent,
     EmployeePortalProfileComponent,
     EmployeePortalMyRequestsComponent,
+    EmployeePortalNotificationCenterComponent,
     EmployeePortalNotificationsComponent,
     EmployeePortalCompensatoryTutorialDialogComponent,
     EmployeePortalRequestDetailsDialogComponent,
     EmployeePortalTimelogCorrectionComponent,
     EmployeePortalTimelogCorrectionComponent,
     EmployeePortalUniformRequestComponent,
+    EmployeePortalWorkPermitComponent,
+    EmployeePortalSurveysComponent,
     SalaryPinDialogComponent,
   ],
   // NOTA: Estos servicios dependen de DashboardStore (proveído por el layout del portal),
@@ -113,7 +122,10 @@ import {
             [recentTimelogs]="recentTimelogs()"
             [currentDate]="getCurrentDate()"
             [showSalary]="portalStore.showSalary()"
+            [vacationBalance]="vacationBalance()"
+            [compensatoryBalance]="compensatoryBalanceHours()"
             (toggleSalary)="portalStore.toggleShowSalary()"
+            (quickAction)="setActiveSection($event)"
           />
         </div>
         }
@@ -124,6 +136,7 @@ import {
       @if (portalStore.activeSection() === 'management' ||
       portalStore.activeSection() === 'gestiones') {
       <div id="management" class="section-content">
+        @if (device.isDesktop()) {
         <p-card>
           <ng-template #title>
             <div class="flex items-center gap-2">
@@ -142,6 +155,18 @@ import {
             />
           </div>
         </p-card>
+        } @else {
+        <div class="px-4 py-4">
+          <div class="flex items-center gap-2 mb-3">
+            <i class="pi pi-briefcase text-amber-400 text-sm"></i>
+            <span class="text-sm font-semibold text-white">Gestiones</span>
+          </div>
+          <pt-employee-portal-management-navigation
+            [activeSection]="portalStore.activeSection()"
+            (sectionChange)="setActiveSection($event)"
+          />
+        </div>
+        }
       </div>
       }
 
@@ -173,6 +198,11 @@ import {
           [editPhoneValue]="editPhone()"
           [editAddressValue]="editAddress()"
           [savingPersonalData]="savingPersonalData()"
+          [pushSubscribed]="pushSubscribed()"
+          [pushPermission]="pushPermissionState()"
+          [togglingPush]="togglingPush()"
+          [currentPin]="currentEmployeePin()"
+          [savingPin]="savingHrPin()"
           (toggleEdit)="toggleEditMode()"
           (cancelEdit)="cancelEdit()"
           (savePersonalData)="savePersonalData()"
@@ -180,6 +210,8 @@ import {
           (editWorkEmailChange)="editWorkEmail.set($event)"
           (editPhoneChange)="editPhone.set($event)"
           (editAddressChange)="editAddress.set($event)"
+          (togglePush)="onTogglePush()"
+          (savePin)="onSaveHrPin($event)"
         />
         } @else {
         <div class="flex justify-center items-center h-64">
@@ -212,7 +244,7 @@ import {
           (fileChange)="selectedFile.set($event)"
           [uploading]="uploadingDisability()"
           (submitRequest)="uploadDisability()"
-          (closeManagement)="setActiveSection('management')"
+          (closeManagement)="closeSubSection()"
           [calculateDays]="calculateDays.bind(this)"
         />
       </div>
@@ -241,7 +273,7 @@ import {
           (reloadRequests)="documentRequestsApi.reload()"
           [getDocumentTypeLabel]="getDocumentTypeLabel.bind(this)"
           [downloadDocument]="downloadDocument.bind(this)"
-          (closeSection)="setActiveSection('management')"
+          (closeSection)="closeSubSection()"
         />
       </div>
       }
@@ -267,7 +299,7 @@ import {
           [vacationRequests]="myVacationRequests()"
           [requestsLoading]="vacationTimeoffsApi.isLoading()"
           (reloadList)="reloadVacationRequests()"
-          (closeSection)="setActiveSection('management')"
+          (closeSection)="closeSubSection()"
           [calculateVacationDays]="calculateVacationDays.bind(this)"
           [calculateDaysBetween]="calculateDaysBetween.bind(this)"
           [isDateFuture]="isDateFuture.bind(this)"
@@ -320,7 +352,7 @@ import {
           (selectedEmployeeIdChange)="setSelectedEmployeeId($event)"
           (submitRequest)="submitCompensatoryRequest()"
           (openTutorial)="setShowTutorialDialog(true)"
-          (closeSection)="setActiveSection('management')"
+          (closeSection)="closeSubSection()"
           (viewRequests)="setActiveSection('my-requests')"
         />
       </div>
@@ -342,7 +374,7 @@ import {
           [submitting]="submittingTimelogCorrection()"
           [today]="today"
           (submitRequest)="submitTimelogCorrectionRequest()"
-          (closeSection)="setActiveSection('management')"
+          (closeSection)="closeSubSection()"
         />
       </div>
       }
@@ -362,7 +394,44 @@ import {
           [canSubmit]="canSubmitUniform()"
           [submitting]="submittingUniform()"
           (submitRequest)="submitUniformRequest()"
-          (closeSection)="setActiveSection('management')"
+          (closeSection)="closeSubSection()"
+        />
+      </div>
+      }
+
+      <!-- Solicitud de Permiso Section -->
+      @if (portalStore.activeSection() === 'work_permit') {
+      <div id="work_permit" class="section-content">
+        <pt-employee-portal-work-permit
+          [permitType]="workPermitType()"
+          (permitTypeChange)="workPermitType.set($event)"
+          [startDate]="workPermitStartDate()"
+          (startDateChange)="workPermitStartDate.set($event)"
+          [endDate]="workPermitEndDate()"
+          (endDateChange)="workPermitEndDate.set($event)"
+          [startTime]="workPermitStartTime()"
+          (startTimeChange)="workPermitStartTime.set($event)"
+          [endTime]="workPermitEndTime()"
+          (endTimeChange)="workPermitEndTime.set($event)"
+          [observations]="workPermitObservations()"
+          (observationsChange)="workPermitObservations.set($event)"
+          [selectedFile]="workPermitFile()"
+          (fileChange)="workPermitFile.set($event)"
+          [submitting]="submittingWorkPermit()"
+          [equivalentDisplay]="workPermitEquivalentDisplay()"
+          (submitRequest)="submitWorkPermitRequest()"
+          (closeSection)="closeSubSection()"
+        />
+      </div>
+      }
+
+      <!-- Encuestas Section -->
+      @if (portalStore.activeSection() === 'surveys') {
+      <div id="surveys" class="section-content">
+        <pt-employee-portal-surveys
+          [employeeId]="currentEmployee()?.id ?? ''"
+          [companyId]="organizationService.getCurrentCompanyId() ?? ''"
+          (closeSection)="closeSubSection()"
         />
       </div>
       }
@@ -413,16 +482,18 @@ import {
       </div>
       }
 
-      <!-- Notificaciones Section -->
+      <!-- Notificaciones Section (Centro completo) -->
       @if (portalStore.activeSection() === 'notifications') {
       <div id="notifications" class="section-content">
-        <pt-employee-portal-notifications
-          [notifications]="notifications()"
+        <pt-employee-portal-notification-center
+          [notifications]="filteredNotifications()"
           [unreadCount]="unreadNotificationsCount()"
+          [activeFilter]="portalStore.notificationFilter()"
           [getNotificationIcon]="getNotificationIcon.bind(this)"
           [getRelatedTypeLabel]="getRelatedTypeLabel.bind(this)"
           (markAsRead)="markNotificationAsRead($event)"
           (markAllAsRead)="markAllNotificationsAsRead()"
+          (filterChange)="onNotificationFilterChange($event)"
         />
       </div>
       }
@@ -462,7 +533,7 @@ import {
       (unlocked)="portalStore.setShowSalary(true)"
     />
 
-    <p-toast />
+    <p-toast position="top-center" styleClass="portal-toast" />
   `,
   styles: `
     .portal-content {
@@ -644,10 +715,25 @@ import {
         gap: 1.5rem;
       }
     }
+
+    /* Toast responsive for mobile */
+    :host ::ng-deep .portal-toast {
+      max-width: calc(100vw - 2rem) !important;
+      width: 100% !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+    }
+    :host ::ng-deep .portal-toast .p-toast-message {
+      max-width: 100% !important;
+    }
+    :host ::ng-deep .portal-toast .p-toast-message-content {
+      font-size: 0.85rem;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeePortalComponent {
+  public device = inject(DeviceService);
   public store = inject(DashboardStore);
   public employees = inject(EmployeesStore);
   public portalStore = inject(EmployeePortalStore);
@@ -656,7 +742,7 @@ export class EmployeePortalComponent {
   private apiUrl = inject(ApiUrlService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private organizationService = inject(OrganizationService);
+  protected organizationService = inject(OrganizationService);
   private employeePortalApi = inject(EmployeePortalApiService);
   private navigationService = inject(EmployeePortalNavigationService);
   private cdr = inject(ChangeDetectorRef);
@@ -664,7 +750,17 @@ export class EmployeePortalComponent {
   public timelogsService = inject(EmployeePortalTimelogsService);
   public requestsService = inject(EmployeePortalRequestsService);
   public profileService = inject(EmployeePortalProfileService);
+  private pushService = inject(PushSubscriptionService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
+
+  // Push notifications
+  public pushSubscribed = computed(() => this.pushService.isSubscribed());
+  public pushPermissionState = computed(() => this.pushService.permissionState());
+  public togglingPush = signal(false);
+
+  // HR PIN
+  public currentEmployeePin = computed(() => this.currentEmployee()?.hr_pin ?? '');
+  public savingHrPin = signal(false);
 
   public currentEmployee = computed(() => this.store.currentEmployee());
   // Notificaciones
@@ -724,6 +820,10 @@ export class EmployeePortalComponent {
 
   public setActiveSection(section: string): void {
     this.portalStore.setActiveSection(section);
+  }
+
+  public closeSubSection(): void {
+    this.portalStore.setActiveSection(this.device.isDesktop() ? 'management' : 'dashboard');
   }
 
   public setVacationStartDate(value: Date | null): void {
@@ -962,6 +1062,38 @@ export class EmployeePortalComponent {
       this.uniformSize().trim() !== '' &&
       this.uniformQuantity() >= 1
     );
+  });
+
+  // Work Permit Form
+  public workPermitType = signal<string | null>(null);
+  public workPermitStartDate = signal<Date | null>(null);
+  public workPermitEndDate = signal<Date | null>(null);
+  public workPermitStartTime = signal<Date | null>(null);
+  public workPermitEndTime = signal<Date | null>(null);
+  public workPermitObservations = signal('');
+  public workPermitFile = signal<File | null>(null);
+  public workPermitDocUrl = signal<string | null>(null);
+  public submittingWorkPermit = signal(false);
+
+  public workPermitEquivalentDisplay = computed(() => {
+    const tStart = this.workPermitStartTime();
+    const tEnd = this.workPermitEndTime();
+    const start = this.workPermitStartDate();
+    const end = this.workPermitEndDate();
+
+    if (tStart && tEnd) {
+      const diffMs = tEnd.getTime() - tStart.getTime();
+      if (diffMs > 0) {
+        const hours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+        return `${hours} hora(s)`;
+      }
+      return '';
+    }
+    if (start && end) {
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return `${days} día(s)`;
+    }
+    return '';
   });
 
   // Document Requests - usar portalStore directamente
@@ -1473,6 +1605,23 @@ export class EmployeePortalComponent {
     return totalHours;
   });
 
+  // Balance de vacaciones: días disponibles (30 por año - días usados aprobados)
+  public vacationBalance = computed(() => {
+    if (this.vacationTimeoffsApi.status() === 'error') return 0;
+    const vacations = this.vacationTimeoffsApi.value() ?? [];
+    const approvedDays = vacations
+      .filter((v: any) => v.is_approved)
+      .reduce((total: number, v: any) => {
+        const start = new Date(v.date_from);
+        const end = new Date(v.date_to);
+        return total + differenceInDays(end, start) + 1;
+      }, 0);
+    return Math.max(0, 30 - approvedDays);
+  });
+
+  // Balance de compensatorio en horas
+  public compensatoryBalanceHours = computed(() => this.approvedCompensatoryHours());
+
   // Delegar lógica de perfil al servicio
   public editMode = this.profileService.editMode;
   public editEmail = this.profileService.editEmail;
@@ -1594,8 +1743,8 @@ export class EmployeePortalComponent {
       this.timelogCorrectionReason.set('');
       this.timelogCorrectionFile.set(null);
 
-      // Navigate back to management section
-      this.setActiveSection('management');
+      // Navigate back
+      this.closeSubSection();
     } catch (error: any) {
       console.error('Error submitting timelog correction:', error);
       this.messageService.add({
@@ -1653,8 +1802,8 @@ export class EmployeePortalComponent {
       this.uniformQuantity.set(1);
       this.uniformNotes.set('');
 
-      // Navigate back to management section
-      this.setActiveSection('management');
+      // Navigate back
+      this.closeSubSection();
     } catch (error: any) {
       console.error('Error submitting uniform request:', error);
       this.messageService.add({
@@ -1666,6 +1815,116 @@ export class EmployeePortalComponent {
       });
     } finally {
       this.submittingUniform.set(false);
+    }
+  }
+
+  /**
+   * Submit a work permit request
+   */
+  public async submitWorkPermitRequest(): Promise<void> {
+    const permitType = this.workPermitType();
+    const startDate = this.workPermitStartDate();
+    const endDate = this.workPermitEndDate();
+
+    if (!permitType || !startDate || !endDate) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor selecciona tipo de permiso y fechas',
+      });
+      return;
+    }
+
+    this.submittingWorkPermit.set(true);
+
+    try {
+      const employee = this.currentEmployee();
+      if (!employee) throw new Error('No se encontró el empleado actual');
+
+      // Upload file if present
+      let documentUrl: string | null = null;
+      const file = this.workPermitFile();
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `work-permits/${employee.id}/${Date.now()}.${fileExt}`;
+        const storageKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || getEnv('ENV_SUPABASE_API_KEY') || '';
+        const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${fileName}`;
+
+        await firstValueFrom(
+          this.http.post(uploadUrl, file, {
+            headers: { apikey: storageKey, Authorization: `Bearer ${storageKey}`, 'x-upsert': 'true' },
+          })
+        );
+        documentUrl = this.apiUrl.build(`storage/v1/object/public/employee-documents/${fileName}`);
+      }
+
+      const formatTime = (d: Date | null): string | null => {
+        if (!d) return null;
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+      };
+
+      // Calculate equivalent
+      const tStart = this.workPermitStartTime();
+      const tEnd = this.workPermitEndTime();
+      let equivalentValue: number | null = null;
+      let equivalentUnit: string | null = null;
+
+      if (tStart && tEnd) {
+        const diffMs = tEnd.getTime() - tStart.getTime();
+        if (diffMs > 0) {
+          equivalentValue = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+          equivalentUnit = 'hours';
+        }
+      } else {
+        equivalentValue = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        equivalentUnit = 'days';
+      }
+
+      const data = {
+        employee_id: employee.id,
+        permit_type: permitType,
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+        start_time: formatTime(tStart),
+        end_time: formatTime(tEnd),
+        equivalent_value: equivalentValue,
+        equivalent_unit: equivalentUnit,
+        observations: this.workPermitObservations() || null,
+        document_url: documentUrl,
+        status: 'pending',
+        created_by: employee.id,
+        company_id: this.organizationService.getCurrentCompanyId(),
+      };
+
+      await firstValueFrom(this.http.post(this.apiUrl.build('rest/v1/work_permits'), data));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: 'Tu solicitud de permiso ha sido enviada para revisión.',
+      });
+
+      // Reset form
+      this.workPermitType.set(null);
+      this.workPermitStartDate.set(null);
+      this.workPermitEndDate.set(null);
+      this.workPermitStartTime.set(null);
+      this.workPermitEndTime.set(null);
+      this.workPermitObservations.set('');
+      this.workPermitFile.set(null);
+      this.workPermitDocUrl.set(null);
+
+      // Navigate back
+      this.closeSubSection();
+    } catch (error: any) {
+      console.error('Error submitting work permit:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: error?.error?.message || 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+      });
+    } finally {
+      this.submittingWorkPermit.set(false);
     }
   }
 
@@ -1778,6 +2037,16 @@ export class EmployeePortalComponent {
     this.portalStore.closeConversation();
   }
 
+  // Notificaciones filtradas
+  public filteredNotifications = computed(() =>
+    this.notificationsService.filteredNotifications()
+  );
+
+  public onNotificationFilterChange(filter: import('../stores/employee-portal.store').NotificationFilter): void {
+    this.portalStore.setNotificationFilter(filter);
+    this.notificationsService.setFilter(filter);
+  }
+
   // Métodos para manejar notificaciones
   public markNotificationAsRead(notificationId: string): void {
     this.notificationsService.markAsRead(notificationId);
@@ -1802,7 +2071,102 @@ export class EmployeePortalComponent {
       timeoff: 'Tiempo Compensatorio',
       disability: 'Incapacidad',
       document: 'Documento',
+      vacation: 'Vacaciones',
+      compensatory: 'Compensatorio',
+      uniform: 'Uniforme',
+      timelog_correction: 'Corrección Marcación',
     };
     return labels[relatedType] || relatedType;
+  }
+
+  // Push notifications toggle
+  public async onTogglePush(): Promise<void> {
+    const employeeId = this.currentEmployee()?.id;
+    if (!employeeId) return;
+
+    this.togglingPush.set(true);
+    try {
+      if (this.pushSubscribed()) {
+        await this.pushService.unsubscribe(employeeId);
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Notificaciones desactivadas',
+          detail: 'Ya no recibirás notificaciones push.',
+        });
+      } else {
+        const success = await this.pushService.subscribe(employeeId);
+        if (success) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Notificaciones activadas',
+            detail: 'Recibirás notificaciones en este dispositivo.',
+          });
+        } else {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'No se pudo activar',
+            detail: 'Verifica que las notificaciones estén permitidas en tu navegador.',
+          });
+        }
+      }
+    } finally {
+      this.togglingPush.set(false);
+    }
+  }
+
+  // HR PIN save
+  public async onSaveHrPin(newPin: string): Promise<void> {
+    const employee = this.currentEmployee();
+    if (!employee) return;
+
+    this.savingHrPin.set(true);
+    try {
+      // Update in Supabase
+      await firstValueFrom(
+        this.http.patch(
+          this.apiUrl.build('rest/v1/employees', { id: `eq.${employee.id}` }),
+          { hr_pin: newPin },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal',
+            },
+          }
+        )
+      );
+
+      // Try to sync with Odoo via edge function (best effort)
+      try {
+        await firstValueFrom(
+          this.http.post(
+            this.apiUrl.build('functions/v1/sync-pin-to-odoo'),
+            {
+              employee_work_email: employee.work_email,
+              new_pin: newPin,
+            }
+          )
+        );
+      } catch {
+        // Edge function may not exist yet - PIN is still saved in Supabase
+      }
+
+      // Refresh employee data in store to show updated PIN
+      this.employees.ensureEmployeeLoaded(employee.id);
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'PIN actualizado',
+        detail: 'Tu PIN de caja ha sido actualizado exitosamente.',
+      });
+    } catch (error) {
+      console.error('Error updating HR PIN:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo actualizar el PIN. Intenta de nuevo.',
+      });
+    } finally {
+      this.savingHrPin.set(false);
+    }
   }
 }

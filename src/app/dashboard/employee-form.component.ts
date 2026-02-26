@@ -1205,7 +1205,7 @@ export class EmployeeFormComponent implements OnInit {
                   phoneNumber,
                   dataToSave.work_email
                 )
-                .then((success) => {
+                .then((success: boolean) => {
                   if (success) {
                     this.message.add({
                       severity: 'success',

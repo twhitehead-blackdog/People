@@ -700,11 +700,11 @@ export class HRTimeDashboardComponent {
   }
 
   public navigateToAttendance(): void {
-    this.router.navigate(['/dashboard/time-management/timetables']);
+    this.router.navigate(['/time-management/timetables']);
   }
 
   public navigateToDeactivate(): void {
-    this.router.navigate(['/dashboard/admin/employees']);
+    this.router.navigate(['/admin/employees']);
   }
 
   public navigateToReports(): void {

@@ -42,6 +42,121 @@ export interface EmployeeScheduleRecord {
   };
 }
 
+export interface GroomerAssignment {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  branch?: { id: string; name: string; short_name?: string };
+  employee?: { id: string; first_name: string; father_name: string; position?: { name: string } };
+}
+
+export interface TimelogEntryRecord {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  created_at: string;
+  punched_at?: string;
+  branch?: { id: string; name: string; short_name?: string };
+  employee?: { id: string; first_name: string; father_name: string; position?: { id: string; name: string } };
+}
+
+export interface TimelogExitRecord {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  created_at: string;
+  punched_at?: string;
+}
+
+export interface BranchFinancialRecord {
+  id: string;
+  branch_id: string;
+  year: number;
+  month: number;
+  pos_revenue: number;
+  pos_order_count: number;
+  pos_avg_ticket: number;
+  target_baja: number;
+  target_promedio: number;
+  target_alta: number;
+  target_oro: number;
+  target_ng: number;
+  payroll_total: number;
+  employee_count: number;
+  odoo_expenses: number;
+  revenue_vs_payroll_ratio: number;
+  revenue_per_employee: number;
+  target_achievement_pct: number;
+  synced_at: string;
+  branch?: { name: string };
+}
+
+export interface GroomerMonthlyStats {
+  id: string;
+  groomer_odoo_id: number;
+  groomer_name: string;
+  year: number;
+  month: number;
+  total_services: number;
+  total_sales: number;
+  avg_per_service: number;
+  shared_services: number;
+  shared_pct: number;
+  total_commission: number;
+  commission_final: number;
+  prev_month_sales: number;
+  prev_month_commission: number;
+  sales_growth: number;
+  services_growth: number;
+  ranking: number;
+  absences: number;
+  tardiness_hours: number;
+  complaints: number;
+  penalty_pct: number;
+  penalty_amount: number;
+}
+
+export interface BranchDailySalesRecord {
+  id: string;
+  branch_id: string;
+  sale_date: string;
+  revenue: number;
+  order_count: number;
+  avg_ticket: number;
+  branch?: { name: string };
+}
+
+export interface GroomerServiceLine {
+  id: string;
+  groomer_odoo_id: number;
+  groomer_name: string;
+  branch_name: string;
+  service_date: string;
+  product_name: string;
+  pet_name: string;
+  line_total: number;
+  groomer_count: number;
+  proportional_amount: number;
+  commission_pct: number;
+  commission_amount: number;
+  odoo_line_id: number;
+}
+
+export interface EmployeeAuditLog {
+  id: string;
+  employee_id: string;
+  changed_by: string | null;
+  changed_at: string;
+  action: string;
+  field_name: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  employee?: {
+    first_name?: string;
+    father_name?: string;
+  };
+}
+
 /** Orden de venta de Odoo (módulo sale_order_comanda_mascotas) - solo peluquería */
 export interface OdooSaleOrder {
   id: number;
@@ -52,6 +167,7 @@ export interface OdooSaleOrder {
   amount_total?: number;
   amount_untaxed?: number;
   user_id?: number | [number, string];
+  warehouse_id?: number | [number, string] | false;
   nombres_mascotas?: string;
   count_peluqueria?: number;
   count_veterinaria?: number;
@@ -84,6 +200,8 @@ export class HomeDataService {
     this.timelogsExitToday.reload();
     this.timelogsEntryForPeluqueriaView.reload();
     this.timelogsExitForPeluqueriaView.reload();
+    this.timelogsEntryForClinicaView.reload();
+    this.timelogsExitForClinicaView.reload();
   });
 
   // Terminations API for calculating exits/turnover
@@ -92,8 +210,7 @@ export class HomeDataService {
     if (!companyId) return undefined;
 
     return {
-      url: this.apiUrl.build('rest/v1/employee_terminations', {
-        company_id: `eq.${companyId}`,
+      url: this.apiUrl.build('rest/v1/terminations', {
         select: 'id,employee_id,date,reason',
       }),
     };
@@ -142,6 +259,7 @@ export class HomeDataService {
 
   /** Fecha seleccionada para la vista Peluquería (por defecto hoy) */
   peluqueriaViewDate = signal(new Date());
+  clinicaViewDate = signal(new Date());
 
   /** Asignaciones de peluquería para hoy (sucursal + empleado) */
   groomerAssignmentsToday = httpResource<any[]>(() => {
@@ -234,8 +352,22 @@ export class HomeDataService {
     };
   });
 
+  /** Track Odoo availability to prevent infinite retry loops on 503 */
+  private odooAvailable = signal(true);
+  private odooRetryTimer: any = null;
+
+  private markOdooDown() {
+    if (this.odooAvailable()) {
+      this.odooAvailable.set(false);
+      // Retry after 5 minutes
+      clearTimeout(this.odooRetryTimer);
+      this.odooRetryTimer = setTimeout(() => this.odooAvailable.set(true), 5 * 60 * 1000);
+    }
+  }
+
   /** Órdenes de venta de Odoo (peluquería) para la fecha seleccionada en vista Peluquería */
   odooSaleOrdersForPeluqueriaView = httpResource<{ success: boolean; data: OdooSaleOrder[] }>(() => {
+    if (!this.odooAvailable()) return undefined;
     const viewDate = toZonedTime(this.peluqueriaViewDate(), this.TZ);
     const dayStart = startOfDay(viewDate);
     const nextDay = addDays(dayStart, 1);
@@ -243,6 +375,182 @@ export class HomeDataService {
     const dateTo = format(nextDay, 'yyyy-MM-dd');
     return {
       url: `/api/odoo/sale-orders?date_from=${dateFrom}&date_to=${dateTo}&limit=100`,
+    };
+  });
+
+  /** Marcaciones de entrada para la fecha seleccionada en vista Clínica */
+  timelogsEntryForClinicaView = httpResource<any[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
+    const dayStart = startOfDay(viewDate);
+    const nextDay = addDays(dayStart, 1);
+    const startStr = format(dayStart, "yyyy-MM-dd'T'HH:mm:ss");
+    const endStr = format(nextDay, "yyyy-MM-dd'T'HH:mm:ss");
+    return {
+      url: this.apiUrl.build('rest/v1/timelogs', {
+        company_id: `eq.${companyId}`,
+        type: 'eq.entry',
+        and: `(created_at.gte.${startStr},created_at.lt.${endStr})`,
+        select: 'id,employee_id,branch_id,created_at,punched_at,branch:branches(id,name,short_name),employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,position:positions(id,name))',
+      }),
+    };
+  });
+
+  /** Marcaciones de salida para la fecha seleccionada en vista Clínica */
+  timelogsExitForClinicaView = httpResource<any[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
+    const dayStart = startOfDay(viewDate);
+    const nextDay = addDays(dayStart, 1);
+    const startStr = format(dayStart, "yyyy-MM-dd'T'HH:mm:ss");
+    const endStr = format(nextDay, "yyyy-MM-dd'T'HH:mm:ss");
+    return {
+      url: this.apiUrl.build('rest/v1/timelogs', {
+        company_id: `eq.${companyId}`,
+        type: 'eq.exit',
+        and: `(created_at.gte.${startStr},created_at.lt.${endStr})`,
+        select: 'id,employee_id,branch_id,created_at,punched_at',
+      }),
+    };
+  });
+
+  /** Órdenes de venta de Odoo para la fecha seleccionada en vista Clínica */
+  odooSaleOrdersForClinicaView = httpResource<{ success: boolean; data: OdooSaleOrder[] }>(() => {
+    if (!this.odooAvailable()) return undefined;
+    const viewDate = toZonedTime(this.clinicaViewDate(), this.TZ);
+    const dayStart = startOfDay(viewDate);
+    const nextDay = addDays(dayStart, 1);
+    const dateFrom = format(dayStart, 'yyyy-MM-dd');
+    const dateTo = format(nextDay, 'yyyy-MM-dd');
+    return {
+      url: `/api/odoo/sale-orders?date_from=${dateFrom}&date_to=${dateTo}&limit=100`,
+    };
+  });
+
+  // Watch for Odoo errors and mark as down to prevent infinite retry loops
+  private odooErrorWatcher = effect(() => {
+    const e1 = this.odooSaleOrdersForPeluqueriaView.error?.();
+    const e2 = this.odooSaleOrdersForClinicaView.error?.();
+    if (e1 || e2) {
+      this.markOdooDown();
+    }
+  });
+
+  /** Mes/año seleccionado para datos financieros */
+  financialMonth = signal(new Date().getMonth() + 1); // 1-12
+  financialYear = signal(new Date().getFullYear());
+
+  /** Datos financieros mensuales por sucursal (del sync Odoo→People) */
+  branchFinancials = httpResource<BranchFinancialRecord[]>(() => {
+    const year = this.financialYear();
+    const month = this.financialMonth();
+    return {
+      url: this.apiUrl.build('rest/v1/branch_financials', {
+        select: '*,branch:branches(name)',
+        year: `eq.${year}`,
+        month: `eq.${month}`,
+        order: 'pos_revenue.desc',
+      }),
+    };
+  });
+
+  /** Ventas diarias de los últimos 30 días (para tendencias) */
+  branchDailySales = httpResource<BranchDailySalesRecord[]>(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const fromDate = format(thirtyDaysAgo, 'yyyy-MM-dd');
+    return {
+      url: this.apiUrl.build('rest/v1/branch_daily_sales', {
+        select: '*,branch:branches(name)',
+        sale_date: `gte.${fromDate}`,
+        order: 'sale_date.desc',
+      }),
+    };
+  });
+
+  /** Stats mensuales de peluqueros (del sync Odoo→People) */
+  groomerStats = httpResource<GroomerMonthlyStats[]>(() => {
+    const year = this.financialYear();
+    const month = this.financialMonth();
+    return {
+      url: this.apiUrl.build('rest/v1/groomer_monthly_stats', {
+        select: '*',
+        year: `eq.${year}`,
+        month: `eq.${month}`,
+        order: 'ranking.asc',
+      }),
+    };
+  });
+
+  /** Datos financieros del mes anterior (para comparación MoM) */
+  prevMonthFinancials = httpResource<BranchFinancialRecord[]>(() => {
+    let prevMonth = this.financialMonth() - 1;
+    let prevYear = this.financialYear();
+    if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+    return {
+      url: this.apiUrl.build('rest/v1/branch_financials', {
+        select: 'pos_revenue,payroll_total,pos_order_count,pos_avg_ticket,employee_count,odoo_expenses',
+        year: `eq.${prevYear}`,
+        month: `eq.${prevMonth}`,
+      }),
+    };
+  });
+
+  /** Líneas de servicio detalladas de peluqueros (últimos 30 días) */
+  groomerServiceLines = httpResource<GroomerServiceLine[]>(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const fromDate = format(thirtyDaysAgo, 'yyyy-MM-dd');
+    return {
+      url: this.apiUrl.build('rest/v1/groomer_service_lines', {
+        select: 'id,groomer_odoo_id,groomer_name,branch_name,service_date,product_name,pet_name,line_total,groomer_count,proportional_amount,commission_pct,commission_amount,odoo_line_id',
+        service_date: `gte.${fromDate}`,
+        order: 'service_date.desc',
+        limit: '500',
+      }),
+    };
+  });
+
+  // ===== HR Requests (Top rankings para Resumen Ejecutivo) =====
+
+  /** Incapacidades aprobadas (para top ranking) */
+  approvedDisabilities = httpResource<{ id: string; employee_id: string; employee?: { first_name?: string; father_name?: string } }[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    return {
+      url: this.apiUrl.build('rest/v1/employee_disabilities', {
+        company_id: `eq.${companyId}`,
+        status: 'eq.approved',
+        select: 'id,employee_id,employee:employees!employee_disabilities_employee_id_fkey(first_name,father_name)',
+      }),
+    };
+  });
+
+  /** Compensatorios aprobados (para top ranking) */
+  approvedCompensatory = httpResource<{ id: string; employee_id: string; employee?: { first_name?: string; father_name?: string } }[]>(() => {
+    const companyId = this.currentCompanyId();
+    if (!companyId) return undefined;
+    return {
+      url: this.apiUrl.build('rest/v1/timeoffs', {
+        company_id: `eq.${companyId}`,
+        type_id: 'eq.f2d92995-96a0-414f-b64a-9823db776745',
+        review_status: 'eq.approved',
+        select: 'id,employee_id,employee:employees!time_offs_employee_id_fkey(first_name,father_name)',
+      }),
+    };
+  });
+
+
+  /** Últimos cambios en empleados (audit log) */
+  employeeAuditLog = httpResource<EmployeeAuditLog[]>(() => {
+    return {
+      url: this.apiUrl.build('rest/v1/employee_audit_log', {
+        select: 'id,employee_id,changed_by,changed_at,action,field_name,old_value,new_value,employee:employees(first_name,father_name)',
+        order: 'changed_at.desc',
+        limit: '50',
+      }),
     };
   });
 }

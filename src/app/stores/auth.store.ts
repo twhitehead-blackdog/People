@@ -43,7 +43,7 @@ export const AuthStore = signalStore(
           const tableName = 'employees';
 
           // Usar positions siempre (tabla compartida)
-          const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
+          const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, default_view)`;
 
           // Mapeo de emails alternativos para desarrollo/testing
           // Esto permite que ciertos usuarios puedan autenticarse con su email personal
@@ -97,7 +97,6 @@ export const AuthStore = signalStore(
                   admin: boolean;
                   schedule_admin?: boolean;
                   schedule_approver?: boolean;
-                  dashboard_access?: boolean;
                   default_view?: string;
                 };
               }[]

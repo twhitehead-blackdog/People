@@ -2,16 +2,19 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   model,
 } from '@angular/core';
 import { DialogModule } from 'primeng/dialog';
+import { DeviceService } from '../../../../services/device.service';
 
 @Component({
   selector: 'pt-top-absences-dialog',
   standalone: true,
   imports: [CommonModule, DialogModule],
   template: `
+    @if (device.isDesktop()) {
     <p-dialog
       [visible]="visible()"
       (visibleChange)="visible.set($event)"
@@ -66,6 +69,59 @@ import { DialogModule } from 'primeng/dialog';
         }
       </div>
     </p-dialog>
+    } @else {
+    <p-dialog
+      [visible]="visible()"
+      (visibleChange)="visible.set($event)"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [style]="{ width: '95vw', 'max-height': '90vh' }"
+      position="bottom"
+      header="Top Ausencias"
+      styleClass="late-details-dialog top-absences-dialog"
+    >
+      <div class="p-2">
+        @if (list().length === 0) {
+        <div class="text-sm text-gray-400 text-center py-4">No hay ausencias registradas este mes.</div>
+        } @else {
+        <div class="flex flex-col gap-2.5 max-h-[70vh] overflow-y-auto">
+          @for (item of list(); track item.employee_name; let i = $index) {
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <div class="flex items-center gap-3">
+              <div
+                class="ranking-number flex-shrink-0"
+                [class.rank-1]="i === 0"
+                [class.rank-2]="i === 1"
+                [class.rank-3]="i === 2"
+              >
+                {{ i + 1 }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm text-white font-medium truncate">{{ item.employee_name }}</div>
+                <div class="text-xs text-gray-400 mt-0.5">
+                  {{ item.count }} ausencia{{ item.count > 1 ? 's' : '' }}
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <div
+                  class="ranking-badge"
+                  [class.badge-high]="item.count >= 5"
+                  [class.badge-medium]="item.count >= 3 && item.count < 5"
+                >
+                  {{ item.count }}
+                </div>
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </p-dialog>
+    }
   `,
   styles: [
     `
@@ -177,6 +233,7 @@ import { DialogModule } from 'primeng/dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TopAbsencesDialogComponent {
+  protected device = inject(DeviceService);
   visible = model.required<boolean>();
   list = input.required<any[]>();
 }

@@ -1140,4 +1140,48 @@ export class VacationsComponent {
       console.error('Error sending notification', e);
     }
   }
+
+  // --- Export ---
+  public async exportData(): Promise<void> {
+    try {
+      const xlsxModule = await import('xlsx-js-style');
+      const XLSX = (xlsxModule as any).default || xlsxModule;
+      const { format } = await import('date-fns');
+      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
+      const items = this.filteredVacations();
+      if (items.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay vacaciones para exportar con los filtros aplicados' }); return; }
+      const data = items.map((v) => ({
+        Empleado: `${v.employee?.first_name || ''} ${v.employee?.father_name || ''}`.trim(),
+        Email: v.employee?.work_email || 'N/A',
+        'Posición': v.employee?.position?.name || 'N/A',
+        Sucursal: v.employee?.branch?.name || 'N/A',
+        Inicio: v.start_date ? format(new Date(v.start_date), 'dd/MM/yyyy') : '',
+        Fin: v.end_date ? format(new Date(v.end_date), 'dd/MM/yyyy') : '',
+        'Días': calculateDaysBetween(v.start_date, v.end_date),
+        Motivo: v.reason || '',
+        Estado: getStatusLabel(v.status),
+        'Comentario Rechazo': v.rejection_comment || '',
+        'Fecha Solicitud': v.created_at ? format(new Date(v.created_at), 'dd/MM/yyyy HH:mm') : '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Vacaciones');
+      ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 18 }];
+      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['vacations']);
+      const summaryData = [
+        ['Resumen - Vacaciones'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Total Vacaciones', items.length], ['Pendientes', this.pendingCount()],
+        ['Aprobadas', this.approvedCount()], ['Rechazadas', this.rejectedCount()],
+      ];
+      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
+      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['vacations']);
+      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
+      XLSX.writeFile(wb, `Vacaciones_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
+      this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${items.length} vacaciones` });
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar los datos' });
+    }
+  }
 }

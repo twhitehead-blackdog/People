@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiUrlService } from './api-url.service';
+import { NotificationFilter } from '../stores/employee-portal.store';
 
 @Injectable({
   providedIn: 'root',
@@ -41,6 +42,46 @@ export class NotificationsService {
 
   // Computed para el contador de notificaciones no leídas
   public unreadCount = computed(() => this.unreadNotifications().length);
+
+  // Computed por categoría
+  public requestNotifications = computed(() =>
+    this.notifications().filter(
+      (n: any) =>
+        n.related_type === 'vacation' ||
+        n.related_type === 'compensatory' ||
+        n.related_type === 'disability' ||
+        n.related_type === 'document' ||
+        n.related_type === 'uniform' ||
+        n.related_type === 'timelog_correction'
+    )
+  );
+
+  public approvalNotifications = computed(() =>
+    this.notifications().filter(
+      (n: any) =>
+        n.message_type === 'approval' ||
+        n.message_type === 'rejection' ||
+        n.related_type === 'approval'
+    )
+  );
+
+  // Active filter signal
+  private activeFilter = signal<NotificationFilter>('all');
+
+  // Filtered notifications based on active filter
+  public filteredNotifications = computed(() => {
+    const filter = this.activeFilter();
+    switch (filter) {
+      case 'unread':
+        return this.unreadNotifications();
+      case 'requests':
+        return this.requestNotifications();
+      case 'approvals':
+        return this.approvalNotifications();
+      default:
+        return this.notifications();
+    }
+  });
 
   /**
    * Establece el ID del empleado actual para cargar sus notificaciones
@@ -89,16 +130,25 @@ export class NotificationsService {
   }
 
   /**
-   * Marca todas las notificaciones como leídas
+   * Sets the active notification filter
+   */
+  public setFilter(filter: NotificationFilter): void {
+    this.activeFilter.set(filter);
+  }
+
+  /**
+   * Marca todas las notificaciones como leídas en una sola llamada PATCH
    */
   public markAllAsRead(): void {
-    const unreadIds = this.unreadNotifications().map((n: any) => n.id);
-    if (unreadIds.length === 0) return;
+    const employeeId = this.currentEmployeeId();
+    if (!employeeId || this.unreadCount() === 0) return;
 
-    // Actualizar todas las notificaciones no leídas
-    const updates = unreadIds.map((id) =>
-      this.http.patch(
-        this.apiUrl.build('rest/v1/hr_messages', { id: `eq.${id}` }),
+    this.http
+      .patch(
+        this.apiUrl.build('rest/v1/hr_messages', {
+          employee_id: `eq.${employeeId}`,
+          is_read: 'eq.false',
+        }),
         {
           is_read: true,
           read_at: new Date().toISOString(),
@@ -106,19 +156,39 @@ export class NotificationsService {
         {
           headers: {
             'Content-Type': 'application/json',
-            Prefer: 'return=representation',
+            Prefer: 'return=minimal',
           },
         }
       )
-    );
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.notificationsApi.reload();
+        },
+        error: (error) => {
+          console.error('Error marcando todas como leídas:', error);
+        },
+      });
+  }
 
-    // Ejecutar todas las actualizaciones
-    Promise.all(updates.map((update) => firstValueFrom(update)))
-      .then(() => {
-        this.notificationsApi.reload();
-      })
-      .catch((error) => {
-        console.error('Error marcando todas las notificaciones como leídas:', error);
+  /**
+   * Elimina una notificación
+   */
+  public deleteNotification(notificationId: string): void {
+    this.http
+      .delete(
+        this.apiUrl.build('rest/v1/hr_messages', {
+          id: `eq.${notificationId}`,
+        })
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.notificationsApi.reload();
+        },
+        error: (error) => {
+          console.error('Error eliminando notificación:', error);
+        },
       });
   }
 }

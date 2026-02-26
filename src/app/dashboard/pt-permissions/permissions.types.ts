@@ -8,14 +8,12 @@ export type LegacyPermissionKey =
   | 'admin'
   | 'schedule_admin'
   | 'schedule_approver'
-  | 'dashboard_access'
   | 'view_salaries';
 
 export const ALL_LEGACY_PERMISSIONS: LegacyPermissionKey[] = [
   'admin',
   'schedule_admin',
   'schedule_approver',
-  'dashboard_access',
   'view_salaries',
 ];
 
@@ -52,13 +50,6 @@ export const LEGACY_PERMISSION_DEFINITIONS: Record<
     description: 'Permite confirmar y aprobar horas trabajadas y turnos.',
     icon: 'pi pi-check-circle',
     severity: 'success',
-  },
-  dashboard_access: {
-    key: 'dashboard_access',
-    label: 'Acceso al Dashboard',
-    description: 'Permite ingresar al panel administrativo (Dashboard).',
-    icon: 'pi pi-th-large',
-    severity: 'info',
   },
   view_salaries: {
     key: 'view_salaries',
@@ -190,22 +181,3 @@ export function hasModuleAccess(
   return Object.values(module.subModules).some(enabled => enabled);
 }
 
-/**
- * Obtiene la lista de rutas permitidas para un usuario
- */
-export function getAllowedRoutes(frontendPermissions: FrontendPermissions): string[] {
-  const allowedRoutes: string[] = [];
-  
-  for (const [moduleId, modulePerm] of Object.entries(frontendPermissions.modules)) {
-    if (!modulePerm.enabled) continue;
-    
-    for (const [subModuleId, enabled] of Object.entries(modulePerm.subModules)) {
-      if (enabled) {
-        // Aquí necesitaríamos mapear de vuelta a rutas
-        // Esto se hará en el servicio con acceso a SYSTEM_MODULES
-      }
-    }
-  }
-  
-  return allowedRoutes;
-}

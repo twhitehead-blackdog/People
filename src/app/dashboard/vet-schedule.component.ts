@@ -129,9 +129,95 @@ export class VetScheduleComponent {
   selectedEmployee = signal<Employee | undefined>(undefined);
   selectedDate = signal<Date | undefined>(undefined);
   selectedAssignment = signal<VetBranchAssignment | undefined>(undefined);
+  selectedBranchId = signal<string | undefined>(undefined);
 
   // Computed signals
   branches = computed(() => this.store.branches.entities());
+
+  branchesWithAssignments = computed(() => {
+    const branches = this.store.branches.entities().filter(
+      (b) =>
+        b.is_active &&
+        b.name !== 'Bodega Dos Caminos' &&
+        b.id !== '7862b9be-890d-4432-8a2f-9329a15a2853'
+    );
+    return branches.map((branch) => ({ branch }));
+  });
+
+  vetEmployees = computed((): Employee[] => {
+    return this.store.employees
+      .entities()
+      .filter((employee) => employee.is_active && this.isVetPosition(employee))
+      .sort((a, b) => a.first_name.localeCompare(b.first_name));
+  });
+
+  assignedEmployeeIdsForDate = computed((): string[] => {
+    const date = this.selectedDate();
+    if (!date) return [];
+    const dateKey = format(date, 'yyyy-MM-dd');
+    return this.assignments()
+      .filter((a) => this.dateKey(a.date) === dateKey)
+      .map((a) => a.employee_id);
+  });
+
+  private readonly branchColorPalette = [
+    '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B',
+    '#EF4444', '#06B6D4', '#EC4899', '#84CC16',
+  ];
+
+  getBranchColor(shortName: string): string {
+    if (!shortName) return '#6B7280';
+    const hash = shortName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return this.branchColorPalette[hash % this.branchColorPalette.length];
+  }
+
+  getAssignmentsForBranchDate(branchId: string, date: Date): VetBranchAssignment[] {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    return this.assignments().filter(
+      (a) => a.branch_id === branchId && this.dateKey(a.date) === dateKey
+    );
+  }
+
+  getAvailableVetsForDate(date: Date): Employee[] {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    const assignedIds = new Set(
+      this.assignments()
+        .filter((a) => this.dateKey(a.date) === dateKey)
+        .map((a) => a.employee_id)
+    );
+    return this.vetEmployees().filter((e) => !assignedIds.has(e.id));
+  }
+
+  onAssignVet(event: { branchId: string; date: Date; employeeId: string }): void {
+    const employee = this.store.employees.entities().find((e) => e.id === event.employeeId);
+    const branch = this.store.branches.entities().find((b) => b.id === event.branchId);
+    if (employee && branch) {
+      this.assignBranch(employee, event.date, branch);
+    }
+  }
+
+  onRemoveAssignment(event: { assignment: VetBranchAssignment }): void {
+    if (event.assignment.employee) {
+      this.removeAssignment(event.assignment.employee, new Date(event.assignment.date));
+    } else {
+      const employee = this.store.employees.entities().find((e) => e.id === event.assignment.employee_id);
+      if (employee) {
+        this.removeAssignment(employee, new Date(event.assignment.date));
+      }
+    }
+  }
+
+  onOpenBulkAssign(event: { branchId: string; date: Date }): void {
+    this.selectedBranchId.set(event.branchId);
+    this.selectedDate.set(event.date);
+    this.selectedEmployee.set(undefined);
+    this.selectedAssignment.set(undefined);
+    this.dialogVisible.set(true);
+  }
+
+  trackByBranchId(index: number, item: { branch: Branch }): string {
+    return item.branch.id;
+  }
 
   daysOfWeek = computed(() => {
     const start = this.currentWeekStart();
@@ -569,40 +655,30 @@ export class VetScheduleComponent {
 
   // Manejadores del diálogo
   onDialogConfirm(result: any): void {
-    const employee = this.selectedEmployee();
-    // result puede ser string (versión anterior) o objeto { branchId, startDate, endDate }
-    // Asumimos el nuevo formato, pero mantenemos compatibilidad si fuera necesario
-
     let branchId: string;
     let startDate: Date;
     let endDate: Date;
+    let employeeId: string | undefined;
 
     if (typeof result === 'string') {
       branchId = result;
       startDate = this.selectedDate()!;
       endDate = this.selectedDate()!;
     } else {
-      branchId = result.branchId;
+      branchId = result.branchId || this.selectedBranchId();
       startDate = result.startDate;
       endDate = result.endDate;
+      employeeId = result.employeeId;
     }
 
+    const employee = employeeId
+      ? this.store.employees.entities().find((e) => e.id === employeeId)
+      : this.selectedEmployee();
+
     if (employee && branchId) {
-      const selectedBranch = this.store.branches
-        .entities()
-        .find((b) => b.id === branchId);
-
+      const selectedBranch = this.store.branches.entities().find((b) => b.id === branchId);
       if (selectedBranch) {
-        // Generar rango de fechas
-        const datesToAssign = eachDayOfInterval({
-          start: startDate,
-          end: endDate,
-        });
-
-        // Asignar para cada día
-        // Nota: Para evitar múltiples notificaciones, podríamos modificar assignBranch
-        // para aceptar un batch o manejarlo aquí. Por ahora, iteramos.
-        // Si es un rango grande, sería mejor un endpoint bulk, pero para usos típicos (semana/mes) está bien.
+        const datesToAssign = eachDayOfInterval({ start: startDate, end: endDate });
         datesToAssign.forEach((date) => {
           this.assignBranch(employee, date, selectedBranch);
         });
@@ -621,6 +697,7 @@ export class VetScheduleComponent {
     this.selectedEmployee.set(undefined);
     this.selectedDate.set(undefined);
     this.selectedAssignment.set(undefined);
+    this.selectedBranchId.set(undefined);
   }
 
   async exportToExcel() {

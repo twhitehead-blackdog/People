@@ -1,0 +1,41 @@
+  it('should override legacy permissions when employee has legacy_permissions_override', () => {
+    // Modify emp2 to have legacy override (grant admin access)
+    mockDashboardStore.employees.entities.set([
+      ...mockDashboardStore.employees.entities(),
+      {
+        id: 'emp3',
+        first_name: 'Overridden',
+        father_name: 'User',
+        is_active: true,
+        work_email: 'override@example.com',
+        position_id: 'pos2', // Normal position
+        position: {
+          id: 'pos2',
+          name: 'Employee Pos',
+          admin: false,
+          schedule_admin: false,
+          schedule_approver: false,
+        },
+        legacy_permissions_override: JSON.stringify({ admin: true }),
+      },
+    ]);
+
+    const profiles = service.allUserProfiles();
+    const overrideProfile = profiles.find((p) => p.employeeId === 'emp3');
+    
+    expect(overrideProfile).toBeDefined();
+    expect(overrideProfile?.permissions.admin).toBe(true); // Should be true due to override
+    expect(overrideProfile?.userType).toBe('admin');
+    expect(overrideProfile?.hasEmployeeOverride).toBe(true);
+    expect(overrideProfile?.sources['admin']).toBe('user_override');
+  });
+
+  it('should return legacy permissions from position when no override exists', () => {
+    const profiles = service.allUserProfiles();
+    const empProfile = profiles.find((p) => p.employeeId === 'emp2');
+    
+    expect(empProfile).toBeDefined();
+    expect(empProfile?.permissions.admin).toBe(false);
+    expect(empProfile?.hasEmployeeOverride).toBe(false);
+    expect(empProfile?.sources['admin']).toBe('position');
+  });

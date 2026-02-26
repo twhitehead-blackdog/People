@@ -24,6 +24,7 @@ import { ApiUrlService } from '../services/api-url.service';
 import { PayrollPaymentsFormComponent } from './payroll-payments-form.component';
 
 const STATUS_MAP: Record<PayrollPaymentStatus, { label: string; severity: string }> = {
+  PENDING: { label: 'Pendiente', severity: 'secondary' },
   DRAFT: { label: 'Borrador', severity: 'secondary' },
   CALCULATED: { label: 'Calculado', severity: 'info' },
   REVIEWED: { label: 'Revisado', severity: 'warn' },

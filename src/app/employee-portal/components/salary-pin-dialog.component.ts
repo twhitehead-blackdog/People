@@ -17,6 +17,7 @@ import {
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputOtpModule } from 'primeng/inputotp';
+import { DeviceService } from '../../services/device.service';
 import { ScreenLockService } from '../../services/screen-lock.service';
 
 @Component({
@@ -31,6 +32,7 @@ import { ScreenLockService } from '../../services/screen-lock.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
     <p-dialog
       [(visible)]="visible"
       [modal]="true"
@@ -96,6 +98,73 @@ import { ScreenLockService } from '../../services/screen-lock.service';
         </form>
       </div>
     </p-dialog>
+    } @else {
+    <!-- Mobile Template -->
+    <p-dialog
+      [(visible)]="visible"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      header="Verificar Identidad"
+      styleClass="salary-pin-dialog"
+      [style]="{ width: '90vw' }"
+      position="center"
+      (onHide)="onHide()"
+    >
+      <div class="flex flex-col items-center pt-3 pb-2">
+        <div class="mb-5 text-center">
+          <div
+            class="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3"
+          >
+            <i class="pi pi-lock text-2xl text-amber-500"></i>
+          </div>
+          <p class="text-sm text-gray-300">Ingresa tu PIN para visualizar el salario</p>
+        </div>
+
+        <form
+          [formGroup]="pinForm"
+          (ngSubmit)="onSubmit()"
+          class="flex flex-col items-center w-full"
+        >
+          <div class="mb-6 relative w-full flex justify-center">
+            <p-inputOtp
+              formControlName="pin"
+              [length]="6"
+              [integerOnly]="true"
+              styleClass="otp-custom-salary"
+              (onCompleted)="onSubmit()"
+              (keydown.enter)="onSubmit()"
+            >
+            </p-inputOtp>
+
+            @if (error()) {
+            <div class="absolute -bottom-6 left-0 right-0 text-center">
+              <span class="text-red-400 text-xs animate-pulse">{{ error() }}</span>
+            </div>
+            }
+          </div>
+
+          <div class="flex flex-col gap-3 w-full mt-2">
+            <button
+              pButton
+              type="submit"
+              label="Verificar"
+              class="p-button-primary w-full min-h-[44px]"
+              [disabled]="!pinForm.valid || isValidating()"
+              [loading]="isValidating()"
+            ></button>
+            <button
+              pButton
+              type="button"
+              label="Cancelar"
+              class="p-button-text p-button-secondary w-full min-h-[44px]"
+              (click)="onCancel()"
+            ></button>
+          </div>
+        </form>
+      </div>
+    </p-dialog>
+    }
   `,
   styles: [
     `
@@ -106,6 +175,7 @@ import { ScreenLockService } from '../../services/screen-lock.service';
   ],
 })
 export class SalaryPinDialogComponent {
+  protected device = inject(DeviceService);
   private screenLockService = inject(ScreenLockService);
 
   @Input() visible = false;

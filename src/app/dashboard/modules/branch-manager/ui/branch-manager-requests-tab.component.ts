@@ -46,7 +46,8 @@ import { Employee } from '../../../../models';
               {
                 label: 'Omisión de Marcación',
                 value: 'timelog_correction'
-              }
+              },
+              { label: 'Permiso', value: 'work_permit' }
             ]"
             optionLabel="label"
             optionValue="value"

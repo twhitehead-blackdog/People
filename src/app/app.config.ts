@@ -22,6 +22,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import es from '../../public/i18n/es.json';
 import { appRoutes } from './app.routes';
+import { portalRoutes } from './portal.routes';
+import { isPortalDomain } from './utils/domain.utils';
 import { apiUrlInterceptor } from './interceptors/api-url.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { httpInterceptor } from './interceptors/http.interceptor';
@@ -51,7 +53,7 @@ const MyPreset = definePreset(Aura, {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(
-      appRoutes,
+      isPortalDomain() ? portalRoutes : appRoutes,
       withComponentInputBinding(),
       withRouterConfig({ onSameUrlNavigation: 'reload' }),
       withViewTransitions()
@@ -64,9 +66,8 @@ export const appConfig: ApplicationConfig = {
       domain: getEnv('ENV_AUTH0_DOMAIN') ?? '',
       clientId: getEnv('ENV_AUTH0_CLIENT_ID') ?? '',
       authorizationParams: {
-        // En desarrollo, siempre usar localhost para Auth0 (requisito de seguridad)
-        // El servidor escucha en 0.0.0.0 para permitir acceso desde dispositivos móviles
-        redirect_uri: getEnv('ENV_APP_URL') ?? 'http://localhost:4200',
+        // Usar origin dinámico para soportar múltiples dominios (people, portal, localhost)
+        redirect_uri: window.location.origin,
         audience: getEnv('ENV_AUTH0_AUDIENCE') ?? '',
       },
       useRefreshTokens: true,

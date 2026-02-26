@@ -3,9 +3,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
+import { DeviceService } from '../../services/device.service';
 import { Card } from 'primeng/card';
 
 type ManagementNavCard = {
@@ -23,6 +25,7 @@ type ManagementNavCard = {
   imports: [CommonModule, Card],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       @for (card of cards; track card.id) {
       <p-card
@@ -46,9 +49,30 @@ type ManagementNavCard = {
       </p-card>
       }
     </div>
+    } @else {
+    <div class="grid grid-cols-2 gap-2.5">
+      @for (card of cards; track card.id) {
+      <button
+        class="flex flex-col items-center text-center gap-2 p-3 rounded-xl border transition-all"
+        [class.border-amber-400]="activeSection === card.section"
+        [class.bg-amber-500/10]="activeSection === card.section"
+        [class.border-neutral-700/30]="activeSection !== card.section"
+        [class.bg-neutral-800/60]="activeSection !== card.section"
+        style="-webkit-tap-highlight-color: transparent;"
+        (click)="selectSection(card.section)"
+      >
+        <div [class]="'w-10 h-10 rounded-full flex items-center justify-center ' + card.colorClass">
+          <i [class]="'pi ' + card.icon + ' text-base'"></i>
+        </div>
+        <span class="text-xs font-semibold text-white leading-tight">{{ card.label }}</span>
+      </button>
+      }
+    </div>
+    }
   `,
 })
 export class EmployeePortalManagementNavigationComponent {
+  protected device = inject(DeviceService);
   @Input() activeSection: string | null = null;
   @Output() sectionChange = new EventEmitter<string>();
 
@@ -94,12 +118,28 @@ export class EmployeePortalManagementNavigationComponent {
       colorClass: 'bg-orange-500/20 text-orange-400',
     },
     {
+      id: 'work_permit',
+      label: 'Solicitud de Permiso',
+      description: 'Solicita permisos laborales',
+      icon: 'pi-id-card',
+      section: 'work_permit',
+      colorClass: 'bg-amber-500/20 text-amber-400',
+    },
+    {
       id: 'uniform_request',
       label: 'Solicitud de Uniforme',
       description: 'Solicita uniformes o prendas de trabajo',
       icon: 'pi-tag',
       section: 'uniform_request',
       colorClass: 'bg-teal-500/20 text-teal-400',
+    },
+    {
+      id: 'surveys',
+      label: 'Encuestas',
+      description: 'Completa encuestas asignadas por HR',
+      icon: 'pi-chart-bar',
+      section: 'surveys',
+      colorClass: 'bg-pink-500/20 text-pink-400',
     },
     {
       id: 'my-requests',

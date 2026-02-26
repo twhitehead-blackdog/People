@@ -11,6 +11,7 @@ export function getRequestIcon(requestType: string): string {
     documentos: 'pi-file',
     uniform_request: 'pi-tag',
     timelog_correction: 'pi-exclamation-triangle',
+    work_permit: 'pi-id-card',
   };
   return icons[requestType] || 'pi-question';
 }
@@ -43,6 +44,10 @@ export function getRequestColorClass(
     timelog_correction: {
       bg: 'bg-orange-500/20 border-orange-500',
       active: 'text-orange-400',
+    },
+    work_permit: {
+      bg: 'bg-amber-600/20 border-amber-600',
+      active: 'text-amber-500',
     },
   };
   const color = colors[requestType] || {
@@ -87,6 +92,7 @@ export function getRequestTypeLabel(requestType: string): string {
     documentos: 'Documento',
     uniform_request: 'Uniforme',
     timelog_correction: 'Omisión de Marcación',
+    work_permit: 'Permiso',
   };
   return labels[requestType] || 'Solicitud';
 }
@@ -104,6 +110,7 @@ export function getRequestTypeSeverity(
     documentos: 'success',
     uniform_request: 'info',
     timelog_correction: 'warn',
+    work_permit: 'warn',
   };
   return severities[requestType] || 'secondary';
 }
