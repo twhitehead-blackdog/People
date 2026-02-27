@@ -40,7 +40,7 @@ export const EMERGENCY_CONTACT_RELATIONSHIPS = [
 ];
 
 export const EMPLOYEE_SELECT_QUERY =
-  'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, work_phone_number, address, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, birth_date, start_date, end_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog, total_lunch_exceeded_minutes';
+  'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, work_phone_number, address, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, birth_date, start_date, end_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog, total_lunch_exceeded_minutes, payroll_type';
 
 export const FIELD_LABELS: Record<string, string> = {
   first_name: 'Nombre',

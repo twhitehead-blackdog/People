@@ -10,7 +10,7 @@ import {
 } from '@ngrx/signals';
 import { addEntity, updateEntity } from '@ngrx/signals/entities';
 import { differenceInMonths } from 'date-fns';
-import { exhaustMap, firstValueFrom } from 'rxjs';
+import { exhaustMap, firstValueFrom, of } from 'rxjs';
 import { Employee, Termination, TimeOff, TimeOffType } from '../models';
 import { withCustomEntities } from './entities.feature';
 import { withRealtimeSync } from './realtime.feature';
@@ -90,6 +90,68 @@ export const EmployeesStore = signalStore(
                 severity: 'error',
                 summary: 'Error',
                 detail: 'Error al terminar empleado',
+              });
+              patchState(state, { error });
+            },
+            finalize: () => patchState(state, { isLoading: false }),
+          })
+        );
+    },
+    reintegrateEmployee(employeeId: string, reintegrationDate: string) {
+      patchState(state, { isLoading: true, error: null });
+      const companyId = state._orgService.getCurrentCompanyId();
+
+      // 1. Buscar la terminación más reciente sin reintegration_date
+      const terminationParams: any = {
+        employee_id: `eq.${employeeId}`,
+        reintegration_date: 'is.null',
+        order: 'date.desc',
+        limit: '1',
+        select: 'id',
+      };
+
+      return state._http
+        .get<{ id: string }[]>(
+          state._apiUrl.build('rest/v1/terminations', terminationParams)
+        )
+        .pipe(
+          exhaustMap((terminations) => {
+            if (terminations && terminations.length > 0) {
+              // PATCH reintegration_date en la terminación
+              return state._http.patch(
+                state._apiUrl.build('rest/v1/terminations', {
+                  id: `eq.${terminations[0].id}`,
+                }),
+                { reintegration_date: reintegrationDate }
+              );
+            }
+            // Sin terminación, continuar igual para reactivar
+            return of('no_termination');
+          }),
+          exhaustMap(() => {
+            // PATCH empleado: reactivar
+            const employeeParams: any = { id: `eq.${employeeId}` };
+            if (companyId) {
+              employeeParams.company_id = `eq.${companyId}`;
+            }
+            return state._http.patch(
+              state._apiUrl.build('rest/v1/employees', employeeParams),
+              { is_active: true, end_date: null }
+            );
+          }),
+          tapResponse({
+            next: () => {
+              state._message.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: 'Empleado reintegrado exitosamente',
+              });
+            },
+            error: (error) => {
+              state._message.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Error al reintegrar empleado',
               });
               patchState(state, { error });
             },

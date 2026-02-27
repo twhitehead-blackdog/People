@@ -111,6 +111,14 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       (onClick)="onAdd()"
       class="hover:bg-neutral-700 hover:border-amber-400 hover:text-amber-400 transition-all"
     />
+    } @else {
+    <div
+      class="inline-flex py-0.5 px-1.5 rounded-sm items-center justify-center text-[11px] border border-dashed border-neutral-600 text-neutral-500 min-w-[40px] min-h-[24px]"
+      pTooltip="Sin horario asignado"
+      tooltipPosition="top"
+    >
+      —
+    </div>
     } }
   `,
 })

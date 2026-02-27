@@ -1,4 +1,5 @@
 import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -390,8 +391,8 @@ export class PayrollSettingsComponent implements OnInit {
       const dateStr = format(formVal.date, 'yyyy-MM-dd');
 
       const url = this.apiUrl.build('rest/v1/payroll_holidays', { select: '*' });
-      await this.http
-        .post(url, {
+      await firstValueFrom(
+        this.http.post(url, {
           id: v4(),
           company_id: companyId,
           name: formVal.name,
@@ -400,7 +401,7 @@ export class PayrollSettingsComponent implements OnInit {
         }, {
           headers: { Prefer: 'return=representation' },
         })
-        .toPromise();
+      );
 
       this.message.add({
         severity: 'success',
@@ -437,7 +438,7 @@ export class PayrollSettingsComponent implements OnInit {
         const url = this.apiUrl.build('rest/v1/payroll_holidays', {
           id: `eq.${holiday.id}`,
         });
-        await this.http.delete(url).toPromise();
+        await firstValueFrom(this.http.delete(url));
         this.message.add({
           severity: 'success',
           summary: 'Eliminado',

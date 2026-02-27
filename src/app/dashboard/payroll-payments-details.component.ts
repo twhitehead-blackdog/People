@@ -41,7 +41,7 @@ import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
-import { catchError, forkJoin, switchMap, throwError } from 'rxjs';
+import { catchError, firstValueFrom, forkJoin, switchMap, throwError } from 'rxjs';
 import {
   AttendanceSheet,
   EmployeeSchedule,
@@ -56,6 +56,7 @@ import {
 } from '../models';
 import { roundNumber } from '../services/util.service';
 import { PayrollService } from '../services/payroll.service';
+import { EmailService } from '../services/email.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { LateCompensatoryFormComponent } from './late-compensatory-form.component';
 import { PaymentItemFormComponent } from './payment-item-form.component';
@@ -478,6 +479,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   ];
   selectedSheets!: AttendanceSheet[];
   private http = inject(HttpClient);
+  private emailService = inject(EmailService);
   public currentDebts = computed(
     () =>
       this.selectedEmployee()?.employee?.debts?.filter(
@@ -724,13 +726,16 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       const labels: Record<string, string> = {
         REVIEWED: 'Periodo marcado como revisado',
         APPROVED: 'Periodo aprobado',
-        PAID: 'Periodo marcado como pagado',
+        PAID: 'Periodo marcado como pagado. Enviando comprobantes...',
       };
       this.message.add({
         severity: 'success',
         summary: 'Estado Actualizado',
         detail: labels[status],
       });
+      if (status === 'PAID') {
+        this.sendPayrollReceipts(paymentId);
+      }
       this.payment.reload();
     } catch (err: any) {
       this.message.add({
@@ -740,6 +745,163 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       });
     }
     this.updatingStatus.set(false);
+  }
+
+  private async sendPayrollReceipts(paymentId: string): Promise<void> {
+    const payment = this.payment.value()?.[0];
+    if (!payment) return;
+
+    try {
+      const employees = await firstValueFrom(
+        this.http.get<PayrollPaymentEmployee[]>(
+          `${this.apiUrl.baseUrl}/rest/v1/payroll_payment_employees`,
+          {
+            params: {
+              select:
+                '*, items:payroll_payment_employee_items(*), employee:employees(id, first_name, father_name, email, work_email)',
+              payroll_payment_id: `eq.${paymentId}`,
+            },
+          }
+        )
+      );
+
+      const paymentDate = payment.payment_date
+        ? new Date(payment.payment_date).toLocaleDateString('es-PA')
+        : new Date().toLocaleDateString('es-PA');
+      const startDate = new Date(payment.start_date).toLocaleDateString('es-PA');
+      const endDate = new Date(payment.end_date).toLocaleDateString('es-PA');
+
+      for (const emp of employees) {
+        const email = (emp.employee as any)?.work_email || emp.employee?.email;
+        if (!email) continue;
+
+        const name =
+          `${emp.employee?.first_name ?? ''} ${(emp.employee as any)?.father_name ?? ''}`.trim();
+        const incomeItems = emp.items?.filter((i) => i.type === 'income') ?? [];
+        const deductionItems = emp.items?.filter((i) => i.type === 'deduction') ?? [];
+        const debtItems = emp.items?.filter((i) => i.type === 'debt') ?? [];
+
+        const html = this.buildReceiptHtml(
+          name,
+          payment.title,
+          paymentDate,
+          startDate,
+          endDate,
+          incomeItems,
+          deductionItems,
+          debtItems,
+          emp.total_amount
+        );
+
+        this.emailService
+          .sendEmail({
+            to: email,
+            subject: `Comprobante de Pago - ${payment.title}`,
+            html,
+          })
+          .subscribe({
+            error: (err) =>
+              console.error(`Error enviando comprobante a ${email}:`, err),
+          });
+      }
+    } catch (err) {
+      console.error('Error enviando comprobantes:', err);
+      this.message.add({
+        severity: 'warn',
+        summary: 'Comprobantes',
+        detail: 'No se pudieron enviar algunos comprobantes por email',
+      });
+    }
+  }
+
+  private buildReceiptHtml(
+    employeeName: string,
+    title: string,
+    paymentDate: string,
+    startDate: string,
+    endDate: string,
+    incomeItems: PayrollPaymentEmployeeItem[],
+    deductionItems: PayrollPaymentEmployeeItem[],
+    debtItems: PayrollPaymentEmployeeItem[],
+    netPay: number
+  ): string {
+    const fmt = (amount: number) =>
+      new Intl.NumberFormat('es-PA', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(amount);
+
+    const buildRows = (items: PayrollPaymentEmployeeItem[]) =>
+      items
+        .map(
+          (item) => `
+        <tr>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb;">${item.description}</td>
+          <td style="padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">${fmt(item.amount)}</td>
+        </tr>`
+        )
+        .join('');
+
+    const incomeTotal = incomeItems.reduce((s, i) => s + i.amount, 0);
+    const deductionTotal = deductionItems.reduce((s, i) => s + i.amount, 0);
+    const debtTotal = debtItems.reduce((s, i) => s + i.amount, 0);
+
+    const incomeSection =
+      incomeItems.length > 0
+        ? `<h3 style="font-size:13px;text-transform:uppercase;color:#374151;margin:16px 0 8px;">Ingresos</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          ${buildRows(incomeItems)}
+          <tr style="font-weight:bold;">
+            <td style="padding:8px;background:#f9fafb;">Total Ingresos</td>
+            <td style="padding:8px;background:#f9fafb;text-align:right;">${fmt(incomeTotal)}</td>
+          </tr>
+        </table>`
+        : '';
+
+    const deductionSection =
+      deductionItems.length > 0
+        ? `<h3 style="font-size:13px;text-transform:uppercase;color:#374151;margin:16px 0 8px;">Deducciones</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          ${buildRows(deductionItems)}
+          <tr style="font-weight:bold;">
+            <td style="padding:8px;background:#fef2f2;color:#991b1b;">Total Deducciones</td>
+            <td style="padding:8px;background:#fef2f2;color:#991b1b;text-align:right;">(${fmt(deductionTotal)})</td>
+          </tr>
+        </table>`
+        : '';
+
+    const debtSection =
+      debtItems.length > 0
+        ? `<h3 style="font-size:13px;text-transform:uppercase;color:#374151;margin:16px 0 8px;">Préstamos / Deudas</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          ${buildRows(debtItems)}
+          <tr style="font-weight:bold;">
+            <td style="padding:8px;background:#fef3c7;color:#92400e;">Total Deudas</td>
+            <td style="padding:8px;background:#fef3c7;color:#92400e;text-align:right;">(${fmt(debtTotal)})</td>
+          </tr>
+        </table>`
+        : '';
+
+    return `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#ffffff;">
+        <div style="background:#111827;color:#f9fafb;padding:16px 24px;border-radius:8px 8px 0 0;">
+          <h2 style="margin:0;font-size:20px;">Comprobante de Pago</h2>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
+          <table style="width:100%;margin-bottom:16px;">
+            <tr><td style="color:#6b7280;padding:4px 0;width:140px;">Período</td><td><strong>${title}</strong></td></tr>
+            <tr><td style="color:#6b7280;padding:4px 0;">Empleado</td><td><strong>${employeeName}</strong></td></tr>
+            <tr><td style="color:#6b7280;padding:4px 0;">Fechas</td><td>${startDate} – ${endDate}</td></tr>
+            <tr><td style="color:#6b7280;padding:4px 0;">Fecha de pago</td><td>${paymentDate}</td></tr>
+          </table>
+          ${incomeSection}
+          ${deductionSection}
+          ${debtSection}
+          <div style="margin-top:24px;padding:16px;background:#f0fdf4;border-radius:8px;text-align:right;">
+            <span style="font-size:16px;color:#166534;font-weight:bold;">Neto a Pagar: ${fmt(netPay)}</span>
+          </div>
+        </div>
+      </div>`;
   }
 
   async calculateBatch() {

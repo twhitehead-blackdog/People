@@ -327,6 +327,309 @@ export function app(): express.Express {
     }
   });
 
+  /**
+   * Shopify ↔ Odoo sync dashboard data
+   * Reads shopify_ept module data for inventory/price discrepancy analysis.
+   * Dispatches by req.body.action to avoid N endpoints.
+   */
+  server.post('/api/odoo/shopify-sync', async (req, res) => {
+    try {
+      const url = process.env['ENV_ODOO_URL'];
+      const db = process.env['ENV_ODOO_DB'];
+      const username = process.env['ENV_ODOO_USERNAME'];
+      const password = process.env['ENV_ODOO_PASSWORD'] || process.env['ENV_ODOO_API_KEY'];
+
+      if (!url || !db || !username || !password) {
+        return res.status(503).json({ error: 'Odoo no configurado' });
+      }
+
+      const now = Date.now();
+      let uid: number;
+      if (configCache.odooUid && (now - configCache.odooUid.ts) < CACHE_TTL) {
+        uid = configCache.odooUid.value;
+      } else {
+        const authResult = (await odooJsonRpc(url, 'common', 'authenticate', [
+          db, username, password, {},
+        ])) as number | false;
+        if (!authResult) {
+          return res.status(401).json({ error: 'Odoo: autenticación fallida' });
+        }
+        uid = authResult;
+        configCache.odooUid = { value: uid, ts: now };
+      }
+
+      const { action, params } = req.body as { action: string; params?: Record<string, unknown> };
+      const rpc = (model: string, method: string, args: unknown[], kwargs?: Record<string, unknown>) =>
+        odooJsonRpc(url, 'object', 'execute_kw', [db, uid, password, model, method, args, kwargs || {}]);
+
+      let result: unknown;
+
+      switch (action) {
+        case 'instance_info': {
+          result = await rpc('shopify.instance.ept', 'search_read', [[]], {
+            fields: ['id', 'name', 'shopify_host', 'active', 'shopify_warehouse_id', 'shopify_pricelist_id', 'shopify_last_date_update_stock'],
+            limit: 10,
+          });
+          break;
+        }
+        case 'shopify_products': {
+          const offset = (params?.['offset'] as number) || 0;
+          const limit = Math.min((params?.['limit'] as number) || 500, 1000);
+          result = await rpc('shopify.product.product.ept', 'search_read', [[]], {
+            fields: ['id', 'name', 'shopify_instance_id', 'product_id', 'default_code', 'inventory_item_id', 'exported_in_shopify', 'last_stock_update_date', 'created_at', 'updated_at'],
+            offset,
+            limit,
+            order: 'id asc',
+          });
+          break;
+        }
+        case 'product_data': {
+          const ids = params?.['ids'] as number[];
+          if (!ids || !ids.length) { result = []; break; }
+          result = await rpc('product.product', 'read', [ids], {
+            fields: ['id', 'name', 'default_code', 'qty_available', 'list_price', 'standard_price', 'active'],
+          });
+          break;
+        }
+        case 'pricelist_items': {
+          const pricelistId = (params?.['pricelist_id'] as number) || 13;
+          result = await rpc('product.pricelist.item', 'search_read', [
+            [['pricelist_id', '=', pricelistId]],
+          ], {
+            fields: ['id', 'product_id', 'product_tmpl_id', 'fixed_price', 'compute_price', 'percent_price'],
+            limit: 5000,
+          });
+          break;
+        }
+        case 'locations': {
+          result = await rpc('shopify.location.ept', 'search_read', [[]], {
+            fields: ['id', 'name', 'import_stock_warehouse_id', 'shopify_location_id', 'instance_id', 'is_primary_location', 'legacy'],
+            limit: 50,
+          });
+          break;
+        }
+        case 'shopify_warehouse_stock': {
+          // 1. Get Shopify locations → warehouse IDs
+          const shopLocs = (await rpc('shopify.location.ept', 'search_read', [[]], {
+            fields: ['export_stock_warehouse_ids'],
+            limit: 50,
+          })) as { export_stock_warehouse_ids: number[] }[];
+          const whIds = [...new Set(shopLocs.flatMap((l) => l.export_stock_warehouse_ids || []))];
+
+          // 2. Get stock location IDs for those warehouses
+          const warehouses = (await rpc('stock.warehouse', 'read', [whIds], {
+            fields: ['lot_stock_id'],
+          })) as { id: number; lot_stock_id: [number, string] | false }[];
+          const stockLocIds = warehouses
+            .map((w) => (Array.isArray(w.lot_stock_id) ? w.lot_stock_id[0] : null))
+            .filter((id): id is number => id !== null);
+
+          // 3. read_group on stock.quant to sum qty per product in those locations
+          result = await rpc('stock.quant', 'read_group', [
+            [['location_id', 'in', stockLocIds], ['quantity', '>', 0]],
+            ['product_id', 'quantity'],
+            ['product_id'],
+          ], { lazy: false });
+          break;
+        }
+        case 'product_stock_detail': {
+          const productId = params?.['product_id'] as number;
+          const inventoryItemId = params?.['inventory_item_id'] as string;
+          if (!productId) { result = { quants: [], exportLines: [] }; break; }
+
+          // 1. Get Shopify locations with their warehouse mapping
+          const locs = (await rpc('shopify.location.ept', 'search_read', [[]], {
+            fields: ['id', 'name', 'shopify_location_id', 'export_stock_warehouse_ids'],
+            limit: 50,
+          })) as any[];
+          const allWhIds = [...new Set(locs.flatMap((l: any) => l.export_stock_warehouse_ids || []))];
+
+          // 2. Get warehouse → stock location mapping
+          const whs = (await rpc('stock.warehouse', 'read', [allWhIds], {
+            fields: ['id', 'name', 'code', 'lot_stock_id'],
+          })) as any[];
+          const whMap = new Map(whs.map((w: any) => [w.id, w]));
+          const stockLocIds = whs
+            .map((w: any) => (Array.isArray(w.lot_stock_id) ? w.lot_stock_id[0] : null))
+            .filter((id: any): id is number => id !== null);
+
+          // 3. Get stock.quant for this product in Shopify-mapped locations
+          const quants = await rpc('stock.quant', 'search_read', [
+            [['product_id', '=', productId], ['location_id', 'in', stockLocIds]],
+          ], {
+            fields: ['location_id', 'quantity', 'reserved_quantity'],
+            limit: 50,
+          });
+
+          // 4. Get latest export queue lines for this product per Shopify location
+          //    Simple direct query: find done lines for this inventory_item_id, latest first
+          let exportLines: any[] = [];
+          if (inventoryItemId) {
+            exportLines = (await rpc('shopify.export.stock.queue.line.ept', 'search_read', [
+              [['inventory_item_id', '=', inventoryItemId], ['state', '=', 'done']],
+            ], {
+              fields: ['location_id', 'quantity', 'state'],
+              limit: 100,
+              order: 'id desc',
+            })) as any[];
+          }
+
+          // 5. Build per-location response: Shopify location → { odooQty, shopifyExportedQty }
+          const locationDetails = locs.map((loc: any) => {
+            const whId = (loc.export_stock_warehouse_ids || [])[0];
+            const wh = whId ? whMap.get(whId) : null;
+            const stockLocId = wh && Array.isArray(wh.lot_stock_id) ? wh.lot_stock_id[0] : null;
+
+            // Odoo qty at this location
+            const quant = Array.isArray(quants)
+              ? (quants as any[]).find((q: any) => Array.isArray(q.location_id) ? q.location_id[0] === stockLocId : q.location_id === stockLocId)
+              : null;
+            const odooQty = quant ? quant.quantity : 0;
+
+            // Latest export to this Shopify location
+            const shopifyLocId = loc.shopify_location_id || '';
+            const latestExport = exportLines.find((e: any) => String(e.location_id) === String(shopifyLocId));
+            const exportedQty = latestExport ? latestExport.quantity : 0;
+
+            return {
+              locationName: loc.name,
+              warehouseName: wh ? wh.name : 'N/A',
+              warehouseCode: wh ? wh.code : '',
+              shopifyLocationId: shopifyLocId,
+              odooQty,
+              exportedQty,
+              diff: odooQty - exportedQty,
+            };
+          });
+
+          result = locationDetails;
+          break;
+        }
+        case 'count_moves': {
+          const sinceDate = params?.['since_date'] as string;
+          const domain: unknown[][] = [['state', '=', 'done']];
+          if (sinceDate) domain.push(['date', '>=', sinceDate]);
+          result = await rpc('stock.move', 'search_count', [domain]);
+          break;
+        }
+        case 'last_exported_stock': {
+          // Get the latest exported quantities per product from ALL done export queue lines.
+          // Query directly without date filter to cover all products ever exported.
+          // With order: 'id desc' + dedup, we always get the latest export per (product, location).
+          const expLines = (await rpc('shopify.export.stock.queue.line.ept', 'search_read', [
+            [['state', '=', 'done']],
+          ], {
+            fields: ['inventory_item_id', 'location_id', 'quantity'],
+            limit: 100000,
+            order: 'id desc',
+          })) as { inventory_item_id: string; location_id: string; quantity: number }[];
+
+          // Deduplicate: keep latest per (inventory_item_id, location_id), then sum per inventory_item_id
+          const expSeen = new Set<string>();
+          const expTotals: Record<string, number> = {};
+          for (const line of expLines) {
+            if (!line.inventory_item_id) continue;
+            const key = `${line.inventory_item_id}:${line.location_id}`;
+            if (expSeen.has(key)) continue;
+            expSeen.add(key);
+            expTotals[line.inventory_item_id] = (expTotals[line.inventory_item_id] || 0) + (line.quantity || 0);
+          }
+
+          result = expTotals;
+          break;
+        }
+        case 'export_stock': {
+          // Create wizard and execute stock export
+          const wizardId = await rpc('shopify.process.import.export', 'create', [[{
+            shopify_instance_id: 1,
+            shopify_operation: 'export_stock',
+          }]]);
+          const execResult = await odooJsonRpc(url, 'object', 'execute_kw', [
+            db, uid, password,
+            'shopify.process.import.export', 'execute', [Array.isArray(wizardId) ? wizardId : [wizardId]],
+            {},
+          ]);
+          result = { triggered: true, wizard_id: wizardId, exec_result: execResult };
+          break;
+        }
+        case 'update_prices': {
+          // Get all exported Shopify template IDs
+          const templateIds = (await rpc('shopify.product.template.ept', 'search', [
+            [['exported_in_shopify', '=', true], ['shopify_instance_id', '=', 1]],
+          ])) as number[];
+
+          if (!templateIds.length) {
+            result = { triggered: false, message: 'No hay templates exportados' };
+            break;
+          }
+
+          // Call update_products_in_shopify on the model
+          // The method signature: update_product_in_shopify(instance, templates, is_set_price, is_set_image, is_set_basic_detail, publish)
+          const instanceRec = await rpc('shopify.instance.ept', 'search_read', [
+            [['id', '=', 1]],
+          ], { fields: ['id'], limit: 1 });
+
+          // Process in batches of 80 to avoid timeouts
+          const batchSize = 80;
+          const batches: number[][] = [];
+          for (let i = 0; i < templateIds.length; i += batchSize) {
+            batches.push(templateIds.slice(i, i + batchSize));
+          }
+
+          let processed = 0;
+          for (const batch of batches) {
+            try {
+              await odooJsonRpc(url, 'object', 'execute_kw', [
+                db, uid, password,
+                'shopify.product.template.ept', 'update_product_in_shopify',
+                [batch],
+                {},
+              ]);
+              processed += batch.length;
+            } catch (batchErr: any) {
+              safeLogger.error(`Price sync batch error at offset ${processed}`, batchErr);
+              // Continue with remaining batches
+            }
+          }
+
+          result = { triggered: true, total_templates: templateIds.length, processed };
+          break;
+        }
+        case 'sync_history': {
+          const historyType = params?.['type'] as string || 'stock';
+          const limit = Math.min((params?.['limit'] as number) || 50, 200);
+
+          if (historyType === 'stock') {
+            // Stock export queue history
+            result = await rpc('shopify.export.stock.queue.ept', 'search_read', [[]], {
+              fields: ['id', 'name', 'state', 'create_date', 'queue_line_total_records', 'queue_line_done_records', 'queue_line_fail_records', 'queue_line_cancel_records'],
+              limit,
+              order: 'create_date desc',
+            });
+          } else {
+            // Product data queue history (covers price/product updates)
+            result = await rpc('shopify.product.data.queue.ept', 'search_read', [[]], {
+              fields: ['id', 'name', 'state', 'create_date', 'queue_line_total_records', 'queue_line_done_records', 'queue_line_fail_records', 'queue_line_cancel_records'],
+              limit,
+              order: 'create_date desc',
+            });
+          }
+          break;
+        }
+        default:
+          return res.status(400).json({ error: `Acción no reconocida: ${action}` });
+      }
+
+      return res.json({ success: true, data: result });
+    } catch (error: any) {
+      safeLogger.error('Error en /api/odoo/shopify-sync', error);
+      return res.status(500).json({
+        error: 'Error en shopify-sync',
+        message: error?.message || 'Error desconocido',
+      });
+    }
+  });
+
   // Cache para configuraciones que rara vez cambian
   const configCache: {
     emailEnabled: { value: boolean; ts: number } | null;

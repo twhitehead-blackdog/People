@@ -27,10 +27,11 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
+import { format, parseISO } from 'date-fns';
 import { debounceTime, firstValueFrom } from 'rxjs';
 import { markGroupDirty } from 'src/app/services/util.service';
 import { v4 } from 'uuid';
-import { Bank, Employee, UniformSize } from '../models';
+import { Bank, Employee, Termination, UniformSize } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { WassengerService } from '../services/wassenger.service';
@@ -498,6 +499,16 @@ import {
                     placeholder="Seleccione un tipo"
                   />
                 </div>
+                <div class="input-container">
+                  <label for="payroll_type">Tipo de Planilla</label>
+                  <p-select
+                    inputId="payroll_type"
+                    formControlName="payroll_type"
+                    [options]="payrollTypes"
+                    appendTo="body"
+                    placeholder="Seleccione tipo"
+                  />
+                </div>
               </div>
             </div>
           </p-tabpanel>
@@ -658,6 +669,38 @@ import {
                 }
               </div>
             </div>
+            @if (terminationHistory.value()?.length) {
+            <div class="mt-6">
+              <h3 class="text-base font-semibold text-white mb-3">Historial de Empleo</h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead>
+                    <tr class="border-b border-neutral-700">
+                      <th class="py-2 px-3 text-gray-400 font-medium">Fecha de Salida</th>
+                      <th class="py-2 px-3 text-gray-400 font-medium">Motivo</th>
+                      <th class="py-2 px-3 text-gray-400 font-medium">Fecha de Reintegro</th>
+                      <th class="py-2 px-3 text-gray-400 font-medium">Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (term of terminationHistory.value(); track term.id) {
+                    <tr class="border-b border-neutral-800">
+                      <td class="py-2 px-3 text-gray-300">{{ formatDate(term.date) }}</td>
+                      <td class="py-2 px-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium"
+                          [class]="term.reason === 'DESPIDO' ? 'bg-red-900/50 text-red-300' : term.reason === 'RENUNCIA' ? 'bg-orange-900/50 text-orange-300' : 'bg-neutral-700 text-gray-300'">
+                          {{ term.reason === 'FIN_CONTRATO' ? 'Fin de Contrato' : term.reason === 'DESPIDO' ? 'Despido' : 'Renuncia' }}
+                        </span>
+                      </td>
+                      <td class="py-2 px-3 text-gray-300">{{ term.reintegration_date ? formatDate(term.reintegration_date) : '-' }}</td>
+                      <td class="py-2 px-3 text-gray-400">{{ term.notes || '-' }}</td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            }
           </p-tabpanel>
         </p-tabpanels>
       </p-tabs>
@@ -828,6 +871,10 @@ export class EmployeeFormComponent implements OnInit {
   public accountTypes = ACCOUNT_TYPES;
   public countryCodes = COUNTRY_CODES;
   public emergencyContactRelationships = EMERGENCY_CONTACT_RELATIONSHIPS;
+  public payrollTypes = [
+    { label: 'Regular (CSS + ISR)', value: 'regular' },
+    { label: 'Honorarios (sin deducciones)', value: 'honorarios' },
+  ];
 
   public banks = httpResource<Bank[]>(() => {
     // Cargar todos los bancos (compartidos y del company_id)
@@ -942,6 +989,9 @@ export class EmployeeFormComponent implements OnInit {
     bank_account_type: new FormControl<'Ahorros' | 'Corriente'>('Ahorros', {
       nonNullable: true,
     }),
+    payroll_type: new FormControl<'regular' | 'honorarios'>('regular', {
+      nonNullable: true,
+    }),
     week_hours: new FormControl(0, {
       nonNullable: true,
       // Los validadores se ajustarán dinámicamente según si es Naz o no
@@ -982,7 +1032,6 @@ export class EmployeeFormComponent implements OnInit {
       select: EMPLOYEE_SELECT_QUERY,
       limit: '1',
       order: 'father_name',
-      is_active: 'eq.true',
       id: `eq.${this.employee_id()}`,
     };
 
@@ -994,6 +1043,19 @@ export class EmployeeFormComponent implements OnInit {
       url: this.apiUrl.build('rest/v1/employees'),
       method: 'GET',
       params,
+    };
+  });
+
+  terminationHistory = httpResource<Termination[]>(() => {
+    const empId = this.employee_id();
+    if (!empId) return;
+    return {
+      url: this.apiUrl.build('rest/v1/terminations', {
+        employee_id: `eq.${empId}`,
+        order: 'date.desc',
+        select: 'id,employee_id,date,reason,notes,reintegration_date,created_at',
+      }),
+      method: 'GET',
     };
   });
 
@@ -1235,6 +1297,12 @@ export class EmployeeFormComponent implements OnInit {
         });
       },
     });
+  }
+
+  formatDate(date: Date | string | null | undefined): string {
+    if (!date) return '-';
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return format(d, 'dd/MM/yyyy');
   }
 
   onBackClick(event: Event) {

@@ -19,6 +19,7 @@ import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmailConfigComponent } from './settings/email-config.component';
 import { ManualTimelogComponent } from './settings/manual-timelog.component';
+import { ShopifySyncComponent } from './settings/shopify-sync.component';
 
 interface Setting {
   id: string;
@@ -52,6 +53,7 @@ interface EmailConfig {
     TabsModule,
     EmailConfigComponent,
     ManualTimelogComponent,
+    ShopifySyncComponent,
   ],
   providers: [MessageService],
   template: `
@@ -83,6 +85,10 @@ interface EmailConfig {
             Marcación Manual
           </p-tab>
           }
+          <p-tab value="4">
+            <i class="pi pi-sync mr-2"></i>
+            Shopify Sync
+          </p-tab>
         </p-tablist>
 
         <!-- Tab: Correo -->
@@ -705,6 +711,13 @@ interface EmailConfig {
           <pt-manual-timelog />
         </p-tabpanel>
         }
+
+        <!-- Tab: Shopify Sync -->
+        <p-tabpanel value="4">
+          <p-card styleClass="[&_.p-card-body]:py-2">
+            <pt-shopify-sync />
+          </p-card>
+        </p-tabpanel>
       </p-tabs>
     </div>
 

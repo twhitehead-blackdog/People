@@ -18,14 +18,17 @@ import { ToastModule } from 'primeng/toast';
 import { Tooltip } from 'primeng/tooltip';
 
 import { HttpClient, httpResource } from '@angular/common/http';
+import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import { getEnv } from '../utils/env.utils';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
-import { Employee } from '../models';
+import { format as fnsFormat, parseISO } from 'date-fns';
+import { Employee, Termination } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { SeniorityPipe } from '../pipes/seniority.pipe';
+import { ApiUrlService } from '../services/api-url.service';
 import { DeviceService } from '../services/device.service';
 import { OrganizationService } from '../services/organization.service';
 import { QrService } from '../services/qr.service';
@@ -88,7 +91,7 @@ import { TimeOffsComponent } from './time-offs.component';
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <p-button label="Editar" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="goToEdit()" />
-            <p-menu #menu [model]="items" [popup]="true" appendTo="body" />
+            <p-menu #menu [model]="items()" [popup]="true" appendTo="body" />
             <p-button icon="pi pi-ellipsis-v" rounded severity="secondary" [outlined]="true" (onClick)="menu.toggle($event)" [pTooltip]="'Más acciones'" />
           </div>
         } @else if (employee.isLoading()) {
@@ -109,6 +112,7 @@ import { TimeOffsComponent } from './time-offs.component';
           <p-tab value="2">Marcación</p-tab>
           <p-tab value="3">Tiempos fuera</p-tab>
           <p-tab value="4">Portal</p-tab>
+          <p-tab value="5">Historial</p-tab>
         </p-tablist>
         <p-tabpanels>
           <p-tabpanel value="0">
@@ -431,6 +435,54 @@ import { TimeOffsComponent } from './time-offs.component';
             </div>
             }
           </p-tabpanel>
+          <p-tabpanel value="5">
+            @if (terminationHistory.isLoading()) {
+              <div class="flex flex-col gap-3 py-6">
+                <p-skeleton height="2rem" />
+                <p-skeleton height="4rem" />
+              </div>
+            } @else if (terminationHistory.value()?.length) {
+              <div class="bg-neutral-800/40 rounded-xl border border-neutral-700/50 overflow-hidden">
+                <div class="p-4">
+                  <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <i class="pi pi-history"></i> Historial de Empleo
+                  </h3>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                      <thead>
+                        <tr class="border-b border-neutral-700">
+                          <th class="py-2 px-3 text-gray-400 font-medium">Fecha de Salida</th>
+                          <th class="py-2 px-3 text-gray-400 font-medium">Motivo</th>
+                          <th class="py-2 px-3 text-gray-400 font-medium">Fecha de Reintegro</th>
+                          <th class="py-2 px-3 text-gray-400 font-medium">Notas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (term of terminationHistory.value(); track term.id) {
+                        <tr class="border-b border-neutral-800">
+                          <td class="py-2 px-3 text-gray-300">{{ formatTermDate(term.date) }}</td>
+                          <td class="py-2 px-3">
+                            <span class="px-2 py-0.5 rounded text-xs font-medium"
+                              [class]="term.reason === 'DESPIDO' ? 'bg-red-900/50 text-red-300' : term.reason === 'RENUNCIA' ? 'bg-orange-900/50 text-orange-300' : 'bg-neutral-700 text-gray-300'">
+                              {{ term.reason === 'FIN_CONTRATO' ? 'Fin de Contrato' : term.reason === 'DESPIDO' ? 'Despido' : 'Renuncia' }}
+                            </span>
+                          </td>
+                          <td class="py-2 px-3 text-gray-300">{{ term.reintegration_date ? formatTermDate(term.reintegration_date) : '-' }}</td>
+                          <td class="py-2 px-3 text-gray-400">{{ term.notes || '-' }}</td>
+                        </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="flex flex-col items-center justify-center py-12 text-center">
+                <i class="pi pi-history text-4xl text-gray-600 mb-3"></i>
+                <p class="text-gray-400 text-sm m-0">Sin registros de salida o reintegro</p>
+              </div>
+            }
+          </p-tabpanel>
         </p-tabpanels>
       </p-tabs>
     </div>
@@ -454,7 +506,7 @@ import { TimeOffsComponent } from './time-offs.component';
             }
           </div>
           @if (currentEmployee()) {
-            <p-menu #menu [model]="items" [popup]="true" appendTo="body" />
+            <p-menu #menu [model]="items()" [popup]="true" appendTo="body" />
             <p-button icon="pi pi-ellipsis-v" [rounded]="true" severity="secondary" [text]="true" (onClick)="menu.toggle($event)" class="min-w-[44px] min-h-[44px]" />
           }
         </div>
@@ -480,6 +532,7 @@ import { TimeOffsComponent } from './time-offs.component';
               <p-tab value="2" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">QR</p-tab>
               <p-tab value="3" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Tiempos</p-tab>
               <p-tab value="4" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Portal</p-tab>
+              <p-tab value="5" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Historial</p-tab>
             </p-tablist>
             <p-tabpanels>
               <p-tabpanel value="0">
@@ -596,6 +649,38 @@ import { TimeOffsComponent } from './time-offs.component';
                     }
                   </div>
                 }
+              </p-tabpanel>
+              <p-tabpanel value="5">
+                <div class="px-3 py-3 space-y-2 pb-8">
+                  @if (terminationHistory.isLoading()) {
+                    <p-skeleton height="2rem" />
+                    <p-skeleton height="3rem" />
+                  } @else if (terminationHistory.value()?.length) {
+                    @for (term of terminationHistory.value(); track term.id) {
+                    <div class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 p-3 space-y-1">
+                      <div class="flex justify-between items-center">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium"
+                          [class]="term.reason === 'DESPIDO' ? 'bg-red-900/50 text-red-300' : term.reason === 'RENUNCIA' ? 'bg-orange-900/50 text-orange-300' : 'bg-neutral-700 text-gray-300'">
+                          {{ term.reason === 'FIN_CONTRATO' ? 'Fin de Contrato' : term.reason === 'DESPIDO' ? 'Despido' : 'Renuncia' }}
+                        </span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Salida</span>
+                        <span class="text-gray-300">{{ formatTermDate(term.date) }}</span>
+                      </div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">Reintegro</span>
+                        <span class="text-gray-300">{{ term.reintegration_date ? formatTermDate(term.reintegration_date) : '-' }}</span>
+                      </div>
+                      @if (term.notes) {
+                      <p class="text-xs text-gray-500 m-0 mt-1">{{ term.notes }}</p>
+                      }
+                    </div>
+                    }
+                  } @else {
+                    <p class="text-sm text-gray-400 text-center py-6 m-0">Sin registros de salida o reintegro</p>
+                  }
+                </div>
               </p-tabpanel>
             </p-tabpanels>
           </p-tabs>
@@ -732,6 +817,7 @@ export class EmployeeDetailComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
   private qrService = inject(QrService);
+  private apiUrl = inject(ApiUrlService);
 
   public employee_id = signal<string | null>(null);
   public inviting = signal(false);
@@ -768,36 +854,72 @@ export class EmployeeDetailComponent implements OnInit {
   });
   public currentEmployee = computed(() => this.employee.value()?.[0]);
 
-  protected readonly items: MenuItem[] = [
-    {
-      label: 'Editar',
-      icon: 'pi pi-pencil',
-      command: () => {
-        this.router.navigate(['edit'], { relativeTo: this.route });
+  terminationHistory = httpResource<Termination[]>(() => {
+    const empId = this.employee_id();
+    if (!empId) return;
+    return {
+      url: this.apiUrl.build('rest/v1/terminations', {
+        employee_id: `eq.${empId}`,
+        order: 'date.desc',
+        select: 'id,employee_id,date,reason,notes,reintegration_date,created_at',
+      }),
+      method: 'GET',
+    };
+  });
+
+  formatTermDate(date: Date | string | null | undefined): string {
+    if (!date) return '-';
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return fnsFormat(d, 'dd/MM/yyyy');
+  }
+
+  protected readonly items = computed<MenuItem[]>(() => {
+    const employee = this.currentEmployee();
+    const isActive = employee?.is_active !== false;
+    const baseItems: MenuItem[] = [
+      {
+        label: 'Editar',
+        icon: 'pi pi-pencil',
+        command: () => {
+          this.router.navigate(['edit'], { relativeTo: this.route });
+        },
       },
-    },
-    {
-      label: 'Tiempo fuera',
-      icon: 'pi pi-calendar',
-      command: () => {
-        this.timeOff();
-      },
-    },
-    {
-      label: 'Salida',
-      icon: 'pi pi-undo',
-      command: () => {
-        this.terminateEmployee();
-      },
-    },
-    {
+    ];
+    if (isActive) {
+      baseItems.push(
+        {
+          label: 'Tiempo fuera',
+          icon: 'pi pi-calendar',
+          command: () => {
+            this.timeOff();
+          },
+        },
+        {
+          label: 'Salida',
+          icon: 'pi pi-undo',
+          command: () => {
+            this.terminateEmployee();
+          },
+        }
+      );
+    } else {
+      baseItems.push({
+        label: 'Reintegrar',
+        icon: 'pi pi-refresh',
+        command: () => {
+          this.reintegrateEmployee();
+        },
+      });
+    }
+    baseItems.push({
       label: 'Eliminar',
       icon: 'pi pi-trash',
       command: () => {
         this.deleteEmployee();
       },
-    },
-  ];
+    });
+    return baseItems;
+  });
   private dialog = inject(DialogService);
   private ref = inject(DynamicDialogRef);
 
@@ -832,6 +954,24 @@ export class EmployeeDetailComponent implements OnInit {
       modal: true,
       dismissableMask: true, // Cerrar al hacer clic fuera
       closeOnEscape: true,   // Cerrar con tecla Escape
+    });
+  }
+
+  reintegrateEmployee() {
+    const id = this.employee_id();
+    if (!id) return;
+    this.confirmationService.confirm({
+      message: '¿Está seguro que desea reintegrar a este empleado?',
+      header: 'Reintegrar Empleado',
+      icon: 'pi pi-refresh',
+      accept: () => {
+        this.state
+          .reintegrateEmployee(id, format(new Date(), 'yyyy-MM-dd'))
+          .subscribe(() => {
+            this.employee.reload();
+            this.state.reloadItems();
+          });
+      },
     });
   }
 

@@ -113,6 +113,8 @@ export type Termination = {
   date: Date;
   notes: string;
   reason: 'DESPIDO' | 'RENUNCIA' | 'FIN_CONTRATO';
+  reintegration_date?: Date | string | null;
+  created_at?: Date | string;
 };
 
 export interface Column {

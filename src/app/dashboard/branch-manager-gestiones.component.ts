@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { addDays, compareAsc, differenceInCalendarDays, set, startOfDay } from 'date-fns';
+import { addDays, compareAsc, differenceInCalendarDays, format, set, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -24,6 +24,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { uploadCompensatory } from '../employee-portal/actions/employee-portal-compensatory.actions';
 import { EmployeePortalCompensatoryComponent } from '../employee-portal/components/employee-portal-compensatory.component';
+import { PORTAL_PERMIT_TYPE_OPTIONS } from '../employee-portal/components/employee-portal-work-permit.component';
 import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-portal-compensatory.utils';
 import { Branch, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
@@ -58,7 +59,8 @@ type ManagementCard = {
     | 'vacations'
     | 'compensatory'
     | 'timelog_correction'
-    | 'uniform_request';
+    | 'uniform_request'
+    | 'work_permit';
 };
 
 @Component({
@@ -1124,6 +1126,179 @@ type ManagementCard = {
               />
             </div>
           </div>
+          } @if (selectedGestionType() === 'work_permit') {
+          <div class="space-y-5">
+            <!-- Paso 1: Tipo de Permiso -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <i class="pi pi-id-card text-amber-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">Paso 1: Tipo de Permiso</h3>
+              </div>
+              <p-select
+                [ngModel]="workPermitType()"
+                (ngModelChange)="workPermitType.set($event)"
+                [options]="workPermitTypeOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Selecciona el tipo de permiso"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+
+            <!-- Paso 2: Período -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <i class="pi pi-calendar text-amber-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">Paso 2: Período</h3>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">Fecha de Inicio</label>
+                  <p-datepicker
+                    [ngModel]="workPermitStartDate()"
+                    (ngModelChange)="workPermitStartDate.set($event)"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Selecciona fecha de inicio"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">Fecha de Fin</label>
+                  <p-datepicker
+                    [ngModel]="workPermitEndDate()"
+                    (ngModelChange)="workPermitEndDate.set($event)"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Selecciona fecha de fin"
+                    [minDate]="workPermitStartDate() || undefined"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">
+                    Hora de Inicio <span class="text-gray-500 text-xs">(Opcional)</span>
+                  </label>
+                  <p-datepicker
+                    [ngModel]="workPermitStartTime()"
+                    (ngModelChange)="workPermitStartTime.set($event)"
+                    [showIcon]="true"
+                    [timeOnly]="true"
+                    [showTime]="true"
+                    [hourFormat]="'12'"
+                    placeholder="Hora inicio"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">
+                    Hora de Fin <span class="text-gray-500 text-xs">(Opcional)</span>
+                  </label>
+                  <p-datepicker
+                    [ngModel]="workPermitEndTime()"
+                    (ngModelChange)="workPermitEndTime.set($event)"
+                    [showIcon]="true"
+                    [timeOnly]="true"
+                    [showTime]="true"
+                    [hourFormat]="'12'"
+                    placeholder="Hora fin"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Paso 3: Observaciones -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <i class="pi pi-file-edit text-amber-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">Paso 3: Observaciones</h3>
+              </div>
+              <textarea
+                pInputTextarea
+                [ngModel]="workPermitObservations()"
+                (ngModelChange)="workPermitObservations.set($event)"
+                placeholder="Describe el motivo del permiso, observaciones adicionales..."
+                rows="4"
+                class="w-full"
+              ></textarea>
+            </div>
+
+            <!-- Paso 4: Documento (Opcional) -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <i class="pi pi-file text-amber-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 4: Documento <span class="text-gray-400 text-sm font-normal">(Opcional)</span>
+                </h3>
+              </div>
+              <p-fileUpload
+                mode="basic"
+                accept=".pdf,.jpg,.jpeg,.png"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="onWorkPermitFileSelect($event)"
+                class="w-full"
+              />
+              @if (workPermitFile()) {
+              <div class="mt-3 p-3 bg-amber-500/10 border border-amber-400/30 rounded-lg flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  @if (uploadingWorkPermitDoc()) {
+                  <i class="pi pi-spin pi-spinner text-amber-400"></i>
+                  <span class="text-sm text-gray-300">Subiendo...</span>
+                  } @else {
+                  <i class="pi pi-file text-amber-400"></i>
+                  <span class="text-sm text-gray-300">{{ workPermitFile()!.name }}</span>
+                  }
+                </div>
+                <p-button
+                  icon="pi pi-times"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  (onClick)="clearWorkPermitFile()"
+                  pTooltip="Eliminar archivo"
+                  [disabled]="uploadingWorkPermitDoc()"
+                />
+              </div>
+              }
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex justify-between pt-4">
+              <p-button
+                label="Volver"
+                icon="pi pi-arrow-left"
+                severity="secondary"
+                (onClick)="reset()"
+              />
+              <p-button
+                label="Enviar Solicitud"
+                icon="pi pi-check"
+                [disabled]="!canSubmitWorkPermit()"
+                [loading]="submittingWorkPermit()"
+                (onClick)="submitWorkPermitRequest()"
+                severity="success"
+              />
+            </div>
+          </div>
           }
         </div>
         }
@@ -1171,6 +1346,7 @@ export class BranchManagerGestionesComponent {
     | 'compensatory'
     | 'timelog_correction'
     | 'uniform_request'
+    | 'work_permit'
     | null
   >(null);
   public selectedEmployeeId = signal<string | null>(null);
@@ -1234,6 +1410,18 @@ export class BranchManagerGestionesComponent {
   public uniformNotes = signal<string>('');
   public submittingUniform = signal<boolean>(false);
 
+  // Signals para Permisos
+  public workPermitType = signal<string | null>(null);
+  public workPermitStartDate = signal<Date | null>(null);
+  public workPermitEndDate = signal<Date | null>(null);
+  public workPermitStartTime = signal<Date | null>(null);
+  public workPermitEndTime = signal<Date | null>(null);
+  public workPermitObservations = signal<string>('');
+  public workPermitFile = signal<File | null>(null);
+  public workPermitDocUrl = signal<string | null>(null);
+  public uploadingWorkPermitDoc = signal<boolean>(false);
+  public submittingWorkPermit = signal<boolean>(false);
+
   // Opciones para Omisión de Marcación
   public timelogTypeOptions = [
     { label: 'Entrada', value: 'entry' },
@@ -1244,6 +1432,9 @@ export class BranchManagerGestionesComponent {
 
   // Opciones para tallas de uniforme (reutilizado del modelo de employees)
   public uniformSizeOptions = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+
+  // Opciones para tipo de permiso
+  public workPermitTypeOptions = PORTAL_PERMIT_TYPE_OPTIONS;
 
   // Opciones para tipos de prenda (preparado para añadir más en el futuro)
   public uniformItemTypeOptions = [
@@ -1332,6 +1523,14 @@ export class BranchManagerGestionesComponent {
     return !!(itemType.trim() && size && quantity >= 1);
   });
 
+  public canSubmitWorkPermit = computed(() => {
+    return !!(
+      this.workPermitType() &&
+      this.workPermitStartDate() &&
+      this.workPermitEndDate()
+    );
+  });
+
   public disabilityDaysCount = computed(() => {
     const start = this.disabilityStartDate();
     const end = this.disabilityEndDate();
@@ -1396,6 +1595,14 @@ export class BranchManagerGestionesComponent {
       colorClass: 'bg-green-500/20 text-green-400',
       section: 'documents',
     },
+    {
+      id: 'work_permit',
+      label: 'Permisos',
+      description: 'Solicitar permisos laborales',
+      icon: 'pi-id-card',
+      colorClass: 'bg-amber-500/20 text-amber-400',
+      section: 'work_permit',
+    },
   ];
 
   // Computed para obtener la tarjeta actual
@@ -1413,6 +1620,7 @@ export class BranchManagerGestionesComponent {
       | 'compensatory'
       | 'timelog_correction'
       | 'uniform_request'
+      | 'work_permit'
   ): void {
     // Check if we're in the intro tutorial before changing state
     const wasInIntroTutorial =
@@ -1701,6 +1909,7 @@ export class BranchManagerGestionesComponent {
     this.resetDocumentForm();
     this.resetTimelogCorrectionForm();
     this.resetUniformForm();
+    this.resetWorkPermitForm();
   }
 
   // Métodos para Incapacidades
@@ -2297,6 +2506,149 @@ export class BranchManagerGestionesComponent {
       });
     } finally {
       this.submittingUniform.set(false);
+    }
+  }
+
+  // Work Permit Methods
+  public async onWorkPermitFileSelect(event: any): Promise<void> {
+    const files = event.currentFiles || event.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    this.workPermitFile.set(file);
+    this.uploadingWorkPermitDoc.set(true);
+
+    try {
+      const employee = this.selectedEmployee();
+      const employeeId = employee?.id || 'temp';
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${employeeId}/${Date.now()}.${fileExt}`;
+
+      const storageKey =
+        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
+        '';
+
+      const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${fileName}`;
+
+      await firstValueFrom(
+        this.http.post(uploadUrl, file, {
+          headers: {
+            apikey: storageKey,
+            Authorization: `Bearer ${storageKey}`,
+            'x-upsert': 'true',
+          },
+        })
+      );
+
+      const publicUrl = this.apiUrl.build(
+        `storage/v1/object/public/employee-documents/${fileName}`
+      );
+      this.workPermitDocUrl.set(publicUrl);
+    } catch (error) {
+      console.error('Background upload failed:', error);
+      this.workPermitDocUrl.set(null);
+    } finally {
+      this.uploadingWorkPermitDoc.set(false);
+    }
+  }
+
+  public clearWorkPermitFile(): void {
+    this.workPermitFile.set(null);
+    this.workPermitDocUrl.set(null);
+  }
+
+  private resetWorkPermitForm(): void {
+    this.workPermitType.set(null);
+    this.workPermitStartDate.set(null);
+    this.workPermitEndDate.set(null);
+    this.workPermitStartTime.set(null);
+    this.workPermitEndTime.set(null);
+    this.workPermitObservations.set('');
+    this.workPermitFile.set(null);
+    this.workPermitDocUrl.set(null);
+  }
+
+  public async submitWorkPermitRequest(): Promise<void> {
+    if (!this.canSubmitWorkPermit() || !this.selectedEmployee()) return;
+
+    if (this.uploadingWorkPermitDoc()) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Subiendo archivo...',
+        detail: 'Por favor espera a que termine de subirse el documento adjunto.',
+      });
+      return;
+    }
+
+    this.submittingWorkPermit.set(true);
+
+    try {
+      const employee = this.selectedEmployee()!;
+      const startDate = this.workPermitStartDate();
+      const endDate = this.workPermitEndDate();
+      const startTime = this.workPermitStartTime();
+      const endTime = this.workPermitEndTime();
+
+      // Calculate equivalent
+      let equivalentValue: number | null = null;
+      let equivalentUnit: string | null = null;
+      if (startDate && endDate) {
+        const days = differenceInCalendarDays(endDate, startDate) + 1;
+        if (startTime && endTime && days === 1) {
+          const hours = Math.abs(endTime.getTime() - startTime.getTime()) / 3600000;
+          equivalentValue = Math.round(hours * 10) / 10;
+          equivalentUnit = 'hours';
+        } else {
+          equivalentValue = days;
+          equivalentUnit = 'days';
+        }
+      }
+
+      const permitData: Record<string, any> = {
+        employee_id: employee.id,
+        permit_type: this.workPermitType(),
+        start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+        end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
+        start_time: startTime ? format(startTime, 'HH:mm') : null,
+        end_time: endTime ? format(endTime, 'HH:mm') : null,
+        equivalent_value: equivalentValue,
+        equivalent_unit: equivalentUnit,
+        observations: this.workPermitObservations() || null,
+        document_url: this.workPermitDocUrl() || null,
+        status: 'pending',
+        created_by: this.currentEmployee?.id || null,
+        company_id: this.organizationService.getCurrentCompanyId(),
+      };
+
+      await firstValueFrom(
+        this.http.post(
+          this.apiUrl.build('rest/v1/work_permits'),
+          permitData
+        )
+      );
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: `Solicitud de permiso para ${employee.first_name} ${employee.father_name} enviada correctamente`,
+      });
+
+      this.requestCreated.emit();
+      this.reset();
+    } catch (error: any) {
+      console.error('Error submitting work permit:', error);
+      const errorDetail =
+        error?.error?.message ||
+        error?.message ||
+        'No se pudo enviar la solicitud.';
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: errorDetail,
+      });
+    } finally {
+      this.submittingWorkPermit.set(false);
     }
   }
 
