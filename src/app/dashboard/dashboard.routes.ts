@@ -299,6 +299,14 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.PayrollAdminComponent
               ),
           },
+          {
+            path: 'decimo',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
+            loadComponent: () =>
+              import('./payroll-decimo.component').then(
+                (x) => x.PayrollDecimoComponent
+              ),
+          },
           { path: '', redirectTo: 'payrolls', pathMatch: 'full' },
         ],
       },
