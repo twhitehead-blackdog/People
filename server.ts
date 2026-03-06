@@ -546,7 +546,7 @@ export function app(): express.Express {
           }]]);
           const execResult = await odooJsonRpc(url, 'object', 'execute_kw', [
             db, uid, password,
-            'shopify.process.import.export', 'execute', [Array.isArray(wizardId) ? wizardId : [wizardId]],
+            'shopify.process.import.export', 'shopify_execute', [Array.isArray(wizardId) ? wizardId : [wizardId]],
             {},
           ]);
           result = { triggered: true, wizard_id: wizardId, exec_result: execResult };
