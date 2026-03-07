@@ -98,6 +98,7 @@ import {
     ]),
   ],
   template: `
+    <p-toast />
     <div
       [ngClass]="{ 'naz-theme': isNaz() }"
       class="p-6 md:p-8 lg:p-10 space-y-8"
