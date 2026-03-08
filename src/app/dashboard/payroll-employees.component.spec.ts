@@ -12,6 +12,7 @@ describe('PayrollEmployeesComponent', () => {
 
     fixture = TestBed.createComponent(PayrollEmployeesComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('payrollId', 'test-id');
     fixture.detectChanges();
   });
 

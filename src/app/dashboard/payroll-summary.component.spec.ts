@@ -12,6 +12,8 @@ describe('PayrollSummaryComponent', () => {
 
     fixture = TestBed.createComponent(PayrollSummaryComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('payment_id', 'test-id');
+    fixture.componentRef.setInput('payroll_id', 'test-id');
     fixture.detectChanges();
   });
 

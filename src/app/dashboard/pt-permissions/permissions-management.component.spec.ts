@@ -1,5 +1,6 @@
 import { computed } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Subject } from 'rxjs';
 import { DialogService } from 'primeng/dynamicdialog';
 import { DeviceService } from '../../services/device.service';
 import { PermissionsService } from '../../services/permissions.service';
@@ -64,7 +65,7 @@ describe('PermissionsManagementComponent', () => {
   };
 
   const mockDialogService = {
-    open: jest.fn(),
+    open: jest.fn().mockReturnValue({ onClose: new Subject() }),
   };
 
   const mockDeviceService = {
@@ -82,11 +83,16 @@ describe('PermissionsManagementComponent', () => {
       imports: [PermissionsManagementComponent],
       providers: [
         { provide: PermissionsService, useValue: mockPermissionsService },
-        { provide: DialogService, useValue: mockDialogService },
         { provide: DeviceService, useValue: mockDeviceService },
         { provide: DashboardStore, useValue: mockDashboardStore },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(PermissionsManagementComponent, {
+        set: {
+          providers: [{ provide: DialogService, useValue: mockDialogService }],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(PermissionsManagementComponent);
     component = fixture.componentInstance;
@@ -106,7 +112,7 @@ describe('PermissionsManagementComponent', () => {
   });
 
   it('should open employee editor dialog when edit is clicked', () => {
-    const profile = component.profiles()[0]; // Use signal value
+    const profile = component.profiles()[0];
     component.openEmployeeEditor(profile);
     expect(mockDialogService.open).toHaveBeenCalledWith(
       PermissionEditorDialogComponent,

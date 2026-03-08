@@ -307,6 +307,41 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.PayrollDecimoComponent
               ),
           },
+          {
+            path: 'vacations',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
+            loadComponent: () =>
+              import('./payroll-vacations.component').then(
+                (x) => x.PayrollVacationsComponent
+              ),
+          },
+          {
+            path: 'liquidation',
+            canActivate: [modulePermissionGuard('payroll', 'payrolls')],
+            children: [
+              {
+                path: '',
+                loadComponent: () =>
+                  import('./payroll-liquidation.component').then(
+                    (x) => x.PayrollLiquidationComponent
+                  ),
+              },
+              {
+                path: 'new',
+                loadComponent: () =>
+                  import('./payroll-liquidation-form.component').then(
+                    (x) => x.PayrollLiquidationFormComponent
+                  ),
+              },
+              {
+                path: ':id',
+                loadComponent: () =>
+                  import('./payroll-liquidation-detail.component').then(
+                    (x) => x.PayrollLiquidationDetailComponent
+                  ),
+              },
+            ],
+          },
           { path: '', redirectTo: 'payrolls', pathMatch: 'full' },
         ],
       },

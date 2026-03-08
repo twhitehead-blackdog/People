@@ -35,7 +35,7 @@ describe('EmployeeDetailComponent', () => {
 
     fixture = TestBed.createComponent(EmployeeDetailComponent);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('employee_id', randomUUID());
+    component.employee_id.set(randomUUID());
     fixture.detectChanges();
   });
 
