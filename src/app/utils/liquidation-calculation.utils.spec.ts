@@ -222,8 +222,8 @@ describe('Liquidation Calculation Utils', () => {
       });
 
       expect(result.fondoCesantiaOffset).toBe(500);
-      // Net should be reduced by fondo offset
-      const expectedNet = result.grossTotal - result.cssDeduction - result.isrDeduction - result.otherDeductions - 500;
+      // Net should be reduced by fondo offset (including SE deduction)
+      const expectedNet = result.grossTotal - result.cssDeduction - result.seDeduction - result.isrDeduction - result.otherDeductions - 500;
       expect(result.netTotal).toBeCloseTo(expectedNet, 2);
     });
   });

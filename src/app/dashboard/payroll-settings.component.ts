@@ -25,6 +25,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { v4 } from 'uuid';
@@ -46,6 +47,7 @@ import { markGroupDirty } from '../services/util.service';
     DatePicker,
     TableModule,
     Tag,
+    Select,
     ConfirmDialog,
   ],
   providers: [ConfirmationService],
@@ -136,6 +138,24 @@ import { markGroupDirty } from '../services/util.service';
                   Ajustar pago si cae domingo
                 </label>
               </div>
+            </div>
+            <div class="input-container">
+              <label for="overtime_policy">Politica de Horas Extras</label>
+              <p-select
+                inputId="overtime_policy"
+                formControlName="overtime_policy"
+                [options]="overtimePolicyOptions"
+                optionLabel="label"
+                optionValue="value"
+                fluid
+              />
+              <small class="text-gray-400 mt-1 block">
+                @switch (settingsForm.get('overtime_policy')?.value) {
+                  @case ('comp_time') { Las horas extras se compensan con tiempo libre }
+                  @case ('paid') { Las horas extras se pagan en planilla (25%/50%/75%) }
+                  @case ('none') { No se registran ni pagan horas extras }
+                }
+              </small>
             </div>
           </div>
           <div class="flex justify-end pt-4">
@@ -313,7 +333,14 @@ export class PayrollSettingsComponent implements OnInit {
     monthly_hours: new FormControl(208, { nonNullable: true, validators: [Validators.required] }),
     periods_per_year: new FormControl(24, { nonNullable: true, validators: [Validators.required] }),
     adjust_payment_on_sunday: new FormControl(true, { nonNullable: true }),
+    overtime_policy: new FormControl<'paid' | 'comp_time' | 'none'>('comp_time', { nonNullable: true }),
   });
+
+  public overtimePolicyOptions = [
+    { value: 'comp_time', label: 'Tiempo por Tiempo (compensatorio)' },
+    { value: 'paid', label: 'Pago en Planilla' },
+    { value: 'none', label: 'No aplica' },
+  ];
 
   public holidayForm = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -338,6 +365,7 @@ export class PayrollSettingsComponent implements OnInit {
         monthly_hours: settings.monthly_hours,
         periods_per_year: settings.periods_per_year,
         adjust_payment_on_sunday: settings.adjust_payment_on_sunday,
+        overtime_policy: settings.overtime_policy ?? 'comp_time',
       });
     }
   }

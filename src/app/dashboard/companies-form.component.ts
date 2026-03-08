@@ -37,6 +37,10 @@ import { DashboardStore } from '../stores/dashboard.store';
         <textarea pTextarea formControlName="address" id="address"></textarea>
       </div>
       <div class="input-container">
+        <label for="ruc">RUC</label>
+        <input pInputText formControlName="ruc" id="ruc" placeholder="Ej: 155123456-2-2024" />
+      </div>
+      <div class="input-container">
         <label for="phone_number">Nro. de Telefono</label>
         <input
           pInputText
@@ -79,6 +83,7 @@ export class CompaniesFormComponent implements OnInit {
       validators: [Validators.required],
     }),
     address: new FormControl('', { nonNullable: true }),
+    ruc: new FormControl('', { nonNullable: true }),
     phone_number: new FormControl('', { nonNullable: true }),
     is_active: new FormControl(true, { nonNullable: true }),
   });
@@ -95,6 +100,7 @@ export class CompaniesFormComponent implements OnInit {
         id: company.id,
         name: company.name || '',
         address: company.address || '',
+        ruc: company.ruc || '',
         phone_number: company.phone_number || '',
         is_active: company.is_active !== undefined ? company.is_active : true,
       });

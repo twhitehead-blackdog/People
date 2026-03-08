@@ -50,6 +50,7 @@ export interface LiquidationResult {
   // Totales
   grossTotal: number;
   cssDeduction: number;
+  seDeduction: number;
   isrDeduction: number;
   otherDeductions: number;
   fondoCesantiaOffset: number;
@@ -97,7 +98,7 @@ export function calculateProportionalXIII(
 
   // Determinar inicio del cuatrimestre actual
   let periodStart: Date;
-  if ((month === 12 && day >= 16) || month <= 4 && (month < 4 || day <= 15)) {
+  if ((month === 12 && day >= 16) || (month <= 4 && (month < 4 || day <= 15))) {
     // Cuatrimestre 1: Dic 16 - Abr 15
     if (month === 12) {
       periodStart = new Date(term.getFullYear(), 11, 16); // Dec 16 same year
@@ -311,13 +312,28 @@ export function calculateFullLiquidation(input: LiquidationInput): LiquidationRe
     seniorityBonus + noticePay + severancePay
   );
 
-  // 8. Deducciones (CSS 9.75% sobre salario pendiente + vacaciones + XIII)
+  // 8. Deducciones legales sobre base gravable (salario pendiente + vacaciones + XIII)
   const taxableBase = round(pendingSalary + vacationPay + xiiiMonthProportional);
   const cssDeduction = round(taxableBase * 0.0975);
-  const isrDeduction = 0; // ISR se calcula manualmente si aplica
+  const seDeduction = round(taxableBase * 0.0125);
+
+  // ISR sobre liquidación: se proyecta el ingreso gravable anual y se aplica tabla progresiva
+  const annualTaxable = round((taxableBase - cssDeduction - seDeduction) * 12);
+  let isrDeduction = 0;
+  if (annualTaxable > 11000) {
+    let annualISR = 0;
+    if (annualTaxable > 50000) {
+      annualISR += (50000 - 11000) * 0.15;
+      annualISR += (annualTaxable - 50000) * 0.25;
+    } else {
+      annualISR += (annualTaxable - 11000) * 0.15;
+    }
+    // ISR proporcional a la liquidación (no al año completo)
+    isrDeduction = round(annualISR / 12);
+  }
 
   // 9. Neto
-  const netTotal = round(grossTotal - cssDeduction - isrDeduction - otherDeductions - fondoCesantiaOffset);
+  const netTotal = round(grossTotal - cssDeduction - seDeduction - isrDeduction - otherDeductions - fondoCesantiaOffset);
 
   return {
     pendingSalary,
@@ -333,6 +349,7 @@ export function calculateFullLiquidation(input: LiquidationInput): LiquidationRe
     severanceWeeks,
     grossTotal,
     cssDeduction,
+    seDeduction,
     isrDeduction,
     otherDeductions,
     fondoCesantiaOffset,

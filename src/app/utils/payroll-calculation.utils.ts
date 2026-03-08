@@ -70,6 +70,8 @@ export interface DebtForPeriod {
   description: string;
   installment_amount: number;
   balance: number;
+  debt_type?: string;
+  embargo_max_percentage?: number;
 }
 
 export interface EmployeePayrollResult {
@@ -249,19 +251,47 @@ export function calculateDeductions(
 
 /**
  * Calcula las deducciones por préstamos activos para el período.
- * Retorna el monto a descontar por cada deuda y el total.
+ * Embargos judiciales se limitan al % máximo del salario neto configurado.
+ * netPayBeforeDebts: ingreso bruto - deducciones legales - ausencias (para limitar embargos)
  */
 export function calculateDebtDeductions(
-  debts: DebtForPeriod[]
+  debts: DebtForPeriod[],
+  netPayBeforeDebts = 0
 ): Array<{ id: string; description: string; amount: number }> {
-  return debts
-    .filter(d => d.balance > 0 && d.installment_amount > 0)
-    .map(d => ({
-      id: d.id,
-      description: d.description,
-      // No descontar más del saldo restante
-      amount: round(Math.min(d.installment_amount, d.balance)),
-    }));
+  const results: Array<{ id: string; description: string; amount: number }> = [];
+  let embargoTotalUsed = 0;
+
+  // Procesar deudas regulares primero, embargos al final
+  const sorted = [...debts].sort((a, b) => {
+    if (a.debt_type === 'embargo' && b.debt_type !== 'embargo') return 1;
+    if (a.debt_type !== 'embargo' && b.debt_type === 'embargo') return -1;
+    return 0;
+  });
+
+  let regularDebtTotal = 0;
+
+  for (const d of sorted) {
+    if (d.balance <= 0 || d.installment_amount <= 0) continue;
+
+    if (d.debt_type === 'embargo') {
+      // Embargo: limitar al % máximo del neto (después de deducciones regulares)
+      const maxPct = (d.embargo_max_percentage ?? 30) / 100;
+      const netAfterRegularDebts = netPayBeforeDebts - regularDebtTotal;
+      const embargoLimit = round(Math.max(0, netAfterRegularDebts * maxPct));
+      const available = Math.max(0, embargoLimit - embargoTotalUsed);
+      const amount = round(Math.min(d.installment_amount, d.balance, available));
+      if (amount > 0) {
+        results.push({ id: d.id, description: d.description, amount });
+        embargoTotalUsed += amount;
+      }
+    } else {
+      const amount = round(Math.min(d.installment_amount, d.balance));
+      results.push({ id: d.id, description: d.description, amount });
+      regularDebtTotal += amount;
+    }
+  }
+
+  return results;
 }
 
 // ============================================
@@ -315,8 +345,9 @@ export function calculateEmployeePayroll(
   const total_deductions = Object.values(employeeDeductions).reduce((sum, v) => sum + v, 0);
   const employer_cost = Object.values(employerDeductions).reduce((sum, v) => sum + v, 0);
 
-  // 6. Préstamos
-  const debtDeductions = calculateDebtDeductions(debts);
+  // 6. Préstamos (pasar neto antes de deudas para limitar embargos)
+  const netBeforeDebts = round(gross_income - total_deductions - absence_amount);
+  const debtDeductions = calculateDebtDeductions(debts, netBeforeDebts);
   const total_debt = debtDeductions.reduce((sum, d) => sum + d.amount, 0);
 
   // 7. Neto

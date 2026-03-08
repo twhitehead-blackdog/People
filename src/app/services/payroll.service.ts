@@ -15,6 +15,7 @@ import {
   PayrollSettings,
   PayrollHoliday,
   AttendanceSheet,
+  OvertimePolicy,
 } from '../models';
 import {
   calculatePeriodDates,
@@ -201,6 +202,7 @@ export class PayrollService {
     ]);
 
     const periodsPerYear = settings?.periods_per_year ?? 24;
+    const overtimePolicy: OvertimePolicy = settings?.overtime_policy ?? 'comp_time';
 
     // 3. Convertir deducciones al formato del motor de cálculo
     const deductionRules: DeductionRule[] = deductions.map(d => ({
@@ -226,15 +228,17 @@ export class PayrollService {
         this.getActiveDebts(payrollId, emp.employee_id),
       ]);
 
-      // Sumarizar asistencia
-      const attendance = this.summarizeAttendance(sheets);
+      // Sumarizar asistencia (respeta política de horas extras)
+      const attendance = this.summarizeAttendance(sheets, overtimePolicy);
 
-      // Preparar deudas
+      // Preparar deudas (incluir tipo y % embargo para limitar judiciales)
       const debtsForPeriod: DebtForPeriod[] = debts.map(d => ({
         id: d.id,
         description: d.description,
         installment_amount: d.installment_amount ?? d.amount,
         balance: d.balance,
+        debt_type: d.debt_type,
+        embargo_max_percentage: d.embargo_max_percentage,
       }));
 
       // Calcular
@@ -579,17 +583,27 @@ export class PayrollService {
   // HELPERS - ATTENDANCE SUMMARY
   // ============================================
 
-  private summarizeAttendance(sheets: AttendanceSheet[]): AttendanceSummary {
+  private summarizeAttendance(sheets: AttendanceSheet[], overtimePolicy: OvertimePolicy = 'comp_time'): AttendanceSummary {
     return sheets.reduce<AttendanceSummary>(
-      (acc, s) => ({
-        worked_hours_payment: acc.worked_hours_payment + (s.worked_hours_payment ?? 0),
-        sunday_payment: acc.sunday_payment + (s.sunday_payment ?? 0),
-        holiday_payment: acc.holiday_payment + (s.holiday_payment ?? 0),
-        overtime_payment: acc.overtime_payment + 0, // Overtime se maneja por separado
-        late_hours_payment: acc.late_hours_payment + (s.late_hours_payment ?? 0),
-        absence_hours_payment: acc.absence_hours_payment + (s.absence_hours_payment ?? 0),
-        compensatory_hours_payment: acc.compensatory_hours_payment + (s.compensatory_hours_payment ?? 0),
-      }),
+      (acc, s) => {
+        // Calcular pago de horas extras solo si la política es 'paid'
+        let overtimePayment = 0;
+        if (overtimePolicy === 'paid' && (s.overtime_hours ?? 0) > 0) {
+          // Tarifa por hora = salario mensual / 208, recargo 25% (Art. 33 CT Panamá)
+          const hourlyRate = (s.base_salary ?? 0) / 208;
+          overtimePayment = round((s.overtime_hours ?? 0) * hourlyRate * 1.25);
+        }
+
+        return {
+          worked_hours_payment: acc.worked_hours_payment + (s.worked_hours_payment ?? 0),
+          sunday_payment: acc.sunday_payment + (s.sunday_payment ?? 0),
+          holiday_payment: acc.holiday_payment + (s.holiday_payment ?? 0),
+          overtime_payment: acc.overtime_payment + overtimePayment,
+          late_hours_payment: acc.late_hours_payment + (s.late_hours_payment ?? 0),
+          absence_hours_payment: acc.absence_hours_payment + (s.absence_hours_payment ?? 0),
+          compensatory_hours_payment: acc.compensatory_hours_payment + (s.compensatory_hours_payment ?? 0),
+        };
+      },
       {
         worked_hours_payment: 0,
         sunday_payment: 0,

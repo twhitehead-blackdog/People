@@ -31,6 +31,7 @@ const DEBT_TYPES = [
   { label: 'Prestamo de Empresa', value: 'company_loan' },
   { label: 'Prestamo Bancario', value: 'bank_loan' },
   { label: 'Acreedor / Otro', value: 'creditor' },
+  { label: 'Embargo Judicial', value: 'embargo' },
 ];
 
 const DEBT_STATUSES = [
@@ -200,7 +201,23 @@ const DEBT_STATUSES = [
           appendTo="body"
         />
       </div>
-      <div class="input-container lg:col-span-3">
+      @if (form.get('debt_type')?.value === 'embargo') {
+        <div class="input-container">
+          <label for="embargo_max_percentage">% Maximo del Salario Neto</label>
+          <p-input-number
+            inputId="embargo_max_percentage"
+            formControlName="embargo_max_percentage"
+            fluid
+            suffix=" %"
+            [min]="1"
+            [max]="100"
+          />
+          <small class="text-gray-400 mt-1 block">
+            Porcentaje maximo del salario neto a embargar por quincena
+          </small>
+        </div>
+      }
+      <div class="input-container" [class.lg:col-span-3]="form.get('debt_type')?.value !== 'embargo'" [class.lg:col-span-2]="form.get('debt_type')?.value === 'embargo'">
         <label for="notes">Notas</label>
         <textarea
           pTextarea
@@ -280,6 +297,7 @@ export class PayrollDebtsFormComponent implements OnInit {
     status: new FormControl('active', {
       nonNullable: true,
     }),
+    embargo_max_percentage: new FormControl<number | null>(null),
     notes: new FormControl('', { nonNullable: true }),
   });
 

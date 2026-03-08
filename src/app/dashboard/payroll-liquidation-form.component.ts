@@ -223,6 +223,12 @@ import {
                   <span class="text-red-400">-{{ result()!.cssDeduction | currency:'USD':'symbol':'1.2-2' }}</span>
                 </div>
               }
+              @if (result()!.seDeduction > 0) {
+                <div class="flex justify-between text-sm py-1 border-b border-gray-700/50">
+                  <span class="text-gray-300">Seguro Educativo (1.25%)</span>
+                  <span class="text-red-400">-{{ result()!.seDeduction | currency:'USD':'symbol':'1.2-2' }}</span>
+                </div>
+              }
               @if (result()!.isrDeduction > 0) {
                 <div class="flex justify-between text-sm py-1 border-b border-gray-700/50">
                   <span class="text-gray-300">ISR</span>
@@ -407,6 +413,7 @@ export class PayrollLiquidationFormComponent {
         severance_weeks: calc.severanceWeeks,
         gross_total: calc.grossTotal,
         css_deduction: calc.cssDeduction,
+        se_deduction: calc.seDeduction,
         isr_deduction: calc.isrDeduction,
         other_deductions: calc.otherDeductions,
         fondo_cesantia_offset: calc.fondoCesantiaOffset,

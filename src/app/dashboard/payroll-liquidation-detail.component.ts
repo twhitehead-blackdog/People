@@ -125,6 +125,12 @@ const STATUS_CONFIG: Record<LiquidationStatus, { label: string; severity: 'secon
                 <span class="text-red-400">-{{ liquidation()!.css_deduction | currency:'USD':'symbol':'1.2-2' }}</span>
               </div>
             }
+            @if (liquidation()!.se_deduction > 0) {
+              <div class="flex justify-between text-sm py-1 border-b border-gray-700/50">
+                <span class="text-gray-300">Seguro Educativo (1.25%)</span>
+                <span class="text-red-400">-{{ liquidation()!.se_deduction | currency:'USD':'symbol':'1.2-2' }}</span>
+              </div>
+            }
             @if (liquidation()!.isr_deduction > 0) {
               <div class="flex justify-between text-sm py-1 border-b border-gray-700/50">
                 <span class="text-gray-300">ISR</span>
@@ -253,6 +259,7 @@ export class PayrollLiquidationDetailComponent {
     if (liq.severance_pay > 0) rows.push(['Indemnizacion', `${liq.severance_weeks} semanas`, `$${liq.severance_pay.toFixed(2)}`]);
     rows.push([{ text: 'TOTAL BRUTO', bold: true }, '', { text: `$${liq.gross_total.toFixed(2)}`, bold: true }]);
     rows.push([{ text: '(-) CSS 9.75%', color: 'red' }, '', `$${liq.css_deduction.toFixed(2)}`]);
+    if (liq.se_deduction > 0) rows.push([{ text: '(-) Seguro Educativo 1.25%', color: 'red' }, '', `$${liq.se_deduction.toFixed(2)}`]);
     if (liq.isr_deduction > 0) rows.push([{ text: '(-) ISR', color: 'red' }, '', `$${liq.isr_deduction.toFixed(2)}`]);
     if (liq.other_deductions > 0) rows.push([{ text: '(-) Otras deducciones', color: 'red' }, '', `$${liq.other_deductions.toFixed(2)}`]);
     if (liq.fondo_cesantia_offset > 0) rows.push([{ text: '(-) Fondo Cesantia', color: 'red' }, '', `$${liq.fondo_cesantia_offset.toFixed(2)}`]);

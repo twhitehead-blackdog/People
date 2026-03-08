@@ -3,6 +3,7 @@ export type Company = {
   name: string;
   address: string;
   phone_number: string;
+  ruc?: string;
   is_active: boolean;
   created_at?: Date;
 };
@@ -176,6 +177,8 @@ export type Payroll = {
   created_at?: Date;
 };
 
+export type OvertimePolicy = 'paid' | 'comp_time' | 'none';
+
 export type PayrollSettings = {
   id: string;
   company_id: string;
@@ -186,6 +189,7 @@ export type PayrollSettings = {
   adjust_payment_on_sunday: boolean;
   monthly_hours: number;
   periods_per_year: number;
+  overtime_policy: OvertimePolicy;
   created_at?: Date;
   updated_at?: Date;
 };
@@ -374,7 +378,7 @@ export type GroomerBranchAssignment = {
   employee?: Employee;
 };
 
-export type PayrollDebtType = 'company_loan' | 'bank_loan' | 'creditor' | 'other';
+export type PayrollDebtType = 'company_loan' | 'bank_loan' | 'creditor' | 'embargo' | 'other';
 export type PayrollDebtStatus = 'active' | 'completed' | 'cancelled' | 'paused';
 
 export type PayrollDebt = {
@@ -395,6 +399,7 @@ export type PayrollDebt = {
   installment_amount?: number;
   total_installments?: number;
   paid_installments?: number;
+  embargo_max_percentage?: number; // % máximo del salario neto (embargos judiciales)
   status: PayrollDebtStatus;
   notes?: string;
   payments?: PayrollDebtPayment[];
@@ -1409,6 +1414,7 @@ export type EmployeeLiquidation = {
   severance_weeks: number;
   gross_total: number;
   css_deduction: number;
+  se_deduction: number;
   isr_deduction: number;
   other_deductions: number;
   fondo_cesantia_offset: number;
