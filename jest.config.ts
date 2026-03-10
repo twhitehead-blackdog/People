@@ -19,6 +19,7 @@ export default {
     'jest-preset-angular/build/serializers/ng-snapshot',
     'jest-preset-angular/build/serializers/html-comment',
   ],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/e2e/'],
   moduleNameMapper: {
     '^lodash-es$': 'lodash',
   },

@@ -342,6 +342,13 @@ export const DASHBOARD_ROUTES: Routes = [
               },
             ],
           },
+          {
+            path: 'import',
+            loadComponent: () =>
+              import('./payroll-import.component').then(
+                (x) => x.PayrollImportComponent
+              ),
+          },
           { path: '', redirectTo: 'payrolls', pathMatch: 'full' },
         ],
       },

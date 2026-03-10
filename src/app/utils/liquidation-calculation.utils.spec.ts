@@ -147,12 +147,12 @@ describe('Liquidation Calculation Utils', () => {
       expect(result.severancePay).toBe(true);
     });
 
-    it('should exclude severance and notice for renuncia voluntaria', () => {
+    it('should exclude severance, notice and seniority for renuncia voluntaria', () => {
       const result = getApplicableComponents('RENUNCIA', 'INDEFINIDO');
       expect(result.pendingSalary).toBe(true);
       expect(result.vacations).toBe(true);
       expect(result.xiiiMonth).toBe(true);
-      expect(result.seniorityBonus).toBe(true);
+      expect(result.seniorityBonus).toBe(false); // Art. 224: no prima for voluntary resignation
       expect(result.noticePay).toBe(false);
       expect(result.severancePay).toBe(false);
     });
@@ -195,7 +195,7 @@ describe('Liquidation Calculation Utils', () => {
       expect(result.netTotal).toBeLessThan(result.grossTotal);
     });
 
-    it('should calculate renuncia with no severance/notice', () => {
+    it('should calculate renuncia with no severance/notice/seniority', () => {
       const result = calculateFullLiquidation({
         monthlySalary: 1500,
         hireDate: '2024-01-01',
@@ -207,8 +207,32 @@ describe('Liquidation Calculation Utils', () => {
 
       expect(result.noticePay).toBe(0);
       expect(result.severancePay).toBe(0);
+      expect(result.seniorityBonus).toBe(0); // No prima for voluntary resignation
       expect(result.vacationPay).toBeGreaterThan(0);
       expect(result.xiiiMonthProportional).toBeGreaterThan(0);
+    });
+
+    it('should include preaviso in CSS/SE base but not ISR base', () => {
+      const result = calculateFullLiquidation({
+        monthlySalary: 3000,
+        hireDate: '2015-01-01',
+        terminationDate: '2025-06-01',
+        terminationType: 'DESPIDO_INJUSTIFICADO',
+        contractType: 'INDEFINIDO',
+        lastPayDate: '2025-05-25',
+      });
+
+      // noticePay = 3000 (1 month salary)
+      expect(result.noticePay).toBe(3000);
+      // CSS/SE should be calculated on base that INCLUDES preaviso
+      const baseWithoutNotice = result.pendingSalary + result.vacationPay + result.xiiiMonthProportional;
+      const baseWithNotice = baseWithoutNotice + result.noticePay;
+      // CSS on base with notice
+      const expectedCss = Math.round(baseWithNotice * 0.0975 * 100) / 100;
+      expect(result.cssDeduction).toBe(expectedCss);
+      // SE on base with notice
+      const expectedSe = Math.round(baseWithNotice * 0.0125 * 100) / 100;
+      expect(result.seDeduction).toBe(expectedSe);
     });
 
     it('should apply fondo cesantia offset', () => {

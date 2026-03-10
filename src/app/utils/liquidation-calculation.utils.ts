@@ -218,8 +218,10 @@ export function getApplicableComponents(
   const vacations = true;
   const xiiiMonth = true;
 
-  // Prima de antigüedad: aplica en todos excepto despido justificado
-  const seniorityBonus = terminationType !== 'DESPIDO_JUSTIFICADO';
+  // Prima de antigüedad: NO aplica en despido justificado ni renuncia voluntaria
+  // Art. 224: renuncia voluntaria sin causa no genera prima de antigüedad
+  const seniorityBonus = terminationType !== 'DESPIDO_JUSTIFICADO' &&
+    terminationType !== 'RENUNCIA';
 
   // Preaviso: solo en despido injustificado y renuncia justificada
   const noticePay = terminationType === 'DESPIDO_INJUSTIFICADO' ||
@@ -312,13 +314,19 @@ export function calculateFullLiquidation(input: LiquidationInput): LiquidationRe
     seniorityBonus + noticePay + severancePay
   );
 
-  // 8. Deducciones legales sobre base gravable (salario pendiente + vacaciones + XIII)
-  const taxableBase = round(pendingSalary + vacationPay + xiiiMonthProportional);
-  const cssDeduction = round(taxableBase * 0.0975);
-  const seDeduction = round(taxableBase * 0.0125);
+  // 8. Deducciones legales
+  // CSS y SE aplican sobre: salario pendiente + vacaciones + XIII + preaviso
+  // (preaviso está sujeto a CSS/SE pero NO a ISR)
+  const cssSeBase = round(pendingSalary + vacationPay + xiiiMonthProportional + noticePay);
+  const cssDeduction = round(cssSeBase * 0.0975);
+  const seDeduction = round(cssSeBase * 0.0125);
 
-  // ISR sobre liquidación: se proyecta el ingreso gravable anual y se aplica tabla progresiva
-  const annualTaxable = round((taxableBase - cssDeduction - seDeduction) * 12);
+  // ISR aplica sobre: salario pendiente + vacaciones + XIII (sin preaviso, prima ni indemnización)
+  const isrBase = round(pendingSalary + vacationPay + xiiiMonthProportional);
+  // Para ISR, deducir CSS y SE proporcional a la base gravable de ISR
+  const cssForIsr = round(isrBase * 0.0975);
+  const seForIsr = round(isrBase * 0.0125);
+  const annualTaxable = round((isrBase - cssForIsr - seForIsr) * 12);
   let isrDeduction = 0;
   if (annualTaxable > 11000) {
     let annualISR = 0;

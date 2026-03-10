@@ -330,7 +330,8 @@ export function calculateEmployeePayroll(
     overtime_amount +
     compensatory_amount +
     otherIncome -
-    late_amount
+    late_amount -
+    absence_amount
   );
 
   // 5. Deducciones legales según tipo de empleado
@@ -346,14 +347,14 @@ export function calculateEmployeePayroll(
   const employer_cost = Object.values(employerDeductions).reduce((sum, v) => sum + v, 0);
 
   // 6. Préstamos (pasar neto antes de deudas para limitar embargos)
-  const netBeforeDebts = round(gross_income - total_deductions - absence_amount);
+  const netBeforeDebts = round(gross_income - total_deductions);
   const debtDeductions = calculateDebtDeductions(debts, netBeforeDebts);
   const total_debt = debtDeductions.reduce((sum, d) => sum + d.amount, 0);
 
   // 7. Neto
   const income_amount = round(gross_income);
   const deduction_amount = round(total_deductions);
-  const net_pay = round(income_amount - deduction_amount - total_debt - absence_amount);
+  const net_pay = round(income_amount - deduction_amount - total_debt);
 
   return {
     base_salary: base,

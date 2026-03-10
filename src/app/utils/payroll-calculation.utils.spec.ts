@@ -236,7 +236,7 @@ describe('calculateEmployeePayroll', () => {
     expect(result.net_pay).toBe(1050);
   });
 
-  it('should subtract late penalties from income', () => {
+  it('should subtract late penalties from gross income', () => {
     const result = calculateEmployeePayroll(
       { monthly_salary: 2000, payroll_type: 'honorarios' },
       { ...emptyAttendance, late_hours_payment: 30 },
@@ -246,6 +246,27 @@ describe('calculateEmployeePayroll', () => {
 
     expect(result.late_amount).toBe(30);
     expect(result.gross_income).toBe(970);
+  });
+
+  it('should subtract absences from gross income (reduces deduction base)', () => {
+    const withAbsence = calculateEmployeePayroll(
+      { monthly_salary: 2000, payroll_type: 'regular' },
+      { ...emptyAttendance, absence_hours_payment: 200 },
+      STANDARD_DEDUCTIONS,
+      [],
+    );
+    const withoutAbsence = calculateEmployeePayroll(
+      { monthly_salary: 2000, payroll_type: 'regular' },
+      emptyAttendance,
+      STANDARD_DEDUCTIONS,
+      [],
+    );
+
+    // Absence reduces gross income
+    expect(withAbsence.absence_amount).toBe(200);
+    expect(withAbsence.gross_income).toBe(800); // 1000 - 200
+    // Deductions should be lower when absent (calculated on lower gross)
+    expect(withAbsence.total_deductions).toBeLessThan(withoutAbsence.total_deductions);
   });
 
   it('should deduct loan installments', () => {

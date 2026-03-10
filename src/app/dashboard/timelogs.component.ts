@@ -50,6 +50,7 @@ import { buildDayLogs } from './timelogs/utils/daylog-processing.utils';
 import { filterDayLogs } from './timelogs/utils/daylog-filter.utils';
 import { mapDayLogsToReportRows } from './timelogs/utils/timelogs-report.utils';
 import { matchesEmployeeSearch } from './timelogs/utils/employee-search.utils';
+import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
 
 @Component({
   selector: 'pt-timelogs',
@@ -112,60 +113,86 @@ import { matchesEmployeeSearch } from './timelogs/utils/employee-search.utils';
         (searchRequested)="onEmployeeSearchEnter()"
       ></pt-timelogs-filters>
 
-      <!-- Total Excedido de Almuerzo -->
+      <!-- Resumen del empleado seleccionado -->
       @if(selectedEmployee()) {
-      <div
-        class="mb-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50"
-      >
-        <div class="flex items-center gap-3">
-          <i class="pi pi-info-circle text-yellow-400"></i>
-          <div class="flex-1">
-            <span class="text-sm font-medium text-gray-300"
-              >Total Excedido de Almuerzo -
-              {{ selectedEmployee()?.first_name }}
-              {{ selectedEmployee()?.father_name }}</span
-            >
-          </div>
-          <div class="flex items-center gap-2">
-            @if(totalLunchExceededMinutes() > 0) {
-            <p-tag
-              severity="warn"
-              [value]="formatLunchExceededTotal(totalLunchExceededMinutes())"
-              icon="pi pi-clock"
-              styleClass="text-xs"
-            />
-            } @else {
-            <span class="text-sm text-gray-400">0 minutos</span>
-            }
-          </div>
+      <div class="mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="pi pi-user text-blue-400"></i>
+          <span class="text-sm font-medium text-gray-300">
+            Resumen - {{ selectedEmployee()?.first_name }}
+            {{ selectedEmployee()?.father_name }}
+          </span>
         </div>
-      </div>
-      }
-
-      <!-- Total de Retrasos -->
-      @if(selectedEmployee()) {
-      <div
-        class="mb-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50"
-      >
-        <div class="flex items-center gap-3">
-          <i class="pi pi-info-circle text-red-400"></i>
-          <div class="flex-1">
-            <span class="text-sm font-medium text-gray-300"
-              >Total de Retrasos - {{ selectedEmployee()?.first_name }}
-              {{ selectedEmployee()?.father_name }}</span
-            >
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <!-- Cert. Médicos -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(236, 72, 153, 0.12)">
+              <i class="pi pi-heart text-pink-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">Cert. Médicos</span>
+              <span class="text-lg font-bold text-white">{{ employeeSummaryCounts().certMedicos }}</span>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            @if(totalDelayMinutes() > 0) {
-            <p-tag
-              severity="danger"
-              [value]="formatLunchExceededTotal(totalDelayMinutes())"
-              icon="pi pi-clock"
-              styleClass="text-xs"
-            />
-            } @else {
-            <span class="text-sm text-gray-400">0 minutos</span>
-            }
+          <!-- A. Injustificada -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(239, 68, 68, 0.12)">
+              <i class="pi pi-times-circle text-red-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">A. Injustificada</span>
+              <span class="text-lg font-bold text-white">{{ employeeSummaryCounts().injustificada }}</span>
+            </div>
+          </div>
+          <!-- Justificada -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(34, 197, 94, 0.12)">
+              <i class="pi pi-check-circle text-green-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">Justificada</span>
+              <span class="text-lg font-bold text-white">{{ employeeSummaryCounts().justificada }}</span>
+            </div>
+          </div>
+          <!-- Permisos -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(59, 130, 246, 0.12)">
+              <i class="pi pi-calendar-plus text-blue-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">Permisos</span>
+              <span class="text-lg font-bold text-white">{{ employeeSummaryCounts().permiso }}</span>
+            </div>
+          </div>
+          <!-- Compensatorios -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(245, 158, 11, 0.12)">
+              <i class="pi pi-sync text-amber-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">Compensatorios</span>
+              <span class="text-lg font-bold text-white">{{ employeeSummaryCounts().compensatorioDias }}d / {{ employeeSummaryCounts().compensatorioHoras }}h</span>
+            </div>
+          </div>
+          <!-- Almuerzo Excedido -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(234, 179, 8, 0.12)">
+              <i class="pi pi-clock text-yellow-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">Almuerzo Excedido</span>
+              <span class="text-lg font-bold text-white">{{ formatLunchExceededTotal(totalLunchExceededMinutes()) }}</span>
+            </div>
+          </div>
+          <!-- Retrasos -->
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(249, 115, 22, 0.12)">
+              <i class="pi pi-exclamation-triangle text-orange-400 text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-[0.65rem] text-gray-400 leading-tight">Retrasos</span>
+              <span class="text-lg font-bold text-white">{{ formatLunchExceededTotal(totalDelayMinutes()) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -428,6 +455,28 @@ export class TimelogsComponent {
     };
   });
 
+  // ─── httpResource: Employee Disabilities (cert. médicos) ───
+  public disabilities = httpResource<{ id: string; start_date: string; end_date: string }[]>(() => {
+    const { start, end } = this.normalizedDateRange();
+    const empId = this.employeeId();
+    if (!start || !end || !empId) return undefined;
+
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return undefined;
+
+    return {
+      url: this.apiUrl.build('rest/v1/employee_disabilities', {
+        select: 'id,start_date,end_date',
+        employee_id: `eq.${empId}`,
+        company_id: `eq.${companyId}`,
+        start_date: `lte.${format(end, 'yyyy-MM-dd')}`,
+        end_date: `gte.${format(start, 'yyyy-MM-dd')}`,
+        status: 'eq.approved',
+      }),
+      method: 'GET' as const,
+    };
+  });
+
   // ─── httpResource: Timelogs (split before/after cutoff) ────
   public logsBefore22 = httpResource<any[]>(() => {
     const { start, end } = this.normalizedDateRange();
@@ -599,6 +648,62 @@ export class TimelogsComponent {
         }
         return total;
       }, 0);
+  });
+
+  // ─── Computed: Employee summary counts (cuadritos) ─────────
+  public employeeSummaryCounts = computed(() => {
+    const emp = this.selectedEmployee();
+    if (!emp) return { certMedicos: 0, injustificada: 0, justificada: 0, permiso: 0, compensatorioDias: 0, compensatorioHoras: 0 };
+
+    const empLogs = this.dayLogs().filter(l => l.employee?.id === emp.id);
+    const empTimeoffs = (this.timeoffs.value() ?? []).filter(t => t.employee_id === emp.id);
+
+    let injustificada = 0;
+    let justificada = 0;
+    let permiso = 0;
+    let compensatorioDias = 0;
+
+    for (const log of empLogs) {
+      const hasMarks = !!(log.entry || log.exit);
+      if (hasMarks) continue; // Only count days without marks
+
+      // Check if this day is covered by an approved timeoff
+      const timeoffForDay = empTimeoffs.find(t => {
+        const fromStr = format(new Date(t.date_from), 'yyyy-MM-dd');
+        const toStr = format(new Date(t.date_to), 'yyyy-MM-dd');
+        return log.day >= fromStr && log.day <= toStr;
+      });
+
+      // Check if schedule is a day off / restricted
+      const scheduleName = log.schedule?.schedule?.name?.toLowerCase() || '';
+      const isScheduleDayOff = log.schedule?.schedule?.day_off ||
+        RESTRICTED_SCHEDULE_NAMES.some(name => scheduleName.includes(name));
+
+      if (timeoffForDay) {
+        // Approved timeoff = justified absence
+        justificada++;
+
+        const typeName = timeoffForDay.type?.name?.toLowerCase() || '';
+        if (typeName.includes('personal') || typeName.includes('permiso')) {
+          permiso++;
+        }
+        if (typeName.includes('compensatorio') || timeoffForDay.type_id === 'f2d92995-96a0-414f-b64a-9823db776745') {
+          compensatorioDias++;
+        }
+      } else if (log.schedule?.schedule && !isScheduleDayOff) {
+        // Has work schedule, no marks, no timeoff = unjustified
+        injustificada++;
+      }
+    }
+
+    return {
+      certMedicos: (this.disabilities.value() ?? []).length,
+      injustificada,
+      justificada,
+      permiso,
+      compensatorioDias,
+      compensatorioHoras: compensatorioDias * 8,
+    };
   });
 
   // ─── Computed: Report data (delegates to utils) ────────────
