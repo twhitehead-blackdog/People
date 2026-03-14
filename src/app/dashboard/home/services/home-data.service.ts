@@ -67,7 +67,7 @@ export class HomeDataService {
         company_id: `eq.${companyId}`,
         type: 'eq.entry',
         'created_at': `gte.${monthStart}T00:00:00`,
-        select: 'id,employee_id,type,created_at,employee:employees(first_name,father_name)',
+        select: 'id,employee_id,type,created_at,employee:employees!timelogs_employee_id_fkey(first_name,father_name)',
       }),
     };
   });
@@ -86,7 +86,7 @@ export class HomeDataService {
         company_id: `eq.${companyId}`,
         start_date: `lte.${monthEnd}`,
         end_date: `gte.${monthStart}`,
-        select: 'id,employee_id,start_date,end_date,schedule:schedules(id,entry_time,exit_time,minutes_tolerance,day_off),employee:employees(first_name,father_name)',
+        select: 'id,employee_id,start_date,end_date,schedule:schedules(id,entry_time,exit_time,minutes_tolerance,day_off),employee:employees!employee_schedule_employee_id_fkey(first_name,father_name)',
       }),
     };
   });

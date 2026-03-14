@@ -777,8 +777,8 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       addDays(this.payment.value()![0].end_date, 1),
       "yyyy-MM-dd'T'23:59:59"
     );
-    const select = `*, employee:employees(id, first_name, father_name), branch:branches(id, name)`;
-    
+    const select = `*, employee:employees!timelogs_employee_id_fkey(id, first_name, father_name), branch:branches(id, name)`;
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
@@ -813,7 +813,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     );
     const select = `*,schedule:schedules(*)`;
     
-    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
+    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees!employee_schedule_employee_id_fkey(id,company_id)`;
     url += `&start_date=gte.${startDate}`;
     url += `&end_date=lte.${endDate}`;
     

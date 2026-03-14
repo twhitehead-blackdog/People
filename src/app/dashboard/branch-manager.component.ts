@@ -2284,7 +2284,7 @@ export class BranchManagerComponent {
 
     let url = `${baseUrl}?select=${encodeURIComponent(
       select
-    )},employee:employees!inner(id,company_id,is_active)`;
+    )},employee:employees!employee_schedule_employee_id_fkey!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${endDate}`;
     url += `&end_date=gte.${startDate}`;
 
@@ -2317,7 +2317,7 @@ export class BranchManagerComponent {
     // Usar ApiUrlService.build() como en timetables (no process.env directamente)
     const url = this.apiUrl.build('rest/v1/employee_schedules', {
       select:
-        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
       start_date: `lte.${endDate}`,
       end_date: `gte.${startDate}`,
       ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
