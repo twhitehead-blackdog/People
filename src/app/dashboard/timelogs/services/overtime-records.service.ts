@@ -40,220 +40,67 @@ export class OvertimeRecordsService {
 
   /**
    * Fetches overtime records for a given date range
+   * TODO: Deshabilitado - tabla employee_overtime_records no existe en DB
    */
   async getByDateRange(
-    startDate: Date,
-    endDate: Date
+    _startDate: Date,
+    _endDate: Date
   ): Promise<EmployeeOvertimeRecord[]> {
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!companyId) {
-      this.logger.warn('[OvertimeRecordsService] No company ID available');
-      return [];
-    }
-
-    const startStr = format(startDate, 'yyyy-MM-dd');
-    const endStr = format(endDate, 'yyyy-MM-dd');
-
-    const url = this.apiUrl.build('rest/v1/employee_overtime_records', {
-      select:
-        '*,employee:employees(id,first_name,father_name),confirmedByEmployee:employees!confirmed_by(id,first_name,father_name)',
-      timelog_date: `gte.${startStr}`,
-      and: `(timelog_date.gte.${startStr},timelog_date.lte.${endStr})`,
-      company_id: `eq.${companyId}`,
-    });
-
-    try {
-      this.isLoading.set(true);
-      const result = await firstValueFrom(
-        this.http.get<EmployeeOvertimeRecord[]>(url)
-      );
-      this.logger.debug(
-        '[OvertimeRecordsService] Fetched records:',
-        result?.length ?? 0
-      );
-      return result ?? [];
-    } catch (error) {
-      this.logger.error(
-        '[OvertimeRecordsService] Error fetching records:',
-        error
-      );
-      throw error;
-    } finally {
-      this.isLoading.set(false);
-    }
+    this.logger.warn('[OvertimeRecordsService] Deshabilitado - tabla employee_overtime_records no existe');
+    return [];
   }
 
   /**
    * Gets a single overtime record by employee and date
+   * TODO: Deshabilitado - tabla employee_overtime_records no existe en DB
    */
   async getByEmployeeAndDate(
-    employeeId: string,
-    date: string
+    _employeeId: string,
+    _date: string
   ): Promise<EmployeeOvertimeRecord | null> {
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!companyId) {
-      return null;
-    }
-
-    const url = this.apiUrl.build('rest/v1/employee_overtime_records', {
-      select: '*',
-      employee_id: `eq.${employeeId}`,
-      timelog_date: `eq.${date}`,
-      company_id: `eq.${companyId}`,
-    });
-
-    try {
-      const result = await firstValueFrom(
-        this.http.get<EmployeeOvertimeRecord[]>(url)
-      );
-      return result?.[0] ?? null;
-    } catch (error) {
-      this.logger.error(
-        '[OvertimeRecordsService] Error fetching single record:',
-        error
-      );
-      return null;
-    }
+    return null;
   }
 
   /**
    * Saves (creates or updates) an overtime record
-   * Uses UPSERT via Supabase on-conflict-update
+   * TODO: Deshabilitado - tabla employee_overtime_records no existe en DB
    */
   async save(
     params: SaveOvertimeRecordParams
   ): Promise<EmployeeOvertimeRecord> {
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!companyId) {
-      throw new Error('No company ID available');
-    }
-
-    const payload = {
+    this.logger.warn('[OvertimeRecordsService] save() deshabilitado - tabla no existe');
+    return {
+      id: '',
       employee_id: params.employee_id,
       timelog_date: params.timelog_date,
       hours: params.hours,
       status: params.status ?? 'pending',
-      reason: params.reason ?? null,
-      company_id: companyId,
-    };
-
-    // Use UPSERT with on-conflict-update
-    const url = this.apiUrl.build('rest/v1/employee_overtime_records', {
-      on_conflict: 'employee_id,timelog_date',
-    });
-
-    try {
-      this.isLoading.set(true);
-      const result = await firstValueFrom(
-        this.http.post<EmployeeOvertimeRecord[]>(url, payload, {
-          headers: {
-            Prefer: 'return=representation,resolution=merge-duplicates',
-          },
-        })
-      );
-      this.logger.debug('[OvertimeRecordsService] Saved record:', result?.[0]);
-      return result?.[0] ?? (payload as EmployeeOvertimeRecord);
-    } catch (error) {
-      this.logger.error('[OvertimeRecordsService] Error saving record:', error);
-      throw error;
-    } finally {
-      this.isLoading.set(false);
-    }
+    } as EmployeeOvertimeRecord;
   }
 
   /**
    * Confirms an overtime record
-   * Sets status to 'confirmed' and populates audit fields
+   * TODO: Deshabilitado - tabla employee_overtime_records no existe en DB
    */
   async confirm(
     params: ConfirmOvertimeParams
   ): Promise<EmployeeOvertimeRecord> {
-    const url = this.apiUrl.build(`rest/v1/employee_overtime_records`, {
-      id: `eq.${params.recordId}`,
-    });
-
-    const payload: Partial<EmployeeOvertimeRecord> = {
-      status: 'confirmed',
-      confirmed_by: params.confirmedBy,
-      confirmed_at: new Date().toISOString(),
-    };
-
-    if (params.hours !== undefined) {
-      payload.hours = params.hours;
-    }
-
-    if (params.reason) {
-      payload.reason = params.reason;
-    }
-
-    try {
-      this.isLoading.set(true);
-      const result = await firstValueFrom(
-        this.http.patch<EmployeeOvertimeRecord[]>(url, payload, {
-          headers: {
-            Prefer: 'return=representation',
-          },
-        })
-      );
-      this.logger.debug(
-        '[OvertimeRecordsService] Confirmed record:',
-        result?.[0]
-      );
-      return result?.[0] as EmployeeOvertimeRecord;
-    } catch (error) {
-      this.logger.error(
-        '[OvertimeRecordsService] Error confirming record:',
-        error
-      );
-      throw error;
-    } finally {
-      this.isLoading.set(false);
-    }
+    this.logger.warn('[OvertimeRecordsService] confirm() deshabilitado - tabla no existe');
+    return { id: params.recordId, status: 'confirmed' } as EmployeeOvertimeRecord;
   }
 
   /**
    * Rejects an overtime record
-   * Sets status to 'rejected' with reason
+   * TODO: Deshabilitado - tabla employee_overtime_records no existe en DB
    */
   async reject(params: RejectOvertimeParams): Promise<EmployeeOvertimeRecord> {
-    const url = this.apiUrl.build(`rest/v1/employee_overtime_records`, {
-      id: `eq.${params.recordId}`,
-    });
-
-    const payload: Partial<EmployeeOvertimeRecord> = {
-      status: 'rejected',
-      confirmed_by: params.confirmedBy,
-      confirmed_at: new Date().toISOString(),
-      reason: params.reason,
-    };
-
-    try {
-      this.isLoading.set(true);
-      const result = await firstValueFrom(
-        this.http.patch<EmployeeOvertimeRecord[]>(url, payload, {
-          headers: {
-            Prefer: 'return=representation',
-          },
-        })
-      );
-      this.logger.debug(
-        '[OvertimeRecordsService] Rejected record:',
-        result?.[0]
-      );
-      return result?.[0] as EmployeeOvertimeRecord;
-    } catch (error) {
-      this.logger.error(
-        '[OvertimeRecordsService] Error rejecting record:',
-        error
-      );
-      throw error;
-    } finally {
-      this.isLoading.set(false);
-    }
+    this.logger.warn('[OvertimeRecordsService] reject() deshabilitado - tabla no existe');
+    return { id: params.recordId, status: 'rejected' } as EmployeeOvertimeRecord;
   }
 
   /**
    * Creates a new pending overtime record for a timelog that doesn't have one
+   * TODO: Deshabilitado - tabla employee_overtime_records no existe en DB
    */
   async createPendingRecord(
     employeeId: string,

@@ -3416,34 +3416,8 @@ export class BranchManagerComponent {
 
   public completeReminder(reminder: Reminder) {
     if (reminder.audit_task_instance_id) {
-      // Es una tarea de auditoría
-      this.http
-        .patch(
-          this.apiUrl.build('rest/v1/audit_task_instances', {
-            id: `eq.${reminder.audit_task_instance_id}`,
-          }),
-          {
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            completed_by: this.store.auth.currentEmployeeId(),
-          }
-        )
-        .subscribe({
-          next: () => {
-            this.refreshReminders();
-            this.message.add({
-              severity: 'success',
-              summary: 'Tarea completada',
-              detail: 'La tarea de auditoría ha sido marcada como completada',
-            });
-          },
-          error: () => {
-            this.message.add({
-              severity: 'error',
-              summary: 'Error al completar tarea',
-            });
-          },
-        });
+      // TODO: Deshabilitado - tabla audit_task_instances no existe en DB
+      return;
     } else {
       // Es un recordatorio manual
       this.http
@@ -3472,35 +3446,9 @@ export class BranchManagerComponent {
     }
   }
 
-  public markReminderNotApplicable(reminder: Reminder) {
-    if (!reminder.audit_task_instance_id) return;
-
-    this.http
-      .patch(
-        this.apiUrl.build('rest/v1/audit_task_instances', {
-          id: `eq.${reminder.audit_task_instance_id}`,
-        }),
-        {
-          status: 'not_applicable',
-          completed_at: new Date().toISOString(),
-          completed_by: this.store.auth.currentEmployeeId(),
-        }
-      )
-      .subscribe({
-        next: () => {
-          this.refreshReminders();
-          this.message.add({
-            severity: 'info',
-            summary: 'Tarea marcada como No Aplica',
-          });
-        },
-        error: () => {
-          this.message.add({
-            severity: 'error',
-            summary: 'Error al actualizar tarea',
-          });
-        },
-      });
+  // TODO: Deshabilitado - tabla audit_task_instances no existe en DB
+  public markReminderNotApplicable(_reminder: Reminder) {
+    return;
   }
 
   public deleteReminder(id: string) {

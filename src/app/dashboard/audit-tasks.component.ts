@@ -872,35 +872,13 @@ export class AuditTasksComponent {
         is_active: true,
       };
 
-      if (this.editingTask()) {
-        // Update
-        await firstValueFrom(
-          this.http.patch(
-            this.apiUrl.build('rest/v1/audit_tasks', {
-              id: `eq.${this.editingTask()!.id}`,
-            }),
-            payload
-          )
-        );
-        this.message.add({
-          severity: 'success',
-          summary: 'Tarea actualizada',
-          detail: 'La tarea de auditoría ha sido actualizada correctamente',
-        });
-      } else {
-        // Create
-        await firstValueFrom(
-          this.http.post(this.apiUrl.build('rest/v1/audit_tasks'), payload)
-        );
-        this.message.add({
-          severity: 'success',
-          summary: 'Tarea creada',
-          detail: 'La tarea de auditoría ha sido creada correctamente',
-        });
-      }
-
+      // TODO: Deshabilitado - tabla audit_tasks no existe en DB
+      this.message.add({
+        severity: 'warn',
+        summary: 'No disponible',
+        detail: 'El módulo de tareas de auditoría no está disponible actualmente.',
+      });
       this.closeTaskDialog();
-      this.tasksResource.reload();
     } catch (error) {
       console.error('Error saving task:', error);
       this.message.add({
@@ -913,32 +891,9 @@ export class AuditTasksComponent {
     }
   }
 
-  async toggleTaskActive(task: AuditTask) {
-    try {
-      await firstValueFrom(
-        this.http.patch(
-          this.apiUrl.build('rest/v1/audit_tasks', {
-            id: `eq.${task.id}`,
-          }),
-          { is_active: task.is_active }
-        )
-      );
-      this.message.add({
-        severity: 'info',
-        summary: task.is_active ? 'Tarea activada' : 'Tarea desactivada',
-        detail: `La tarea "${task.title}" ha sido ${
-          task.is_active ? 'activada' : 'desactivada'
-        }`,
-      });
-    } catch (error) {
-      console.error('Error toggling task:', error);
-      task.is_active = !task.is_active; // Revert
-      this.message.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo cambiar el estado de la tarea',
-      });
-    }
+  // TODO: Deshabilitado - tabla audit_tasks no existe en DB
+  async toggleTaskActive(_task: AuditTask) {
+    return;
   }
 
   confirmDeleteTask(task: AuditTask) {
@@ -953,29 +908,9 @@ export class AuditTasksComponent {
     });
   }
 
-  async deleteTask(task: AuditTask) {
-    try {
-      await firstValueFrom(
-        this.http.delete(
-          this.apiUrl.build('rest/v1/audit_tasks', {
-            id: `eq.${task.id}`,
-          })
-        )
-      );
-      this.message.add({
-        severity: 'success',
-        summary: 'Tarea eliminada',
-        detail: 'La tarea ha sido eliminada correctamente',
-      });
-      this.tasksResource.reload();
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      this.message.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo eliminar la tarea',
-      });
-    }
+  // TODO: Deshabilitado - tabla audit_tasks no existe en DB
+  async deleteTask(_task: AuditTask) {
+    return;
   }
 
   viewInstances(task: AuditTask) {

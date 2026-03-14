@@ -1577,14 +1577,11 @@ export class EmployeePortalComponent {
         created_at: new Date().toISOString(),
       };
 
-      const url = this.apiUrl.build('rest/v1/employee_requests');
-      await firstValueFrom(this.http.post(url, requestData));
-
+      // TODO: Deshabilitado - tabla employee_requests no existe en DB
       this.messageService.add({
-        severity: 'success',
-        summary: 'Solicitud Enviada',
-        detail:
-          'Tu solicitud de corrección de marcación ha sido enviada para revisión.',
+        severity: 'warn',
+        summary: 'No disponible',
+        detail: 'Las solicitudes de corrección no están disponibles actualmente.',
       });
 
       // Reset form
@@ -1637,13 +1634,11 @@ export class EmployeePortalComponent {
         created_at: new Date().toISOString(),
       };
 
-      const url = this.apiUrl.build('rest/v1/employee_requests');
-      await firstValueFrom(this.http.post(url, requestData));
-
+      // TODO: Deshabilitado - tabla employee_requests no existe en DB
       this.messageService.add({
-        severity: 'success',
-        summary: 'Solicitud Enviada',
-        detail: 'Tu solicitud de uniforme ha sido enviada para revisión.',
+        severity: 'warn',
+        summary: 'No disponible',
+        detail: 'Las solicitudes de uniforme no están disponibles actualmente.',
       });
 
       // Reset form

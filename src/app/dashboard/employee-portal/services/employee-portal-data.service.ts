@@ -399,18 +399,9 @@ export class EmployeePortalDataService {
   public timeoffTypes = computed(() => this.timeoffTypesApi.value() ?? []);
 
   // --- Compensatory API ---
+  // TODO: Deshabilitado - tabla compensatory_requests no existe en DB
   public compensatoryApi = httpResource<any[]>(() => {
-    if (!this.currentEmployee()?.id) return undefined;
-    return {
-      url: this.apiUrl.build('rest/v1/compensatory_requests'),
-      method: 'GET',
-      params: {
-        select: '*',
-        employee_id: `eq.${this.currentEmployee()!.id}`,
-        status: 'eq.approved',
-        order: 'created_at.desc',
-      },
-    };
+    return undefined;
   });
 
   public approvedCompensatoryHours = computed(() => {

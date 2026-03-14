@@ -47,17 +47,10 @@ export class HomeDataService {
 
   private currentCompanyId = computed(() => this.organizationService.getCurrentCompanyId());
 
-  // Terminations API for calculating exits/turnover
+  // Terminations API
+  // TODO: Deshabilitado - tabla es 'terminations' pero no tiene company_id
   terminationsApi = httpResource<TerminationRecord[]>(() => {
-    const companyId = this.currentCompanyId();
-    if (!companyId) return undefined;
-
-    return {
-      url: this.apiUrl.build('rest/v1/employee_terminations', {
-        company_id: `eq.${companyId}`,
-        select: 'id,employee_id,date,reason',
-      }),
-    };
+    return undefined;
   });
 
   // Timelogs for calculating lates - current month entries
