@@ -146,7 +146,7 @@ export class ScheduleAuditService {
       this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
-          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees!employee_schedule_employee_id_fkey(id,first_name,father_name))`,
           'employee_schedule.employee_id': `eq.${employeeId}`,
           order: 'changed_at.desc',
         },
@@ -166,7 +166,7 @@ export class ScheduleAuditService {
       this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
-          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees!employee_schedule_employee_id_fkey(id,first_name,father_name))`,
           'employee_schedule.employee_id': `eq.${employeeId}`,
           'employee_schedule.start_date': `lte.${dateStr}`,
           'employee_schedule.end_date': `gte.${dateStr}`,
@@ -189,7 +189,7 @@ export class ScheduleAuditService {
     pageSize?: number;
   }): Observable<ScheduleAuditLog[]> {
     const queryParams: Record<string, string> = {
-      select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+      select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees!employee_schedule_employee_id_fkey(id,first_name,father_name))`,
       order: 'changed_at.desc',
     };
 
