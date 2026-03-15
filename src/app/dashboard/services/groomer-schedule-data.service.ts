@@ -72,7 +72,7 @@ export class GroomerScheduleDataService {
         employee_id: `in.(${groomerIds.join(',')})`,
         ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
         select:
-          'employee_id,start_date,end_date,schedule:schedules(day_off,name),employee:employees(id,company_id)',
+          'employee_id,start_date,end_date,schedule:schedules(day_off,name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
       }),
       {}
     );

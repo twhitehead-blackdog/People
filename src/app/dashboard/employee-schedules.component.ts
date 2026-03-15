@@ -27,12 +27,14 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
   imports: [Button, CalendarComponent, Popover, Tooltip, TimePipe, NgClass],
   providers: [DynamicDialogRef, DialogService],
   template: `
-    <pt-calendar
-      [markers]="employeeSchedules() ?? []"
-      [markerTpl]="markerTpl"
-    />
+    <div class="schedule-scroll">
+      <pt-calendar
+        [markers]="employeeSchedules() ?? []"
+        [markerTpl]="markerTpl"
+      />
+    </div>
     <p-button
-      class="fixed bottom-24 right-12"
+      class="schedule-add-btn"
       label="Nuevo"
       icon="pi pi-plus-circle"
       (onClick)="editSchedule({ employee_id: employeeId() })"
@@ -98,7 +100,33 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
       </div>
     </ng-template>
   `,
-  styles: ``,
+  styles: `
+    .schedule-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      min-width: 0;
+    }
+    @media (max-width: 768px) {
+      .schedule-scroll {
+        margin: 0 -1rem;
+        padding: 0 0.5rem;
+      }
+      .schedule-scroll ::ng-deep .calendar-container {
+        min-width: 600px;
+      }
+      .schedule-scroll ::ng-deep .calendar-grid > div {
+        height: 5rem !important;
+        min-height: 5rem !important;
+      }
+    }
+    .schedule-add-btn {
+      display: block;
+      margin-top: 1rem;
+    }
+    @media (max-width: 768px) {
+      .schedule-add-btn { margin-top: 0.75rem; }
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeeSchedulesComponent {
@@ -129,7 +157,7 @@ export class EmployeeSchedulesComponent {
     const employeeId = this.employeeId();
 
     // Construir URL manualmente para poder usar filtro a través de employees
-    let url = `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time,exit_time),branch:branches(id,name,short_name),employee:employees!inner(id,company_id,is_active)`;
+    let url = `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time,exit_time),branch:branches(id,name,short_name),employee:employees!employee_schedule_employee_id_fkey!inner(id,company_id,is_active)`;
     url += `&employee_id=eq.${employeeId}`;
 
     // Filtrar solo empleados activos

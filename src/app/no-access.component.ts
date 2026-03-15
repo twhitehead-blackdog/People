@@ -23,96 +23,285 @@ import { getEnv } from './utils/env.utils';
   standalone: true,
   imports: [Button, Card, RouterLink],
   template: `
-    <div
-      class="min-h-screen bg-neutral-950 flex items-center justify-center px-4"
-    >
-      <p-card
-        class="w-full max-w-lg text-center bg-neutral-900 border border-neutral-800"
-      >
-        <ng-template pTemplate="title">
-          <div class="flex flex-col items-center gap-3">
-            <div class="relative">
-              <div
-                class="w-20 h-20 rounded-full bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center shadow-lg shadow-red-500/20 border border-red-500/30 animate-pulse"
-              >
-                <i
-                  class="pi pi-exclamation-triangle text-red-400 text-3xl drop-shadow-lg"
-                ></i>
-              </div>
-              <div
-                class="absolute inset-0 w-20 h-20 rounded-full bg-red-500/10 animate-ping"
-              ></div>
-            </div>
-            <h1 class="text-2xl font-semibold text-white m-0">{{ title() }}</h1>
-          </div>
-        </ng-template>
-        <div class="space-y-4 text-gray-300">
-          @if (showMeme()) {
-          <div class="flex justify-center mb-4">
-            <img
-              src="images/meme.jpg"
-              alt="Meme"
-              class="max-w-full h-auto rounded-lg shadow-lg border-2 border-red-500/30"
-              style="max-height: 300px; object-fit: contain;"
-            />
-          </div>
-          }
-          <p class="text-lg text-white font-medium">{{ message() }}</p>
-          <p class="leading-relaxed">{{ description() }}</p>
-          @if (showWifiInstruction()) {
-          <div
-            class="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg"
-          >
-            <div class="flex items-start gap-3">
-              <i class="pi pi-wifi text-blue-400 text-xl mt-1"></i>
-              <div class="flex-1">
-                <p class="text-blue-300 font-semibold mb-1">Instrucciones:</p>
-                <p class="text-blue-200 text-sm leading-relaxed">
-                  Conéctate al WiFi de tu sucursal para poder acceder al modo
-                  kiosko. El sistema detectará automáticamente cuando vuelvas a
-                  una IP autorizada y te redirigirá al modo kiosko.
-                </p>
-              </div>
-            </div>
-          </div>
-          } @if (currentIP()) {
-          <div
-            class="mt-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700"
-          >
-            <p class="text-xs text-gray-400 mb-1">IP detectada:</p>
-            <p class="text-sm text-red-400 font-mono font-semibold">
-              {{ currentIP() }}
-            </p>
-          </div>
-          } @if (previousIP()) {
-          <div
-            class="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700"
-          >
-            <p class="text-xs text-gray-400 mb-1">IP anterior:</p>
-            <p class="text-sm text-gray-300 font-mono">{{ previousIP() }}</p>
-          </div>
-          }
-          <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-            @if (showLogout()) {
-            <p-button
-              label="Cerrar sesión"
-              severity="danger"
-              icon="pi pi-sign-out"
-              (onClick)="logout()"
-            ></p-button>
-            }
-            <a routerLink="/login" class="sm:w-auto w-full">
-              <p-button
-                label="Ir al inicio"
-                severity="secondary"
-                outlined
-                styleClass="w-full"
-              ></p-button>
-            </a>
+    <div class="na-screen">
+      <div class="na-card">
+        <div class="na-icon-wrap">
+          <div class="na-icon" [class.na-icon--warn]="showWifiInstruction()" [class.na-icon--error]="showMeme()">
+            <i class="pi" [class.pi-lock]="showWifiInstruction()" [class.pi-exclamation-triangle]="showMeme()" [class.pi-shield]="!showWifiInstruction() && !showMeme()"></i>
           </div>
         </div>
-      </p-card>
+
+        <div class="na-title">{{ title() }}</div>
+        <div class="na-desc">{{ description() }}</div>
+
+        @if (showMeme()) {
+          <img src="images/meme.jpg" alt="" class="na-meme" />
+        }
+
+        @if (currentIP()) {
+          <div class="na-ip-row">
+            <span class="na-ip-label">IP actual</span>
+            <span class="na-ip-value">{{ currentIP() }}</span>
+          </div>
+        }
+        @if (previousIP()) {
+          <div class="na-ip-row na-ip-row--dim">
+            <span class="na-ip-label">IP anterior</span>
+            <span class="na-ip-value">{{ previousIP() }}</span>
+          </div>
+        }
+
+        @if (showWifiInstruction()) {
+          <div class="na-info-box">
+            <div class="na-info-title"><i class="pi pi-wifi"></i> Instrucciones</div>
+            <p>Conéctate al WiFi de tu sucursal. El sistema detectará automáticamente cuando tu IP sea autorizada y te redirigirá.</p>
+          </div>
+        }
+
+        <div class="na-actions">
+          @if (showLogout()) {
+            <button class="na-btn na-btn--danger" (click)="logout()">
+              <i class="pi pi-sign-out"></i> Cerrar sesión
+            </button>
+          }
+          <a routerLink="/login" class="na-btn na-btn--ghost">
+            <i class="pi pi-arrow-left"></i> Ir al inicio
+          </a>
+        </div>
+      </div>
     </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: #08080c;
+    }
+
+    .na-screen {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: #08080c;
+    }
+
+    .na-card {
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.1rem;
+      padding: 2.5rem 2rem;
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(40px) saturate(1.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+      animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .na-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.15), transparent);
+      z-index: 1;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .na-icon-wrap {
+      position: relative;
+      margin-bottom: 0.25rem;
+    }
+    .na-icon-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 1px solid rgba(239, 68, 68, 0.08);
+      animation: ripple 2.5s ease-out infinite;
+    }
+    @keyframes ripple {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.7); opacity: 0; }
+    }
+
+    .na-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(185, 28, 28, 0.05) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+      position: relative;
+      z-index: 1;
+      animation: iconIn 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .na-icon--warn {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+      border-color: rgba(251, 191, 36, 0.15);
+    }
+    .na-icon--warn i { color: rgba(251, 191, 36, 0.8) !important; }
+    @keyframes iconIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.12); }
+      70% { transform: scale(0.96); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .na-icon i {
+      font-size: 2rem;
+      color: rgba(248, 113, 113, 0.85);
+      filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.2));
+    }
+
+    .na-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+    .na-desc {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: center;
+      line-height: 1.55;
+      max-width: 340px;
+    }
+
+    .na-meme {
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .na-ip-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.1rem;
+      border-radius: 14px;
+      background: rgba(239, 68, 68, 0.05);
+      border: 1px solid rgba(239, 68, 68, 0.1);
+    }
+    .na-ip-row--dim {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+    .na-ip-label {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+    .na-ip-value {
+      font-size: 0.9rem;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+      font-weight: 600;
+      color: rgba(248, 113, 113, 0.85);
+      letter-spacing: 0.01em;
+    }
+    .na-ip-row--dim .na-ip-value {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .na-info-box {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .na-info-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .na-info-title i { font-size: 0.72rem; }
+    .na-info-box p {
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.32);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .na-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    .na-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      height: 46px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      border: none;
+    }
+    .na-btn--danger {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.1) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: rgba(248, 113, 113, 0.9);
+    }
+    .na-btn--danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .na-btn--ghost {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .na-btn--ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .na-btn:active { transform: scale(0.98); }
+
+    @media (max-width: 640px) {
+      .na-card {
+        padding: 2rem 1.5rem;
+        border-radius: 28px;
+        gap: 1rem;
+      }
+      .na-icon { width: 68px; height: 68px; }
+      .na-icon i { font-size: 1.75rem; }
+      .na-title { font-size: 1.3rem; }
+    }
   `,
 })
 export class NoAccessComponent implements OnInit, OnDestroy {

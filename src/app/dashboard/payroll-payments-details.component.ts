@@ -1122,7 +1122,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     );
 
     const params: Record<string, string> = {
-      select: '*,schedule:schedules(*),employee:employees(id,company_id)',
+      select: '*,schedule:schedules(*),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
       start_date: `gte.${startDate}`,
       order: 'start_date.asc',
     };

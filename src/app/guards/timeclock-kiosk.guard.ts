@@ -34,6 +34,9 @@ export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boo
     return of(true);
   }
 
+  // IPs that always bypass kiosk validation
+  const BYPASS_IPS = new Set(['181.197.126.10']);
+
   // Para Black Dog, validar IP como antes
   // Obtener IPs de sucursales activas desde la base de datos
   // El interceptor HTTP ya agrega los headers de Supabase automáticamente
@@ -70,15 +73,15 @@ export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boo
             }));
           }
 
-          // Verificar explícitamente que la IP esté en la lista de permitidas
+          // Verificar explícitamente que la IP esté en la lista de permitidas o bypass
           const clientIP = result.ip.trim();
-          const isIPInList = allowedIPs.some(allowedIP => {
+          const isIPInList = BYPASS_IPS.has(clientIP) || allowedIPs.some(allowedIP => {
             const trimmedAllowed = allowedIP.trim();
             return clientIP === trimmedAllowed;
           });
 
           // BLOQUEAR ACCESO si la IP no está en la lista O si result.allowed es false
-          if (!isIPInList || !result.allowed) {
+          if (!isIPInList || (!result.allowed && !BYPASS_IPS.has(clientIP))) {
             return of(router.createUrlTree(['/sin-acceso'], {
               queryParams: { reason: 'ip_not_allowed', ip: clientIP }
             }));

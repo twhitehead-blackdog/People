@@ -7,6 +7,7 @@ import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Payroll } from '../models';
+import { DeviceService } from '../services/device.service';
 import { PayrollsStore } from '../stores/payrolls.store';
 import { PayrollsFormComponent } from './payrolls-form.component';
 
@@ -21,13 +22,15 @@ import { PayrollsFormComponent } from './payrolls-form.component';
             <i class="pi pi-calculator text-2xl text-amber-400"></i>
             <div>
               <h2 class="m-0">Planillas</h2>
-              <p class="text-sm text-gray-400 m-0 mt-1">Sistema de gestión de planillas de pago</p>
+              @if (device.isDesktop()) {
+                <p class="text-sm text-gray-400 m-0 mt-1">Sistema de gestión de planillas de pago</p>
+              }
             </div>
           </div>
           <div class="flex gap-2">
             <p-button
               (click)="editPayroll()"
-              label="Nueva Planilla"
+              [label]="device.isDesktop() ? 'Nueva Planilla' : ''"
               icon="pi pi-plus-circle"
               rounded
             />
@@ -40,7 +43,7 @@ import { PayrollsFormComponent } from './payrolls-form.component';
           <p class="text-lg font-medium">No hay planillas configuradas</p>
           <p class="text-sm">Crea una nueva planilla para comenzar</p>
         </div>
-      } @else {
+      } @else if (device.isDesktop()) {
         <p-table
           [value]="store.entities() || []"
           [loading]="store.isLoading()"
@@ -102,12 +105,44 @@ import { PayrollsFormComponent } from './payrolls-form.component';
             </tr>
           </ng-template>
         </p-table>
+      } @else {
+        <!-- Mobile card view -->
+        @if (store.isLoading()) {
+          <div class="flex items-center justify-center py-8">
+            <i class="pi pi-spin pi-spinner text-3xl text-amber-400"></i>
+          </div>
+        } @else {
+          <div class="mobile-card-list">
+            @for (payroll of store.entities() || []; track payroll.id) {
+              <div class="mobile-card-item" [routerLink]="payroll.id">
+                <div class="mobile-card-item__avatar">
+                  <i class="pi pi-file-edit"></i>
+                </div>
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">{{ payroll.name }}</div>
+                  <div class="mobile-card-item__subtitle">{{ payroll.company?.name || 'Sin empresa' }}</div>
+                  <div class="mobile-card-item__meta">
+                    <span class="mobile-card-item__tag mobile-card-item__tag--success">Activa</span>
+                    <span class="mobile-card-item__tag">{{ payroll.created_at | date : 'dd/MM/yyyy' }}</span>
+                  </div>
+                </div>
+                <i class="pi pi-chevron-right mobile-card-item__action"></i>
+              </div>
+            } @empty {
+              <div class="flex flex-col items-center justify-center py-8 text-gray-400">
+                <i class="pi pi-inbox text-3xl mb-2"></i>
+                <p class="text-sm">No hay planillas</p>
+              </div>
+            }
+          </div>
+        }
       }
     </p-card>`,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PayrollsComponent {
+  public device = inject(DeviceService);
   public dialog = inject(DialogService);
   public store = inject(PayrollsStore);
 

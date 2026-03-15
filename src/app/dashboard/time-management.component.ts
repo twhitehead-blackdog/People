@@ -28,7 +28,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <!-- Desktop Navigation -->
         <div class="hidden md:block w-full overflow-x-auto">
           <div class="flex gap-2 min-w-max justify-center">
-            @if (store.isAdmin() && tmSubs().timelogs) {
+            @if (tmSubs().timelogs) {
             <a
               routerLink="timelogs"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 whitespace-nowrap"
@@ -41,7 +41,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               ]"
               ><i class="pi pi-clock text-base"></i> <span>Marcaciones</span></a
             >
-            } @if(store.isAdmin() && tmSubs().vet_schedule) {
+            } @if(tmSubs().vet_schedule) {
             <a
               routerLink="vet-schedule"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 whitespace-nowrap"
@@ -54,7 +54,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               ]"
               ><i class="pi pi-heart text-base"></i> <span>Horario Vet</span></a
             >
-            } @if(store.isAdmin() && tmSubs().salon_schedule) {
+            } @if(tmSubs().salon_schedule) {
             <a
               routerLink="salon-schedule"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 whitespace-nowrap"
@@ -84,7 +84,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               <span>Turnos</span></a
             >
             }
-            @if(store.isAdmin() && tmSubs().schedules) {
+            @if(tmSubs().schedules) {
             <a
               routerLink="schedules"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 whitespace-nowrap"
@@ -106,7 +106,7 @@ import { DashboardStore } from '../stores/dashboard.store';
           <!-- Scrollable nav items -->
           <div class="flex-1 overflow-x-auto scrollbar-hide">
             <div class="flex gap-1.5 min-w-max py-1">
-              @if (store.isAdmin() && tmSubs().timelogs) {
+              @if (tmSubs().timelogs) {
               <a
                 routerLink="timelogs"
                 class="flex gap-1.5 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-3 py-2 transition-all duration-200 whitespace-nowrap text-sm"
@@ -119,7 +119,7 @@ import { DashboardStore } from '../stores/dashboard.store';
                 ]"
                 ><i class="pi pi-clock text-sm"></i> <span>Marcas</span></a
               >
-              } @if(store.isAdmin() && tmSubs().vet_schedule) {
+              } @if(tmSubs().vet_schedule) {
               <a
                 routerLink="vet-schedule"
                 class="flex gap-1.5 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-3 py-2 transition-all duration-200 whitespace-nowrap text-sm"
@@ -132,7 +132,7 @@ import { DashboardStore } from '../stores/dashboard.store';
                 ]"
                 ><i class="pi pi-heart text-sm"></i> <span>Vet</span></a
               >
-              } @if(store.isAdmin() && tmSubs().salon_schedule) {
+              } @if(tmSubs().salon_schedule) {
               <a
                 routerLink="salon-schedule"
                 class="flex gap-1.5 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-3 py-2 transition-all duration-200 whitespace-nowrap text-sm"
@@ -162,7 +162,7 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <span>Turnos</span></a
               >
               }
-              @if(store.isAdmin() && tmSubs().schedules) {
+              @if(tmSubs().schedules) {
               <a
                 routerLink="schedules"
                 class="flex gap-1.5 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-3 py-2 transition-all duration-200 whitespace-nowrap text-sm"
@@ -289,20 +289,18 @@ export class TimeManagementComponent {
 
   // Check if there are many items that might overflow
   public hasOverflowItems = computed(() => {
-    // Show overflow menu if admin (more items)
-    return this.store.isAdmin();
+    const subs = this.tmSubs();
+    return subs.timelogs || subs.vet_schedule || subs.salon_schedule || subs.schedules || subs.timetables;
   });
 
   // Menu items for overflow menu (mobile)
   public overflowMenuItems = computed(() => {
     const items = [];
     const subs = this.tmSubs();
-    if (this.store.isAdmin()) {
-      if (subs.timelogs) items.push({ label: 'Marcaciones', icon: 'pi pi-clock', routerLink: 'timelogs' });
-      if (subs.vet_schedule) items.push({ label: 'Horario Vet', icon: 'pi pi-heart', routerLink: 'vet-schedule' });
-      if (subs.salon_schedule) items.push({ label: 'Horario Peluquería', icon: 'pi pi-shop', routerLink: 'salon-schedule' });
-      if (subs.schedules) items.push({ label: 'Horarios', icon: 'pi pi-calendar', routerLink: 'schedules' });
-    }
+    if (subs.timelogs) items.push({ label: 'Marcaciones', icon: 'pi pi-clock', routerLink: 'timelogs' });
+    if (subs.vet_schedule) items.push({ label: 'Horario Vet', icon: 'pi pi-heart', routerLink: 'vet-schedule' });
+    if (subs.salon_schedule) items.push({ label: 'Horario Peluquería', icon: 'pi pi-shop', routerLink: 'salon-schedule' });
+    if (subs.schedules) items.push({ label: 'Horarios', icon: 'pi pi-calendar', routerLink: 'schedules' });
     if (subs.timetables) items.push({ label: 'Turnos', icon: 'pi pi-calendar-clock', routerLink: 'timetables' });
     return items;
   });

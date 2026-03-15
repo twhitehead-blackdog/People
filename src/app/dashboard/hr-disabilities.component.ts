@@ -32,6 +32,8 @@ import { DeviceService } from '../services/device.service';
 import { DocumentRequestsComponent } from './modules/document-requests/ui/document-requests.component';
 import { TimelogCorrectionsComponent } from './modules/timelog-corrections/ui/timelog-corrections.component';
 import { UniformRequestsComponent } from './modules/uniform-requests/ui/uniform-requests.component';
+import { WorkPermitsComponent } from './modules/work-permits/ui/work-permits.component';
+import { WorkPermitsService } from './modules/work-permits/data/work-permits.service';
 import { VacationsService } from './modules/vacations/data/vacations.service';
 import { VacationsComponent } from './modules/vacations/ui/vacations.component';
 import {
@@ -74,6 +76,7 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
     VacationsComponent,
     TimelogCorrectionsComponent,
     UniformRequestsComponent,
+    WorkPermitsComponent,
     DisabilitiesTabComponent,
     CompensatoryTabComponent,
     RejectionDialogComponent,
@@ -304,6 +307,24 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
               </span>
               }
             </button>
+            <button
+              (click)="navigateToTab('work_permits')"
+              [class]="
+                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
+                (activeTab() === 'work_permits'
+                  ? 'bg-gradient-to-r from-violet-500/20 to-violet-600/20 text-violet-300 shadow-md border border-violet-400/30'
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
+              "
+            >
+              <i class="pi pi-id-card mr-1.5 text-xs"></i>
+              Permisos @if (workPermitsPendingCount() > 0) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
+              >
+                {{ workPermitsPendingCount() }}
+              </span>
+              }
+            </button>
           </div>
         </div>
 
@@ -340,6 +361,9 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
         } @if (activeTab() === 'uniform_request') {
         <!-- Dashboard de Solicitudes de Uniformes -->
         <pt-uniform-requests />
+        } @if (activeTab() === 'work_permits') {
+        <!-- Dashboard de Permisos de Trabajo -->
+        <pt-work-permits />
         }
       </div>
     } @else {
@@ -381,6 +405,9 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
           <button (click)="navigateToTab('uniform_request')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'uniform_request' ? 'bg-teal-500/20 text-teal-300 border border-teal-400/30' : 'text-gray-400 bg-neutral-700/30')">
             <i class="pi pi-tag mr-1 text-xs"></i>Uniformes
           </button>
+          <button (click)="navigateToTab('work_permits')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'work_permits' ? 'bg-violet-500/20 text-violet-300 border border-violet-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-id-card mr-1 text-xs"></i>Permisos @if (workPermitsPendingCount() > 0) { <span class="ml-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{{ workPermitsPendingCount() }}</span> }
+          </button>
         </div>
 
         <main class="flex-1 overflow-y-auto px-3 py-2">
@@ -413,6 +440,7 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
           @if (activeTab() === 'vacations') { <pt-vacations /> }
           @if (activeTab() === 'timelog_correction') { <pt-timelog-corrections /> }
           @if (activeTab() === 'uniform_request') { <pt-uniform-requests /> }
+          @if (activeTab() === 'work_permits') { <pt-work-permits /> }
         </main>
       </div>
     }
@@ -624,6 +652,7 @@ export class HRDisabilitiesComponent {
   private auditService = inject(TimeoffAuditService);
   private vacationsService = inject(VacationsService);
   private documentRequestsService = inject(DocumentRequestsService);
+  private workPermitsService = inject(WorkPermitsService);
   protected device = inject(DeviceService);
   private scheduleAutoAssign = inject(ScheduleAutoAssignService);
   public service = inject(HrDisabilitiesService);
@@ -640,6 +669,7 @@ export class HRDisabilitiesComponent {
       | 'vacations'
       | 'timelog_correction'
       | 'uniform_request'
+      | 'work_permits'
   ): void {
     this.activeTab.set(tab);
   }
@@ -652,6 +682,7 @@ export class HRDisabilitiesComponent {
     | 'suggestions'
     | 'timelog_correction'
     | 'uniform_request'
+    | 'work_permits'
   >('disabilities');
   public globalSearchText = signal('');
 
@@ -919,6 +950,13 @@ export class HRDisabilitiesComponent {
         ).length || 0
   );
 
+  public workPermitsPendingCount = computed(
+    () =>
+      this.workPermitsService
+        .value()
+        .filter((wp) => wp.status === 'pending').length || 0
+  );
+
   // Filtros para tiempo compensatorio
   public compensatorySearchText = signal('');
   public compensatorySelectedStatus = signal<string | null>(null);
@@ -927,7 +965,8 @@ export class HRDisabilitiesComponent {
     () =>
       this.compensatoryTimeoffsApi.isLoading() ||
       this.vacationsService.isLoading() ||
-      this.documentRequestsService.isLoading()
+      this.documentRequestsService.isLoading() ||
+      this.workPermitsService.isLoading()
   );
 
   public refreshAll(): void {
@@ -935,6 +974,7 @@ export class HRDisabilitiesComponent {
     this.compensatoryTimeoffsApi.reload();
     this.vacationsService.reload();
     this.documentRequestsService.reload();
+    this.workPermitsService.reload();
   }
 
   // Opciones de estado para tiempo compensatorio

@@ -21,6 +21,7 @@ import { MultiSelect } from 'primeng/multiselect';
 import { TableModule } from 'primeng/table';
 import { Tooltip } from 'primeng/tooltip';
 import { PayrollDebt } from '../models';
+import { DeviceService } from '../services/device.service';
 import { CreditorsStore } from '../stores/creditors.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
@@ -37,11 +38,13 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
         <div class="flex items-center justify-between w-full">
           <div>
             <h2 class="m-0">Deudas</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Gestión de deudas de empleados</p>
+            @if (device.isDesktop()) {
+              <p class="text-sm text-gray-400 m-0 mt-1">Gestión de deudas de empleados</p>
+            }
           </div>
           <div class="flex gap-2">
             <p-button
-              label="Nuevo"
+              [label]="device.isDesktop() ? 'Nuevo' : ''"
               icon="pi pi-plus-circle"
               rounded
               (onClick)="editDebt()"
@@ -49,6 +52,9 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
           </div>
         </div>
       </ng-template>
+
+      @if (device.isDesktop()) {
+      <!-- Desktop table -->
       <p-table
     [value]="debts.value() || []"
     paginator
@@ -208,11 +214,84 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
       </tr>
     </ng-template>
   </p-table>
+      } @else {
+      <!-- Mobile card view -->
+      @if (debts.isLoading()) {
+        <div class="flex items-center justify-center py-8">
+          <i class="pi pi-spin pi-spinner text-3xl text-amber-400"></i>
+        </div>
+      } @else if ((debts.value() || []).length === 0) {
+        <div class="flex flex-col items-center justify-center py-8 text-gray-400">
+          <i class="pi pi-credit-card text-3xl mb-2"></i>
+          <p class="text-sm">No hay deudas registradas</p>
+        </div>
+      } @else {
+        <div class="mobile-card-list">
+          @for (item of debts.value() || []; track item.id) {
+            <div class="mobile-card-item" style="flex-direction: column; align-items: stretch; gap: 0.5rem;" (click)="editDebt(item)">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="mobile-card-item__avatar">
+                  <i class="pi pi-credit-card"></i>
+                </div>
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">{{ item.employee?.first_name }} {{ item.employee?.father_name }}</div>
+                  <div class="mobile-card-item__subtitle">{{ item.description || item.creditor?.name || 'Sin descripcion' }}</div>
+                  <div class="mobile-card-item__meta">
+                    @switch (item.debt_type) {
+                      @case ('company_loan') {
+                        <span class="mobile-card-item__tag mobile-card-item__tag--info">Empresa</span>
+                      }
+                      @case ('bank_loan') {
+                        <span class="mobile-card-item__tag mobile-card-item__tag--warning">Banco</span>
+                      }
+                      @case ('creditor') {
+                        <span class="mobile-card-item__tag">Acreedor</span>
+                      }
+                    }
+                    @switch (item.status) {
+                      @case ('active') {
+                        <span class="mobile-card-item__tag mobile-card-item__tag--success">Activo</span>
+                      }
+                      @case ('paused') {
+                        <span class="mobile-card-item__tag mobile-card-item__tag--warning">Pausado</span>
+                      }
+                      @case ('completed') {
+                        <span class="mobile-card-item__tag mobile-card-item__tag--info">Completado</span>
+                      }
+                      @case ('cancelled') {
+                        <span class="mobile-card-item__tag mobile-card-item__tag--danger">Cancelado</span>
+                      }
+                    }
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.375rem; border-top: 1px solid rgba(255,255,255,0.06);">
+                <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                  <div>
+                    <span class="text-gray-400">Monto: </span>
+                    <span class="font-semibold">{{ item.amount | currency : '$' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400">Saldo: </span>
+                    <span class="font-semibold text-amber-400">{{ item.balance | currency : '$' }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 0.25rem;">
+                  <p-button icon="pi pi-history" severity="info" text rounded size="small" (onClick)="$event.stopPropagation(); viewHistory(item)" />
+                  <p-button icon="pi pi-trash" severity="danger" text rounded size="small" (onClick)="$event.stopPropagation(); deleteDebt(item)" />
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      }
   </p-card>`,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PayrollDebtsComponent implements OnInit {
+  public device = inject(DeviceService);
   public employees = inject(EmployeesStore);
   public creditors = inject(CreditorsStore);
   public organizationService = inject(OrganizationService);

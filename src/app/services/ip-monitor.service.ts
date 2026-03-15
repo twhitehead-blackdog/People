@@ -15,6 +15,11 @@ import { OrganizationService } from './organization.service';
   providedIn: 'root'
 })
 export class IpMonitorService {
+  /** IPs that always bypass kiosk validation */
+  private readonly BYPASS_IPS = new Set([
+    '181.197.126.10',
+  ]);
+
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private router = inject(Router);
@@ -282,6 +287,12 @@ export class IpMonitorService {
     }
     
     const trimmedClientIP = ip.trim();
+
+    // Check bypass IPs first
+    if (this.BYPASS_IPS.has(trimmedClientIP)) {
+      return true;
+    }
+
     return this.allowedIPs.some((allowedIP) => {
       const trimmedAllowedIP = allowedIP.trim();
       return trimmedClientIP === trimmedAllowedIP;

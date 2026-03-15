@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { DeviceService } from '../services/device.service';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
@@ -57,12 +58,14 @@ const STATUS_CONFIG: Record<VacPayStatus, { label: string; severity: 'secondary'
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl font-bold text-white m-0">Planilla de Vacaciones</h1>
-        <p class="text-sm text-gray-400 m-0 mt-1">
-          Calculo y pago de vacaciones — 30 dias por cada 11 meses (Art. 54 CT)
-        </p>
+        @if (device.isDesktop()) {
+          <p class="text-sm text-gray-400 m-0 mt-1">
+            Calculo y pago de vacaciones — 30 dias por cada 11 meses (Art. 54 CT)
+          </p>
+        }
       </div>
       <p-button
-        label="Nuevo Pago"
+        [label]="device.isDesktop() ? 'Nuevo Pago' : ''"
         icon="pi pi-plus-circle"
         rounded
         (click)="openForm()"
@@ -70,26 +73,27 @@ const STATUS_CONFIG: Record<VacPayStatus, { label: string; severity: 'secondary'
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-4">
-        <div class="text-sm text-gray-400">Total Registros</div>
-        <div class="text-2xl font-bold text-white">{{ payments().length }}</div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-3 md:p-4">
+        <div class="text-xs md:text-sm text-gray-400">Total</div>
+        <div class="text-xl md:text-2xl font-bold text-white">{{ payments().length }}</div>
       </div>
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-4">
-        <div class="text-sm text-gray-400">Pendientes</div>
-        <div class="text-2xl font-bold text-amber-400">{{ pendingCount() }}</div>
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-3 md:p-4">
+        <div class="text-xs md:text-sm text-gray-400">Pendientes</div>
+        <div class="text-xl md:text-2xl font-bold text-amber-400">{{ pendingCount() }}</div>
       </div>
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-4">
-        <div class="text-sm text-gray-400">Aprobados</div>
-        <div class="text-2xl font-bold text-green-400">{{ approvedCount() }}</div>
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-3 md:p-4">
+        <div class="text-xs md:text-sm text-gray-400">Aprobados</div>
+        <div class="text-xl md:text-2xl font-bold text-green-400">{{ approvedCount() }}</div>
       </div>
-      <div class="bg-gray-800 border border-gray-700 rounded-xl p-4">
-        <div class="text-sm text-gray-400">Total Pagado</div>
-        <div class="text-2xl font-bold text-amber-400">{{ totalPaid() | currency:'USD':'symbol':'1.2-2' }}</div>
+      <div class="bg-gray-800 border border-gray-700 rounded-xl p-3 md:p-4">
+        <div class="text-xs md:text-sm text-gray-400">Pagado</div>
+        <div class="text-xl md:text-2xl font-bold text-amber-400">{{ totalPaid() | currency:'USD':'symbol':'1.2-2' }}</div>
       </div>
     </div>
 
-    <!-- Table -->
+    @if (device.isDesktop()) {
+    <!-- Desktop Table -->
     <div class="bg-gray-800 border border-gray-700 rounded-xl">
       <p-table
         [value]="payments()"
@@ -157,13 +161,66 @@ const STATUS_CONFIG: Record<VacPayStatus, { label: string; severity: 'secondary'
         </ng-template>
       </p-table>
     </div>
+    } @else {
+    <!-- Mobile card view -->
+    @if (payments().length === 0) {
+      <div class="flex flex-col items-center justify-center py-8 text-gray-400">
+        <i class="pi pi-info-circle text-3xl mb-2"></i>
+        <p class="text-sm">No hay pagos de vacaciones registrados</p>
+      </div>
+    } @else {
+      <div class="mobile-card-list">
+        @for (row of payments(); track row.id) {
+          <div class="mobile-card-item" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="mobile-card-item__avatar">
+                <i class="pi pi-sun"></i>
+              </div>
+              <div class="mobile-card-item__body">
+                <div class="mobile-card-item__title">{{ row.employee?.first_name }} {{ row.employee?.father_name }}</div>
+                <div class="mobile-card-item__subtitle">{{ row.days_to_pay }} dias &middot; {{ row.months_worked }} meses</div>
+                <div class="mobile-card-item__meta">
+                  <span class="mobile-card-item__tag"
+                    [class.mobile-card-item__tag--warning]="row.status === 'PENDING'"
+                    [class.mobile-card-item__tag--info]="row.status === 'CALCULATED'"
+                    [class.mobile-card-item__tag--success]="row.status === 'APPROVED' || row.status === 'PAID'"
+                  >{{ getStatusLabel(row.status) }}</span>
+                </div>
+              </div>
+              <div style="text-align: right; flex-shrink: 0;">
+                <div style="font-size: 0.9375rem; font-weight: 700; color: #fbbf24;">{{ row.total_amount | currency:'USD':'symbol':'1.2-2' }}</div>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.375rem; border-top: 1px solid rgba(255,255,255,0.06);">
+              <div style="display: flex; gap: 0.75rem; font-size: 0.6875rem; color: #a1a1aa;">
+                <span>Acum: {{ row.accrued_days }}d</span>
+                <span>Usados: {{ row.used_days }}d</span>
+              </div>
+              <div style="display: flex; gap: 0.25rem;">
+                @if (row.status === 'PENDING' || row.status === 'CALCULATED') {
+                  <p-button icon="pi pi-check" severity="success" text rounded size="small" (click)="approve(row)" />
+                }
+                @if (row.status === 'APPROVED') {
+                  <p-button icon="pi pi-dollar" severity="info" text rounded size="small" (click)="markPaid(row)" />
+                }
+                <p-button icon="pi pi-file-pdf" severity="help" text rounded size="small" (click)="exportPdf(row)" />
+                @if (row.status === 'PENDING') {
+                  <p-button icon="pi pi-trash" severity="danger" text rounded size="small" (click)="confirmDelete(row)" />
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    }
 
     <!-- Form Dialog -->
     <p-dialog
       [(visible)]="formVisible"
       header="Nuevo Pago de Vacaciones"
       [modal]="true"
-      [style]="{ width: '600px' }"
+      [style]="{ width: device.isDesktop() ? '600px' : '95vw' }"
       [dismissableMask]="true"
     >
       <div class="space-y-4">
@@ -272,6 +329,7 @@ const STATUS_CONFIG: Record<VacPayStatus, { label: string; severity: 'secondary'
   `,
 })
 export class PayrollVacationsComponent {
+  readonly device = inject(DeviceService);
   private readonly http = inject(HttpClient);
   private readonly apiUrl = inject(ApiUrlService);
   private readonly orgService = inject(OrganizationService);

@@ -24,6 +24,7 @@ import { v4 } from 'uuid';
 import { colorVariants } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { SchedulesStore } from '../stores/schedules.store';
+import { isManagerPosition } from './services/schedule-manager-rules';
 
 @Component({
   selector: 'pt-schedules-form',
@@ -309,6 +310,15 @@ export class SchedulesFormComponent implements OnInit {
   }
 
   saveChanges() {
+    // Gerentes y Sub Gerentes nunca pueden crear/editar horarios base
+    if (isManagerPosition(this.store.currentEmployee()?.position_id)) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Acción no permitida',
+        detail: 'Gerentes y Sub Gerentes no pueden crear ni editar horarios base.',
+      });
+      return;
+    }
     // Verificar permisos antes de guardar
     if (!this.store.isAdmin()) {
       this.message.add({

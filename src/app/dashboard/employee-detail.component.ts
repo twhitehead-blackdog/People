@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MenuModule } from 'primeng/menu';
@@ -18,22 +17,22 @@ import { ToastModule } from 'primeng/toast';
 import { Tooltip } from 'primeng/tooltip';
 
 import { HttpClient, httpResource } from '@angular/common/http';
-import { format } from 'date-fns';
+import { format, startOfMonth } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import { getEnv } from '../utils/env.utils';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Skeleton } from 'primeng/skeleton';
-import { TabsModule } from 'primeng/tabs';
 import { format as fnsFormat, parseISO } from 'date-fns';
 import { Employee, Termination } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { SeniorityPipe } from '../pipes/seniority.pipe';
 import { ApiUrlService } from '../services/api-url.service';
-import { DeviceService } from '../services/device.service';
+
 import { OrganizationService } from '../services/organization.service';
 import { QrService } from '../services/qr.service';
 import { BanksStore } from '../stores/banks.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { EmployeeCreditScoreComponent } from './employee-credit-score.component';
 import { EmployeeFormComponent } from './employee-form.component';
 import { EmployeeSchedulesComponent } from './employee-schedules.component';
 import { TerminationFormComponent } from './termination-form.component';
@@ -42,7 +41,6 @@ import { TimeOffsComponent } from './time-offs.component';
 @Component({
   selector: 'pt-employee-detail',
   imports: [
-    Card,
     DatePipe,
     CurrencyPipe,
     NgClass,
@@ -50,7 +48,7 @@ import { TimeOffsComponent } from './time-offs.component';
     Button,
     AgePipe,
     SeniorityPipe,
-    TabsModule,
+    EmployeeCreditScoreComponent,
     EmployeeSchedulesComponent,
     Skeleton,
     Tag,
@@ -68,741 +66,359 @@ import { TimeOffsComponent } from './time-offs.component';
   template: `
     <p-toast />
     <p-confirmDialog />
-    <div class="employee-detail-page w-full">
-    @if (device.isDesktop()) {
-    <!-- Vista Desktop: reestructurada para lectura rápida y uso fácil -->
-    <div class="desktop-detail max-w-5xl mx-auto px-4 md:px-6">
-      <!-- Barra superior: navegación + identidad + acciones -->
-      <div class="flex flex-wrap items-center justify-between gap-3 py-3 border-b border-neutral-700/50 mb-4">
-        <a routerLink=".." class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-amber-400 transition-colors no-underline shrink-0">
-          <i class="pi pi-arrow-left"></i>
-          Volver a empleados
-        </a>
+    <div class="ed">
+    <!-- ========== HEADER ========== -->
+    <header class="ed-header">
+      <div class="ed-header__row1">
+        <a routerLink=".." class="ed-back"><i class="pi pi-arrow-left"></i><span class="ed-back__text">Empleados</span></a>
         @if (currentEmployee(); as emp) {
-          <div class="flex items-center gap-4 min-w-0 flex-1 justify-center md:justify-start">
-            <div class="min-w-0">
-              <h1 class="text-xl md:text-2xl font-bold text-white m-0 truncate">
-                {{ emp.first_name }} {{ emp.father_name }}
-              </h1>
-              <p class="text-sm text-gray-400 m-0 mt-0.5 truncate">
-                {{ emp.position?.name }} · {{ emp.branch?.name }}
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <p-button label="Editar" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="goToEdit()" />
-            <p-menu #menu [model]="items()" [popup]="true" appendTo="body" />
-            <p-button icon="pi pi-ellipsis-v" rounded severity="secondary" [outlined]="true" (onClick)="menu.toggle($event)" [pTooltip]="'Más acciones'" />
-          </div>
-        } @else if (employee.isLoading()) {
-          <div class="flex-1 flex items-center gap-3">
-            <p-skeleton shape="circle" size="3rem" />
-            <div class="space-y-1">
-              <p-skeleton width="12rem" height="1.5rem" />
-              <p-skeleton width="8rem" height="0.875rem" />
-            </div>
+          <div class="ed-actions">
+            @if (emp.phone_number) { <a [href]="'tel:' + emp.phone_number" class="ed-action ed-action--green" pTooltip="Llamar"><i class="pi pi-phone"></i></a> }
+            @if (emp.work_email) { <a [href]="'mailto:' + emp.work_email" class="ed-action ed-action--blue" pTooltip="Email"><i class="pi pi-envelope"></i></a> }
+            <button type="button" class="ed-action ed-action--amber" (click)="goToEdit()" pTooltip="Editar"><i class="pi pi-pencil"></i></button>
+            <p-menu #actionMenu [model]="items()" [popup]="true" appendTo="body" />
+            <button class="ed-action" (click)="actionMenu.toggle($event)" pTooltip="Más"><i class="pi pi-ellipsis-v"></i></button>
           </div>
         }
       </div>
-
-      <p-tabs value="0" scrollable>
-        <p-tablist class="desktop-detail-tabs">
-          <p-tab value="0">Información</p-tab>
-          <p-tab value="1">Horarios</p-tab>
-          <p-tab value="2">Marcación</p-tab>
-          <p-tab value="3">Tiempos fuera</p-tab>
-          <p-tab value="4">Portal</p-tab>
-          <p-tab value="5">Historial</p-tab>
-        </p-tablist>
-        <p-tabpanels>
-          <p-tabpanel value="0">
-            @if(employee.isLoading()) {
-              <div class="flex flex-col gap-3 py-6">
-                <p-skeleton height="2.5rem" />
-                <p-skeleton height="14rem" />
-                <p-skeleton height="10rem" />
-              </div>
-            } @else if(currentEmployee()) {
-              <!-- Una sola card con secciones en grid: fácil de escanear -->
-              <div class="bg-neutral-800/40 rounded-xl border border-neutral-700/50 overflow-hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 p-6">
-                  <!-- Columna 1: Básica + Contacto -->
-                  <div class="space-y-5">
-                    <section>
-                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i class="pi pi-id-card"></i> Datos personales
-                      </h3>
-                      <dl class="detail-grid">
-                        <dt>Nombre completo</dt><dd>{{ currentEmployee()?.first_name }} {{ currentEmployee()?.middle_name }} {{ currentEmployee()?.father_name }} {{ currentEmployee()?.mother_name }}</dd>
-                        <dt>Cédula</dt><dd>{{ currentEmployee()?.document_id || '-' }}</dd>
-                        <dt>Nacimiento</dt><dd>{{ currentEmployee()?.birth_date | date:'mediumDate' }} ({{ currentEmployee()?.birth_date | age }})</dd>
-                        <dt>Sexo</dt><dd>{{ currentEmployee()?.gender === 'M' ? 'Masculino' : 'Femenino' }}</dd>
-                        <dt>Talla uniforme</dt><dd>{{ currentEmployee()?.uniform_size || '-' }}</dd>
-                      </dl>
-                    </section>
-                    <section>
-                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i class="pi pi-phone"></i> Contacto
-                      </h3>
-                      <dl class="detail-grid">
-                        <dt>Email personal</dt><dd class="break-all">{{ currentEmployee()?.email || '-' }}</dd>
-                        <dt>Email laboral</dt><dd class="break-all">{{ currentEmployee()?.work_email || '-' }}</dd>
-                        <dt>Teléfono</dt><dd>{{ currentEmployee()?.phone_number || '-' }}</dd>
-                        <dt>Dirección</dt><dd>{{ currentEmployee()?.address || '-' }}</dd>
-                      </dl>
-                    </section>
-                  </div>
-                  <!-- Columna 2: Bancaria + Laboral -->
-                  <div class="space-y-5">
-                    <section>
-                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i class="pi pi-university"></i> Bancario
-                      </h3>
-                      <dl class="detail-grid">
-                        <dt>Banco</dt><dd>{{ getBankName() }}</dd>
-                        <dt>Tipo de cuenta</dt><dd>{{ currentEmployee()?.bank_account_type || '-' }}</dd>
-                        <dt>Nº cuenta</dt><dd class="font-mono">{{ currentEmployee()?.account_number || '-' }}</dd>
-                      </dl>
-                    </section>
-                    <section>
-                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <i class="pi pi-briefcase"></i> Laboral
-                      </h3>
-                      <dl class="detail-grid">
-                        <dt>Empresa</dt><dd>{{ getCompanyName() }}</dd>
-                        <dt>Área</dt><dd>{{ currentEmployee()?.department?.name || '-' }}</dd>
-                        <dt>Sucursal</dt><dd>{{ currentEmployee()?.branch?.name || '-' }}</dd>
-                        <dt>Cargo</dt><dd>{{ currentEmployee()?.position?.name || '-' }}</dd>
-                        <dt>Salario mensual</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()?.monthly_salary | currency:'$' }}</dd>
-                        <dt>Salario/hora</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()?.hourly_salary | currency:'$' }}</dd>
-                        <dt>Fecha ingreso</dt><dd>{{ currentEmployee()?.start_date | date:'mediumDate' }} @if(currentEmployee()?.start_date) { ({{ currentEmployee()!.start_date | seniority }}) }</dd>
-                        <dt>Estado</dt>
-                        <dd>
-                          <span [ngClass]="currentEmployee()?.is_active ? 'text-green-400' : 'text-red-400'" class="font-semibold">
-                            <i [class]="currentEmployee()?.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'" class="mr-1"></i>
-                            {{ currentEmployee()?.is_active ? 'Activo' : 'Inactivo' }}
-                          </span>
-                        </dd>
-                        <dt>Exceso almuerzo</dt>
-                        <dd>
-                          @if(currentEmployee(); as e) {
-                            @if (e.total_lunch_exceeded_minutes != null && e.total_lunch_exceeded_minutes > 0) {
-                              <p-tag severity="warn" [value]="formatLunchExceeded(e.total_lunch_exceeded_minutes)" />
-                            } @else {
-                              <span class="text-gray-500">0</span>
-                            }
-                          } @else {
-                            <span class="text-gray-500">-</span>
-                          }
-                        </dd>
-                      </dl>
-                    </section>
-                  </div>
-                </div>
-              </div>
-            } @else {
-              <div class="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <i class="pi pi-exclamation-triangle text-5xl text-amber-400 mb-3"></i>
-                <h3 class="text-xl font-bold text-white mb-1">Empleado no encontrado</h3>
-                <p class="text-gray-400 text-sm m-0">No se pudo cargar la información.</p>
-              </div>
-            }
-          </p-tabpanel>
-          <p-tabpanel value="1">
-            @if(employee_id()) {
-            <pt-employee-schedules [employeeId]="employee_id()!" />
-            }
-          </p-tabpanel>
-          <p-tabpanel value="2">
-            <div class="flex flex-col items-center gap-4 py-4">
-              @if(currentEmployee()?.qr_code) {
-                <img [src]="currentEmployee()?.qr_code" alt="QR Code" class="max-w-xs rounded-lg shadow-lg" />
-              } @else {
-                <div class="flex flex-col items-center gap-2 p-8 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
-                  <i class="pi pi-qrcode text-4xl text-gray-500"></i>
-                  <p class="text-gray-400 m-0">No hay código QR generado</p>
-                </div>
-              }
-              <p-button
-                [label]="currentEmployee()?.qr_code ? 'Regenerar QR' : 'Generar QR'"
-                [icon]="currentEmployee()?.qr_code ? 'pi pi-refresh' : 'pi pi-plus'"
-                [severity]="currentEmployee()?.qr_code ? 'warn' : 'success'"
-                [loading]="regeneratingQr()"
-                [disabled]="regeneratingQr() || !currentEmployee()"
-                (onClick)="confirmRegenerateQr()"
-              />
-              <p class="text-xs text-gray-500 m-0 text-center max-w-xs">
-                @if(currentEmployee()?.qr_code) {
-                  Al regenerar el QR, el código anterior quedará inválido.
-                } @else {
-                  Genera un código QR para que el empleado pueda marcar asistencia.
-                }
-              </p>
-            </div>
-          </p-tabpanel>
-          <p-tabpanel value="3">
-            @for(timeoff of currentEmployee()?.timeoffs; track $index) {
-            <p-card [header]="timeoff.type?.name">
-              {{ timeoff.date_from }}
-              {{ timeoff.date_to }}
-            </p-card>
-
-            }</p-tabpanel
-          >
-          <p-tabpanel value="4">
-            @if(currentEmployee()) {
-            <div class="space-y-4">
-              <!-- Estado del Portal -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-user-plus text-lg text-amber-400"></i>
-                    <h4 class="text-base font-bold text-white m-0">
-                      Estado del Portal de Empleado
-                    </h4>
-                  </div>
-                </ng-template>
-                <div class="flex flex-col gap-4">
-                  <div
-                    class="flex items-center justify-between p-4 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-12 h-12 rounded-full flex items-center justify-center"
-                        [ngClass]="
-                          currentEmployee()?.has_portal_access
-                            ? 'bg-green-500/20'
-                            : 'bg-gray-500/20'
-                        "
-                      >
-                        <i
-                          class="pi text-2xl"
-                          [ngClass]="
-                            currentEmployee()?.has_portal_access
-                              ? 'pi-check-circle text-green-400'
-                              : 'pi-times-circle text-gray-400'
-                          "
-                        ></i>
-                      </div>
-                      <div>
-                        <h5 class="text-white font-semibold m-0">
-                          @if(currentEmployee()?.has_portal_access) { Acceso al
-                          Portal Activo } @else { Sin Acceso al Portal }
-                        </h5>
-                        <p class="text-sm text-gray-400 m-0 mt-1">
-                          @if(currentEmployee()?.has_portal_access) { El
-                          empleado puede acceder al portal de empleados } @else
-                          { El empleado aún no tiene acceso al portal }
-                        </p>
-                      </div>
-                    </div>
-                    <p-tag
-                      [value]="
-                        currentEmployee()?.has_portal_access
-                          ? 'Portal Activo'
-                          : 'Sin Acceso'
-                      "
-                      [severity]="
-                        currentEmployee()?.has_portal_access
-                          ? 'success'
-                          : 'secondary'
-                      "
-                      [icon]="
-                        currentEmployee()?.has_portal_access
-                          ? 'pi pi-check-circle'
-                          : 'pi pi-times-circle'
-                      "
-                    />
-                  </div>
-
-                  <!-- Información de Acceso -->
-                  @if(currentEmployee()?.has_portal_access) {
-                  <div
-                    class="p-4 rounded-lg bg-green-500/10 border border-green-500/30"
-                  >
-                    <div class="flex items-start gap-3">
-                      <i class="pi pi-info-circle text-green-400 mt-1"></i>
-                      <div class="flex-1">
-                        <h6 class="text-green-300 font-semibold mb-2">
-                          Información de Acceso
-                        </h6>
-                        <div class="space-y-2 text-sm text-gray-300">
-                          <div>
-                            <span class="font-semibold text-gray-400"
-                              >Email de acceso:</span
-                            >
-                            <span class="ml-2">{{
-                              currentEmployee()?.work_email || 'No configurado'
-                            }}</span>
-                          </div>
-                          <div>
-                            <span class="font-semibold text-gray-400"
-                              >URL del portal:</span
-                            >
-                            <span class="ml-2 text-blue-400">{{
-                              portalUrl
-                            }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  } @else {
-                  <!-- Requisitos para Invitar -->
-                  <div
-                    class="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30"
-                  >
-                    <div class="flex items-start gap-3">
-                      <i
-                        class="pi pi-exclamation-triangle text-amber-400 mt-1"
-                      ></i>
-                      <div class="flex-1">
-                        <h6 class="text-amber-300 font-semibold mb-2">
-                          Requisitos para Invitar
-                        </h6>
-                        <ul
-                          class="space-y-1 text-sm text-gray-300 list-disc list-inside"
-                        >
-                          <li>
-                            El empleado debe tener un email laboral configurado
-                          </li>
-                          <li>
-                            El empleado debe tener un número de teléfono
-                            registrado
-                          </li>
-                        </ul>
-                        @if(!canInvite()) {
-                        <div
-                          class="mt-3 p-2 rounded bg-red-500/10 border border-red-500/30"
-                        >
-                          <p class="text-xs text-red-300 m-0">
-                            <i class="pi pi-times-circle mr-1"></i>
-                            @if(!currentEmployee()?.work_email) { Falta email
-                            laboral } @else if(!currentEmployee()?.phone_number)
-                            { Falta número de teléfono }
-                          </p>
-                        </div>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  }
-                </div>
-              </p-card>
-
-              <!-- Acciones -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-cog text-lg text-amber-400"></i>
-                    <h4 class="text-base font-bold text-white m-0">Acciones</h4>
-                  </div>
-                </ng-template>
-                <div class="flex flex-col gap-3">
-                  @if(!currentEmployee()?.has_portal_access) {
-                  <p-button
-                    label="Invitar al Portal de Empleados"
-                    icon="pi pi-user-plus"
-                    severity="info"
-                    [disabled]="!canInvite() || inviting()"
-                    [loading]="inviting()"
-                    (onClick)="inviteToPortal()"
-                    class="w-full md:w-auto"
-                  />
-                  <p class="text-xs text-gray-400 m-0">
-                    Se otorgará acceso al portal de empleados
-                  </p>
-                  } @else {
-                  <div
-                    class="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30"
-                  >
-                    <div class="flex items-center gap-3">
-                      <i class="pi pi-check-circle text-blue-400 text-xl"></i>
-                      <div class="flex-1">
-                        <p class="text-sm text-gray-300 m-0">
-                          El empleado ya tiene acceso al portal. Puede acceder
-                          usando su email laboral:
-                          <span class="font-semibold text-white">{{
-                            currentEmployee()?.work_email
-                          }}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  }
-                </div>
-              </p-card>
-            </div>
-            }
-          </p-tabpanel>
-          <p-tabpanel value="5">
-            @if (terminationHistory.isLoading()) {
-              <div class="flex flex-col gap-3 py-6">
-                <p-skeleton height="2rem" />
-                <p-skeleton height="4rem" />
-              </div>
-            } @else if (terminationHistory.value()?.length) {
-              <div class="bg-neutral-800/40 rounded-xl border border-neutral-700/50 overflow-hidden">
-                <div class="p-4">
-                  <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <i class="pi pi-history"></i> Historial de Empleo
-                  </h3>
-                  <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                      <thead>
-                        <tr class="border-b border-neutral-700">
-                          <th class="py-2 px-3 text-gray-400 font-medium">Fecha de Salida</th>
-                          <th class="py-2 px-3 text-gray-400 font-medium">Motivo</th>
-                          <th class="py-2 px-3 text-gray-400 font-medium">Fecha de Reintegro</th>
-                          <th class="py-2 px-3 text-gray-400 font-medium">Notas</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (term of terminationHistory.value(); track term.id) {
-                        <tr class="border-b border-neutral-800">
-                          <td class="py-2 px-3 text-gray-300">{{ formatTermDate(term.date) }}</td>
-                          <td class="py-2 px-3">
-                            <span class="px-2 py-0.5 rounded text-xs font-medium"
-                              [class]="term.reason === 'DESPIDO' ? 'bg-red-900/50 text-red-300' : term.reason === 'RENUNCIA' ? 'bg-orange-900/50 text-orange-300' : 'bg-neutral-700 text-gray-300'">
-                              {{ term.reason === 'FIN_CONTRATO' ? 'Fin de Contrato' : term.reason === 'DESPIDO' ? 'Despido' : 'Renuncia' }}
-                            </span>
-                          </td>
-                          <td class="py-2 px-3 text-gray-300">{{ term.reintegration_date ? formatTermDate(term.reintegration_date) : '-' }}</td>
-                          <td class="py-2 px-3 text-gray-400">{{ term.notes || '-' }}</td>
-                        </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            } @else {
-              <div class="flex flex-col items-center justify-center py-12 text-center">
-                <i class="pi pi-history text-4xl text-gray-600 mb-3"></i>
-                <p class="text-gray-400 text-sm m-0">Sin registros de salida o reintegro</p>
-              </div>
-            }
-          </p-tabpanel>
-        </p-tabpanels>
-      </p-tabs>
-    </div>
-    } @else {
-    <!-- Vista Móvil: header fijo + secciones -->
-    <div class="mobile-employee-detail flex flex-col min-h-[60vh]">
-      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
-        <div class="flex items-center gap-2">
-          <a [routerLink]="['..']" class="flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-700/50 text-gray-300 hover:bg-neutral-600/50 active:bg-neutral-600">
-            <i class="pi pi-arrow-left"></i>
-          </a>
-          <div class="min-w-0 flex-1">
-            @if (currentEmployee(); as emp) {
-              <h1 class="text-base font-bold text-white truncate m-0">{{ emp.first_name }} {{ emp.father_name }}</h1>
-              <p class="text-xs text-gray-400 truncate m-0">{{ emp.position?.name }} · {{ emp.branch?.name }}</p>
-            } @else if (employee.isLoading()) {
-              <p-skeleton width="8rem" height="1.25rem" class="mb-1" />
-              <p-skeleton width="6rem" height="0.875rem" />
-            } @else {
-              <span class="text-gray-400 text-sm">Perfil</span>
-            }
+      @if (currentEmployee(); as emp) {
+        <div class="ed-identity">
+          <div class="ed-avatar">{{ emp.first_name?.charAt(0) }}{{ emp.father_name?.charAt(0) }}</div>
+          <div class="ed-identity__info">
+            <h1 class="ed-name">{{ emp.first_name }} {{ emp.father_name }}</h1>
+            <p class="ed-subtitle">{{ emp.position?.name || 'Sin cargo' }} · {{ emp.branch?.name || '' }}</p>
           </div>
-          @if (currentEmployee()) {
-            <p-menu #menu [model]="items()" [popup]="true" appendTo="body" />
-            <p-button icon="pi pi-ellipsis-v" [rounded]="true" severity="secondary" [text]="true" (onClick)="menu.toggle($event)" class="min-w-[44px] min-h-[44px]" />
-          }
+          <span class="ed-badge" [ngClass]="emp.is_active ? 'ed-badge--active' : 'ed-badge--inactive'">{{ emp.is_active ? 'Activo' : 'Inactivo' }}</span>
         </div>
-      </header>
+      } @else if (employee.isLoading()) {
+        <div class="flex items-center gap-3 flex-1 py-2"><p-skeleton shape="circle" size="2.5rem" /><div><p-skeleton width="10rem" height="1.25rem" /><p-skeleton width="7rem" height="0.75rem" styleClass="mt-1" /></div></div>
+      }
+    </header>
 
-      <main class="flex-1 overflow-y-auto">
-        @if (employee.isLoading()) {
-          <div class="p-4 space-y-3">
-            <p-skeleton height="4rem" />
-            <p-skeleton height="6rem" />
-            <p-skeleton height="6rem" />
-          </div>
-        } @else if (!currentEmployee()) {
-          <div class="p-6 text-center text-gray-400">
-            <i class="pi pi-user-minus text-4xl block mb-2"></i>
-            <p class="m-0">Empleado no encontrado</p>
-          </div>
-        } @else {
-          <p-tabs value="0" scrollable>
-            <p-tablist class="!flex !overflow-x-auto !gap-0 !border-0 !bg-neutral-800/50 !px-2">
-              <p-tab value="0" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Info</p-tab>
-              <p-tab value="1" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Horarios</p-tab>
-              <p-tab value="2" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">QR</p-tab>
-              <p-tab value="3" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Tiempos</p-tab>
-              <p-tab value="4" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Portal</p-tab>
-              <p-tab value="5" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Historial</p-tab>
-            </p-tablist>
-            <p-tabpanels>
-              <p-tabpanel value="0">
-                <div class="px-3 py-3 space-y-4 pb-8">
-                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
-                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
-                      <i class="pi pi-id-card text-amber-400 text-sm"></i>
-                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Datos básicos</span>
-                    </div>
-                    <div class="divide-y divide-neutral-700/50">
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Nombre completo</span><span class="text-sm text-white text-right">{{ currentEmployee()?.first_name }} {{ currentEmployee()?.middle_name }} {{ currentEmployee()?.father_name }} {{ currentEmployee()?.mother_name }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Cédula</span><span class="text-sm text-white">{{ currentEmployee()?.document_id || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Nacimiento</span><span class="text-sm text-white">{{ currentEmployee()?.birth_date | date:'shortDate' }} ({{ currentEmployee()?.birth_date | age }})</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Sexo</span><span class="text-sm text-white">{{ currentEmployee()?.gender === 'M' ? 'Masculino' : 'Femenino' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Talla</span><span class="text-sm text-white">{{ currentEmployee()?.uniform_size || '-' }}</span></div>
-                    </div>
-                  </section>
-                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
-                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
-                      <i class="pi pi-phone text-amber-400 text-sm"></i>
-                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Contacto</span>
-                    </div>
-                    <div class="divide-y divide-neutral-700/50">
-                      <div class="px-3 py-2.5 flex justify-between items-start gap-2"><span class="text-xs text-gray-400 flex-shrink-0">Email personal</span><span class="text-sm text-white text-right break-all">{{ currentEmployee()?.email || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-start gap-2"><span class="text-xs text-gray-400 flex-shrink-0">Email laboral</span><span class="text-sm text-white text-right break-all">{{ currentEmployee()?.work_email || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Teléfono</span><span class="text-sm text-white">{{ currentEmployee()?.phone_number || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-start gap-2"><span class="text-xs text-gray-400 flex-shrink-0">Dirección</span><span class="text-sm text-white text-right">{{ currentEmployee()?.address || '-' }}</span></div>
-                    </div>
-                  </section>
-                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
-                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
-                      <i class="pi pi-university text-amber-400 text-sm"></i>
-                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Bancario</span>
-                    </div>
-                    <div class="divide-y divide-neutral-700/50">
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Banco</span><span class="text-sm text-white">{{ getBankName() }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Tipo cuenta</span><span class="text-sm text-white">{{ currentEmployee()?.bank_account_type || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Nº cuenta</span><span class="text-sm text-white font-mono">{{ currentEmployee()?.account_number || '-' }}</span></div>
-                    </div>
-                  </section>
-                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
-                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
-                      <i class="pi pi-briefcase text-amber-400 text-sm"></i>
-                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Laboral</span>
-                    </div>
-                    <div class="divide-y divide-neutral-700/50">
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Empresa</span><span class="text-sm text-white">{{ getCompanyName() }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Área</span><span class="text-sm text-white">{{ currentEmployee()?.department?.name || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Sucursal</span><span class="text-sm text-white">{{ currentEmployee()?.branch?.name || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Cargo</span><span class="text-sm text-white">{{ currentEmployee()?.position?.name || '-' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Salario mensual</span><span class="text-sm text-green-400 font-semibold">{{ currentEmployee()?.monthly_salary | currency:'$' }}</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Ingreso</span><span class="text-sm text-white">{{ currentEmployee()?.start_date | date:'shortDate' }} @if(currentEmployee()?.start_date) { ({{ currentEmployee()!.start_date | seniority }}) }</span></div>
-                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Estado</span>
-                        <span [ngClass]="currentEmployee()?.is_active ? 'text-green-400' : 'text-red-400'" class="text-sm font-semibold">
-                          <i [class]="currentEmployee()?.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'" class="mr-1"></i>
-                          {{ currentEmployee()?.is_active ? 'Activo' : 'Inactivo' }}
-                        </span>
-                      </div>
-                    </div>
-                  </section>
+    <!-- ========== TABS CUSTOM (sin PrimeNG) ========== -->
+    <nav class="ed-tabs" role="tablist">
+      @for (tab of tabs; track tab.id; let i = $index) {
+        <button class="ed-tab" [class.ed-tab--active]="activeTab() === i" (click)="activeTab.set(i)" role="tab">
+          <i [class]="tab.icon" class="ed-tab__icon"></i>
+          <span>{{ tab.label }}</span>
+        </button>
+      }
+    </nav>
+
+    <!-- ========== PANELS ========== -->
+    <div class="ed-panel">
+      @if (employee.isLoading()) {
+        <div class="space-y-3 p-6"><p-skeleton height="3rem" /><p-skeleton height="12rem" /><p-skeleton height="8rem" /></div>
+      } @else if (!currentEmployee()) {
+        <div class="ed-empty"><i class="pi pi-user-minus"></i><p>Empleado no encontrado</p></div>
+      } @else {
+        @switch (activeTab()) {
+          <!-- INFO -->
+          @case (0) {
+            <div class="ed-info">
+              <!-- Quick stats -->
+              <div class="ed-stats">
+                <div class="ed-stat"><span class="ed-stat__value ed-stat__value--green">{{ currentEmployee()!.monthly_salary | currency:'$':'symbol':'1.0-0' }}</span><span class="ed-stat__label">Salario</span></div>
+                <div class="ed-stat"><span class="ed-stat__value ed-stat__value--amber">@if(currentEmployee()!.start_date) { {{ currentEmployee()!.start_date | seniority }} } @else { - }</span><span class="ed-stat__label">Antigüedad</span></div>
+                <div class="ed-stat"><span class="ed-stat__value ed-stat__value--blue">{{ currentEmployee()!.department?.name || '-' }}</span><span class="ed-stat__label">Área</span></div>
+              </div>
+              <div class="ed-grid">
+                <!-- Col 1 -->
+                <section class="ed-section">
+                  <h3 class="ed-section__title"><i class="pi pi-id-card"></i> Datos personales</h3>
+                  <dl class="ed-dl">
+                    <dt>Nombre completo</dt><dd>{{ currentEmployee()!.first_name }} {{ currentEmployee()!.middle_name }} {{ currentEmployee()!.father_name }} {{ currentEmployee()!.mother_name }}</dd>
+                    <dt>Cédula</dt><dd>{{ currentEmployee()!.document_id || '-' }}</dd>
+                    <dt>Nacimiento</dt><dd>{{ currentEmployee()!.birth_date | date:'mediumDate' }} ({{ currentEmployee()!.birth_date | age }})</dd>
+                    <dt>Sexo</dt><dd>{{ currentEmployee()!.gender === 'M' ? 'Masculino' : 'Femenino' }}</dd>
+                    <dt>Talla</dt><dd>{{ currentEmployee()!.uniform_size || '-' }}</dd>
+                  </dl>
+                </section>
+                <section class="ed-section">
+                  <h3 class="ed-section__title"><i class="pi pi-phone"></i> Contacto</h3>
+                  <dl class="ed-dl">
+                    <dt>Email laboral</dt><dd class="break-all">{{ currentEmployee()!.work_email || '-' }}</dd>
+                    <dt>Email personal</dt><dd class="break-all">{{ currentEmployee()!.email || '-' }}</dd>
+                    <dt>Teléfono</dt><dd>{{ currentEmployee()!.phone_number || '-' }}</dd>
+                    <dt>Dirección</dt><dd>{{ currentEmployee()!.address || '-' }}</dd>
+                  </dl>
+                </section>
+                <section class="ed-section">
+                  <h3 class="ed-section__title"><i class="pi pi-briefcase"></i> Laboral</h3>
+                  <dl class="ed-dl">
+                    <dt>Empresa</dt><dd>{{ getCompanyName() }}</dd>
+                    <dt>Cargo</dt><dd>{{ currentEmployee()!.position?.name || '-' }}</dd>
+                    <dt>Sucursal</dt><dd>{{ currentEmployee()!.branch?.name || '-' }}</dd>
+                    <dt>Salario mensual</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()!.monthly_salary | currency:'$' }}</dd>
+                    <dt>Salario/hora</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()!.hourly_salary | currency:'$' }}</dd>
+                    <dt>Fecha ingreso</dt><dd>{{ currentEmployee()!.start_date | date:'mediumDate' }} @if(currentEmployee()!.start_date) { ({{ currentEmployee()!.start_date | seniority }}) }</dd>
+                    @if (currentEmployee(); as e) { @if (e.total_lunch_exceeded_minutes != null && e.total_lunch_exceeded_minutes > 0) { <dt>Exceso almuerzo</dt><dd class="text-amber-400">{{ formatLunchExceeded(e.total_lunch_exceeded_minutes) }}</dd> } }
+                  </dl>
+                </section>
+                <section class="ed-section">
+                  <h3 class="ed-section__title"><i class="pi pi-credit-card"></i> Bancario</h3>
+                  <dl class="ed-dl">
+                    <dt>Banco</dt><dd>{{ getBankName() }}</dd>
+                    <dt>Tipo cuenta</dt><dd>{{ currentEmployee()!.bank_account_type || '-' }}</dd>
+                    <dt>Nº cuenta</dt><dd class="font-mono">{{ currentEmployee()!.account_number || '-' }}</dd>
+                  </dl>
+                </section>
+              </div>
+            </div>
+          }
+          <!-- ASISTENCIA -->
+          @case (1) {
+            <div class="p-4 md:p-6 space-y-4">
+              @if (monthlyLates.isLoading()) {
+                <div class="space-y-2"><p-skeleton height="3rem" /><p-skeleton height="3rem" /><p-skeleton height="3rem" /></div>
+              } @else {
+                <!-- Resumen del mes -->
+                <div class="ed-stats" style="grid-template-columns: repeat(4, 1fr);">
+                  <div class="ed-stat">
+                    <span class="ed-stat__value" [ngClass]="(monthlyLates.value()?.length || 0) > 3 ? 'text-red-400' : (monthlyLates.value()?.length || 0) > 0 ? 'text-amber-400' : 'text-green-400'">{{ monthlyLates.value()?.length || 0 }}</span>
+                    <span class="ed-stat__label">Tardanzas</span>
+                  </div>
+                  <div class="ed-stat">
+                    <span class="ed-stat__value text-orange-400">{{ totalLateMinutes() }}</span>
+                    <span class="ed-stat__label">Min. tarde</span>
+                  </div>
+                  <div class="ed-stat">
+                    <span class="ed-stat__value" [ngClass]="(currentEmployee()?.total_lunch_exceeded_minutes || 0) > 0 ? 'text-amber-400' : 'text-green-400'">{{ currentEmployee()?.total_lunch_exceeded_minutes || 0 }}</span>
+                    <span class="ed-stat__label">Min. almuerzo</span>
+                  </div>
+                  <div class="ed-stat">
+                    <span class="ed-stat__value text-blue-400">{{ avgLateMinutes() }}</span>
+                    <span class="ed-stat__label">Prom. min</span>
+                  </div>
                 </div>
-              </p-tabpanel>
-              <p-tabpanel value="1">
-                @if (employee_id()) {
-                  <div class="px-3 py-3 pb-8"><pt-employee-schedules [employeeId]="employee_id()!" /></div>
-                }
-              </p-tabpanel>
-              <p-tabpanel value="2">
-                <div class="px-3 py-4 flex flex-col items-center gap-3 pb-8">
-                  @if (currentEmployee()?.qr_code) {
-                    <img [src]="currentEmployee()?.qr_code" alt="QR" class="w-48 h-48 rounded-lg shadow-lg" />
-                  } @else {
-                    <div class="w-48 h-48 rounded-lg bg-neutral-800/80 border border-neutral-700/50 flex items-center justify-center">
-                      <i class="pi pi-qrcode text-4xl text-gray-500"></i>
-                    </div>
-                  }
-                  <p-button [label]="currentEmployee()?.qr_code ? 'Regenerar QR' : 'Generar QR'" [icon]="currentEmployee()?.qr_code ? 'pi pi-refresh' : 'pi pi-plus'" [severity]="currentEmployee()?.qr_code ? 'warn' : 'success'" [loading]="regeneratingQr()" [disabled]="regeneratingQr() || !currentEmployee()" (onClick)="confirmRegenerateQr()" size="small" />
-                </div>
-              </p-tabpanel>
-              <p-tabpanel value="3">
-                <div class="px-3 py-3 space-y-2 pb-8">
-                  @if (currentEmployee()?.timeoffs?.length) {
-                    @for (timeoff of currentEmployee()?.timeoffs; track $index) {
-                      <div class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 p-3">
-                        <p class="font-medium text-white text-sm m-0">{{ timeoff.type?.name }}</p>
-                        <p class="text-xs text-gray-400 m-0 mt-0.5">{{ timeoff.date_from }} - {{ timeoff.date_to }}</p>
-                      </div>
-                    }
-                  } @else {
-                    <p class="text-sm text-gray-400 text-center py-6 m-0">Sin tiempos fuera registrados</p>
-                  }
-                </div>
-              </p-tabpanel>
-              <p-tabpanel value="4">
-                @if (currentEmployee()) {
-                  <div class="px-3 py-3 space-y-4 pb-8">
-                    <div class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 p-3 flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center" [ngClass]="currentEmployee()?.has_portal_access ? 'bg-green-500/20' : 'bg-gray-500/20'">
-                          <i class="pi text-xl" [ngClass]="currentEmployee()?.has_portal_access ? 'pi-check-circle text-green-400' : 'pi-times-circle text-gray-400'"></i>
+
+                <!-- Lista de tardanzas -->
+                @if (monthlyLates.value()?.length) {
+                  <h4 class="text-xs font-semibold text-amber-400 uppercase tracking-wider m-0 flex items-center gap-2">
+                    <i class="pi pi-clock"></i> Tardanzas del mes en curso
+                  </h4>
+                  <div class="space-y-1.5">
+                    @for (late of monthlyLates.value(); track late.id) {
+                      <div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/60 border border-neutral-700/40">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                          <i class="pi pi-clock text-amber-400 text-xs"></i>
                         </div>
-                        <div>
-                          <p class="font-semibold text-white text-sm m-0">{{ currentEmployee()?.has_portal_access ? 'Portal activo' : 'Sin acceso' }}</p>
-                          <p class="text-xs text-gray-400 m-0">{{ currentEmployee()?.work_email || '-' }}</p>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-[13px] text-white m-0 font-medium">{{ late.timelog_date | date:'EEEE d MMM' }}</p>
+                          <p class="text-[11px] text-gray-500 m-0">Entrada: {{ late.actual_entry_time }} (prog: {{ late.scheduled_entry_time }})</p>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                          <span class="text-sm font-bold" [ngClass]="late.minutes_late > 15 ? 'text-red-400' : 'text-amber-400'">{{ late.minutes_late }} min</span>
+                          <p class="text-[10px] m-0" [ngClass]="late.status === 'active' ? 'text-red-400' : 'text-green-400'">{{ late.status === 'active' ? 'Activa' : late.status }}</p>
                         </div>
                       </div>
-                      <p-tag [value]="currentEmployee()?.has_portal_access ? 'Activo' : 'Sin acceso'" [severity]="currentEmployee()?.has_portal_access ? 'success' : 'secondary'" styleClass="text-[10px]" />
-                    </div>
-                    @if (!currentEmployee()?.has_portal_access) {
-                      <p-button label="Invitar al portal" icon="pi pi-user-plus" severity="info" [disabled]="!canInvite() || inviting()" [loading]="inviting()" (onClick)="inviteToPortal()" class="w-full" size="small" />
-                      @if (!canInvite()) {
-                        <p class="text-xs text-amber-400 m-0">Email laboral y teléfono requeridos para invitar.</p>
-                      }
                     }
                   </div>
+                } @else {
+                  <div class="ed-empty"><i class="pi pi-check-circle" style="color: #4ade80;"></i><p>Sin tardanzas este mes</p></div>
                 }
-              </p-tabpanel>
-              <p-tabpanel value="5">
-                <div class="px-3 py-3 space-y-2 pb-8">
-                  @if (terminationHistory.isLoading()) {
-                    <p-skeleton height="2rem" />
-                    <p-skeleton height="3rem" />
-                  } @else if (terminationHistory.value()?.length) {
-                    @for (term of terminationHistory.value(); track term.id) {
-                    <div class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 p-3 space-y-1">
-                      <div class="flex justify-between items-center">
-                        <span class="px-2 py-0.5 rounded text-xs font-medium"
-                          [class]="term.reason === 'DESPIDO' ? 'bg-red-900/50 text-red-300' : term.reason === 'RENUNCIA' ? 'bg-orange-900/50 text-orange-300' : 'bg-neutral-700 text-gray-300'">
-                          {{ term.reason === 'FIN_CONTRATO' ? 'Fin de Contrato' : term.reason === 'DESPIDO' ? 'Despido' : 'Renuncia' }}
-                        </span>
-                      </div>
-                      <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Salida</span>
-                        <span class="text-gray-300">{{ formatTermDate(term.date) }}</span>
-                      </div>
-                      <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">Reintegro</span>
-                        <span class="text-gray-300">{{ term.reintegration_date ? formatTermDate(term.reintegration_date) : '-' }}</span>
-                      </div>
-                      @if (term.notes) {
-                      <p class="text-xs text-gray-500 m-0 mt-1">{{ term.notes }}</p>
-                      }
-                    </div>
-                    }
-                  } @else {
-                    <p class="text-sm text-gray-400 text-center py-6 m-0">Sin registros de salida o reintegro</p>
-                  }
+              }
+            </div>
+          }
+          <!-- HORARIOS -->
+          @case (2) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-schedules [employeeId]="employee_id()!" /></div> } }
+          <!-- QR -->
+          @case (3) {
+            <div class="ed-qr">
+              @if(currentEmployee()?.qr_code) { <div class="ed-qr__frame"><img [src]="currentEmployee()?.qr_code" alt="QR" /></div> }
+              @else { <div class="ed-qr__empty"><i class="pi pi-qrcode"></i><span>Sin código QR</span></div> }
+              <p-button [label]="currentEmployee()?.qr_code ? 'Regenerar QR' : 'Generar QR'" [icon]="currentEmployee()?.qr_code ? 'pi pi-refresh' : 'pi pi-plus'" [severity]="currentEmployee()?.qr_code ? 'warn' : 'success'" [loading]="regeneratingQr()" [disabled]="regeneratingQr() || !currentEmployee()" (onClick)="confirmRegenerateQr()" />
+            </div>
+          }
+          <!-- PORTAL -->
+          @case (4) {
+            <div class="p-4 md:p-6 space-y-4">
+              <div class="ed-portal-status">
+                <div class="ed-portal-icon" [ngClass]="currentEmployee()!.has_portal_access ? 'ed-portal-icon--active' : ''">
+                  <i class="pi" [ngClass]="currentEmployee()!.has_portal_access ? 'pi-shield' : 'pi-lock'"></i>
                 </div>
-              </p-tabpanel>
-            </p-tabpanels>
-          </p-tabs>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-white text-sm m-0">{{ currentEmployee()!.has_portal_access ? 'Portal Activo' : 'Sin Acceso' }}</p>
+                  <p class="text-xs text-gray-400 m-0 mt-0.5 truncate">{{ currentEmployee()!.work_email || 'Email no configurado' }}</p>
+                </div>
+                <span class="ed-badge" [ngClass]="currentEmployee()!.has_portal_access ? 'ed-badge--active' : 'ed-badge--inactive'">{{ currentEmployee()!.has_portal_access ? 'Activo' : 'Inactivo' }}</span>
+              </div>
+              @if (!currentEmployee()!.has_portal_access) {
+                <p-button label="Invitar al Portal" icon="pi pi-user-plus" severity="info" [disabled]="!canInvite() || inviting()" [loading]="inviting()" (onClick)="inviteToPortal()" />
+                @if (!canInvite()) { <p class="text-xs text-amber-400 m-0">Email laboral y teléfono requeridos.</p> }
+              }
+            </div>
+          }
+          <!-- HISTORIAL -->
+          @case (5) {
+            <div class="p-4 md:p-6">
+              @if (terminationHistory.isLoading()) { <p-skeleton height="4rem" /> }
+              @else if (terminationHistory.value()?.length) {
+                <div class="overflow-x-auto rounded-xl border border-neutral-700/50">
+                  <table class="w-full text-sm">
+                    <thead><tr class="bg-neutral-800/60"><th class="py-2.5 px-3 text-left text-xs text-gray-400 font-medium">Fecha</th><th class="py-2.5 px-3 text-left text-xs text-gray-400 font-medium">Motivo</th><th class="py-2.5 px-3 text-left text-xs text-gray-400 font-medium">Reintegro</th><th class="py-2.5 px-3 text-left text-xs text-gray-400 font-medium">Notas</th></tr></thead>
+                    <tbody>@for (t of terminationHistory.value(); track t.id) {
+                      <tr class="border-t border-neutral-800"><td class="py-2 px-3 text-gray-300">{{ formatTermDate(t.date) }}</td><td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-xs font-medium" [ngClass]="t.reason === 'DESPIDO' ? 'bg-red-500/15 text-red-400' : t.reason === 'RENUNCIA' ? 'bg-orange-500/15 text-orange-400' : 'bg-neutral-700 text-gray-300'">{{ t.reason === 'FIN_CONTRATO' ? 'Fin Contrato' : t.reason === 'DESPIDO' ? 'Despido' : 'Renuncia' }}</span></td><td class="py-2 px-3 text-gray-300">{{ t.reintegration_date ? formatTermDate(t.reintegration_date) : '-' }}</td><td class="py-2 px-3 text-gray-400 max-w-[200px] truncate">{{ t.notes || '-' }}</td></tr>
+                    }</tbody>
+                  </table>
+                </div>
+              } @else { <div class="ed-empty"><i class="pi pi-history"></i><p>Sin registros de salida o reintegro</p></div> }
+            </div>
+          }
+          <!-- SCORE -->
+          @case (6) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-credit-score [employeeId]="employee_id()!" /></div> } }
         }
-      </main>
+      }
     </div>
-    }
     </div>
   `,
   styles: `
-    p {
-      margin-bottom: 0 !important;
+    :host { display: block; width: 100%; }
+    p { margin-bottom: 0 !important; }
+
+    /* ===== MENU POPUP ===== */
+    ::ng-deep .p-menu { background: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.08) !important; box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important; border-radius: 0.75rem !important; overflow: hidden !important; min-width: 180px !important; }
+    ::ng-deep .p-menu .p-menuitem-link { color: #e5e7eb !important; padding: 0.75rem 1rem !important; }
+    ::ng-deep .p-menu .p-menuitem-link:hover { background: rgba(251,191,36,0.08) !important; color: #fbbf24 !important; }
+
+    /* ===== LAYOUT ===== */
+    .ed { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+
+    /* ===== HEADER ===== */
+    .ed-header {
+      padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .ed-header__row1 {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .ed-back {
+      display: inline-flex; align-items: center; gap: 0.375rem;
+      color: #71717a; font-size: 0.8125rem; text-decoration: none;
+      transition: color 0.15s; padding: 0.375rem 0.5rem; border-radius: 0.5rem;
+    }
+    .ed-back:hover { color: #fbbf24; }
+    @media (max-width: 768px) { .ed-back__text { display: none; } }
+
+    .ed-identity { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+    .ed-avatar {
+      width: 2.5rem; height: 2.5rem; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05));
+      border: 1.5px solid rgba(251,191,36,0.25); display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 0.8125rem; color: #fbbf24;
+    }
+    .ed-identity__info { min-width: 0; }
+    .ed-name { font-size: 1.125rem; font-weight: 700; color: #f5f5f5; margin: 0; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ed-subtitle { font-size: 0.75rem; color: #71717a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 768px) { .ed-name { font-size: 0.9375rem; } }
+
+    .ed-badge {
+      font-size: 0.625rem; font-weight: 600; padding: 0.125rem 0.5rem;
+      border-radius: 9999px; white-space: nowrap; flex-shrink: 0;
+    }
+    .ed-badge--active { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .ed-badge--inactive { background: rgba(239,68,68,0.12); color: #f87171; }
+
+    .ed-actions { display: flex; gap: 0.375rem; flex-shrink: 0; }
+    .ed-action {
+      width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.06);
+      background: #171717; color: #a1a1aa; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s; font-size: 0.8125rem; text-decoration: none;
+    }
+    .ed-action:hover { border-color: rgba(255,255,255,0.12); color: #f5f5f5; }
+    .ed-action--green:hover { border-color: rgba(34,197,94,0.3); color: #4ade80; background: rgba(34,197,94,0.08); }
+    .ed-action--blue:hover { border-color: rgba(59,130,246,0.3); color: #60a5fa; background: rgba(59,130,246,0.08); }
+    .ed-action--amber:hover { border-color: rgba(251,191,36,0.3); color: #fbbf24; background: rgba(251,191,36,0.08); }
+
+    /* ===== TABS ===== */
+    .ed-tabs {
+      display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      border-bottom: 1px solid rgba(255,255,255,0.06); scrollbar-width: none;
+      margin-top: 0.25rem;
+    }
+    .ed-tabs::-webkit-scrollbar { display: none; }
+    .ed-tab {
+      display: flex; align-items: center; gap: 0.375rem; padding: 0.625rem 0.875rem;
+      font-size: 0.8125rem; font-weight: 500; color: #52525b; white-space: nowrap;
+      border: none; border-bottom: 2px solid transparent; background: transparent;
+      cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ed-tab:hover { color: #a1a1aa; }
+    .ed-tab--active { color: #fbbf24 !important; border-bottom-color: #fbbf24; }
+    .ed-tab__icon { font-size: 0.875rem; }
+    @media (max-width: 768px) {
+      .ed-tab { padding: 0.75rem 0.75rem; font-size: 0.75rem; }
+      .ed-tab__icon { display: none; }
     }
 
-    ::ng-deep .p-tabs .p-tablist {
-      background: #18181b !important;
-      border-bottom: 1px solid rgba(251, 191, 36, 0.2) !important;
-    }
-    
-    ::ng-deep .p-tabs .p-tab {
-      color: #9ca3af !important;
-      padding: 0.75rem 1rem !important;
-    }
-    
-    ::ng-deep .p-tabs .p-tab:hover {
-      color: #fbbf24 !important;
-    }
-    
-    ::ng-deep .p-tabs .p-tab.p-highlight {
-      color: #fbbf24 !important;
-      border-bottom: 2px solid #fbbf24 !important;
-    }
-    
-    ::ng-deep .p-tabpanel {
-      padding: 1.5rem 0 !important;
-    }
-    
-    ::ng-deep .p-card {
-      background: #18181b !important;
-      border: 1px solid rgba(251, 191, 36, 0.2) !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
-      border-radius: 0.5rem !important;
-      overflow: hidden !important;
-    }
-    
-    ::ng-deep .p-card .p-card-header {
-      background: #18181b !important;
-      border-bottom: 1px solid rgba(251, 191, 36, 0.2) !important;
-      padding: 0.75rem 1rem !important;
-      border-radius: 0.5rem 0.5rem 0 0 !important;
-    }
-    
-    ::ng-deep .p-card .p-card-body {
-      padding: 1rem !important;
-      background: #18181b !important;
-    }
-    
-    ::ng-deep .p-card .p-card-title {
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-    
-    ::ng-deep .p-menu {
-      background: #262626 !important;
-      border: 1px solid rgba(251, 191, 36, 0.3) !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
-      border-radius: 0.5rem !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link {
-      color: #e5e7eb !important;
-      padding: 0.75rem 1rem !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link:hover {
-      background: rgba(251, 191, 36, 0.1) !important;
-      color: #fbbf24 !important;
-    }
+    /* ===== PANELS ===== */
+    .ed-panel { min-height: 40vh; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 1rem); }
+    .ed-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; color: #3f3f46; text-align: center; gap: 0.5rem; }
+    .ed-empty i { font-size: 2.5rem; }
+    .ed-empty p { font-size: 0.875rem; color: #71717a; margin: 0; }
 
-    .employee-detail-page a.no-underline { text-decoration: none; }
+    /* ===== INFO TAB ===== */
+    .ed-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+      padding: 1rem 1rem 0; margin-bottom: 0.5rem;
+    }
+    @media (min-width: 769px) { .ed-stats { padding: 1.5rem 1.5rem 0; } }
+    .ed-stat {
+      text-align: center; padding: 0.75rem 0.5rem; border-radius: 0.75rem;
+      background: #171717; border: 1px solid rgba(255,255,255,0.04);
+    }
+    .ed-stat__value { display: block; font-size: 0.875rem; font-weight: 700; color: #f5f5f5; }
+    .ed-stat__value--green { color: #4ade80; }
+    .ed-stat__value--amber { color: #fbbf24; }
+    .ed-stat__value--blue { color: #60a5fa; }
+    .ed-stat__label { display: block; font-size: 0.625rem; color: #52525b; text-transform: uppercase; margin-top: 0.125rem; letter-spacing: 0.03em; }
 
-    /* Vista desktop: grid de datos legible */
-    .desktop-detail .detail-grid {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 0.375rem 1.5rem;
-      align-items: baseline;
-      font-size: 0.875rem;
+    .ed-info { padding-bottom: 2rem; }
+    .ed-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      padding: 1rem;
     }
-    .desktop-detail .detail-grid dt {
-      color: #9ca3af;
-      font-weight: 500;
-      min-width: 0;
+    @media (min-width: 769px) { .ed-grid { padding: 1.5rem; gap: 1.5rem; } }
+    @media (max-width: 768px) { .ed-grid { grid-template-columns: 1fr; } }
+
+    .ed-section {
+      background: #171717; border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 0.75rem; padding: 1rem; overflow: hidden;
     }
-    .desktop-detail .detail-grid dd {
-      color: #e5e7eb;
-      margin: 0;
-      min-width: 0;
+    .ed-section__title {
+      font-size: 0.6875rem; font-weight: 600; color: #fbbf24; text-transform: uppercase;
+      letter-spacing: 0.04em; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.375rem;
     }
-    .desktop-detail-tabs ::ng-deep .p-tablist {
-      background: transparent !important;
-      border-bottom: 1px solid rgba(75, 85, 99, 0.5) !important;
+    .ed-section__title i { font-size: 0.75rem; }
+
+    .ed-dl {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.375rem 1rem;
+      font-size: 0.8125rem; align-items: baseline;
     }
-    .desktop-detail-tabs ::ng-deep .p-tab {
-      padding: 0.5rem 1rem !important;
-      font-size: 0.875rem !important;
+    .ed-dl dt { color: #71717a; font-weight: 400; }
+    .ed-dl dd { color: #e5e7eb; margin: 0; }
+    @media (max-width: 768px) { .ed-dl { font-size: 0.75rem; gap: 0.5rem 0.75rem; } }
+
+    /* ===== QR TAB ===== */
+    .ed-qr { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem; }
+    .ed-qr__frame { padding: 0.75rem; background: #fff; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .ed-qr__frame img { width: 12rem; height: 12rem; border-radius: 0.5rem; }
+    .ed-qr__empty { width: 12rem; height: 12rem; border-radius: 1rem; background: #171717; border: 2px dashed #333; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; color: #3f3f46; }
+    .ed-qr__empty i { font-size: 3rem; }
+    .ed-qr__empty span { font-size: 0.75rem; }
+
+    /* ===== PORTAL TAB ===== */
+    .ed-portal-status {
+      display: flex; align-items: center; gap: 0.75rem; padding: 1rem;
+      background: #171717; border: 1px solid rgba(255,255,255,0.04); border-radius: 0.75rem;
     }
-    .mobile-employee-detail ::ng-deep .p-tabs .p-tablist {
-      flex-wrap: nowrap !important;
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch;
-      padding: 0.5rem 0.75rem !important;
-      gap: 0 !important;
-      background: rgba(39, 39, 42, 0.5) !important;
-      border-bottom: 1px solid rgba(75, 85, 99, 0.5) !important;
+    .ed-portal-icon {
+      width: 2.75rem; height: 2.75rem; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; background: rgba(255,255,255,0.04);
+      color: #52525b; font-size: 1.25rem;
     }
-    .mobile-employee-detail ::ng-deep .p-tabs .p-tab {
-      padding: 0.5rem 0.75rem !important;
-      font-size: 0.75rem !important;
-      white-space: nowrap !important;
-      flex-shrink: 0 !important;
-    }
+    .ed-portal-icon--active { background: rgba(34,197,94,0.1); color: #4ade80; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -811,7 +427,7 @@ export class EmployeeDetailComponent implements OnInit {
   protected readonly banksStore = inject(BanksStore);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  protected device = inject(DeviceService);
+
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
@@ -822,6 +438,16 @@ export class EmployeeDetailComponent implements OnInit {
   public employee_id = signal<string | null>(null);
   public inviting = signal(false);
   public regeneratingQr = signal(false);
+  public activeTab = signal(0);
+  public readonly tabs = [
+    { id: 'info', label: 'Info', icon: 'pi pi-id-card' },
+    { id: 'asistencia', label: 'Asistencia', icon: 'pi pi-clock' },
+    { id: 'horarios', label: 'Horarios', icon: 'pi pi-calendar' },
+    { id: 'qr', label: 'QR', icon: 'pi pi-qrcode' },
+    { id: 'portal', label: 'Portal', icon: 'pi pi-user' },
+    { id: 'historial', label: 'Historial', icon: 'pi pi-history' },
+    { id: 'score', label: 'Score', icon: 'pi pi-chart-bar' },
+  ];
   public portalUrl = `${getEnv('ENV_APP_URL') || window.location.origin
     }/my-portal`;
   public employee = httpResource<Employee[]>(() => {
@@ -853,6 +479,34 @@ export class EmployeeDetailComponent implements OnInit {
     };
   });
   public currentEmployee = computed(() => this.employee.value()?.[0]);
+
+  // Tardanzas del mes actual
+  monthlyLates = httpResource<any[]>(() => {
+    const empId = this.employee_id();
+    if (!empId) return;
+    const firstOfMonth = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    return {
+      url: this.apiUrl.build('rest/v1/employee_late_records', {
+        employee_id: `eq.${empId}`,
+        timelog_date: `gte.${firstOfMonth}`,
+        order: 'timelog_date.desc',
+        select: 'id,timelog_date,scheduled_entry_time,actual_entry_time,minutes_late,status,branch_name',
+      }),
+      method: 'GET',
+    };
+  });
+
+  totalLateMinutes = computed(() => {
+    const lates = this.monthlyLates.value();
+    if (!lates?.length) return 0;
+    return lates.reduce((sum: number, l: any) => sum + (l.minutes_late || 0), 0);
+  });
+
+  avgLateMinutes = computed(() => {
+    const lates = this.monthlyLates.value();
+    if (!lates?.length) return 0;
+    return Math.round(this.totalLateMinutes() / lates.length);
+  });
 
   terminationHistory = httpResource<Termination[]>(() => {
     const empId = this.employee_id();

@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { HttpClient, httpResource } from '@angular/common/http';
+import { HttpClient, httpResource, HttpResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -21,7 +21,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { differenceInMinutes, format, getDate, getDay, getYear, getMonth, set } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -32,13 +32,11 @@ import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import {
   Branch,
   Company,
   Employee,
-  EmployeeSchedule,
-  Schedule,
   TimeLog,
   TimelogType,
 } from '../models';
@@ -46,6 +44,14 @@ import { TrimPipe } from '../pipes/trim.pipe';
 import { IpMonitorService } from '../services/ip-monitor.service';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { TimeclockPhrasesService } from '../services/timeclock-phrases.service';
+import {
+  initAudioContext,
+  playFailureSound,
+  playLateSound,
+  playSuccessSound,
+  playBirthdaySound,
+} from '../timeclock/timeclock-audio.utils';
 
 @Component({
   selector: 'pt-naz-timeclock',
@@ -61,17 +67,7 @@ import { OrganizationService } from '../services/organization.service';
     NgClass,
   ],
   providers: [ConfirmationService],
-  template: `<p-confirmDialog key="confirm1">
-      <ng-template #message let-message>
-        <div
-          class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
-        >
-          <i [ngClass]="message.icon" class="!text-6xl text-orange-500"></i>
-          <div class="text-center w-full" [innerHTML]="message.message"></div>
-        </div>
-      </ng-template>
-    </p-confirmDialog>
-    <p-confirmDialog key="confirm2">
+  template: `<p-confirmDialog key="confirm2">
       <ng-template #message let-message>
         <div
           class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
@@ -82,14 +78,118 @@ import { OrganizationService } from '../services/organization.service';
       </ng-template>
     </p-confirmDialog>
     <p-toast />
+
+    <!-- Custom Success Confirmation Modal -->
+    @if (confirmModalVisible()) {
+      <div class="confirm-modal-overlay" (click)="dismissConfirmModal()">
+        <div class="confirm-modal-card"
+          [class.confirm-modal-exit]="confirmModalExiting()"
+          [class.is-late]="confirmModalData()?.isLate"
+          [class.is-birthday]="confirmModalData()?.isBirthday">
+
+          <!-- Birthday confetti particles -->
+          @if (confirmModalData()?.isBirthday) {
+            <div class="confetti-container">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]; track i) {
+                <div class="confetti-piece" [style.--i]="i"></div>
+              }
+            </div>
+          }
+
+          <!-- Icon -->
+          <div class="confirm-modal-icon-wrap">
+            @if (confirmModalData()?.isBirthday) {
+              <div class="confirm-modal-icon confirm-modal-icon--birthday">
+                <span class="birthday-icon-emoji">🎂</span>
+              </div>
+            } @else if (confirmModalData()?.isLate) {
+              <div class="confirm-modal-icon confirm-modal-icon--late">
+                <i class="pi pi-clock"></i>
+              </div>
+            } @else {
+              <div class="confirm-modal-icon confirm-modal-icon--success">
+                <i class="pi pi-check"></i>
+              </div>
+            }
+          </div>
+
+          <!-- Birthday greeting -->
+          @if (confirmModalData()?.isBirthday) {
+            <div class="confirm-modal-birthday-greeting">
+              ¡Feliz Cumpleaños, {{ confirmModalData()?.employeeName }}!
+            </div>
+          }
+
+          <!-- Type + Time -->
+          <div class="confirm-modal-title">
+            {{ confirmModalData()?.typeLabel }} registrada exitosamente
+          </div>
+          <div class="confirm-modal-time">
+            a las {{ confirmModalData()?.time }}
+          </div>
+
+          <!-- Tardiness info -->
+          @if (confirmModalData()?.isLate) {
+            <div class="confirm-modal-late-box" [class.very-late]="confirmModalData()?.isVeryLate">
+              <div class="confirm-modal-late-header">
+                <i class="pi pi-clock"></i> Llegó tarde
+              </div>
+              <div class="confirm-modal-late-detail">
+                Tardanza: {{ confirmModalData()?.delayText }}
+              </div>
+            </div>
+            @if (confirmModalData()?.isVeryLate) {
+              <div class="confirm-modal-verylate-box">
+                <div class="confirm-modal-verylate-header">
+                  <i class="pi pi-exclamation-triangle"></i> Atención
+                </div>
+                <div class="confirm-modal-verylate-detail">
+                  Tardanza mayor a 1 hora. Verifique con el gerente si el horario está configurado correctamente.
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Lunch overtime warning -->
+          @if (confirmModalData()?.isLunchOvertime) {
+            <div class="confirm-modal-late-box" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%);">
+              <div class="confirm-modal-late-header">
+                <i class="pi pi-clock"></i> Almuerzo excedido
+              </div>
+              <div class="confirm-modal-late-detail">
+                Se excedió {{ confirmModalData()?.lunchExceededMinutes }} minuto{{ confirmModalData()!.lunchExceededMinutes !== 1 ? 's' : '' }} de almuerzo
+              </div>
+            </div>
+          }
+
+          <!-- Motivational phrase -->
+          <div class="confirm-modal-phrase-box" [class.birthday-phrase]="confirmModalData()?.isBirthday">
+            @if (confirmModalData()?.isBirthday) {
+              <span class="birthday-phrase-icon">🎉</span>
+            }
+            "{{ confirmModalData()?.phrase }}"
+            @if (confirmModalData()?.isBirthday) {
+              <span class="birthday-phrase-icon">🎉</span>
+            }
+          </div>
+
+          <!-- Progress bar -->
+          <div class="confirm-modal-progress-track">
+            <div class="confirm-modal-progress-bar"
+              [class.is-late]="confirmModalData()?.isLate"
+              [class.is-birthday]="confirmModalData()?.isBirthday"></div>
+          </div>
+        </div>
+      </div>
+    }
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
-      style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
+      style="width: 100%; position: relative;"
     >
       @if (!isKioskMode() || isIPValid()) {
       <div
         class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
-        style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
+        style="max-width: 600px; width: 100%;"
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
@@ -207,17 +307,46 @@ import { OrganizationService } from '../services/organization.service';
               >
                 Ingrese su PIN
               </label>
-              <div class="w-full flex justify-center items-center">
+              <div class="w-full flex justify-center items-center gap-2">
                 <p-inputOtp
                   #otpInput
                   formControlName="otp"
                   [length]="6"
                   [integerOnly]="true"
-                  (keydown.enter)="onEnterKey($event)"
                   (input)="onOtpInput($event)"
                   styleClass="p-inputotp-input"
                 />
+                <!-- Paste button (visible on mobile) -->
+                <button
+                  type="button"
+                  class="paste-btn md:hidden"
+                  (click)="pasteFromClipboard()"
+                  title="Pegar código"
+                >
+                  <i class="pi pi-clipboard"></i>
+                </button>
               </div>
+              <!-- Keypad toggle + Teclado numérico -->
+              <button type="button" class="keypad-toggle-btn w-full" (click)="toggleKeypad()">
+                <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-chevron-up' : 'pi-th-large'"></i>
+                {{ showKeypadPanel() ? 'Ocultar teclado' : 'Teclado numérico' }}
+              </button>
+              @if (showKeypadPanel()) {
+              <div class="keypad-grid w-full max-w-[280px] mx-auto" style="animation: slideDown 0.25s ease-out;">
+                <div class="grid grid-cols-3 gap-1.5">
+                  @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+                    <button type="button" class="keypad-btn" (click)="addNumberToOtp(num)">{{ num }}</button>
+                  }
+                  <button type="button" class="keypad-btn keypad-clear" (click)="clearOtp()">
+                    <i class="pi pi-ban text-sm"></i>
+                  </button>
+                  <button type="button" class="keypad-btn" (click)="addNumberToOtp('0')">0</button>
+                  <button type="button" class="keypad-btn keypad-delete" (click)="deleteFromOtp()">
+                    <i class="pi pi-delete-left text-sm"></i>
+                  </button>
+                </div>
+              </div>
+              }
             </div>
 
             <!-- Submit Button -->
@@ -265,7 +394,7 @@ import { OrganizationService } from '../services/organization.service';
       <!-- Mensaje de acceso restringido en modo kiosko -->
       <div
         class="flex flex-col gap-4 items-center px-3 md:px-6 relative z-10"
-        style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
+        style="max-width: 600px; width: 100%;"
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
@@ -323,15 +452,73 @@ import { OrganizationService } from '../services/organization.service';
       }
     </div>`,
   styles: `
+    :host {
+      display: block;
+      width: 100%;
+    }
+
+    @media (max-width: 767px) {
+      :host {
+        height: 100dvh;
+        height: 100vh;
+        overflow: hidden;
+        position: fixed;
+        inset: 0;
+      }
+    }
+
     .animated-gradient-container {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+      background: linear-gradient(135deg, #0f0f12 0%, #0a0a0d 25%, #000000 50%, #0a0a0d 75%, #141418 100%);
       position: relative;
       min-height: 100vh;
+      min-height: 100dvh;
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    /* Ambient floating orbs */
+    .animated-gradient-container::before,
+    .animated-gradient-container::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(80px);
+      opacity: 0.15;
+      z-index: 0;
+    }
+
+    .animated-gradient-container::before {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.4), transparent 70%);
+      top: -100px;
+      right: -100px;
+      animation: floatOrb1 15s ease-in-out infinite;
+    }
+
+    .animated-gradient-container::after {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.3), transparent 70%);
+      bottom: -80px;
+      left: -80px;
+      animation: floatOrb2 18s ease-in-out infinite;
+    }
+
+    @keyframes floatOrb1 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(-60px, 40px); }
+      66% { transform: translate(30px, -30px); }
+    }
+
+    @keyframes floatOrb2 {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(50px, -40px); }
+      66% { transform: translate(-40px, 50px); }
     }
     
     /* Beautiful custom scrollbar */
@@ -373,68 +560,26 @@ import { OrganizationService } from '../services/organization.service';
       flex-shrink: 0;
     }
     
-    @media (max-height: 800px) {
-      .timeclock-content {
-        transform: scale(0.9);
-      }
-    }
+    /* old desktop scale rules removed */
     
-    @media (max-height: 700px) {
-      .timeclock-content {
-        transform: scale(0.8);
-      }
-    }
-    
-    @media (max-height: 600px) {
-      .timeclock-content {
-        transform: scale(0.75);
-      }
-    }
-    
-    @media (max-width: 767px) {
-      .animated-gradient-container {
-        padding: 0;
-      }
-      
-      @media (max-height: 900px) {
-        .timeclock-content {
-          transform: scale(0.85);
-        }
-      }
-      
-      @media (max-height: 700px) {
-        .timeclock-content {
-          transform: scale(0.75);
-        }
-      }
-      
-      @media (max-height: 600px) {
-        .timeclock-content {
-          transform: scale(0.65);
-        }
-      }
-    }
+    /* old mobile scale rules removed - using dvh-based layout now */
     
     
     .timeclock-card {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
-      border-radius: 12px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2) !important;
-      backdrop-filter: blur(10px);
-      background: rgba(17, 24, 39, 0.95) !important;
-      animation: cardEntrance 0.25s ease-out;
+      border: 1px solid rgba(251, 191, 36, 0.25) !important;
+      border-radius: 20px !important;
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 1px 0 rgba(255, 255, 255, 0.05) inset,
+        0 0 40px rgba(251, 191, 36, 0.06) !important;
+      backdrop-filter: blur(20px) saturate(1.1);
+      background: linear-gradient(165deg, rgba(22, 28, 45, 0.95) 0%, rgba(12, 16, 28, 0.98) 100%) !important;
+      animation: cardEntrance 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
     }
     
-    @media (max-width: 767px) {
-      .timeclock-card ::ng-deep .p-card-body {
-        padding: 1rem !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-title {
-        padding: 0.75rem !important;
-      }
-      
-    }
+    /* old card padding rules removed - handled by mobile layout block */
     
     /* Desactivar animaciones solo si el usuario explícitamente prefiere movimiento reducido */
     @media (prefers-reduced-motion: reduce) {
@@ -463,16 +608,18 @@ import { OrganizationService } from '../services/organization.service';
     }
     
     .clock-time {
-      text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
-      animation: clockPulse 2s ease-in-out infinite;
+      text-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.15);
+      animation: clockPulse 3s ease-in-out infinite;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.05em;
     }
     
     @keyframes clockPulse {
       0%, 100% {
-        text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+        text-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.15);
       }
       50% {
-        text-shadow: 0 0 20px rgba(251, 191, 36, 1), 0 0 30px rgba(251, 191, 36, 0.6);
+        text-shadow: 0 0 30px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.25), 0 0 90px rgba(251, 191, 36, 0.1);
       }
     }
     
@@ -647,6 +794,729 @@ import { OrganizationService } from '../services/organization.service';
       animation: rotate 0.6s linear infinite;
     }
 
+    .keypad-btn {
+      height: 48px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+      color: #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      backdrop-filter: blur(4px);
+    }
+    .keypad-btn:hover {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+      border-color: rgba(251, 191, 36, 0.2);
+    }
+    .keypad-btn:active {
+      transform: scale(0.92);
+      background: rgba(251, 191, 36, 0.15);
+      border-color: rgba(251, 191, 36, 0.4);
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+    }
+    .keypad-delete {
+      color: #fbbf24;
+      border-color: rgba(251, 191, 36, 0.15);
+    }
+    .keypad-clear {
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.15);
+    }
+    .keypad-clear:active {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+    }
+    @media (min-width: 768px) {
+      .keypad-btn { height: 52px; font-size: 1.4rem; }
+    }
+
+    /* Paste button */
+    .paste-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.04) 100%);
+      color: #fbbf24;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      backdrop-filter: blur(4px);
+    }
+    .paste-btn:active {
+      transform: scale(0.9);
+      background: rgba(251, 191, 36, 0.25);
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+    }
+
+    /* ===== MOBILE LAYOUT: fit viewport without scroll ===== */
+    @media (max-width: 767px) {
+      .animated-gradient-container {
+        padding: 0 !important;
+        overflow: hidden !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        min-height: unset !important;
+        max-height: 100vh;
+        max-height: 100dvh;
+      }
+
+      .animated-gradient-container::before,
+      .animated-gradient-container::after {
+        display: none;
+      }
+
+      .timeclock-content {
+        height: 100vh !important;
+        height: 100dvh !important;
+        min-height: unset !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+        padding: 0.5rem 0.75rem !important;
+        gap: 0.25rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transform: none !important;
+        overflow: hidden !important;
+      }
+
+      .timeclock-card {
+        border-radius: 16px !important;
+        max-width: 100% !important;
+      }
+
+      .timeclock-card ::ng-deep .p-card-body {
+        padding: 0.4rem 0.6rem !important;
+      }
+
+      .timeclock-card ::ng-deep .p-card-title {
+        padding: 0.25rem 0.5rem 0 !important;
+      }
+
+      .timeclock-card ::ng-deep .p-card-subtitle {
+        padding: 0 0.5rem !important;
+        margin: 0 !important;
+        font-size: 0.7rem !important;
+      }
+
+      .timeclock-card ::ng-deep .p-card-content {
+        padding: 0 !important;
+      }
+
+      form.flex {
+        gap: 0.3rem !important;
+      }
+
+      .keypad-grid {
+        margin-top: 0.15rem !important;
+      }
+
+      .keypad-btn {
+        height: 38px !important;
+        font-size: 1.1rem !important;
+        border-radius: 10px !important;
+      }
+
+      .input-container ::ng-deep .p-select .p-select-trigger {
+        min-height: 34px !important;
+        padding: 0.25rem 0.55rem !important;
+        font-size: 0.8rem !important;
+      }
+
+      .timeclock-card ::ng-deep .p-inputotp-input {
+        min-width: 24px !important;
+        max-width: 32px !important;
+        height: 32px !important;
+        font-size: 0.82rem !important;
+      }
+
+      .clock-display {
+        padding: 0.25rem 0.5rem !important;
+      }
+
+      .clock-time {
+        font-size: 1.15rem !important;
+      }
+
+      img {
+        height: 2.5rem !important;
+      }
+    }
+
+    /* Extra small phones (iPhone SE, etc.) */
+    @media (max-width: 380px) {
+      .timeclock-content {
+        padding: 0.35rem 0.5rem !important;
+        gap: 0.15rem !important;
+      }
+      .keypad-btn {
+        height: 34px !important;
+        font-size: 1rem !important;
+        gap: 1px !important;
+      }
+      .keypad-grid ::ng-deep .grid {
+        gap: 0.2rem !important;
+      }
+      .clock-time {
+        font-size: 1rem !important;
+      }
+      img {
+        height: 2rem !important;
+      }
+    }
+
+    /* Short landscape phones */
+    @media (max-height: 600px) and (max-width: 767px) {
+      .timeclock-content {
+        padding: 0.25rem 0.5rem !important;
+        gap: 0.1rem !important;
+      }
+      img {
+        height: 1.5rem !important;
+      }
+      .keypad-btn {
+        height: 30px !important;
+        font-size: 0.9rem !important;
+      }
+    }
+
+    .keypad-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 0.25rem;
+    }
+    .keypad-toggle-btn:hover {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.25);
+      color: rgba(251, 191, 36, 0.8);
+    }
+    .keypad-toggle-btn:active {
+      transform: scale(0.97);
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; max-height: 0; transform: translateY(-10px); }
+      to { opacity: 1; max-height: 300px; transform: translateY(0); }
+    }
+
+    /* ============================================
+       CUSTOM SUCCESS CONFIRMATION MODAL
+       ============================================ */
+    .confirm-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px) saturate(1.2);
+      animation: confirmOverlayIn 0.35s ease-out;
+      cursor: pointer;
+      padding: 1rem;
+    }
+
+    @keyframes confirmOverlayIn {
+      from { opacity: 0; backdrop-filter: blur(0px); }
+      to { opacity: 1; backdrop-filter: blur(12px); }
+    }
+
+    .confirm-modal-card {
+      background: linear-gradient(165deg, rgba(30, 30, 35, 0.95) 0%, rgba(18, 18, 22, 0.98) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 24px;
+      padding: 2.25rem 2rem 1.25rem;
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 1px 0 rgba(255, 255, 255, 0.06) inset,
+        0 0 60px rgba(251, 191, 36, 0.08);
+      animation: confirmCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    /* Subtle animated glow ring */
+    .confirm-modal-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 24px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.4), transparent 40%, transparent 60%, rgba(251, 191, 36, 0.2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      animation: borderRotate 6s linear infinite;
+    }
+
+    @keyframes borderRotate {
+      0% { background: linear-gradient(0deg, rgba(251, 191, 36, 0.4), transparent 40%, transparent 60%, rgba(251, 191, 36, 0.2)); }
+      25% { background: linear-gradient(90deg, rgba(251, 191, 36, 0.4), transparent 40%, transparent 60%, rgba(251, 191, 36, 0.2)); }
+      50% { background: linear-gradient(180deg, rgba(251, 191, 36, 0.4), transparent 40%, transparent 60%, rgba(251, 191, 36, 0.2)); }
+      75% { background: linear-gradient(270deg, rgba(251, 191, 36, 0.4), transparent 40%, transparent 60%, rgba(251, 191, 36, 0.2)); }
+      100% { background: linear-gradient(360deg, rgba(251, 191, 36, 0.4), transparent 40%, transparent 60%, rgba(251, 191, 36, 0.2)); }
+    }
+
+    .confirm-modal-card.is-late {
+      border-color: rgba(245, 158, 11, 0.35);
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 0 60px rgba(245, 158, 11, 0.08);
+    }
+
+    .confirm-modal-card.is-late::before {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.5), transparent 40%, transparent 60%, rgba(245, 158, 11, 0.2));
+    }
+
+    @keyframes confirmCardIn {
+      from { opacity: 0; transform: scale(0.85) translateY(20px); filter: blur(4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+    }
+
+    .confirm-modal-card.confirm-modal-exit {
+      animation: confirmCardOut 0.3s ease-in forwards;
+    }
+
+    @keyframes confirmCardOut {
+      from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+      to { opacity: 0; transform: scale(0.92) translateY(10px); filter: blur(4px); }
+    }
+
+    /* Icon */
+    .confirm-modal-icon-wrap {
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+
+    .confirm-modal-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Ripple ring behind icon */
+    .confirm-modal-icon-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      animation: iconRipple 2s ease-out infinite;
+    }
+
+    .is-late .confirm-modal-icon-wrap::after {
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    @keyframes iconRipple {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .confirm-modal-icon i {
+      font-size: 2.75rem;
+    }
+
+    .confirm-modal-icon--success {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+      border: 1.5px solid rgba(251, 191, 36, 0.4);
+      box-shadow: 0 0 40px rgba(251, 191, 36, 0.2), 0 0 80px rgba(251, 191, 36, 0.05);
+      backdrop-filter: blur(8px);
+    }
+    .confirm-modal-icon--success i {
+      color: #fbbf24;
+      filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.5));
+    }
+
+    .confirm-modal-icon--late {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+      border: 1.5px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.2), 0 0 80px rgba(245, 158, 11, 0.05);
+      backdrop-filter: blur(8px);
+    }
+    .confirm-modal-icon--late i {
+      color: #f59e0b;
+      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5));
+    }
+
+    @keyframes confirmIconPulse {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.15); opacity: 1; }
+      70% { transform: scale(0.95); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Title + Time */
+    .confirm-modal-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: rgba(243, 244, 246, 0.85);
+      text-align: center;
+      line-height: 1.3;
+      letter-spacing: 0.01em;
+    }
+
+    .confirm-modal-time {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fbbf24;
+      text-align: center;
+      margin-top: -0.15rem;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+      animation: timeReveal 0.6s ease-out 0.2s both;
+    }
+
+    @keyframes timeReveal {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .is-late .confirm-modal-time {
+      color: #f59e0b;
+      text-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Late box */
+    .confirm-modal-late-box {
+      width: 100%;
+      padding: 0.85rem 1.15rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      text-align: center;
+      backdrop-filter: blur(4px);
+      animation: slideUp 0.4s ease-out 0.3s both;
+    }
+    .confirm-modal-late-header {
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .confirm-modal-late-detail {
+      color: rgba(252, 211, 77, 0.9);
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Very late */
+    .confirm-modal-verylate-box {
+      width: 100%;
+      padding: 0.85rem 1.15rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(185, 28, 28, 0.06) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      text-align: center;
+      backdrop-filter: blur(4px);
+      animation: slideUp 0.4s ease-out 0.4s both;
+    }
+    .confirm-modal-verylate-header {
+      color: #f87171;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .confirm-modal-verylate-detail {
+      color: rgba(252, 165, 165, 0.9);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    /* Phrase box */
+    .confirm-modal-phrase-box {
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.15);
+      color: rgba(252, 211, 77, 0.95);
+      text-align: center;
+      font-style: italic;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+      position: relative;
+      animation: phraseReveal 0.5s ease-out 0.5s both;
+    }
+
+    @keyframes phraseReveal {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Progress bar */
+    .confirm-modal-progress-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 0 0 23px 23px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+
+    .confirm-modal-progress-bar {
+      height: 100%;
+      border-radius: 0 0 23px 23px;
+      background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
+      background-size: 200% 100%;
+      animation: confirmProgressShrink 6s linear forwards, progressShimmer 2s ease-in-out infinite;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+    }
+
+    .confirm-modal-progress-bar.is-late {
+      background: linear-gradient(90deg, #f59e0b, #d97706, #f59e0b) !important;
+      background-size: 200% 100% !important;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    @keyframes confirmProgressShrink {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+
+    @keyframes progressShimmer {
+      0%, 100% { background-position: 0% 0%; }
+      50% { background-position: 100% 0%; }
+    }
+
+    /* ====== BIRTHDAY STYLES ====== */
+    .confirm-modal-card.is-birthday {
+      border-color: rgba(236, 72, 153, 0.6);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 60px rgba(236, 72, 153, 0.25), 0 0 120px rgba(168, 85, 247, 0.1);
+      background: linear-gradient(135deg, rgba(24, 24, 27, 0.97) 0%, rgba(40, 20, 40, 0.97) 100%);
+    }
+
+    .is-birthday .confirm-modal-time {
+      color: #f472b6;
+    }
+
+    .confirm-modal-icon--birthday {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.3) 0%, rgba(168, 85, 247, 0.2) 100%);
+      border: 2px solid rgba(236, 72, 153, 0.5);
+      box-shadow: 0 0 30px rgba(236, 72, 153, 0.4), 0 0 60px rgba(168, 85, 247, 0.15);
+      animation: confirmIconPulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), birthdayGlow 2s ease-in-out infinite;
+    }
+
+    .birthday-icon-emoji {
+      font-size: 2.5rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6));
+    }
+
+    @keyframes birthdayGlow {
+      0%, 100% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.4), 0 0 60px rgba(168, 85, 247, 0.15); }
+      50% { box-shadow: 0 0 40px rgba(236, 72, 153, 0.6), 0 0 80px rgba(168, 85, 247, 0.25); }
+    }
+
+    .confirm-modal-birthday-greeting {
+      font-size: 1.3rem;
+      font-weight: 800;
+      text-align: center;
+      background: linear-gradient(135deg, #f472b6, #a78bfa, #fbbf24);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: birthdayTextShimmer 3s ease-in-out infinite;
+      line-height: 1.3;
+    }
+
+    @keyframes birthdayTextShimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .confirm-modal-phrase-box.birthday-phrase {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%);
+      border-color: rgba(236, 72, 153, 0.35);
+      color: #f9a8d4;
+    }
+
+    .birthday-phrase-icon {
+      font-style: normal;
+    }
+
+    .confirm-modal-progress-bar.is-birthday {
+      background: linear-gradient(90deg, #ec4899, #a855f7, #fbbf24) !important;
+      background-size: 200% 100%;
+      animation: confirmProgressShrink 10s linear forwards, birthdayProgressShimmer 1s linear infinite !important;
+    }
+
+    @keyframes birthdayProgressShimmer {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 200% 0%; }
+    }
+
+    /* ====== CONFETTI ====== */
+    .confetti-container {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 20px;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      top: -10px;
+      opacity: 0;
+      animation: confettiFall 3s ease-in forwards;
+      animation-delay: calc(var(--i) * 0.15s);
+    }
+
+    .confetti-piece:nth-child(odd) {
+      background: #ec4899;
+      border-radius: 50%;
+    }
+    .confetti-piece:nth-child(even) {
+      background: #fbbf24;
+      border-radius: 2px;
+      transform: rotate(45deg);
+    }
+    .confetti-piece:nth-child(3n) {
+      background: #a855f7;
+      width: 6px;
+      height: 10px;
+      border-radius: 3px;
+    }
+    .confetti-piece:nth-child(4n) {
+      background: #34d399;
+      width: 10px;
+      height: 6px;
+      border-radius: 2px;
+    }
+    .confetti-piece:nth-child(5n) {
+      background: #60a5fa;
+      border-radius: 50%;
+    }
+
+    .confetti-piece:nth-child(1) { left: 5%; }
+    .confetti-piece:nth-child(2) { left: 12%; }
+    .confetti-piece:nth-child(3) { left: 20%; }
+    .confetti-piece:nth-child(4) { left: 28%; }
+    .confetti-piece:nth-child(5) { left: 35%; }
+    .confetti-piece:nth-child(6) { left: 42%; }
+    .confetti-piece:nth-child(7) { left: 48%; }
+    .confetti-piece:nth-child(8) { left: 55%; }
+    .confetti-piece:nth-child(9) { left: 62%; }
+    .confetti-piece:nth-child(10) { left: 68%; }
+    .confetti-piece:nth-child(11) { left: 75%; }
+    .confetti-piece:nth-child(12) { left: 82%; }
+    .confetti-piece:nth-child(13) { left: 88%; }
+    .confetti-piece:nth-child(14) { left: 93%; }
+    .confetti-piece:nth-child(15) { left: 8%; }
+    .confetti-piece:nth-child(16) { left: 25%; }
+    .confetti-piece:nth-child(17) { left: 40%; }
+    .confetti-piece:nth-child(18) { left: 58%; }
+    .confetti-piece:nth-child(19) { left: 72%; }
+    .confetti-piece:nth-child(20) { left: 90%; }
+
+    @keyframes confettiFall {
+      0% { top: -10px; opacity: 1; transform: rotate(0deg) translateX(0); }
+      25% { opacity: 1; }
+      100% { top: 110%; opacity: 0; transform: rotate(720deg) translateX(30px); }
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .confirm-modal-card {
+        padding: 1.5rem 1.25rem 0.75rem;
+        max-width: 340px;
+      }
+      .confirm-modal-icon {
+        width: 64px;
+        height: 64px;
+      }
+      .confirm-modal-icon i {
+        font-size: 2rem;
+      }
+      .birthday-icon-emoji {
+        font-size: 2rem;
+      }
+      .confirm-modal-title {
+        font-size: 1rem;
+      }
+      .confirm-modal-time {
+        font-size: 1.25rem;
+      }
+      .confirm-modal-birthday-greeting {
+        font-size: 1.1rem;
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .confirm-modal-overlay,
+      .confirm-modal-card,
+      .confirm-modal-icon,
+      .confirm-modal-card.confirm-modal-exit {
+        animation: none !important;
+      }
+    }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -659,10 +1529,17 @@ export class NazTimeclockComponent implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private organizationService = inject(OrganizationService);
   private apiUrl = inject(ApiUrlService);
+  private phrases = inject(TimeclockPhrasesService);
+
+  /** Employees that can mark from any IP address */
+  private readonly IP_BYPASS_EMPLOYEE_IDS = new Set([
+    '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8', // Tristan Whitehead
+  ]);
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
+  public showKeypadPanel = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
@@ -671,6 +1548,23 @@ export class NazTimeclockComponent implements OnDestroy {
   // Computed para verificar si es Naz
   public isNazCompany = computed(() => this.organizationService.isNaz());
 
+  // Custom confirmation modal signals
+  public confirmModalVisible = signal(false);
+  public confirmModalExiting = signal(false);
+  public confirmModalData = signal<{
+    phrase: string;
+    isLate: boolean;
+    delayText: string;
+    isVeryLate: boolean;
+    typeLabel: string;
+    time: string;
+    isBirthday: boolean;
+    employeeName: string;
+    isLunchOvertime: boolean;
+    lunchExceededMinutes: number;
+  } | null>(null);
+  private confirmModalTimer: ReturnType<typeof setTimeout> | undefined;
+
   private injector = inject(Injector);
   private timeInterval: any;
 
@@ -678,6 +1572,9 @@ export class NazTimeclockComponent implements OnDestroy {
   constructor() {
     // Configurar organización como Naz para esta ruta
     this.organizationService.setOrganization('naz');
+
+    // Inicializar contexto de audio para sonidos de marcación
+    initAudioContext();
 
     // Detectar si está en modo kiosko
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
@@ -797,6 +1694,9 @@ export class NazTimeclockComponent implements OnDestroy {
   ngOnDestroy() {
     if (this.timeInterval) {
       clearInterval(this.timeInterval);
+    }
+    if (this.confirmModalTimer) {
+      clearTimeout(this.confirmModalTimer);
     }
     // Detener monitoreo de IP si está activo
     if (this.isKioskMode()) {
@@ -1015,6 +1915,33 @@ export class NazTimeclockComponent implements OnDestroy {
     this.form.get('otp')?.setValue('');
   }
 
+  toggleKeypad() {
+    this.showKeypadPanel.update(v => !v);
+  }
+
+  // Paste OTP from clipboard
+  async pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const digits = text.replace(/\D/g, '').slice(0, 6);
+      if (digits) {
+        this.form.get('otp')?.setValue(digits);
+        if (digits.length === 6) {
+          // Auto-submit after a brief delay
+          setTimeout(() => this.validateOtp(), 200);
+        }
+      }
+    } catch {
+      // Clipboard API not available or permission denied
+      this.message.add({
+        severity: 'warn',
+        summary: 'No se pudo pegar',
+        detail: 'Permita el acceso al portapapeles o ingrese el PIN manualmente',
+        life: 3000,
+      });
+    }
+  }
+
   // Format time for display (12-hour format with AM/PM)
   formattedTime = computed(() => {
     return format(this.currentTime(), 'h:mm:ss aaa');
@@ -1034,8 +1961,8 @@ export class NazTimeclockComponent implements OnDestroy {
   public validIP = computed(() => {
     // Naz no tiene validación de IP estricta
     const ip = this.getIP();
-    // If IP is localhost (dev fallback), always allow
-    if (ip === '127.0.0.1') return true;
+    // If IP is localhost or bypass IP, always allow
+    if (ip === '127.0.0.1' || ip === '181.197.126.10') return true;
     const branches = this.currentBranchesResource();
     if (!branches) return true;
     return branches.some((branch) => branch.ip === ip);
@@ -1080,7 +2007,7 @@ export class NazTimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri',
+      select: 'id,first_name,father_name,code_uri,birth_date',
       order: 'father_name',
       is_active: 'eq.true',
     };
@@ -1155,267 +2082,6 @@ export class NazTimeclockComponent implements OnDestroy {
     }
   }
 
-  // Get employee schedule for today
-  private getEmployeeSchedule(
-    employeeId: string
-  ): Observable<EmployeeSchedule | null> {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const companyId = this.organizationService.getCurrentCompanyId();
-
-    const params: any = {
-      select: '*,schedule:schedules(*)',
-      employee_id: `eq.${employeeId}`,
-      start_date: `lte.${today}`,
-      end_date: `gte.${today}`,
-    };
-
-    // Filtrar por company_id siempre (ya no hay tablas naz_*)
-    if (companyId) {
-      params.company_id = `eq.${companyId}`;
-    }
-
-    return this.http
-      .get<EmployeeSchedule[]>(
-        `${this.apiUrl.baseUrl}/rest/v1/employee_schedules`,
-        { params }
-      )
-      .pipe(
-        map((schedules) =>
-          schedules && schedules.length > 0 ? schedules[0] : null
-        ),
-        catchError((error) => {
-          console.error('Error getting employee schedule:', error);
-          return of(null);
-        })
-      );
-  }
-
-  // Calculate if entry is late
-  private calculateDelay(
-    entryTime: Date,
-    schedule: Schedule | undefined
-  ): number | null {
-    if (!schedule || !schedule.entry_time || schedule.day_off) {
-      return null;
-    }
-
-    const entryTimeStr = format(entryTime, 'HH:mm:ss');
-    const scheduleTimeStr =
-      typeof schedule.entry_time === 'string'
-        ? schedule.entry_time
-        : format(new Date(schedule.entry_time), 'HH:mm:ss');
-
-    const entryParts = entryTimeStr.split(':');
-    const scheduleParts = scheduleTimeStr.split(':');
-
-    let entryDate = new Date();
-    entryDate = set(entryDate, { hours: +entryParts[0], minutes: +entryParts[1], seconds: +entryParts[2] || 0, milliseconds: 0 });
-
-    let scheduleDate = new Date();
-    scheduleDate = set(scheduleDate, {
-      hours: +scheduleParts[0],
-      minutes: +scheduleParts[1],
-      seconds: +scheduleParts[2] || 0,
-      milliseconds: 0
-    });
-
-    const delay = differenceInMinutes(entryDate, scheduleDate);
-
-    if (delay > (schedule.minutes_tolerance || 0)) {
-      return delay;
-    }
-
-    return null;
-  }
-
-  // Format minutes to hours and minutes
-  private formatTimeDifference(minutes: number): string {
-    if (minutes < 60) {
-      return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (remainingMinutes === 0) {
-      return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
-    }
-    return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${remainingMinutes} ${
-      remainingMinutes === 1 ? 'minuto' : 'minutos'
-    }`;
-  }
-
-  // Get lunch_start timelog for today
-  private getLunchStartTimelog(employeeId: string): Observable<TimeLog | null> {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const todayStart = `${today}T00:00:00`;
-    const todayEnd = `${today}T23:59:59`;
-    const companyId = this.organizationService.getCurrentCompanyId();
-
-    const params: Record<string, string> = {
-      select: 'id,type,created_at',
-      employee_id: `eq.${employeeId}`,
-      type: 'eq.lunch_start',
-      'created_at': `gte.${todayStart}`,
-      order: 'created_at.desc',
-      limit: '1',
-    };
-
-    if (companyId) {
-      params['company_id'] = `eq.${companyId}`;
-    }
-
-    // Agregar filtro lte de created_at manualmente (clave duplicada)
-    const url = this.apiUrl.build('rest/v1/timelogs', params)
-      + `&created_at=lte.${todayEnd}`;
-
-    return this.http.get<TimeLog[]>(url).pipe(
-      map((timelogs) => {
-        if (!timelogs || timelogs.length === 0) {
-          return null;
-        }
-        const lunchStartLog = timelogs[0];
-        const logDate = format(
-          new Date(lunchStartLog.created_at),
-          'yyyy-MM-dd'
-        );
-        return logDate === today ? lunchStartLog : null;
-      }),
-      catchError(() => of(null))
-    );
-  }
-
-  // Calculate if lunch end is late based on actual lunch start time and schedule
-  private calculateLunchEndDifference(
-    lunchEndTime: Date,
-    lunchStartTime: Date | null,
-    schedule: Schedule | undefined
-  ): number | null {
-    if (!schedule || schedule.day_off) {
-      return null;
-    }
-
-    // If we have the actual lunch start time, verify duration first
-    if (lunchStartTime) {
-      const actualDuration = differenceInMinutes(lunchEndTime, lunchStartTime);
-      const expectedDuration = 60; // 1 hour lunch duration
-
-      // If they returned less than 1 hour after starting lunch, don't show late warning
-      // (they're still within the lunch period)
-      if (actualDuration < expectedDuration) {
-        return null; // Don't show late warning if they're still within lunch time
-      }
-
-      // If they took at least 1 hour, then check if they're late from scheduled time
-      if (schedule.lunch_end_time) {
-        const lunchEndTimeStr = format(lunchEndTime, 'HH:mm:ss');
-        const scheduleTimeStr =
-          typeof schedule.lunch_end_time === 'string'
-            ? schedule.lunch_end_time
-            : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
-
-        const lunchEndParts = lunchEndTimeStr.split(':');
-        const scheduleParts = scheduleTimeStr.split(':');
-
-        let lunchEndDate = new Date();
-        lunchEndDate = set(lunchEndDate, {
-          hours: +lunchEndParts[0],
-          minutes: +lunchEndParts[1],
-          seconds: +lunchEndParts[2] || 0,
-          milliseconds: 0
-        });
-
-        let scheduleDate = new Date();
-        scheduleDate = set(scheduleDate, {
-          hours: +scheduleParts[0],
-          minutes: +scheduleParts[1],
-          seconds: +scheduleParts[2] || 0,
-          milliseconds: 0
-        });
-
-        const difference = differenceInMinutes(lunchEndDate, scheduleDate);
-
-        // Only return positive difference (late), ignore early returns
-        return difference > 0 ? difference : null;
-      }
-    }
-
-    // Fallback: compare with schedule if no lunch_start found
-    if (schedule.lunch_end_time) {
-      const lunchEndTimeStr = format(lunchEndTime, 'HH:mm:ss');
-      const scheduleTimeStr =
-        typeof schedule.lunch_end_time === 'string'
-          ? schedule.lunch_end_time
-          : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
-
-      const lunchEndParts = lunchEndTimeStr.split(':');
-      const scheduleParts = scheduleTimeStr.split(':');
-
-      let lunchEndDate = new Date();
-      lunchEndDate = set(lunchEndDate, {
-        hours: +lunchEndParts[0],
-        minutes: +lunchEndParts[1],
-        seconds: +lunchEndParts[2] || 0,
-        milliseconds: 0
-      });
-
-      let scheduleDate = new Date();
-      scheduleDate = set(scheduleDate, {
-        hours: +scheduleParts[0],
-        minutes: +scheduleParts[1],
-        seconds: +scheduleParts[2] || 0,
-        milliseconds: 0
-      });
-
-      const difference = differenceInMinutes(lunchEndDate, scheduleDate);
-
-      // Only return positive difference (late), ignore early returns
-      return difference > 0 ? difference : null;
-    }
-
-    return null;
-  }
-
-  // Calculate if exit is early or late
-  private calculateExitDifference(
-    exitTime: Date,
-    schedule: Schedule | undefined
-  ): { minutes: number; isEarly: boolean } | null {
-    if (!schedule || !schedule.exit_time || schedule.day_off) {
-      return null;
-    }
-
-    const exitTimeStr = format(exitTime, 'HH:mm:ss');
-    const scheduleTimeStr =
-      typeof schedule.exit_time === 'string'
-        ? schedule.exit_time
-        : format(new Date(schedule.exit_time), 'HH:mm:ss');
-
-    const exitParts = exitTimeStr.split(':');
-    const scheduleParts = scheduleTimeStr.split(':');
-
-    let exitDate = new Date();
-    exitDate = set(exitDate, { hours: +exitParts[0], minutes: +exitParts[1], seconds: +exitParts[2] || 0, milliseconds: 0 });
-
-    let scheduleDate = new Date();
-    scheduleDate = set(scheduleDate, {
-      hours: +scheduleParts[0],
-      minutes: +scheduleParts[1],
-      seconds: +scheduleParts[2] || 0,
-      milliseconds: 0
-    });
-
-    const difference = differenceInMinutes(exitDate, scheduleDate);
-
-    // If difference is negative, exited early; if positive, exited late
-    if (Math.abs(difference) > (schedule.minutes_tolerance || 0)) {
-      return {
-        minutes: Math.abs(difference),
-        isEarly: difference < 0,
-      };
-    }
-
-    return null;
-  }
-
   public form = new FormGroup({
     company_id: new FormControl('', {
       validators: [Validators.required],
@@ -1443,6 +2109,7 @@ export class NazTimeclockComponent implements OnDestroy {
 
   onEnterKey(event: KeyboardEvent) {
     event.preventDefault();
+    event.stopPropagation();
     if (this.form.valid) {
       this.validateOtp();
     }
@@ -1502,6 +2169,7 @@ export class NazTimeclockComponent implements OnDestroy {
       const validation = totp.validate({ token: otp });
       if (validation === null) {
         this.isProcessing.set(false);
+        playFailureSound();
         this.message.add({
           severity: 'error',
           summary: 'Error',
@@ -1518,10 +2186,17 @@ export class NazTimeclockComponent implements OnDestroy {
         branch_id,
         company_id,
         type,
-        employeeName
+        employeeName,
+        employee.birth_date as any
       );
     } else {
       this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'PIN no configurado',
+        detail: 'Este empleado no tiene PIN configurado. Contacte a Recursos Humanos.',
+        life: 8000,
+      });
     }
   }
 
@@ -1530,161 +2205,236 @@ export class NazTimeclockComponent implements OnDestroy {
     branchId: string,
     companyId: string,
     type: string,
-    employeeName: string
+    employeeName: string,
+    birthDate?: string
   ) {
-    const now = new Date();
-    // Ya no se usan tablas naz_*, todo es por company_id
+    // Usar RPC para procesar todo en una sola transacción (same as main timeclock)
     this.http
-      .post(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
-        employee_id: employeeId,
-        branch_id: branchId,
-        company_id: companyId,
-        type,
-        ip: this.getIP(),
-        invalid_ip: !this.validIP(), // Campo cambió de invalid_id a invalid_ip
-      })
+      .post<{
+        success: boolean;
+        timelog_id?: string;
+        delay?: number | null;
+        exitDiff?: { minutes: number; isEarly: boolean } | null;
+        lunchEndDiff?: number | null;
+        lunchExceededMinutes?: number | null;
+        schedule?: {
+          id: string;
+          name: string;
+          entry_time: string;
+          exit_time: string;
+          day_off: boolean;
+          minutes_tolerance: number;
+        } | null;
+        hasSchedule?: boolean;
+        isDayOff?: boolean;
+        error?: string;
+        error_code?: string;
+      }>(
+        this.apiUrl.build('rest/v1/rpc/process_timelog'),
+        {
+          p_employee_id: employeeId,
+          p_company_id: companyId,
+          p_branch_id: branchId,
+          p_type: type,
+          p_ip: this.getIP(),
+          p_invalid_ip: this.IP_BYPASS_EMPLOYEE_IDS.has(employeeId) ? false : !this.validIP(),
+        },
+        { observe: 'response' }
+      )
       .pipe(
-        switchMap(() => {
-          // Check timing based on type
-          if (type === 'entry') {
-            return this.getEmployeeSchedule(employeeId).pipe(
-              map((schedule) => {
-                const delay = this.calculateDelay(now, schedule?.schedule);
-                return { delay, exitDiff: null, schedule, lunchEndDiff: null };
-              }),
-              catchError(() =>
-                of({
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: null,
-                })
-              )
-            );
-          } else if (type === 'exit') {
-            return this.getEmployeeSchedule(employeeId).pipe(
-              map((schedule) => {
-                const exitDiff = this.calculateExitDifference(
-                  now,
-                  schedule?.schedule
-                );
-                return { delay: null, exitDiff, schedule, lunchEndDiff: null };
-              }),
-              catchError(() =>
-                of({
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: null,
-                })
-              )
-            );
-          } else if (type === 'lunch_end') {
-            return this.getEmployeeSchedule(employeeId).pipe(
-              switchMap((schedule) => {
-                if (!schedule) {
-                  return of({
-                    delay: null,
-                    exitDiff: null,
-                    schedule: null,
-                    lunchEndDiff: null,
-                  });
-                }
-                return this.getLunchStartTimelog(employeeId).pipe(
-                  map((lunchStartLog) => {
-                    const lunchStartTime = lunchStartLog
-                      ? new Date(lunchStartLog.created_at)
-                      : null;
-                    const lunchEndDiff = this.calculateLunchEndDifference(
-                      now,
-                      lunchStartTime,
-                      schedule?.schedule
-                    );
-                    return {
-                      delay: null,
-                      exitDiff: null,
-                      schedule,
-                      lunchEndDiff,
-                    };
-                  }),
-                  catchError(() => {
-                    // If error getting lunch_start, just use schedule comparison
-                    const lunchEndDiff = this.calculateLunchEndDifference(
-                      now,
-                      null,
-                      schedule?.schedule
-                    );
-                    return of({
-                      delay: null,
-                      exitDiff: null,
-                      schedule,
-                      lunchEndDiff,
-                    });
-                  })
-                );
-              }),
-              catchError(() =>
-                of({
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: null,
-                })
-              )
-            );
-          }
-          return of({
-            delay: null,
-            exitDiff: null,
-            schedule: null,
-            lunchEndDiff: null,
-          });
-        }),
-        catchError(() => {
+        catchError((error) => {
           this.isProcessing.set(false);
+          playFailureSound();
+          console.error('Error al procesar timelog:', error);
+
+          let errorMessage = 'Algo salió mal, intente nuevamente';
+          if (error?.error?.message) {
+            errorMessage = `Error: ${error.error.message}`;
+          } else if (error?.message) {
+            errorMessage = `Error: ${error.message}`;
+          }
+
           this.message.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'Algo salió mal, intente nuevamente',
+            detail: errorMessage,
+            life: 10000,
           });
           return EMPTY;
         })
       )
       .subscribe({
-        next: (result) => {
+        next: (
+          response: HttpResponse<{
+            success: boolean;
+            timelog_id?: string;
+            delay?: number | null;
+            exitDiff?: { minutes: number; isEarly: boolean } | null;
+            lunchEndDiff?: number | null;
+            lunchExceededMinutes?: number | null;
+            schedule?: {
+              id: string;
+              name: string;
+              entry_time: string;
+              exit_time: string;
+              day_off: boolean;
+              minutes_tolerance: number;
+            } | null;
+            hasSchedule?: boolean;
+            isDayOff?: boolean;
+            error?: string;
+            error_code?: string;
+          }>
+        ) => {
+          const result = response.body;
+          if (!result) {
+            this.isProcessing.set(false);
+            this.message.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: 'Respuesta inválida del servidor (sin body).',
+              life: 10000,
+            });
+            return;
+          }
+
+          // Verificar si la RPC retornó error
+          if (!result.success) {
+            this.isProcessing.set(false);
+            playFailureSound();
+            this.message.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: result.error || 'Error al procesar la marcación',
+              life: 10000,
+            });
+            return;
+          }
+
           const typeLabel =
             this.types.find((t) => t.value === type)?.label || type;
-          const message = `<div style="text-align: center;">
-            <div style="margin-bottom: 0.5rem;"><b>${typeLabel}</b> registrada exitosamente a las <b>${format(
-            now,
-            'h:mm:ss aaa'
-          )}</b></div>
-          </div>`;
 
-          // Mensajes de tiempo deshabilitados - solo mostrar confirmación básica
+          // Calcular tardanza desde el RPC result
+          const delayMinutes = result.delay || 0;
+          const isLate = delayMinutes > 0 && type === 'entry';
+          const isVeryLate = delayMinutes >= 60;
+
+          // Build delay text
+          let delayText = '';
+          if (isLate) {
+            const hoursLate = Math.floor(delayMinutes / 60);
+            const minutesLate = delayMinutes % 60;
+            if (hoursLate > 0 && minutesLate > 0) {
+              delayText = `${hoursLate} hora${hoursLate > 1 ? 's' : ''} y ${minutesLate} minuto${minutesLate !== 1 ? 's' : ''}`;
+            } else if (hoursLate > 0) {
+              delayText = `${hoursLate} hora${hoursLate > 1 ? 's' : ''}`;
+            } else if (minutesLate > 0) {
+              delayText = `${minutesLate} minuto${minutesLate !== 1 ? 's' : ''}`;
+            } else {
+              delayText = 'menos de 1 minuto';
+            }
+          }
+
+          // Check if today is the employee's birthday
+          const isBirthday = this.isTodayBirthday(birthDate);
+
+          // Calculate exit diff for punctuality detection
+          let exitDiffMinutes: number | undefined;
+          if (type === 'exit' && result.schedule?.exit_time) {
+            const exitParts = result.schedule.exit_time.split(':');
+            const scheduledExit = parseInt(exitParts[0]) * 60 + parseInt(exitParts[1]);
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            exitDiffMinutes = currentMinutes - scheduledExit;
+          }
+
+          // Detect lunch overtime (> 60 minutes)
+          const isLunchOvertime = type === 'lunch_end' && result.lunchExceededMinutes && result.lunchExceededMinutes > 0;
+
+          const phrase = this.phrases.getPhrase(isLate, isBirthday, type, exitDiffMinutes);
+          const timeFormatted = format(new Date(), 'h:mm:ss aaa');
+
+          // Reproducir sonido según contexto
+          if (isBirthday) {
+            playBirthdaySound();
+          } else if (isLunchOvertime) {
+            playLateSound(); // Sad trumpet for lunch overtime
+          } else if (isLate) {
+            playLateSound();
+          } else {
+            playSuccessSound(employeeId);
+          }
 
           this.isProcessing.set(false);
-          this.confirmation.confirm({
-            message,
-            key: 'confirm1',
-            header: 'Éxito',
-            icon: 'pi pi-check',
-            acceptLabel: 'Aceptar',
-            rejectVisible: false,
-            accept: () => {
-              this.form.get('otp')?.reset();
-              this.form.get('employee')?.reset();
-              this.showKeypad.set(false);
-              if (!this.validIP()) {
-                this.alertInvalidIP();
-              }
-            },
+
+          // Immediately reset form fields so button is disabled during modal display
+          this.form.get('otp')?.reset();
+          this.form.get('employee')?.reset();
+
+          // Show custom modal
+          this.confirmModalData.set({
+            phrase,
+            isLate,
+            delayText,
+            isVeryLate,
+            typeLabel,
+            time: timeFormatted,
+            isBirthday,
+            employeeName,
+            isLunchOvertime: !!isLunchOvertime,
+            lunchExceededMinutes: result.lunchExceededMinutes || 0,
           });
+          this.confirmModalExiting.set(false);
+          this.confirmModalVisible.set(true);
+
+          // Auto-dismiss: 10 seconds for birthday, 6 seconds for regular
+          this.confirmModalTimer = setTimeout(() => {
+            this.dismissConfirmModal();
+          }, isBirthday ? 10000 : 6000);
         },
         error: () => {
+          playFailureSound();
           this.isProcessing.set(false);
         },
       });
+  }
+
+  /** Dismiss the success confirmation modal */
+  public dismissConfirmModal(): void {
+    if (!this.confirmModalVisible()) return;
+
+    if (this.confirmModalTimer) {
+      clearTimeout(this.confirmModalTimer);
+      this.confirmModalTimer = undefined;
+    }
+
+    // Trigger exit animation
+    this.confirmModalExiting.set(true);
+
+    setTimeout(() => {
+      this.confirmModalVisible.set(false);
+      this.confirmModalExiting.set(false);
+      this.confirmModalData.set(null);
+
+      // Form was already reset on success response
+      this.showKeypad.set(false);
+      if (!this.validIP()) {
+        // Don't show IP warning - already handled
+        this.alertInvalidIP();
+      }
+    }, 300);
+  }
+
+  /** Check if a date string represents today's birthday (same day+month) */
+  private isTodayBirthday(birthDate?: string): boolean {
+    if (!birthDate) return false;
+    try {
+      const today = new Date();
+      const birth = new Date(birthDate);
+      return birth.getDate() === today.getDate() && birth.getMonth() === today.getMonth();
+    } catch {
+      return false;
+    }
   }
 
   private alertInvalidIP() {

@@ -1,5 +1,17 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { DashboardStore } from '../../stores/dashboard.store';
+import { isStoreManagerRole } from '../../utils/permission.utils';
+
+/** Orden fijo de cargos para la grilla de turnos */
+const POSITION_ORDER: Record<string, number> = {
+  'gerente de tienda': 1,
+  'sub gerente': 2,
+  'piso de venta': 3,
+  'peluquero': 4,
+  'asistente de peluquería': 5,
+  'conductor': 6,
+  'médico veterinario': 7,
+};
 
 // NOTA: No usar providedIn:'root' porque depende de DashboardStore (scope dashboard/layout).
 // Se provee explícitamente en EmployeesTimetableComponent para compartir el mismo injector.
@@ -14,9 +26,11 @@ export class TimetableFilterService {
 
   /** Gerente o subgerente de tienda: mismo criterio que TimetablePermissionsService.isStoreManager() */
   private isStoreManager(): boolean {
-    if (this.store.isScheduleAdmin() && !this.store.isAdmin()) return true;
-    const name = (this.store.currentEmployee()?.position?.name || '').toLowerCase();
-    return name.includes('gerente de tienda') || name.includes('subgerente');
+    return isStoreManagerRole(
+      this.store.isScheduleAdmin(),
+      this.store.isAdmin(),
+      this.store.currentEmployee()?.position?.name || ''
+    );
   }
 
   /**
@@ -71,6 +85,13 @@ export class TimetableFilterService {
           position,
           position_id,
         })
-      );
+      )
+      .sort((a, b) => {
+        const nameA = (a.position?.name || '').toLowerCase();
+        const nameB = (b.position?.name || '').toLowerCase();
+        const orderA = POSITION_ORDER[nameA] ?? 99;
+        const orderB = POSITION_ORDER[nameB] ?? 99;
+        return orderA - orderB || nameA.localeCompare(nameB);
+      });
   });
 }

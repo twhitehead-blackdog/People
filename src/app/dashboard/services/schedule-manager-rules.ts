@@ -46,21 +46,14 @@ export function isSunday(date: Date): boolean {
   return getDay(date) === 0;
 }
 
-/** Devuelve mensaje de advertencia si el turno no es recomendado para Gerente/Subgerente, o null. */
+/** Anteriormente mostraba advertencias de turnos recomendados para Gerente/Subgerente. Desactivado. */
 export function getScheduleWarningForManager(
-  scheduleId: string | undefined | null,
-  date: Date,
-  positionId: string | undefined | null,
-  dayOff?: boolean
+  _scheduleId: string | undefined | null,
+  _date: Date,
+  _positionId: string | undefined | null,
+  _dayOff?: boolean
 ): string | null {
-  if (!scheduleId || !isManagerPosition(positionId)) return null;
-  if (dayOff === true) return null;
-  if (EXCLUDED_SCHEDULE_IDS_FROM_WARNING.includes(scheduleId)) return null;
-  const allowed = isSunday(date) ? ALLOWED_SCHEDULE_IDS_SUNDAY : ALLOWED_SCHEDULE_IDS_WEEKDAY;
-  if (allowed.includes(scheduleId)) return null;
-  return isSunday(date)
-    ? 'Domingo: turnos recomendados son 7:00 AM - 4:00 PM, 8:00 AM - 5:00 PM o 10:30 AM - 7:00 PM.'
-    : 'Entre semana se recomienda 7:00 AM - 4:00 PM o 12:30 PM - 9:00 PM.';
+  return null;
 }
 
 /** Clave para detectar conflicto "mismo turno misma sucursal mismo día" entre Gerente y Subgerente. */

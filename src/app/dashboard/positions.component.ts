@@ -103,34 +103,43 @@ import { PositionsFormComponent } from './positions-form.component';
     </p-card>
     } @else {
     <div class="mobile-positions flex flex-col min-h-[60vh]">
-      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
-        <div class="flex items-center justify-between gap-2 mb-3">
-          <h2 class="m-0 text-lg font-bold text-white truncate">Cargos</h2>
-          <p-button icon="pi pi-plus" [label]="''" (click)="editPosition()" rounded size="small" pTooltip="Nuevo cargo" tooltipPosition="bottom" />
+      <div class="mobile-section-header" style="flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="mobile-section-header__title">Cargos</span>
+          <span class="mobile-section-header__count">{{ filteredPositions().length }}</span>
         </div>
-        <input pInputText type="text" [(ngModel)]="searchTerm" placeholder="Buscar por nombre o área..." class="w-full text-sm rounded-lg border-neutral-600 bg-neutral-900/80 px-3 py-2.5 text-white placeholder-gray-500" />
-      </header>
+        <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.75rem;height:2.75rem;" (click)="editPosition()" aria-label="Nuevo cargo">
+          <i class="pi pi-plus"></i>
+        </button>
+      </div>
+      <div class="mobile-search">
+        <i class="pi pi-search mobile-search__icon"></i>
+        <input type="text" class="mobile-search__input" [(ngModel)]="searchTerm" placeholder="Buscar por nombre o área..." />
+      </div>
       <main class="flex-1 overflow-y-auto px-3 py-3">
         @if (filteredPositions().length === 0) {
-          <div class="text-center py-12 text-gray-400">
-            <i class="pi pi-briefcase text-4xl block mb-2 opacity-60"></i>
-            <p class="text-sm font-medium">No hay cargos</p>
-            <p class="text-xs mt-1">Ajusta la búsqueda o agrega uno nuevo</p>
+          <div class="mobile-empty-state">
+            <i class="pi pi-briefcase mobile-empty-state__icon"></i>
+            <p class="mobile-empty-state__title">No hay cargos</p>
+            <p class="mobile-empty-state__desc">Ajusta la búsqueda o agrega uno nuevo</p>
           </div>
         } @else {
-          <div class="flex flex-col gap-2 pb-4">
+          <div class="mobile-card-list pb-4">
             @for (item of filteredPositions(); track item.id) {
-              <div (click)="editPosition(item)" class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3 active:bg-neutral-700/50 transition-colors cursor-pointer">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="min-w-0 flex-1">
-                    <p class="font-semibold text-white text-sm m-0">{{ item.name }}</p>
-                    <p class="text-xs text-gray-400 m-0 mt-0.5">{{ item.department?.name || 'Sin área' }}</p>
-                    <p class="text-xs text-gray-500 m-0 mt-1">{{ getDefaultViewLabel(item.default_view) }}</p>
+              <div class="mobile-card-item" (click)="editPosition(item)">
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">{{ item.name }}</div>
+                  <div class="mobile-card-item__subtitle">{{ item.department?.name || 'Sin área' }}</div>
+                  <div class="mobile-card-item__meta">
+                    <span class="mobile-card-item__tag">{{ getDefaultViewLabel(item.default_view) }}</span>
+                    @if (item.admin) { <span class="mobile-card-item__tag mobile-card-item__tag--success">Admin</span> }
+                    @if (item.schedule_admin) { <span class="mobile-card-item__tag mobile-card-item__tag--info">Horarios</span> }
+                    @if (item.schedule_approver) { <span class="mobile-card-item__tag mobile-card-item__tag--warning">Aprobador</span> }
                   </div>
-                  <div class="flex gap-1 flex-shrink-0" (click)="$event.stopPropagation()">
-                    <p-button icon="pi pi-pen" [label]="''" (onClick)="editPosition(item)" rounded text severity="success" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Editar" />
-                    <p-button icon="pi pi-trash" [label]="''" (onClick)="deletePosition(item.id)" rounded text severity="danger" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Eliminar" />
-                  </div>
+                </div>
+                <div class="mobile-card-item__action" style="display:flex;gap:0.25rem;" (click)="$event.stopPropagation()">
+                  <p-button icon="pi pi-pen-to-square" [label]="''" (onClick)="editPosition(item)" rounded text severity="success" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Editar" />
+                  <p-button icon="pi pi-trash" [label]="''" (onClick)="deletePosition(item.id)" rounded text severity="danger" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Eliminar" />
                 </div>
               </div>
             }

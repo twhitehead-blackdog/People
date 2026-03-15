@@ -101,7 +101,7 @@ import {
     <p-toast />
     <div
       [ngClass]="{ 'naz-theme': isNaz() }"
-      class="p-6 md:p-8 lg:p-10 space-y-8"
+      class="p-3 sm:p-6 md:p-8 lg:p-10 space-y-4 sm:space-y-6 md:space-y-8"
     >
       <!-- Header Moderno -->
       <div
@@ -172,7 +172,7 @@ import {
       </div>
 
       <!-- Dashboard de Métricas - Diseño Moderno -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 py-2 md:py-4" @staggerFade>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-6 py-1 sm:py-2 md:py-4" @staggerFade>
         <!-- Empleados -->
         <div
           class="group relative overflow-hidden rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-5 transition-all duration-300 hover:bg-white/15 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/20"
@@ -450,6 +450,18 @@ import {
     }
 
     @media screen and (max-width: 768px) {
+      :host {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      ::ng-deep .p-card {
+        border-radius: 1rem;
+      }
+
+      ::ng-deep .p-card .p-card-body {
+        padding: 0.75rem;
+      }
+
       ::ng-deep .p-datatable.p-datatable-responsive .p-datatable-thead {
         display: none;
       }
@@ -482,11 +494,27 @@ import {
 
       ::ng-deep .p-tablist {
         flex-wrap: wrap;
+        gap: 0.25rem;
       }
 
       ::ng-deep .p-tab {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.8125rem;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Mobile paginator touch targets */
+      ::ng-deep .p-paginator .p-paginator-page,
+      ::ng-deep .p-paginator .p-paginator-next,
+      ::ng-deep .p-paginator .p-paginator-prev,
+      ::ng-deep .p-paginator .p-paginator-first,
+      ::ng-deep .p-paginator .p-paginator-last {
+        min-width: 44px;
+        min-height: 44px;
       }
     }
   `,

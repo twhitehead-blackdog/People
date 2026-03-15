@@ -1,5 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { DashboardStore } from '../../stores/dashboard.store';
+import { isStoreManagerRole } from '../../utils/permission.utils';
 
 // NOTA: No usar providedIn:'root' porque depende de DashboardStore, que se provee en el scope del dashboard/layout.
 // Se provee explícitamente en EmployeesTimetableComponent para compartir el mismo injector.
@@ -56,11 +57,11 @@ export class TimetablePermissionsService {
    * Cierto si: tiene schedule_admin y no es admin, O su cargo es gerente de tienda o subgerente.
    */
   public isStoreManager(): boolean {
-    if (this.store.isScheduleAdmin() && !this.store.isAdmin()) {
-      return true;
-    }
-    const positionName = (this.store.currentEmployee()?.position?.name || '').toLowerCase();
-    return positionName.includes('gerente de tienda') || positionName.includes('subgerente');
+    return isStoreManagerRole(
+      this.store.isScheduleAdmin(),
+      this.store.isAdmin(),
+      this.store.currentEmployee()?.position?.name || ''
+    );
   }
 
   /**

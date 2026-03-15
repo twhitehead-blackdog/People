@@ -11,6 +11,7 @@ import { ApiUrlService } from '../../../services/api-url.service';
 import { OrganizationService } from '../../../services/organization.service';
 import { DashboardStore } from '../../../stores/dashboard.store';
 import { EmployeePortalDataService } from '../services/employee-portal-data.service';
+import { EmployeeCreditScoreComponent } from '../../employee-credit-score.component';
 
 @Component({
   selector: 'pt-employee-portal-profile-tab',
@@ -21,6 +22,7 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
     CardModule,
     ButtonModule,
     InputTextModule,
+    EmployeeCreditScoreComponent,
   ],
   providers: [MessageService],
   template: `
@@ -76,6 +78,16 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
                 {{ currentEmployee()?.start_date | date : 'fullDate' }}
               </p>
             </div>
+          </div>
+
+          <!-- Puntaje de Crédito -->
+          <div class="border-t border-neutral-700 pt-6">
+            <h3 class="text-lg font-semibold text-white mb-4">
+              Puntaje de Crédito
+            </h3>
+            @if (currentEmployee()?.id) {
+              <pt-employee-credit-score [employeeId]="currentEmployee()!.id" />
+            }
           </div>
 
           <!-- Información editable -->

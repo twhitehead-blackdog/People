@@ -25,6 +25,7 @@ import {
 import { checkSalaryAccess } from '../dashboard/pt-permissions/permissions.types';
 import { Branch, Department, Employee, Position } from '../models';
 import { TestModeService } from '../services/test-mode.service';
+import { getEmployeePermission } from '../utils/permission.utils';
 import { AuthStore } from './auth.store';
 import { BanksStore } from './banks.store';
 import { BranchesStore } from './branches.store';
@@ -34,36 +35,6 @@ import { EmployeesStore } from './employees.store';
 import { PayrollsStore } from './payrolls.store';
 import { PositionsStore } from './positions.store';
 import { SchedulesStore } from './schedules.store';
-
-/**
- * Helper: reads a specific legacy permission from the employee's override,
- * falling back to position property if no override exists.
- * This avoids importing PermissionsService (circular dependency).
- */
-function getEmployeePermission(
-  employee: Employee | undefined,
-  key: 'admin' | 'schedule_admin' | 'schedule_approver'
-): boolean {
-  if (!employee) return false;
-
-  // 1. Try legacy_permissions_override (primary source)
-  const raw = employee.legacy_permissions_override;
-  if (raw) {
-    try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (parsed && typeof parsed === 'object' && key in parsed) {
-        return !!parsed[key];
-      }
-    } catch {
-      // Fall through to position
-    }
-  }
-
-  // 2. Fallback to position (for employees without override yet)
-  const position = employee.position;
-  if (!position) return false;
-  return !!(position as any)[key];
-}
 
 /**
  * Helper: checks if employee has any dashboard-level frontend module enabled.
@@ -82,6 +53,28 @@ function hasFrontendDashboardAccess(employee: Employee | undefined): boolean {
       modules['payroll']?.enabled ||
       modules['hr']?.enabled ||
       modules['performance']?.enabled
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Helper: checks if employee has time-management-related frontend modules enabled.
+ * Covers time_management, branch_manager, and timeclock modules.
+ */
+function hasFrontendTimeManagementAccess(employee: Employee | undefined): boolean {
+  if (!employee) return false;
+  const raw = employee.frontend_permissions_override;
+  if (!raw) return false;
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const modules = parsed?.modules as Record<string, { enabled?: boolean }> | undefined;
+    if (!modules) return false;
+    return !!(
+      modules['time_management']?.enabled ||
+      modules['branch_manager']?.enabled ||
+      modules['timeclock']?.enabled
     );
   } catch {
     return false;
@@ -184,8 +177,9 @@ export const DashboardStore = signalStore(
         const hasScheduleAdmin = getEmployeePermission(employee, 'schedule_admin');
         const hasScheduleApprover = getEmployeePermission(employee, 'schedule_approver');
         const hasFrontendAccess = hasFrontendDashboardAccess(employee);
+        const hasTimeMgmtAccess = hasFrontendTimeManagementAccess(employee);
 
-        return !isAdminPerm && !hasFrontendAccess && !hasScheduleAdmin && !hasScheduleApprover;
+        return !isAdminPerm && !hasFrontendAccess && !hasTimeMgmtAccess && !hasScheduleAdmin && !hasScheduleApprover;
       });
       const isScheduleAdmin = computed(
         () => getEmployeePermission(currentEmployee(), 'schedule_admin')
@@ -202,9 +196,10 @@ export const DashboardStore = signalStore(
           return currentMode === 'gerente';
         }
 
-        // Usar flags: schedule_admin o schedule_approver
+        // Usar flags: schedule_admin, schedule_approver, o frontend time-management modules
         return getEmployeePermission(employee, 'schedule_admin') ||
-          getEmployeePermission(employee, 'schedule_approver');
+          getEmployeePermission(employee, 'schedule_approver') ||
+          hasFrontendTimeManagementAccess(employee);
       });
 
       const hasDashboardAccess = computed(() => {
@@ -800,7 +795,7 @@ export const DashboardStore = signalStore(
       const supervisionRatio = computed(() => {
         const activeEmployees = employees.entities().filter((x) => x.is_active);
         const supervisors = activeEmployees.filter(
-          (x) => x.position?.admin || x.position?.schedule_admin
+          (x) => getEmployeePermission(x, 'admin') || getEmployeePermission(x, 'schedule_admin')
         ).length;
 
         if (supervisors === 0) return 0;

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, input, output, signal, TemplateRef } from '@angular/core';
+import { Component, computed, HostListener, input, output, signal, TemplateRef } from '@angular/core';
 import { TableModule } from 'primeng/table';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
@@ -21,25 +21,26 @@ type EmployeeWithDays = {
   standalone: true,
   imports: [CommonModule, TableModule, ShiftCellComponent],
   template: `
-    <!-- Mobile View: Card-based layout -->
-    <div class="md:hidden space-y-3">
-      @for(employee of employees(); track employee.id){
-      <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <p class="text-xs text-gray-400">{{ employee.position.name || 'Sin cargo' }}</p>
-            <p class="font-semibold text-white">{{ employee.first_name }} {{ employee.father_name }}</p>
+    <!-- Mobile View: horizontal scroll per employee -->
+    <div class="md:hidden space-y-2">
+      @for(employee of paginatedEmployees(); track employee.id){
+      <div class="bg-neutral-800/60 rounded-xl border border-neutral-700/40 overflow-hidden">
+        <!-- Employee header -->
+        <div class="px-3 py-2 bg-neutral-700/20 border-b border-neutral-700/30 flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <span class="text-[10px] font-bold text-amber-400">{{ employee.first_name?.charAt(0) }}{{ employee.father_name?.charAt(0) }}</span>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[13px] font-semibold text-white m-0 truncate">{{ employee.first_name }} {{ employee.father_name }}</p>
+            <p class="text-[10px] text-gray-500 m-0 truncate">{{ employee.position?.name || 'Sin cargo' }}</p>
           </div>
         </div>
-        <div class="grid grid-cols-7 gap-1">
+        <!-- Days scroll -->
+        <div class="flex overflow-x-auto py-2 px-1 gap-1 -webkit-overflow-scrolling-touch" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
           @for(day of employee.days; track day.date){
-          <div class="text-center">
-            <div class="text-[10px] text-gray-400 mb-1 uppercase">
-              {{ day.date | date : 'EEE' }}
-            </div>
-            <div class="text-[10px] text-gray-500 mb-1">
-              {{ day.date | date : 'd' }}
-            </div>
+          <div class="flex-shrink-0 w-[52px] text-center">
+            <div class="text-[9px] text-gray-500 uppercase font-medium">{{ day.date | date : 'EEE' }}</div>
+            <div class="text-[11px] text-gray-400 font-semibold mb-1">{{ day.date | date : 'd' }}</div>
             <pt-shift-cell
               [shift]="day.shift"
               [date]="day.date"
@@ -58,6 +59,22 @@ type EmployeeWithDays = {
           }
         </div>
       </div>
+      }
+      @if (employees().length === 0) {
+        <div class="text-center py-12 text-gray-500">
+          <i class="pi pi-calendar-times text-3xl block mb-2"></i>
+          <p class="text-sm m-0">No hay empleados para mostrar</p>
+        </div>
+      }
+      <!-- Mobile pagination -->
+      @if (employees().length > mobilePageSize) {
+        <div class="flex items-center justify-between px-2 py-3">
+          <span class="text-xs text-gray-500">{{ mobilePage() * mobilePageSize + 1 }}-{{ Math.min((mobilePage() + 1) * mobilePageSize, employees().length) }} de {{ employees().length }}</span>
+          <div class="flex gap-1">
+            <button class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center disabled:opacity-30" [disabled]="mobilePage() === 0" (click)="mobilePage.set(mobilePage() - 1)"><i class="pi pi-chevron-left text-xs"></i></button>
+            <button class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center disabled:opacity-30" [disabled]="(mobilePage() + 1) * mobilePageSize >= employees().length" (click)="mobilePage.set(mobilePage() + 1)"><i class="pi pi-chevron-right text-xs"></i></button>
+          </div>
+        </div>
       }
     </div>
 
@@ -121,14 +138,20 @@ type EmployeeWithDays = {
   `,
 })
 export class TimetableGridComponent {
+  protected Math = Math;
   // Mobile detection
   public isMobile = signal(window.innerWidth < 768);
   public rowsPerPage = signal(10);
+  public mobilePage = signal(0);
+  public readonly mobilePageSize = 8;
+  public paginatedEmployees = computed(() => {
+    const start = this.mobilePage() * this.mobilePageSize;
+    return this.employees().slice(start, start + this.mobilePageSize);
+  });
 
   @HostListener('window:resize')
   onResize() {
     this.isMobile.set(window.innerWidth < 768);
-    // Adjust rows per page based on screen size
     this.rowsPerPage.set(window.innerWidth < 768 ? 5 : 10);
   }
 

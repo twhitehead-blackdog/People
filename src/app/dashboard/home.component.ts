@@ -384,7 +384,7 @@ export class HomeComponent {
     // Usaremos ambas estrategias: primero intentar con company_id directo,
     // y si no hay resultados, usar el filtro a través de employees
     
-    let url = `${baseUrl}/rest/v1/employee_schedules?select=id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,day_off,entry_time,exit_time),employee:employees!inner(id,company_id,is_active)`;
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,day_off,entry_time,exit_time),employee:employees!employee_schedule_employee_id_fkey!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
     
     // Filtrar solo empleados activos

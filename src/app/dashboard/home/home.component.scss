@@ -98,17 +98,40 @@
 }
 
 /* ============================================
+   RESPONSIVE - Tablet
+   ============================================ */
+@media (max-width: 1023px) and (min-width: 769px) {
+  .dashboard-container {
+    margin-left: 70px;
+  }
+}
+
+/* ============================================
    RESPONSIVE - Mobile
    ============================================ */
 @media (max-width: 768px) {
   .dashboard-container {
     margin-left: 0 !important;
     width: 100% !important;
+    padding: 0.75rem;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 1rem);
+
+    /* Hide scrollbar on mobile for app-like feel */
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .mobile-sidebar-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 1rem);
+    right: 1rem;
+  }
+
+  .sidebar-overlay {
+    top: 52px;
   }
 }

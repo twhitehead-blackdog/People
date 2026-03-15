@@ -21,6 +21,7 @@ import { TimePipe } from '../pipes/time.pipe';
 import { SchedulesStore } from '../stores/schedules.store';
 import { DashboardStore } from '../stores/dashboard.store';
 import { SchedulesFormComponent } from './schedules-form.component';
+import { isManagerPosition } from './services/schedule-manager-rules';
 
 @Component({
   selector: 'pt-schedules',
@@ -36,7 +37,7 @@ import { SchedulesFormComponent } from './schedules-form.component';
           </p>
         </div>
         <div class="flex gap-2">
-          @if(dashboardStore.isAdmin()) {
+          @if(dashboardStore.isAdmin() && !isBlockedManager()) {
           <p-button
             label="Nuevo"
             icon="pi pi-plus-circle"
@@ -112,6 +113,7 @@ import { SchedulesFormComponent } from './schedules-form.component';
               }
             </td>
             <td>
+              @if(dashboardStore.isAdmin() && !isBlockedManager()) {
               <div class="flex gap-1 items-center">
                 <p-button
                   severity="success"
@@ -123,6 +125,7 @@ import { SchedulesFormComponent } from './schedules-form.component';
                 />
                 <p-button severity="danger" icon="pi pi-trash" text rounded size="small" />
               </div>
+              }
             </td>
           </tr>
         </ng-template>
@@ -158,8 +161,20 @@ export class SchedulesComponent {
     return getColorStyle(color);
   }
 
+  /** Gerentes y Sub Gerentes nunca pueden crear/editar horarios base, sin importar permisos. */
+  isBlockedManager(): boolean {
+    return isManagerPosition(this.dashboardStore.currentEmployee()?.position_id);
+  }
+
   editSchedule(schedule?: Schedule) {
-    // Verificar permisos antes de abrir el formulario
+    if (this.isBlockedManager()) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Acción no permitida',
+        detail: 'Gerentes y Sub Gerentes no pueden crear ni editar horarios base.',
+      });
+      return;
+    }
     if (!this.dashboardStore.isAdmin()) {
       this.message.add({
         severity: 'warn',

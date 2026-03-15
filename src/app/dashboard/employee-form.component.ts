@@ -861,6 +861,20 @@ import {
     }
 
     .employee-form-header a.no-underline { text-decoration: none; }
+
+    /* Hide PrimeNG scroll buttons that break tab layout */
+    ::ng-deep .p-tablist-nav-button { display: none !important; }
+    /* Ensure tablist content scrolls naturally */
+    ::ng-deep .p-tablist { overflow: visible !important; }
+    ::ng-deep .p-tablist-content { overflow-x: auto !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    ::ng-deep .p-tablist-content::-webkit-scrollbar { display: none; }
+    /* Active bar */
+    ::ng-deep .p-tablist-active-bar { background: #fbbf24 !important; height: 2px !important; }
+
+    @media (max-width: 768px) {
+      /* Ensure form has bottom padding for bottom nav */
+      :host { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 1rem); display: block; }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

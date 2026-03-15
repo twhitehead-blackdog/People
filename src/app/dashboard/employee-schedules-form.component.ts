@@ -50,6 +50,7 @@ import { OrganizationService } from '../services/organization.service';
 import { getScheduleWarningForManager, SCHEDULE_ID_DIA_LIBRE } from './services/schedule-manager-rules';
 import { ScheduleAuditService } from '../services/schedule-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { isStoreManagerRole } from '../utils/permission.utils';
 
 @Component({
   selector: 'pt-employee-schedules-form',
@@ -226,7 +227,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       validators: [Validators.required],
       nonNullable: true,
     }),
-    approved: new FormControl(false, { nonNullable: true }),
+    approved: new FormControl(true, { nonNullable: true }),
   });
   public dialogRef = inject(DynamicDialogRef);
   private dialog = inject(DynamicDialogConfig);
@@ -321,9 +322,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
    * Cierto si: schedule_admin y no admin, O el cargo es gerente de tienda o subgerente.
    */
   public isStoreManager = computed(() => {
-    if (this.store.isScheduleAdmin() && !this.store.isAdmin()) return true;
-    const name = (this.store.currentEmployee()?.position?.name || '').toLowerCase();
-    return name.includes('gerente de tienda') || name.includes('subgerente');
+    return isStoreManagerRole(
+      this.store.isScheduleAdmin(),
+      this.store.isAdmin(),
+      this.store.currentEmployee()?.position?.name || ''
+    );
   });
 
   /** Advertencia si el turno no es recomendado para Gerente/Subgerente (solo visual). */
@@ -491,7 +494,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     this.weekStart = weekStart || null;
     this.weekEnd = weekEnd || null;
     this.employeeHasSchedulesInWeek = employeeHasSchedulesInWeek || false;
-    if (!this.store.isScheduleApprover()) {
+    if (!this.store.isScheduleApprover() && !this.store.isAdmin()) {
       this.form.get('approved')?.disable();
     }
 
@@ -718,7 +721,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     }
 
     // Validar que solo schedule_approver pueda aprobar
-    if (value.approved && !this.store.isScheduleApprover()) {
+    if (value.approved && !this.store.isScheduleApprover() && !this.store.isAdmin()) {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',

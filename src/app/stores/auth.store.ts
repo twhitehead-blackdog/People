@@ -14,6 +14,7 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { filter, of, pipe, switchMap } from 'rxjs';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { getEmployeePermission } from '../utils/permission.utils';
 
 type State = {
   currentEmployeeId: string | null;
@@ -73,7 +74,7 @@ export const AuthStore = signalStore(
 
           const params: any = {
             work_email: `eq.${searchEmail}`,
-            select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
+            select: `id,company_id,first_name,father_name,work_email,legacy_permissions_override,${positionSelect}`,
           };
 
           // Solo agregar filtro por company_id si NO es super admin
@@ -111,7 +112,7 @@ export const AuthStore = signalStore(
                   );
                   const paramsWithoutCompany = {
                     work_email: `eq.${searchEmail}`,
-                    select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
+                    select: `id,company_id,first_name,father_name,work_email,legacy_permissions_override,${positionSelect}`,
                   };
                   return _http.get<typeof resp>(
                     _apiUrl.build(`rest/v1/${tableName}`, paramsWithoutCompany),
@@ -132,7 +133,7 @@ export const AuthStore = signalStore(
                       _orgService.getBlackdogCompanyId();
 
                     // Verificar si el empleado es admin (puede ver todas las organizaciones)
-                    const isAdmin = employee.position?.admin || false;
+                    const isAdmin = getEmployeePermission(employee, 'admin');
                     const superAdminEmails = [
                       'mercadeo@blackdogpanama.com',
                       'soporte2@blackdogpanama.com',

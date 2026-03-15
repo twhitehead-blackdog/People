@@ -168,15 +168,154 @@ import {
       </div>
       }
 
+      <!-- Mobile card view -->
+      @if (isMobile()) {
+        @if (isLoading()) {
+          <div class="mobile-card-list">
+            @for (i of [1, 2, 3, 4, 5]; track i) {
+              <div class="mobile-card-item" style="pointer-events: none">
+                <div class="mobile-card-item__avatar" style="background: rgba(255,255,255,0.05); animation: pulse 1.5s infinite"></div>
+                <div class="mobile-card-item__body">
+                  <div style="height: 0.875rem; width: 60%; background: rgba(255,255,255,0.05); border-radius: 0.25rem; animation: pulse 1.5s infinite"></div>
+                  <div style="height: 0.75rem; width: 40%; background: rgba(255,255,255,0.05); border-radius: 0.25rem; margin-top: 0.375rem; animation: pulse 1.5s infinite"></div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (filteredTimelogs().length === 0) {
+          <div class="mobile-empty-state">
+            <i class="pi pi-clock mobile-empty-state__icon"></i>
+            <p class="mobile-empty-state__title">No hay marcaciones</p>
+            <p class="mobile-empty-state__desc">No se encontraron registros para esta fecha</p>
+          </div>
+        } @else {
+          <div class="mobile-section-header">
+            <span class="mobile-section-header__title">Marcaciones del día</span>
+            <span class="mobile-section-header__count">{{ filteredTimelogs().length }}</span>
+          </div>
+          <div class="mobile-card-list">
+            @for (log of filteredTimelogs(); track log.employee?.id || $index) {
+              <div
+                class="mobile-card-item"
+                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent"
+                [ngClass]="{
+                  'border-l-3 border-l-red-500': log.is_delayed || log.is_missing || log.lunch_exceeded || log.is_early_exit,
+                  'border-l-3 border-l-emerald-500': !log.is_delayed && !log.is_missing && !log.lunch_exceeded && !log.is_early_exit && log.entry_time
+                }"
+              >
+                <!-- Avatar -->
+                <p-avatar
+                  [label]="getEmployeeInitials(log.employee)"
+                  shape="circle"
+                  styleClass="bg-blue-600 flex-shrink-0"
+                  [style]="{ width: '2.75rem', height: '2.75rem' }"
+                />
+
+                <!-- Body -->
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">
+                    {{ log.employee?.first_name }} {{ log.employee?.father_name }}
+                  </div>
+
+                  <!-- Schedule -->
+                  <div class="mobile-card-item__subtitle">
+                    @if (log.schedule?.name) {
+                      <span
+                        class="rounded text-[0.625rem] px-1.5 py-px font-semibold inline-flex items-center"
+                        [ngClass]="
+                          log.schedule?.color && colorVariants[log.schedule.color]
+                            ? colorVariants[log.schedule.color]
+                            : 'bg-neutral-700 text-gray-300'
+                        "
+                        [ngStyle]="
+                          log.schedule?.color && !colorVariants[log.schedule.color]
+                            ? getScheduleStyle(log.schedule.color)
+                            : null
+                        "
+                      >{{ log.schedule.name }}</span>
+                    } @else {
+                      <span class="text-gray-500 text-[0.625rem]">Sin horario</span>
+                    }
+                  </div>
+
+                  <!-- Time row -->
+                  <div class="flex items-center gap-3 mt-1.5 text-xs">
+                    <!-- Entry -->
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-sign-in text-[0.625rem] text-gray-500"></i>
+                      @if (log.entry_time) {
+                        <span
+                          [ngClass]="{
+                            'text-red-400 font-semibold': log.is_delayed,
+                            'text-emerald-400': !log.is_delayed
+                          }"
+                        >{{ log.entry_time | date : 'hh:mm a' }}</span>
+                      } @else {
+                        <span class="text-gray-500">--:--</span>
+                      }
+                    </div>
+
+                    <span class="text-gray-600">|</span>
+
+                    <!-- Exit -->
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-sign-out text-[0.625rem] text-gray-500"></i>
+                      @if (log.exit_time) {
+                        <span
+                          [ngClass]="{
+                            'text-red-400 font-semibold': log.is_early_exit,
+                            'text-purple-400': !log.is_early_exit
+                          }"
+                        >{{ log.exit_time | date : 'hh:mm a' }}</span>
+                      } @else {
+                        <span class="text-gray-500">--:--</span>
+                      }
+                    </div>
+
+                    <!-- Lunch (collapsed) -->
+                    @if (log.lunch_start_time || log.lunch_end_time) {
+                      <span class="text-gray-600">|</span>
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-stopwatch text-[0.625rem] text-gray-500"></i>
+                        <span [ngClass]="{'text-red-400 font-semibold': log.lunch_exceeded, 'text-gray-400': !log.lunch_exceeded}">
+                          {{ log.lunch_start_time ? (log.lunch_start_time | date : 'hh:mm') : '--' }}
+                          -
+                          {{ log.lunch_end_time ? (log.lunch_end_time | date : 'hh:mm') : '--' }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Status tags -->
+                  <div class="mobile-card-item__meta">
+                    @if (log.is_delayed) {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--danger">Retraso</span>
+                    } @else if (log.is_missing && !log.is_day_off) {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--warning">Sin marcar</span>
+                    } @else if (log.lunch_exceeded) {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--danger">Almuerzo excedido</span>
+                    } @else if (log.is_early_exit) {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--danger">Salida temprana</span>
+                    } @else if (log.entry_time) {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--success">A tiempo</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      } @else {
+      <!-- Desktop table view -->
       <p-table
         [value]="filteredTimelogs()"
         [loading]="isLoading()"
         [paginator]="true"
-        [rows]="isMobile() ? 10 : 25"
+        [rows]="25"
         [rowsPerPageOptions]="[10, 25, 50]"
         styleClass="p-datatable-sm"
         [scrollable]="true"
-        [scrollHeight]="isMobile() ? '400px' : '600px'"
+        scrollHeight="600px"
         responsiveLayout="scroll"
       >
         <ng-template #header>
@@ -449,6 +588,7 @@ import {
           </tr>
         </ng-template>
       </p-table>
+      }
     </div>
   `,
 })

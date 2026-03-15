@@ -2,6 +2,52 @@ import { computed, Injectable, signal } from '@angular/core';
 
 export type TestMode = 'admin' | 'gerente' | 'empleado';
 
+/**
+ * Permisos de frontend que simula el modo "gerente" de prueba.
+ * Replica lo que tienen los gerentes de tienda reales, más admin habilitado.
+ */
+export const GERENTE_TEST_FRONTEND_PERMISSIONS = {
+  modules: {
+    home: { enabled: false, subModules: { home_access: true } },
+    admin: {
+      enabled: false,
+      subModules: {
+        branches: false,
+        settings: false,
+        companies: false,
+        employees: false,
+        positions: false,
+        complaints: false,
+        audit_tasks: false,
+        departments: false,
+        organigrama: false,
+        permissions: false,
+        user_management: false,
+        device_inventory: false,
+        job_applications: false,
+      },
+    },
+    hr: { enabled: false, subModules: { hr_surveys: false, hr_disabilities: false, hr_time_dashboard: false } },
+    payroll: { enabled: false, subModules: { banks: false, payrolls: false, creditors: false } },
+    timeclock: { enabled: true, subModules: { timeclock_access: true } },
+    performance: { enabled: false, subModules: { perf_cycles: false, perf_reports: false, perf_dashboard: false, perf_templates: false } },
+    branch_manager: { enabled: true, subModules: { bm_dashboard: true, bm_gestiones: true } },
+    employee_portal: { enabled: true, subModules: { portal_access: true } },
+    time_management: {
+      enabled: true,
+      subModules: {
+        shifts: true,
+        timelogs: false,
+        schedules: false,
+        timetables: true,
+        vet_schedule: false,
+        salon_schedule: false,
+      },
+    },
+  },
+  version: 1,
+};
+
 @Injectable({
   providedIn: 'root',
 })

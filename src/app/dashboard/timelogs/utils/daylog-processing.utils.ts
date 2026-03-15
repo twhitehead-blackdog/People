@@ -478,6 +478,7 @@ function calculateWorkHours(
   const totalMinutes = differenceInMinutes(exitDate, entryDate);
 
   // Calcular tiempo de almuerzo a restar
+  const MIN_VALID_LUNCH_MINUTES = 15;
   let lunchTimeToSubtract = 0;
   if (dayLog.lunch_start && dayLog.lunch_end) {
     const lunchStartDate = new Date(dayLog.lunch_start.date);
@@ -492,8 +493,8 @@ function calculateWorkHours(
         lunchEndDate,
         lunchStartDate
       );
-      if (actualLunchMinutes > 0) {
-        // Sin schedule: limitar a 180 min razonable; con schedule: no limitar
+      if (actualLunchMinutes >= MIN_VALID_LUNCH_MINUTES) {
+        // Almuerzo válido: usar el real, limitado a 60 min
         if (!hasSchedule) {
           if (actualLunchMinutes <= 180) {
             lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
@@ -501,8 +502,15 @@ function calculateWorkHours(
         } else {
           lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
         }
+      } else if (hasSchedule) {
+        // Marcación de almuerzo demasiado corta (< 15 min): marcación errónea, usar 60 min por defecto
+        lunchTimeToSubtract = 60;
       }
     } else {
+      // Fechas inválidas: usar defecto si hay schedule
+      if (hasSchedule) {
+        lunchTimeToSubtract = 60;
+      }
       logger?.warn(
         '[TimelogsComponent] Fechas de almuerzo inválidas o lunch_end <= lunch_start',
         {
@@ -512,6 +520,9 @@ function calculateWorkHours(
         }
       );
     }
+  } else if (hasSchedule) {
+    // Sin marcaciones de almuerzo: restar 60 min por defecto
+    lunchTimeToSubtract = 60;
   }
 
   const workMinutes = totalMinutes - lunchTimeToSubtract;

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import * as OTPAuth from 'otpauth';
+import { getEmployeePermission } from '../utils/permission.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -244,7 +245,7 @@ export class ScreenLockService {
     const result =
       positionName.includes('gerente de tienda') ||
       positionName.includes('subgerente') ||
-      employee.position?.admin === true;
+      getEmployeePermission(employee, 'admin');
     console.log('[ScreenLock] canUseScreenLock() ->', result, { positionName });
     return result;
   }

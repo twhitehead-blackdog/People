@@ -16,8 +16,10 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
+import { Dialog } from 'primeng/dialog';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
+import { Tooltip } from 'primeng/tooltip';
 import {
   colorVariants,
   DayLog,
@@ -60,6 +62,8 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
     Card,
     Tag,
     ToastModule,
+    Dialog,
+    Tooltip,
     TimelogsFiltersComponent,
     TimelogsTableComponent,
     OvertimeConfirmationDialogComponent,
@@ -76,7 +80,16 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
               Listado de marcaciones de empleados
             </p>
           </div>
-          <div>
+          <div class="flex items-center gap-2">
+            <p-button
+              icon="pi pi-info-circle"
+              severity="info"
+              [text]="true"
+              rounded
+              (click)="infoDialogVisible.set(true)"
+              pTooltip="Cómo funciona el sistema"
+              tooltipPosition="bottom"
+            />
             <p-button
               icon="pi pi-file-excel"
               [loading]="loading()"
@@ -125,7 +138,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <!-- Cert. Médicos -->
-          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3 cursor-pointer hover:border-pink-500/50 transition-colors" (click)="openSummaryDetail('Cert. Médicos', employeeSummaryCounts().details.certMedicos)">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(236, 72, 153, 0.12)">
               <i class="pi pi-heart text-pink-400 text-sm"></i>
             </div>
@@ -135,7 +148,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
             </div>
           </div>
           <!-- A. Injustificada -->
-          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3 cursor-pointer hover:border-red-500/50 transition-colors" (click)="openSummaryDetail('A. Injustificada', employeeSummaryCounts().details.injustificada)">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(239, 68, 68, 0.12)">
               <i class="pi pi-times-circle text-red-400 text-sm"></i>
             </div>
@@ -145,7 +158,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
             </div>
           </div>
           <!-- Justificada -->
-          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3 cursor-pointer hover:border-green-500/50 transition-colors" (click)="openSummaryDetail('Justificada', employeeSummaryCounts().details.justificada)">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(34, 197, 94, 0.12)">
               <i class="pi pi-check-circle text-green-400 text-sm"></i>
             </div>
@@ -155,7 +168,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
             </div>
           </div>
           <!-- Permisos -->
-          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3 cursor-pointer hover:border-blue-500/50 transition-colors" (click)="openSummaryDetail('Permisos', employeeSummaryCounts().details.permiso)">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(59, 130, 246, 0.12)">
               <i class="pi pi-calendar-plus text-blue-400 text-sm"></i>
             </div>
@@ -165,13 +178,18 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
             </div>
           </div>
           <!-- Compensatorios -->
-          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3">
+          <div class="p-3 bg-neutral-800/60 rounded-xl border border-neutral-700/50 flex items-center gap-3 cursor-pointer hover:border-amber-500/50 transition-colors" (click)="openSummaryDetail('Compensatorios', employeeSummaryCounts().details.compensatorio)">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(245, 158, 11, 0.12)">
               <i class="pi pi-sync text-amber-400 text-sm"></i>
             </div>
             <div class="flex flex-col min-w-0">
               <span class="text-[0.65rem] text-gray-400 leading-tight">Compensatorios</span>
-              <span class="text-lg font-bold text-white">{{ employeeSummaryCounts().compensatorioDias }}d / {{ employeeSummaryCounts().compensatorioHoras }}h</span>
+              <span class="text-lg font-bold text-white">
+                @if (employeeSummaryCounts().compensatorioDias > 0) { {{ employeeSummaryCounts().compensatorioDias }}d }
+                @if (employeeSummaryCounts().compensatorioDias > 0 && employeeSummaryCounts().compensatorioHoras > 0) { / }
+                @if (employeeSummaryCounts().compensatorioHoras > 0) { {{ employeeSummaryCounts().compensatorioHoras }}h }
+                @if (employeeSummaryCounts().compensatorioDias === 0 && employeeSummaryCounts().compensatorioHoras === 0) { 0 }
+              </span>
             </div>
           </div>
           <!-- Almuerzo Excedido -->
@@ -224,6 +242,76 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
       (visibleChange)="overtimeDialogVisible.set($event)"
       (result)="onOvertimeDialogResult($event)"
     />
+
+    <!-- Modal de detalle del resumen -->
+    <p-dialog
+      [header]="summaryDialogTitle()"
+      [(visible)]="summaryDialogVisible"
+      [modal]="true"
+      [style]="{ width: '450px' }"
+      [dismissableMask]="true"
+    >
+      @if (summaryDialogItems().length === 0) {
+        <p class="text-gray-400 text-sm">No hay registros para este periodo.</p>
+      } @else {
+        <div class="flex flex-col gap-2">
+          @for (item of summaryDialogItems(); track item.day) {
+            <div class="flex justify-between items-center p-2 rounded-lg bg-neutral-800/60 border border-neutral-700/50">
+              <span class="text-sm text-white font-medium">{{ item.day }}</span>
+              <span class="text-xs px-2 py-1 rounded-full" [ngClass]="{
+                'bg-pink-500/20 text-pink-300': item.source === 'Gestión de Incapacidades',
+                'bg-blue-500/20 text-blue-300': item.source === 'Horario asignado'
+              }">{{ item.source }}</span>
+            </div>
+          }
+        </div>
+      }
+    </p-dialog>
+
+    <!-- Modal de información del sistema -->
+    <p-dialog
+      header="Cómo funciona el sistema de marcaciones"
+      [(visible)]="infoDialogVisible"
+      [modal]="true"
+      [style]="{ width: '550px' }"
+      [dismissableMask]="true"
+    >
+      <div class="flex flex-col gap-4 text-sm">
+        <div>
+          <h4 class="text-white font-semibold mt-0 mb-2"><i class="pi pi-clock mr-2 text-blue-400"></i>Cálculo de horas</h4>
+          <ul class="list-disc pl-5 text-gray-300 flex flex-col gap-1 m-0">
+            <li><strong>Horas trabajadas</strong> = Salida - Entrada - Almuerzo</li>
+            <li><strong>Almuerzo</strong>: se resta el tiempo real marcado (máx. 60 min)</li>
+            <li>Si no hay marcación de almuerzo, se restan <strong>60 min por defecto</strong></li>
+            <li>Marcaciones de almuerzo menores a 15 min se consideran erróneas y se usan 60 min por defecto</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-white font-semibold mt-0 mb-2"><i class="pi pi-star mr-2 text-amber-400"></i>Horas extras</h4>
+          <ul class="list-disc pl-5 text-gray-300 flex flex-col gap-1 m-0">
+            <li>Solo se generan si las horas trabajadas superan <strong>8 horas</strong></li>
+            <li><strong>Extras</strong> = Horas trabajadas - 8h</li>
+            <li>El exceso de almuerzo (> 60 min) no genera extras</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-white font-semibold mt-0 mb-2"><i class="pi pi-exclamation-triangle mr-2 text-orange-400"></i>Alertas</h4>
+          <ul class="list-disc pl-5 text-gray-300 flex flex-col gap-1 m-0">
+            <li><strong>Retraso</strong>: entrada posterior al horario asignado (tolerancia: 5 min)</li>
+            <li><strong>Salida temprana</strong>: salida antes de la hora de salida del horario</li>
+            <li><strong>Almuerzo excedido</strong>: almuerzo mayor a 60 minutos</li>
+            <li><strong>Horas insuficientes</strong>: menos de 8 horas trabajadas</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-white font-semibold mt-0 mb-2"><i class="pi pi-user mr-2 text-pink-400"></i>Resumen del empleado</h4>
+          <ul class="list-disc pl-5 text-gray-300 flex flex-col gap-1 m-0">
+            <li>Haz click en cada tarjeta del resumen para ver el <strong>detalle y la fuente</strong> de cada registro</li>
+            <li>Los datos provienen de <strong>Gestión de Solicitudes</strong> y/o <strong>Horarios asignados</strong></li>
+          </ul>
+        </div>
+      </div>
+    </p-dialog>
   </div>`,
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
@@ -255,6 +343,10 @@ export class TimelogsComponent {
   public branchId = model<string>();
   public employeeSearch = model<string>('');
   public employeeSearchInput = signal<string>('');
+  public infoDialogVisible = signal(false);
+  public summaryDialogVisible = signal(false);
+  public summaryDialogTitle = signal('');
+  public summaryDialogItems = signal<{ day: string; source: string }[]>([]);
   public onlyDelayed = signal(false);
   public onlyErrors = signal(false);
   public onlyEarlyExit = signal(false);
@@ -423,7 +515,8 @@ export class TimelogsComponent {
       end_date: `gte.${startDate}`,
     };
 
-    if (companyId) params['company_id'] = `eq.${companyId}`;
+    // Include schedules with matching company_id OR null (legacy records without backfill)
+    if (companyId) params['or'] = `(company_id.eq.${companyId},company_id.is.null)`;
     const empId = this.employeeId();
     if (empId) params['employee_id'] = `eq.${empId}`;
 
@@ -445,7 +538,7 @@ export class TimelogsComponent {
     return {
       url: this.apiUrl.build('rest/v1/timeoffs', {
         select:
-          'id,type_id,employee_id,date_from,date_to,is_approved,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
+          'id,type_id,employee_id,date_from,date_to,is_approved,compensatory_type,compensatory_amount,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
         date_from: `lte.${format(end, 'yyyy-MM-dd')}`,
         date_to: `gte.${format(start, 'yyyy-MM-dd')}`,
         is_approved: 'eq.true',
@@ -456,18 +549,18 @@ export class TimelogsComponent {
   });
 
   // ─── httpResource: Employee Disabilities (cert. médicos) ───
-  public disabilities = httpResource<{ id: string; start_date: string; end_date: string }[]>(() => {
+  public disabilities = httpResource<{ id: string; employee_id: string; start_date: string; end_date: string }[]>(() => {
     const { start, end } = this.normalizedDateRange();
-    const empId = this.employeeId();
-    if (!start || !end || !empId) return undefined;
+    const emp = this.selectedEmployee();
+    if (!start || !end || !emp?.id) return undefined;
 
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) return undefined;
 
     return {
       url: this.apiUrl.build('rest/v1/employee_disabilities', {
-        select: 'id,start_date,end_date',
-        employee_id: `eq.${empId}`,
+        select: 'id,employee_id,start_date,end_date',
+        employee_id: `eq.${emp.id}`,
         company_id: `eq.${companyId}`,
         start_date: `lte.${format(end, 'yyyy-MM-dd')}`,
         end_date: `gte.${format(start, 'yyyy-MM-dd')}`,
@@ -651,12 +744,31 @@ export class TimelogsComponent {
   });
 
   // ─── Computed: Employee summary counts (cuadritos) ─────────
+  // Counts based on assigned schedules + approved disabilities
   public employeeSummaryCounts = computed(() => {
     const emp = this.selectedEmployee();
-    if (!emp) return { certMedicos: 0, injustificada: 0, justificada: 0, permiso: 0, compensatorioDias: 0, compensatorioHoras: 0 };
+    const empty = {
+      certMedicos: 0, injustificada: 0, justificada: 0, permiso: 0,
+      compensatorioDias: 0, compensatorioHoras: 0,
+      details: { certMedicos: [] as { day: string; source: string }[], injustificada: [] as { day: string; source: string }[], justificada: [] as { day: string; source: string }[], permiso: [] as { day: string; source: string }[], compensatorio: [] as { day: string; source: string }[] },
+    };
+    if (!emp) return empty;
 
     const empLogs = this.dayLogs().filter(l => l.employee?.id === emp.id);
-    const empTimeoffs = (this.timeoffs.value() ?? []).filter(t => t.employee_id === emp.id);
+    const empDisabilities = (this.disabilities.value() ?? []).filter(d => d.employee_id === emp.id);
+
+    const details = {
+      certMedicos: [] as { day: string; source: string }[],
+      injustificada: [] as { day: string; source: string }[],
+      justificada: [] as { day: string; source: string }[],
+      permiso: [] as { day: string; source: string }[],
+      compensatorio: [] as { day: string; source: string }[],
+    };
+
+    // Disabilities como fuente
+    for (const d of empDisabilities) {
+      details.certMedicos.push({ day: `${d.start_date?.slice(0, 10)} → ${d.end_date?.slice(0, 10)}`, source: 'Gestión de Incapacidades' });
+    }
 
     let injustificada = 0;
     let justificada = 0;
@@ -664,45 +776,50 @@ export class TimelogsComponent {
     let compensatorioDias = 0;
 
     for (const log of empLogs) {
-      const hasMarks = !!(log.entry || log.exit);
-      if (hasMarks) continue; // Only count days without marks
+      const name = log.schedule?.schedule?.name?.toLowerCase()?.trim() || '';
+      if (!name) continue;
 
-      // Check if this day is covered by an approved timeoff
-      const timeoffForDay = empTimeoffs.find(t => {
-        const fromStr = format(new Date(t.date_from), 'yyyy-MM-dd');
-        const toStr = format(new Date(t.date_to), 'yyyy-MM-dd');
-        return log.day >= fromStr && log.day <= toStr;
-      });
-
-      // Check if schedule is a day off / restricted
-      const scheduleName = log.schedule?.schedule?.name?.toLowerCase() || '';
-      const isScheduleDayOff = log.schedule?.schedule?.day_off ||
-        RESTRICTED_SCHEDULE_NAMES.some(name => scheduleName.includes(name));
-
-      if (timeoffForDay) {
-        // Approved timeoff = justified absence
-        justificada++;
-
-        const typeName = timeoffForDay.type?.name?.toLowerCase() || '';
-        if (typeName.includes('personal') || typeName.includes('permiso')) {
-          permiso++;
+      if (name === 'cm' || name === 'incapacidad') {
+        const alreadyCounted = empDisabilities.some(d => {
+          const dStart = d.start_date?.slice(0, 10) || '';
+          const dEnd = d.end_date?.slice(0, 10) || '';
+          return log.day >= dStart && log.day <= dEnd;
+        });
+        if (!alreadyCounted) {
+          details.certMedicos.push({ day: log.day, source: 'Horario asignado' });
         }
-        if (typeName.includes('compensatorio') || timeoffForDay.type_id === 'f2d92995-96a0-414f-b64a-9823db776745') {
-          compensatorioDias++;
-        }
-      } else if (log.schedule?.schedule && !isScheduleDayOff) {
-        // Has work schedule, no marks, no timeoff = unjustified
+        continue;
+      }
+      if (name.startsWith('a. injus') || name === 'ausencia') {
         injustificada++;
+        details.injustificada.push({ day: log.day, source: 'Horario asignado' });
+        continue;
+      }
+      if (name.startsWith('a. justificada')) {
+        justificada++;
+        details.justificada.push({ day: log.day, source: 'Horario asignado' });
+        continue;
+      }
+      if (name === 'permiso') {
+        permiso++;
+        details.permiso.push({ day: log.day, source: 'Horario asignado' });
+        continue;
+      }
+      if (name === 'compensatorio') {
+        compensatorioDias++;
+        details.compensatorio.push({ day: log.day, source: 'Horario asignado' });
+        continue;
       }
     }
 
     return {
-      certMedicos: (this.disabilities.value() ?? []).length,
+      certMedicos: details.certMedicos.length,
       injustificada,
       justificada,
       permiso,
       compensatorioDias,
       compensatorioHoras: compensatorioDias * 8,
+      details,
     };
   });
 
@@ -779,6 +896,12 @@ export class TimelogsComponent {
   }
 
   // ─── Public methods ────────────────────────────────────────
+
+  public openSummaryDetail(title: string, items: { day: string; source: string }[]): void {
+    this.summaryDialogTitle.set(title);
+    this.summaryDialogItems.set(items);
+    this.summaryDialogVisible.set(true);
+  }
 
   public onEmployeeSearchEnter = (): void => {
     this.employeeSearch.set(this.employeeSearchInput());

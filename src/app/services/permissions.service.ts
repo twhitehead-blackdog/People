@@ -25,6 +25,7 @@ import { Employee, Position } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { PositionsStore } from '../stores/positions.store';
+import { GERENTE_TEST_FRONTEND_PERMISSIONS } from './test-mode.service';
 
 @Injectable({
   providedIn: 'root',
@@ -162,7 +163,7 @@ export class PermissionsService {
       : this.buildFrontendPermissions(position);
 
     // 5. Fill in missing modules from SYSTEM_MODULES (handles newly added modules)
-    this.fillMissingModules(frontendPermissions, position);
+    this.fillMissingModules(frontendPermissions, finalPermissions);
 
     return {
       employeeId: employee.id,
@@ -257,9 +258,9 @@ export class PermissionsService {
    * Cuando se agrega un módulo nuevo al sistema, los usuarios con override guardado
    * no lo tendrían. Este método lo agrega con defaults según su cargo.
    */
-  private fillMissingModules(perms: FrontendPermissions, position?: Position): void {
-    const isAdmin = !!position?.admin;
-    const isScheduleAdmin = !!position?.schedule_admin;
+  private fillMissingModules(perms: FrontendPermissions, resolvedPermissions: Record<string, boolean>): void {
+    const isAdmin = !!resolvedPermissions['admin'];
+    const isScheduleAdmin = !!resolvedPermissions['schedule_admin'];
 
     for (const moduleDef of SYSTEM_MODULES) {
       if (!perms.modules[moduleDef.id]) {
@@ -485,6 +486,11 @@ export class PermissionsService {
     const currentEmployee = this.store.currentEmployee();
     if (!currentEmployee) return false;
 
+    // Si soporte2 está en modo gerente, usar permisos simulados
+    if (this.store.testMode.isSupportUser(currentEmployee.work_email) && this.store.testMode.currentMode === 'gerente') {
+      return hasSubModuleAccess(GERENTE_TEST_FRONTEND_PERMISSIONS as any, moduleId, subModuleId);
+    }
+
     const profile = this.buildUserProfile(currentEmployee);
     return hasSubModuleAccess(profile.frontendPermissions, moduleId, subModuleId);
   }
@@ -495,6 +501,11 @@ export class PermissionsService {
   public canAccessModule(moduleId: string): boolean {
     const currentEmployee = this.store.currentEmployee();
     if (!currentEmployee) return false;
+
+    // Si soporte2 está en modo gerente, usar permisos simulados
+    if (this.store.testMode.isSupportUser(currentEmployee.work_email) && this.store.testMode.currentMode === 'gerente') {
+      return hasModuleAccess(GERENTE_TEST_FRONTEND_PERMISSIONS as any, moduleId);
+    }
 
     const profile = this.buildUserProfile(currentEmployee);
     return hasModuleAccess(profile.frontendPermissions, moduleId);

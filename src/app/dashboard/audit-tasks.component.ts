@@ -42,6 +42,7 @@ import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { BranchesStore } from '../stores/branches.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { getEmployeePermission } from '../utils/permission.utils';
 
 @Component({
   selector: 'pt-audit-tasks',
@@ -706,7 +707,7 @@ export class AuditTasksComponent {
       .employeesList()
       .filter(
         (e) =>
-          e.is_active && (e.position?.admin || e.position?.schedule_admin)
+          e.is_active && (getEmployeePermission(e, 'admin') || getEmployeePermission(e, 'schedule_admin'))
       )
       .map((e) => ({
         ...e,

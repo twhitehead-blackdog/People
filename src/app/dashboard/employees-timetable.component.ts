@@ -24,7 +24,6 @@ import {
 import { toDate } from 'date-fns-tz';
 import { MenuItem, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Dialog } from 'primeng/dialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
@@ -79,7 +78,6 @@ import {
     TimetableScheduleActionsService,
   ],
   imports: [
-    Card,
     FormsModule,
     Button,
     NgClass,
@@ -93,11 +91,11 @@ import {
     AuditHistoryDialogComponent,
     SpecificAuditDialogComponent,
   ],
-  template: `<p-card>
-      <ng-template #title> Turnos </ng-template>
-      <ng-template #subtitle
-        >Vista semanal de turnos y horarios de empleados</ng-template
-      >
+  template: `<div class="timetable-wrapper">
+      <div class="hidden md:block">
+        <h2 class="text-xl font-bold text-white m-0">Turnos</h2>
+        <p class="text-sm text-gray-400 m-0 mt-0.5">Vista semanal de turnos y horarios de empleados</p>
+      </div>
 
       <div class="items-center gap-2 w-full my-2 hidden">
         <p-toggleswitch
@@ -213,7 +211,7 @@ import {
         (viewAudit)="onViewSpecificAudit($event)"
         (toggleSelection)="toggleShiftSelection($event)"
       />
-    </p-card>
+    </div>
 
     <p-dialog
       header="Desbloquear edicion"
@@ -339,7 +337,7 @@ export class EmployeesTimetableComponent implements OnInit {
     return {
       url: this.apiUrl.build('rest/v1/employee_schedules', {
         select:
-          'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees(id,company_id)',
+          'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
         start_date: `lte.${endDate}`,
         end_date: `gte.${startDate}`,
         ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),

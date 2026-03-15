@@ -976,33 +976,47 @@ import { HomeDataService } from '../../services/home-data.service';
     }
 
     /* ========================================
-       MOBILE STYLES (unchanged)
+       MOBILE STYLES — App-like Modern Design
        ======================================== */
     .mobile-dashboard {
       padding: 0.75rem;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 1rem);
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
     }
 
     .mobile-hero {
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
-      border: 1px solid rgba(251, 191, 36, 0.2);
-      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(24, 24, 27, 0.95) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.15);
+      border-radius: 1rem;
       padding: 1.25rem;
       display: flex;
       align-items: center;
       gap: 1rem;
+      position: relative;
+      overflow: hidden;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #fbbf24, #f59e0b);
+      }
     }
 
     .mobile-hero .hero-icon {
       width: 50px;
       height: 50px;
-      border-radius: 12px;
-      background: rgba(251, 191, 36, 0.2);
+      border-radius: 0.75rem;
+      background: rgba(251, 191, 36, 0.15);
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
 
       i { font-size: 1.5rem; color: #fbbf24; }
     }
@@ -1020,7 +1034,7 @@ import { HomeDataService } from '../../services/home-data.service';
     }
 
     .mobile-hero .hero-label {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       color: #a1a1aa;
       margin-top: 0.25rem;
     }
@@ -1032,17 +1046,23 @@ import { HomeDataService } from '../../services/home-data.service';
     }
 
     .mobile-card {
-      background: rgba(24, 24, 27, 0.95);
+      background: #171717;
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 1rem;
+      border-radius: 0.75rem;
+      padding: 1rem 0.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.375rem;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.15s ease, transform 0.15s ease;
 
-      &:active { transform: scale(0.98); }
+      &:active {
+        transform: scale(0.97);
+        background: #262626;
+      }
 
       i {
         font-size: 1.25rem;
@@ -1052,55 +1072,59 @@ import { HomeDataService } from '../../services/home-data.service';
         &.teal { color: #14b8a6; }
       }
 
-      .m-value { font-size: 1.5rem; font-weight: 700; color: #ffffff; }
-      .m-label { font-size: 0.65rem; color: #71717a; text-transform: uppercase; }
+      .m-value { font-size: 1.5rem; font-weight: 700; color: #ffffff; line-height: 1; }
+      .m-label { font-size: 0.625rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.03em; }
     }
 
     .mobile-stats {
-      background: rgba(24, 24, 27, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 0.75rem;
+      background: #171717;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 0.75rem;
+      padding: 0.25rem 0.875rem;
+      overflow: hidden;
     }
 
     .stat-row {
       display: flex;
       justify-content: space-between;
-      padding: 0.625rem 0;
+      align-items: center;
+      padding: 0.75rem 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       &:last-child { border-bottom: none; }
     }
 
-    .stat-label { font-size: 0.75rem; color: #a1a1aa; }
+    .stat-label { font-size: 0.8125rem; color: #a1a1aa; }
     .stat-value { font-size: 0.875rem; font-weight: 600; color: #ffffff; &.green { color: #34d399; } }
 
     .mobile-gender {
-      background: rgba(24, 24, 27, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 0.75rem;
+      background: #171717;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 0.75rem;
+      padding: 0.875rem;
     }
 
-    .gender-bars { display: flex; gap: 0.375rem; height: 28px; }
+    .gender-bars { display: flex; gap: 0.375rem; height: 32px; }
 
     .gender-bar {
-      border-radius: 6px;
+      border-radius: 0.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
       min-width: 40px;
+      transition: width 0.4s ease;
 
       span { font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
 
-      &.male { background: rgba(96, 165, 250, 0.25); span { color: #60a5fa; } }
-      &.female { background: rgba(244, 114, 182, 0.25); span { color: #f472b6; } }
+      &.male { background: rgba(96, 165, 250, 0.2); span { color: #60a5fa; } }
+      &.female { background: rgba(244, 114, 182, 0.2); span { color: #f472b6; } }
     }
 
     .mobile-gender .gender-title {
-      font-size: 0.65rem;
+      font-size: 0.6875rem;
       font-weight: 600;
       color: #71717a;
       text-transform: uppercase;
+      letter-spacing: 0.03em;
       display: block;
       margin-bottom: 0.625rem;
     }

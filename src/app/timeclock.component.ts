@@ -51,12 +51,14 @@ import { ApiUrlService } from './services/api-url.service';
 import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
+import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
 import {
   initAudioContext,
   playFailureSound,
   playLateSound,
   playSuccessSound,
+  playBirthdaySound,
 } from './timeclock/timeclock-audio.utils';
 import {
   calculateEntryDelay,
@@ -66,9 +68,7 @@ import {
   formatTimeDifference,
   getAvailableTypes,
   getNextTimelogType,
-  getPanamaNowParts,
 } from './timeclock/timeclock-calculations.utils';
-import { getEnv } from './utils/env.utils';
 
 @Component({
   selector: 'pt-timeclock',
@@ -84,27 +84,142 @@ import { getEnv } from './utils/env.utils';
     NgClass,
   ],
   providers: [ConfirmationService],
-  template: `<p-confirmDialog key="confirm1">
-      <ng-template #message let-message>
-        <div
-          class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
-        >
-          <i [ngClass]="message.icon" class="!text-6xl text-orange-500"></i>
-          <div class="text-center w-full" [innerHTML]="message.message"></div>
+  template: `<p-toast />
+
+    <!-- IP Warning Modal -->
+    @if (ipWarningVisible()) {
+      <div class="confirm-modal-overlay" (click)="dismissIpWarning()">
+        <div class="ip-warning-card" [class.ip-warning-exit]="ipWarningExiting()">
+          <div class="restricted-icon-wrap">
+            <div class="ip-warning-icon">
+              <i class="pi pi-wifi"></i>
+            </div>
+          </div>
+          <div class="ip-warning-title">IP no reconocida</div>
+          <div class="ip-warning-desc">
+            Tu IP actual no coincide con ninguna sucursal registrada. La marcación se guardará con IP no válida.
+          </div>
+          @if (currentIP()) {
+            <div class="restricted-ip-badge">
+              <span class="restricted-ip-label">IP detectada</span>
+              <span class="restricted-ip-value" style="color: rgba(251, 191, 36, 0.9);">{{ currentIP() }}</span>
+            </div>
+          }
+          <button class="ip-warning-btn" (click)="dismissIpWarning()">Entendido</button>
         </div>
-      </ng-template>
-    </p-confirmDialog>
-    <p-confirmDialog key="confirm2">
-      <ng-template #message let-message>
-        <div
-          class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
-        >
-          <i [ngClass]="message.icon" class="!text-6xl text-orange-500"></i>
-          <div [innerHTML]="message.message"></div>
+      </div>
+    }
+
+    <!-- Custom Success Confirmation Modal -->
+    @if (confirmModalVisible()) {
+      <div class="confirm-modal-overlay" (click)="dismissConfirmModal()">
+        <div class="confirm-modal-card"
+          [class.confirm-modal-exit]="confirmModalExiting()"
+          [class.is-late]="confirmModalData()?.isLate"
+          [class.is-birthday]="confirmModalData()?.isBirthday">
+
+          <!-- Birthday confetti particles -->
+          @if (confirmModalData()?.isBirthday) {
+            <div class="confetti-container">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]; track i) {
+                <div class="confetti-piece" [style.--i]="i"></div>
+              }
+            </div>
+          }
+
+          <!-- Icon -->
+          <div class="confirm-modal-icon-wrap">
+            @if (confirmModalData()?.isBirthday) {
+              <div class="confirm-modal-icon confirm-modal-icon--birthday">
+                <span class="birthday-icon-emoji">🎂</span>
+              </div>
+            } @else if (confirmModalData()?.isLate) {
+              <div class="confirm-modal-icon confirm-modal-icon--late">
+                <i class="pi pi-clock"></i>
+              </div>
+            } @else {
+              <div class="confirm-modal-icon confirm-modal-icon--success">
+                <i class="pi pi-check"></i>
+              </div>
+            }
+          </div>
+
+          <!-- Birthday greeting -->
+          @if (confirmModalData()?.isBirthday) {
+            <div class="confirm-modal-birthday-greeting">
+              ¡Feliz Cumpleaños, {{ confirmModalData()?.employeeName }}!
+            </div>
+          }
+
+          <!-- Type + Time -->
+          <div class="confirm-modal-title">
+            {{ confirmModalData()?.typeLabel }} registrada exitosamente
+          </div>
+          <div class="confirm-modal-time">
+            a las {{ confirmModalData()?.time }}
+          </div>
+
+          <!-- Tardiness info -->
+          @if (confirmModalData()?.isLate) {
+            <div class="confirm-modal-late-box" [class.very-late]="confirmModalData()?.isVeryLate">
+              <div class="confirm-modal-late-header">
+                <i class="pi pi-clock"></i> Llegó tarde
+              </div>
+              <div class="confirm-modal-late-detail">
+                Tardanza: {{ confirmModalData()?.delayText }}
+              </div>
+            </div>
+            @if (confirmModalData()?.isVeryLate) {
+              <div class="confirm-modal-verylate-box">
+                <div class="confirm-modal-verylate-header">
+                  <i class="pi pi-exclamation-triangle"></i> Atención
+                </div>
+                <div class="confirm-modal-verylate-detail">
+                  Tardanza mayor a 1 hora. Verifique con el gerente si el horario está configurado correctamente.
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Streak -->
+          @if (confirmModalData()?.streak && confirmModalData()!.streak >= 2) {
+            <div class="confirm-modal-streak-box">
+              {{ getStreakFires(confirmModalData()!.streak) }} Racha de {{ confirmModalData()!.streak }} {{ confirmModalData()!.streak === 1 ? 'día' : 'días' }} {{ getStreakFires(confirmModalData()!.streak) }}
+            </div>
+          }
+
+          <!-- Lunch overtime warning -->
+          @if (confirmModalData()?.isLunchOvertime) {
+            <div class="confirm-modal-late-box" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%);">
+              <div class="confirm-modal-late-header">
+                <i class="pi pi-clock"></i> Almuerzo excedido
+              </div>
+              <div class="confirm-modal-late-detail">
+                Se excedió {{ confirmModalData()?.lunchExceededMinutes }} minuto{{ confirmModalData()!.lunchExceededMinutes !== 1 ? 's' : '' }} de almuerzo
+              </div>
+            </div>
+          }
+
+          <!-- Motivational phrase -->
+          <div class="confirm-modal-phrase-box" [class.birthday-phrase]="confirmModalData()?.isBirthday">
+            @if (confirmModalData()?.isBirthday) {
+              <span class="birthday-phrase-icon">🎉</span>
+            }
+            "{{ confirmModalData()?.phrase }}"
+            @if (confirmModalData()?.isBirthday) {
+              <span class="birthday-phrase-icon">🎉</span>
+            }
+          </div>
+
+          <!-- Progress bar -->
+          <div class="confirm-modal-progress-track">
+            <div class="confirm-modal-progress-bar"
+              [class.is-late]="confirmModalData()?.isLate"
+              [class.is-birthday]="confirmModalData()?.isBirthday"></div>
+          </div>
         </div>
-      </ng-template>
-    </p-confirmDialog>
-    <p-toast />
+      </div>
+    }
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
       [ngClass]="{
@@ -112,12 +227,11 @@ import { getEnv } from './utils/env.utils';
         'blackdog-theme': isBlackDogCompany(),
         'timeclock-mobile-kiosk': isMobileKiosk()
       }"
-      style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
+      style="width: 100%; position: relative;"
     >
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
       <div
         class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
-        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
       >
         @if (isKioskMode()) {
         <img
@@ -128,62 +242,18 @@ import { getEnv } from './utils/env.utils';
         }
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
-            <div
-              class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1"
-            >
-              <div
-                class="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center w-full break-words"
-              >
-                Reloj de Marcación
+            <div class="flex flex-col items-center py-1">
+              <div class="clock-hero-time" [class.blackdog-accent]="isBlackDogCompany()">
+                {{ formattedTime() }}
               </div>
-              <!-- Clock Display inside card -->
-              <div
-                class="flex flex-col items-center gap-0.5 sm:gap-1 bg-black/40 backdrop-blur-sm rounded-lg px-2 sm:px-3 md:px-5 py-1.5 sm:py-2 md:py-2.5 border shadow-lg clock-display w-full mt-1"
-                [ngClass]="
-                  isBlackDogCompany()
-                    ? 'border-yellow-500/40'
-                    : 'border-gray-500/40'
-                "
-              >
-                <div
-                  class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time break-words text-center"
-                  [ngClass]="
-                    isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'
-                  "
-                >
-                  {{ formattedTime() }}
-                </div>
-                <div
-                  class="text-[10px] sm:text-xs md:text-sm text-gray-300 text-center break-words px-1"
-                >
-                  {{ formattedDate() }}
-                </div>
+              <div class="clock-hero-date">
+                {{ formattedDate() }}
               </div>
             </div>
           </ng-template>
           <ng-template #subtitle>
-            <div
-              class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[#d2d2d2] text-[10px] sm:text-xs md:text-sm font-semibold text-center px-2 py-1"
-            >
-              <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                <i
-                  [ngClass]="
-                    isBlackDogCompany()
-                      ? 'pi pi-building text-yellow-400 text-xs sm:text-sm flex-shrink-0'
-                      : 'pi pi-building text-gray-400 text-xs sm:text-sm flex-shrink-0'
-                  "
-                ></i>
-                <i
-                  [ngClass]="
-                    isBlackDogCompany()
-                      ? 'pi pi-user text-yellow-400 text-xs sm:text-sm flex-shrink-0'
-                      : 'pi pi-user text-gray-400 text-xs sm:text-sm flex-shrink-0'
-                  "
-                ></i>
-              </div>
-              <span class="flex-shrink-0"
-                >Seleccione la sucursal y empleado</span
-              >
+            <div class="clock-subtitle">
+              Seleccione sucursal y empleado
             </div>
           </ng-template>
           <form
@@ -272,51 +342,67 @@ import { getEnv } from './utils/env.utils';
               >
                 Ingrese su PIN
               </label>
-              <div class="w-full flex justify-center items-center">
+              <div class="w-full flex justify-center items-center gap-2">
                 <p-inputOtp
                   #otpInput
                   formControlName="otp"
                   [length]="6"
                   [integerOnly]="true"
-                  (keydown.enter)="onEnterKey($event)"
                   (input)="onOtpInput($event)"
                   styleClass="p-inputotp-input"
                 />
+                <button
+                  type="button"
+                  class="paste-btn md:hidden"
+                  (click)="pasteFromClipboard()"
+                  title="Pegar código"
+                >
+                  <i class="pi pi-clipboard"></i>
+                </button>
               </div>
+
+              <!-- Mobile only: Keypad toggle -->
+              <div class="w-full flex gap-2 mt-1 md:hidden">
+                <button type="button" class="keypad-toggle-btn flex-1" (click)="toggleKeypad()">
+                  <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-chevron-up' : 'pi-th-large'"></i>
+                  {{ showKeypadPanel() ? 'Ocultar' : 'Teclado' }}
+                </button>
+              </div>
+              @if (showKeypadPanel()) {
+              <div class="keypad-grid w-full max-w-[280px] mx-auto" style="animation: slideDown 0.25s ease-out;">
+                <div class="grid grid-cols-3 gap-1.5">
+                  @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+                    <button type="button" class="keypad-btn" (click)="addNumberToOtp(num)">{{ num }}</button>
+                  }
+                  <button type="button" class="keypad-btn keypad-clear" (click)="clearOtp()">
+                    <i class="pi pi-ban text-sm"></i>
+                  </button>
+                  <button type="button" class="keypad-btn" (click)="addNumberToOtp('0')">0</button>
+                  <button type="button" class="keypad-btn keypad-delete" (click)="deleteFromOtp()">
+                    <i class="pi pi-delete-left text-sm"></i>
+                  </button>
+                </div>
+              </div>
+              }
             </div>
 
             <!-- Submit Button -->
-            <div class="w-full flex justify-center items-center px-2">
+            <div class="w-full">
               <p-button
                 [disabled]="
                   form.invalid || isProcessing() || !form.get('employee')?.value
                 "
                 [loading]="isProcessing()"
                 (onClick)="validateOtp()"
-                [label]="isProcessing() ? 'Procesando...' : 'Marcar'"
+                [label]="isProcessing() ? 'Procesando...' : 'Marcar Asistencia'"
                 [icon]="
                   isProcessing()
                     ? 'pi pi-spin pi-spinner'
                     : 'pi pi-check-circle'
                 "
                 [size]="'large'"
-                rounded
-                [styleClass]="'mark-button w-full sm:w-auto'"
-                [style]="{
-                  background:
-                    form.invalid || !form.get('employee')?.value
-                      ? 'linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%)'
-                      : isBlackDogCompany()
-                      ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
-                      : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-                  border: 'none',
-                  'box-shadow':
-                    form.invalid || !form.get('employee')?.value
-                      ? 'none'
-                      : isBlackDogCompany()
-                      ? '0 4px 15px rgba(251, 191, 36, 0.4)'
-                      : '0 4px 15px rgba(107, 114, 128, 0.4)'
-                }"
+                [styleClass]="'mark-button w-full'"
+                [style]="{ border: 'none', width: '100%' }"
               />
             </div>
 
@@ -333,144 +419,146 @@ import { getEnv } from './utils/env.utils';
         </p-card>
       </div>
       } @else {
-      <!-- Mensaje de acceso restringido en modo kiosko -->
-      <div
-        class="flex flex-col gap-3 sm:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10"
-        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
-      >
-        <img
-          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2"
-        />
-        <p-card class="w-full timeclock-card relative z-10">
-          <ng-template pTemplate="title">
-            <div class="flex flex-col gap-3 items-center">
-              <div class="relative">
-                <div
-                  class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center shadow-lg shadow-red-500/20 border border-red-500/30 animate-pulse"
-                >
-                  <i
-                    class="pi pi-exclamation-triangle text-red-400 text-3xl md:text-4xl drop-shadow-lg"
-                  ></i>
-                </div>
-                <div
-                  class="absolute inset-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-red-500/10 animate-ping"
-                ></div>
-              </div>
-              <h1
-                class="text-xl md:text-2xl font-semibold text-white m-0 text-center"
-              >
-                Acceso Restringido
-              </h1>
+      <!-- Restricted access screen -->
+      <div class="restricted-screen">
+        <div class="restricted-card">
+          <!-- Icon -->
+          <div class="restricted-icon-wrap">
+            <div class="restricted-icon">
+              <i class="pi pi-lock"></i>
             </div>
-          </ng-template>
-          <div class="space-y-4 text-gray-300 text-center">
-            <p class="text-base md:text-lg text-white font-medium">
-              Dirección IP no autorizada
-            </p>
-            <p class="text-sm md:text-base leading-relaxed">
-              Tu dirección IP actual no está autorizada para usar el modo
-              kiosko.
-            </p>
-            @if (currentIP()) {
-            <div
-              class="mt-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700"
-            >
-              <p class="text-xs text-gray-400 mb-1">IP detectada:</p>
-              <p
-                class="text-sm text-red-400 font-mono font-semibold text-center"
-              >
-                {{ currentIP() }}
-              </p>
-            </div>
-            }
-            <p class="text-xs md:text-sm text-gray-400 italic">
-              Si cambias de red o tu IP cambia, el acceso será bloqueado
-              automáticamente.
-            </p>
           </div>
-        </p-card>
+
+          <div class="restricted-title">Acceso Restringido</div>
+          <div class="restricted-desc">
+            Tu dirección IP no está en la lista de IPs permitidas para el modo kiosko.
+          </div>
+
+          <!-- IP badge -->
+          @if (currentIP()) {
+          <div class="restricted-ip-badge">
+            <span class="restricted-ip-label">IP detectada</span>
+            <span class="restricted-ip-value">{{ currentIP() }}</span>
+          </div>
+          }
+
+          <!-- Instructions -->
+          <div class="restricted-instructions">
+            <div class="restricted-instructions-title">
+              <i class="pi pi-wifi"></i> Instrucciones
+            </div>
+            <p>Conéctate al WiFi de tu sucursal para acceder al modo kiosko. El sistema detectará automáticamente cuando tu IP sea autorizada.</p>
+          </div>
+        </div>
       </div>
       }
     </div>`,
   styles: `
+    :host {
+      display: block;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: #08080c;
+    }
+
+    @media (max-width: 767px) {
+      :host {
+        height: 100dvh;
+        height: 100vh;
+        overflow: hidden;
+        position: fixed;
+        inset: 0;
+      }
+      .animated-gradient-container {
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+      }
+    }
+
+    /* ============================================
+       CONTAINER + BACKGROUND
+       ============================================ */
     .animated-gradient-container {
       position: relative;
       min-height: 100vh;
+      min-height: 100dvh;
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.3s ease;
+      background: #08080c;
     }
 
-    :host-context(html.dark) .animated-gradient-container {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+    /* Subtle ambient glow blobs */
+    .animated-gradient-container::before,
+    .animated-gradient-container::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .animated-gradient-container::before {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(107, 114, 128, 0.06), transparent 70%);
+      top: -150px;
+      left: -150px;
+    }
+    .animated-gradient-container::after {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(107, 114, 128, 0.04), transparent 70%);
+      bottom: -100px;
+      right: -100px;
     }
 
-    :host-context(html.light) .animated-gradient-container {
-      background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
-    }
-    
-    /* Beautiful custom scrollbar */
+    /* Thin scrollbar */
     .animated-gradient-container::-webkit-scrollbar {
-      width: 10px;
+      width: 6px;
     }
-    
-    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
-      margin: 10px 0;
+    .animated-gradient-container::-webkit-scrollbar-track {
+      background: transparent;
     }
-
-    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.05);
-      border-radius: 10px;
-      margin: 10px 0;
+    .animated-gradient-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
     }
-    
-    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.4) 100%);
-      border-radius: 10px;
-      border: 2px solid rgba(0, 0, 0, 0.2);
-      box-shadow: 0 0 10px rgba(107, 114, 128, 0.3);
-      transition: all 0.3s ease;
+    .animated-gradient-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.18);
     }
-
-    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.4) 0%, rgba(107, 114, 128, 0.3) 100%);
-      border-radius: 10px;
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 0 10px rgba(107, 114, 128, 0.2);
-      transition: all 0.3s ease;
-    }
-    
-    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.8) 0%, rgba(107, 114, 128, 0.6) 100%);
-      box-shadow: 0 0 15px rgba(107, 114, 128, 0.5);
-    }
-
-    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.5) 100%);
-      box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
-    }
-    
-    .animated-gradient-container::-webkit-scrollbar-thumb:active {
-      background: linear-gradient(180deg, rgba(107, 114, 128, 1) 0%, rgba(107, 114, 128, 0.8) 100%);
-    }
-    
-    /* Firefox scrollbar */
     .animated-gradient-container {
       scrollbar-width: thin;
-      scrollbar-color: rgba(107, 114, 128, 0.6) rgba(0, 0, 0, 0.3);
-    }
-    
-    .timeclock-content {
-      flex-shrink: 0;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
     }
 
-    /* Versión móvil modo kiosko: logo más grande, controles táctiles más grandes */
+    .timeclock-content {
+      flex-shrink: 0;
+      width: 100%;
+      max-width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .timeclock-content {
+        min-height: auto !important;
+        padding: 0.5rem 0.75rem !important;
+        justify-content: flex-start !important;
+        padding-top: 0.75rem !important;
+      }
+    }
+
+    /* Mobile kiosk mode overrides */
     .timeclock-mobile-kiosk .timeclock-content img {
       height: 4rem !important;
       max-height: 80px !important;
@@ -491,156 +579,198 @@ import { getEnv } from './utils/env.utils';
       min-height: 3.5rem;
       font-size: 1.125rem;
     }
-    
-    @media (max-width: 640px) {
+
+    @media (max-height: 700px) and (max-width: 640px) {
       .timeclock-content {
-        padding: 0.75rem 0.25rem !important;
+        padding-top: 0.35rem !important;
+        gap: 0.25rem !important;
       }
     }
-    
-    @media (max-height: 700px) {
+    @media (max-height: 600px) and (max-width: 640px) {
       .timeclock-content {
-        padding: 0.5rem 0.25rem !important;
+        padding-top: 0.2rem !important;
+        gap: 0.15rem !important;
       }
     }
-    
-    @media (max-height: 600px) {
-      .timeclock-content {
-        padding: 0.25rem 0.25rem !important;
-      }
-    }
-    
-    
+
+    /* ============================================
+       CARD
+       ============================================ */
     .timeclock-card {
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
-      border-radius: 12px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 114, 128, 0.2) !important;
-      backdrop-filter: blur(10px);
-      background: rgba(38, 38, 38, 0.95) !important;
-      animation: cardEntrance 0.25s ease-out;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 28px !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      backdrop-filter: blur(40px) saturate(1.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+      animation: cardEntrance 0.3s ease-out;
+      position: relative;
     }
-    
+
+    /* Top highlight line */
+    .timeclock-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+      border-radius: 28px 28px 0 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .timeclock-card {
+        animation: none !important;
+      }
+    }
+
+    .timeclock-card ::ng-deep .p-card {
+      border-radius: 28px !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .timeclock-card ::ng-deep .p-card-body {
+      border-radius: 28px !important;
+      background: transparent !important;
+    }
+    .timeclock-card ::ng-deep .p-card-content {
+      margin-top: 0 !important;
+    }
+
     @media (max-width: 640px) {
+      .timeclock-card {
+        border-radius: 24px !important;
+      }
+      .timeclock-card ::ng-deep .p-card,
+      .timeclock-card ::ng-deep .p-card-body {
+        border-radius: 24px !important;
+        background: transparent !important;
+      }
+      .timeclock-card ::ng-deep .p-card {
+        border: none !important;
+        box-shadow: none !important;
+      }
       .timeclock-card ::ng-deep .p-card-body {
         padding: 0.75rem !important;
       }
-      
       .timeclock-card ::ng-deep .p-card-title {
         padding: 0.5rem 0.75rem !important;
-        overflow: visible !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
       }
-      
       .timeclock-card ::ng-deep .p-card-subtitle {
-        padding: 0.5rem 0.75rem !important;
-        overflow: visible !important;
-        min-height: auto !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-title *,
-      .timeclock-card ::ng-deep .p-card-subtitle * {
-        position: relative !important;
-        z-index: 1 !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle .flex {
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle .flex > div {
-        flex-shrink: 0 !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-subtitle span {
-        display: inline-block !important;
-        text-align: center !important;
-        line-height: 1.4 !important;
+        padding: 0.25rem 0.75rem !important;
       }
     }
-    
+
     @media (min-width: 641px) and (max-width: 1024px) {
       .timeclock-card ::ng-deep .p-card-body {
         padding: 1.25rem !important;
       }
     }
-    
-    /* Desactivar animaciones solo si el usuario explícitamente prefiere movimiento reducido */
-    @media (prefers-reduced-motion: reduce) {
-      .clock-time {
-        animation: none !important;
-      }
-      
-      .timeclock-card {
-        animation: none !important;
-      }
+
+    /* ============================================
+       CLOCK HERO DISPLAY
+       ============================================ */
+    .clock-hero-time {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      text-align: center;
     }
-    
-    @keyframes cardEntrance {
-      from {
-        opacity: 0;
-        transform: scale(1.03);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+    .clock-hero-time.blackdog-accent {
+      color: #fbbf24;
     }
-    
-    .clock-display {
-      border: 1px solid rgba(107, 114, 128, 0.5) !important;
+    .clock-hero-date {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.4);
+      font-weight: 500;
+      text-transform: capitalize;
+      letter-spacing: 0.03em;
+      margin-top: 0.5rem;
+      text-align: center;
     }
-    
-    .clock-time {
-      text-shadow: 0 0 10px rgba(107, 114, 128, 0.8);
-      animation: clockPulse 2s ease-in-out infinite;
+    .clock-subtitle {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.3);
+      text-align: center;
+      font-weight: 400;
+      letter-spacing: 0.02em;
     }
-    
-    @keyframes clockPulse {
-      0%, 100% {
-        text-shadow: 0 0 10px rgba(107, 114, 128, 0.8);
-      }
-      50% {
-        text-shadow: 0 0 20px rgba(107, 114, 128, 1), 0 0 30px rgba(107, 114, 128, 0.6);
+
+    @media (max-width: 640px) {
+      .clock-hero-time {
+        font-size: 2.25rem;
       }
     }
-    
-    .timeclock-card ::ng-deep .p-card {
-      border-radius: 12px !important;
-      border: none !important;
-    }
-    
-    .timeclock-card ::ng-deep .p-card-body {
-      border-radius: 12px !important;
-    }
-    
+
+    /* ============================================
+       SELECT / INPUT OVERRIDES
+       ============================================ */
     .timeclock-card ::ng-deep .p-select {
-      border-radius: 8px !important;
+      border-radius: 14px !important;
     }
-    
     .timeclock-card ::ng-deep .p-select .p-select-trigger {
-      border-radius: 8px !important;
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
+      border-radius: 14px !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    
     .timeclock-card ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(107, 114, 128, 0.8) !important;
-      box-shadow: 0 0 10px rgba(107, 114, 128, 0.3) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04) !important;
     }
-    
+
     .error-border ::ng-deep .p-select .p-select-trigger {
-      border-color: rgba(239, 68, 68, 0.5) !important;
+      border-color: rgba(239, 68, 68, 0.4) !important;
     }
-    
     .error-border ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(239, 68, 68, 0.8) !important;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3) !important;
+      border-color: rgba(239, 68, 68, 0.6) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08) !important;
     }
-    
+
+    .input-container ::ng-deep .p-select {
+      width: 100%;
+    }
+    .input-container ::ng-deep .p-select .p-select-trigger {
+      padding: 0.5rem 0.75rem;
+      min-height: 42px;
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+      .input-container ::ng-deep .p-select .p-select-trigger {
+        padding: 0.45rem 0.65rem;
+        min-height: 40px;
+        font-size: 0.8125rem;
+      }
+    }
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .input-container ::ng-deep .p-select .p-select-trigger {
+        padding: 0.55rem 0.8rem;
+        min-height: 44px;
+        font-size: 0.9rem;
+      }
+    }
+
+    /* ============================================
+       OTP INPUT
+       ============================================ */
     .timeclock-card ::ng-deep .p-inputotp {
       display: flex !important;
       justify-content: center !important;
@@ -649,44 +779,41 @@ import { getEnv } from './utils/env.utils';
       width: 100% !important;
       margin: 0 auto !important;
     }
-    
     .timeclock-card ::ng-deep .p-inputotp-input {
       width: auto !important;
       min-width: 36px !important;
       max-width: 48px !important;
-      height: 40px !important;
+      height: 44px !important;
       font-size: 0.95rem !important;
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
-      border-radius: 8px !important;
-      background: rgba(31, 41, 55, 0.8) !important;
-      color: #9ca3af !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 14px !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+      color: rgba(255, 255, 255, 0.85) !important;
       font-weight: bold !important;
       flex: 0 0 auto !important;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    
     .timeclock-card ::ng-deep .p-inputotp-input:focus {
-      border-color: rgba(107, 114, 128, 0.9) !important;
-      box-shadow: 0 0 15px rgba(107, 114, 128, 0.4) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04) !important;
       outline: none !important;
     }
-    
     .timeclock-card ::ng-deep .p-inputotp-input:not(:placeholder-shown) {
-      border-color: rgba(107, 114, 128, 0.7) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
     }
-    
+
     @media (max-width: 640px) {
       .timeclock-card ::ng-deep .p-inputotp {
         gap: 0.375rem !important;
       }
-      
       .timeclock-card ::ng-deep .p-inputotp-input {
         min-width: 30px !important;
         max-width: 36px !important;
         height: 36px !important;
         font-size: 0.8125rem !important;
+        border-radius: 12px !important;
       }
     }
-    
     @media (min-width: 641px) and (max-width: 1024px) {
       .timeclock-card ::ng-deep .p-inputotp-input {
         min-width: 38px !important;
@@ -695,78 +822,54 @@ import { getEnv } from './utils/env.utils';
         font-size: 0.9rem !important;
       }
     }
-    
-    .input-container ::ng-deep .p-select {
-      width: 100%;
-    }
-    
-    .input-container ::ng-deep .p-select .p-select-trigger {
-      padding: 0.5rem 0.75rem;
-      min-height: 42px;
-      font-size: 0.875rem;
-    }
-    
-    @media (max-width: 640px) {
-      .input-container ::ng-deep .p-select .p-select-trigger {
-        padding: 0.45rem 0.65rem;
-        min-height: 40px;
-        font-size: 0.8125rem;
-      }
-    }
-    
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .input-container ::ng-deep .p-select .p-select-trigger {
-        padding: 0.55rem 0.8rem;
-        min-height: 44px;
-        font-size: 0.9rem;
-      }
-    }
-    
+
+    /* ============================================
+       SUBMIT BUTTON
+       ============================================ */
     .timeclock-card ::ng-deep .mark-button {
-      margin: 0 auto !important;
+      width: 100% !important;
       display: block !important;
     }
-    
     .timeclock-card ::ng-deep .mark-button.w-full {
       width: 100% !important;
     }
-    
-    .timeclock-card ::ng-deep .mark-button.w-full button {
-      width: 100% !important;
-    }
-    
+    .timeclock-card ::ng-deep .mark-button.w-full button,
     .timeclock-card ::ng-deep .mark-button button {
-      margin: 0 auto !important;
+      width: 100% !important;
+      height: 48px !important;
+      border-radius: 16px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       gap: 0.5rem !important;
       flex-direction: row !important;
-      padding: 0.625rem 1.5rem !important;
-      font-size: 0.875rem !important;
+      font-size: 0.9rem !important;
+      font-weight: 600 !important;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(230, 230, 230, 0.85) 100%) !important;
+      color: #111 !important;
+      border: none !important;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    
+
+    .timeclock-card ::ng-deep .mark-button button:disabled {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: rgba(255, 255, 255, 0.3) !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
+    }
+
     @media (max-width: 640px) {
       .timeclock-card ::ng-deep .mark-button button {
-        padding: 0.5rem 1.25rem !important;
-        font-size: 0.8125rem !important;
-        min-height: 42px !important;
+        height: 44px !important;
+        font-size: 0.85rem !important;
       }
     }
-    
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .timeclock-card ::ng-deep .mark-button button {
-        padding: 0.75rem 1.75rem !important;
-        font-size: 0.9rem !important;
-      }
-    }
-    
+
     .timeclock-card ::ng-deep .p-button {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
     }
-    
     .timeclock-card ::ng-deep .p-button .p-button-content {
       display: flex !important;
       align-items: center !important;
@@ -774,7 +877,6 @@ import { getEnv } from './utils/env.utils';
       gap: 0.5rem !important;
       flex-direction: row !important;
     }
-    
     .timeclock-card ::ng-deep .p-button .p-button-icon {
       display: inline-flex !important;
       align-items: center !important;
@@ -783,248 +885,1152 @@ import { getEnv } from './utils/env.utils';
       line-height: 1 !important;
       font-size: 1rem !important;
       position: relative !important;
-      top: -2px !important;
+      top: 0 !important;
     }
-    
     .timeclock-card ::ng-deep .p-button .p-button-label {
       display: inline-flex !important;
       align-items: center !important;
       line-height: 1 !important;
     }
-    
     .timeclock-card ::ng-deep .p-button .p-button-icon-left {
       margin-right: 0.5rem !important;
     }
-    
-    .timeclock-card ::ng-deep .p-button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-    
     .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(107, 114, 128, 0.6) !important;
-      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.15) !important;
     }
-    
     .timeclock-card ::ng-deep .p-button:not(:disabled):active {
       transform: translateY(0);
     }
-    
+
     @keyframes rotate {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-    
     .timeclock-card ::ng-deep .p-button[loading] .p-button-icon,
     .timeclock-card ::ng-deep .p-button .pi-spinner {
       animation: rotate 0.6s linear infinite;
     }
 
     /* ============================================
-       TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
+       KEYPAD
        ============================================ */
-    
-    /* Fondo Naz - negro con animación de lava lamp plateada */
-    .naz-theme .animated-gradient-container {
-      /* Background handled by theme service */
+    .keypad-btn {
+      height: 44px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.04);
+      color: #e5e7eb;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .keypad-btn:active {
+      transform: scale(0.93);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .keypad-delete { color: #fbbf24; }
+    .keypad-clear { color: #f87171; }
+
+    .blackdog-theme .keypad-btn:active {
+      background: rgba(251, 191, 36, 0.15);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+    .naz-theme .keypad-btn:active {
+      background: rgba(156, 163, 175, 0.15);
+      border-color: rgba(156, 163, 175, 0.3);
+    }
+
+    @media (min-width: 768px) {
+      .keypad-btn { height: 52px; font-size: 1.35rem; }
+    }
+    @media (max-width: 640px) {
+      .keypad-btn { height: 44px; border-radius: 14px; }
+    }
+
+    .keypad-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 0.25rem;
+    }
+    .keypad-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .keypad-toggle-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ============================================
+       RESTRICTED ACCESS SCREEN
+       ============================================ */
+    .restricted-screen {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .restricted-card {
+      max-width: 400px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 2.5rem 2rem;
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(40px) saturate(1.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+      animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
       overflow: hidden;
     }
 
-    /* Animación de lava lamp plateada para timeclock Naz */
-    .naz-theme .animated-gradient-container::before {
+    /* Top highlight */
+    .restricted-card::before {
       content: '';
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          45deg,
-          rgba(255, 255, 255, 0.5) 0%,
-          rgba(255, 255, 255, 0.6) 2%,
-          rgba(229, 226, 223, 0.65) 4%,
-          rgba(198, 194, 191, 0.55) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(198, 194, 191, 0.5) 14%,
-          rgba(229, 226, 223, 0.6) 16%,
-          rgba(255, 255, 255, 0.55) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(229, 226, 223, 0.7) 25%,
-          rgba(198, 194, 191, 0.6) 50%,
-          rgba(229, 226, 223, 0.65) 75%,
-          rgba(255, 255, 255, 0.55) 100%
-        );
-      animation: silverLavaFlow 25s ease-in-out infinite;
-      z-index: 0;
-      filter: blur(25px);
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.2), transparent);
+      z-index: 1;
       pointer-events: none;
     }
 
-    .naz-theme .animated-gradient-container::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          -45deg,
-          rgba(229, 226, 223, 0.55) 0%,
-          rgba(255, 255, 255, 0.65) 2%,
-          rgba(198, 194, 191, 0.6) 4%,
-          rgba(229, 226, 223, 0.5) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(255, 255, 255, 0.55) 14%,
-          rgba(198, 194, 191, 0.65) 16%,
-          rgba(229, 226, 223, 0.6) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          -135deg,
-          rgba(198, 194, 191, 0.7) 0%,
-          rgba(229, 226, 223, 0.75) 30%,
-          rgba(255, 255, 255, 0.65) 60%,
-          rgba(198, 194, 191, 0.6) 100%
-        );
-      animation: silverLavaFlow 30s ease-in-out infinite reverse;
-      z-index: 0;
-      filter: blur(30px);
-      pointer-events: none;
+    .restricted-icon-wrap {
+      position: relative;
+      margin-bottom: 0.25rem;
     }
 
-    @keyframes silverLavaFlow {
-      0% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
+    .restricted-icon-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 1px solid rgba(239, 68, 68, 0.1);
+      animation: iconRippleRestricted 2.5s ease-out infinite;
+    }
+
+    @keyframes iconRippleRestricted {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .restricted-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(185, 28, 28, 0.06) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      z-index: 1;
+    }
+
+    .restricted-icon i {
+      font-size: 2rem;
+      color: rgba(248, 113, 113, 0.9);
+      filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.3));
+    }
+
+    .restricted-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+
+    .restricted-desc {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.45);
+      text-align: center;
+      line-height: 1.5;
+      max-width: 320px;
+    }
+
+    .restricted-ip-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.85rem 1.5rem;
+      border-radius: 16px;
+      background: rgba(239, 68, 68, 0.06);
+      border: 1px solid rgba(239, 68, 68, 0.12);
+      width: 100%;
+    }
+
+    .restricted-ip-label {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 500;
+    }
+
+    .restricted-ip-value {
+      font-size: 1.1rem;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+      font-weight: 600;
+      color: rgba(248, 113, 113, 0.9);
+      letter-spacing: 0.02em;
+    }
+
+    .restricted-instructions {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .restricted-instructions-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .restricted-instructions-title i {
+      font-size: 0.75rem;
+    }
+
+    .restricted-instructions p {
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.35);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    @media (max-width: 640px) {
+      .restricted-card {
+        padding: 2rem 1.5rem;
+        border-radius: 28px;
       }
-      25% {
-        transform: translate(10%, 5%) rotate(5deg) scale(1.1);
-        opacity: 1;
+      .restricted-icon {
+        width: 68px;
+        height: 68px;
       }
-      50% {
-        transform: translate(5%, 15%) rotate(-3deg) scale(0.95);
-        opacity: 0.85;
+      .restricted-icon i {
+        font-size: 1.75rem;
       }
-      75% {
-        transform: translate(-10%, 8%) rotate(4deg) scale(1.05);
-        opacity: 0.95;
-      }
-      100% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
+      .restricted-title {
+        font-size: 1.3rem;
       }
     }
 
     /* ============================================
-       TEMA BLACK DOG - ESTILOS AMARILLOS
+       IP WARNING MODAL
        ============================================ */
-    
-    /* Aplicar colores amarillos cuando es Black Dog */
+    .ip-warning-card {
+      max-width: 380px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding: 2.25rem 1.75rem 1.75rem;
+      border-radius: 32px;
+      background: linear-gradient(165deg, rgba(28, 28, 32, 0.96) 0%, rgba(16, 16, 20, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(40px) saturate(1.3);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+      animation: confirmCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    .ip-warning-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(251, 191, 36, 0.4) 30%, rgba(251, 191, 36, 0.7) 50%, rgba(251, 191, 36, 0.4) 70%, transparent 100%);
+      background-size: 200% 100%;
+      animation: modalShimmer 3s ease-in-out infinite;
+      border-radius: 32px 32px 0 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .ip-warning-card.ip-warning-exit {
+      animation: confirmCardOut 0.3s ease-in forwards;
+    }
+
+    .ip-warning-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      position: relative;
+      z-index: 1;
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .ip-warning-icon i {
+      font-size: 1.75rem;
+      color: rgba(251, 191, 36, 0.85);
+      filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.3));
+    }
+
+    .ip-warning-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+    }
+
+    .ip-warning-desc {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: center;
+      line-height: 1.55;
+      max-width: 300px;
+    }
+
+    .ip-warning-btn {
+      width: 100%;
+      height: 44px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.06) 100%);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-top: 0.25rem;
+    }
+
+    .ip-warning-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ip-warning-btn:active {
+      transform: scale(0.98);
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; max-height: 0; transform: translateY(-10px); }
+      to { opacity: 1; max-height: 300px; transform: translateY(0); }
+    }
+
+    /* Paste button */
+    .paste-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .paste-btn:active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Authenticator app shortcut button */
+    .auth-app-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border-radius: 14px;
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%);
+      color: rgba(165, 180, 252, 0.8);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .auth-app-btn i {
+      font-size: 0.75rem;
+    }
+    .auth-app-btn:active {
+      transform: scale(0.97);
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    /* ============================================
+       NAZ THEME
+       ============================================ */
+    .naz-theme .animated-gradient-container {
+      position: relative;
+      overflow: hidden;
+    }
+    /* Subtle silver ambient blob instead of lava lamp */
+    .naz-theme .animated-gradient-container::before {
+      content: '';
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(156, 163, 175, 0.06), transparent 70%);
+      top: -100px;
+      right: -100px;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .naz-theme .animated-gradient-container::after {
+      content: '';
+      position: fixed;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(156, 163, 175, 0.04), transparent 70%);
+      bottom: -80px;
+      left: -80px;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ============================================
+       BLACK DOG THEME
+       ============================================ */
     .blackdog-theme .timeclock-card {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2) !important;
+      border: 1px solid rgba(251, 191, 36, 0.15) !important;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 12px rgba(251, 191, 36, 0.06) !important;
     }
-    
+    .blackdog-theme .timeclock-card::before {
+      background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.2), transparent);
+    }
     .blackdog-theme .timeclock-card ::ng-deep .p-card-body {
-      background: rgba(38, 38, 38, 0.95) !important;
-      border-radius: 12px !important;
+      border-radius: 28px !important;
     }
-    
-    .blackdog-theme .clock-display {
-      border: 1px solid rgba(251, 191, 36, 0.5) !important;
+
+    /* BlackDog ambient blobs */
+    .blackdog-theme .animated-gradient-container::before {
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.05), transparent 70%);
     }
-    
-    .blackdog-theme .clock-time {
-      color: #fbbf24 !important;
-      text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
-      animation: clockPulseYellow 2s ease-in-out infinite;
+    .blackdog-theme .animated-gradient-container::after {
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.03), transparent 70%);
     }
-    
-    @keyframes clockPulseYellow {
-      0%, 100% {
-        text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
-      }
-      50% {
-        text-shadow: 0 0 20px rgba(251, 191, 36, 1), 0 0 30px rgba(251, 191, 36, 0.6);
-      }
-    }
-    
+
+    /* BlackDog select */
     .blackdog-theme .timeclock-card ::ng-deep .p-select .p-select-trigger {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      border: 1px solid rgba(251, 191, 36, 0.12) !important;
     }
-    
     .blackdog-theme .timeclock-card ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(251, 191, 36, 0.8) !important;
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3) !important;
+      border-color: rgba(251, 191, 36, 0.4) !important;
+      box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.08) !important;
     }
-    
+
+    /* BlackDog OTP */
     .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      border: 1px solid rgba(251, 191, 36, 0.12) !important;
       color: #fbbf24 !important;
     }
-    
     .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:focus {
-      border-color: rgba(251, 191, 36, 0.9) !important;
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.4) !important;
+      border-color: rgba(251, 191, 36, 0.4) !important;
+      box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.08) !important;
     }
-    
     .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:not(:placeholder-shown) {
-      border-color: rgba(251, 191, 36, 0.7) !important;
+      border-color: rgba(251, 191, 36, 0.2) !important;
     }
-    
-    .blackdog-theme .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
-      box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6) !important;
-    }
-    
+
+    /* BlackDog button */
     .blackdog-theme .timeclock-card ::ng-deep .mark-button button {
       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4) !important;
+      color: #111 !important;
+      box-shadow: 0 2px 12px rgba(251, 191, 36, 0.25) !important;
     }
-    
     .blackdog-theme .timeclock-card ::ng-deep .mark-button button:disabled {
-      background: linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%) !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: rgba(255, 255, 255, 0.3) !important;
       box-shadow: none !important;
     }
-    
-    /* Scrollbar amarillo para Black Dog */
+    .blackdog-theme .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
+      box-shadow: 0 4px 20px rgba(251, 191, 36, 0.35) !important;
+    }
+
+    /* BlackDog scrollbar */
     .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 0.6) 0%, rgba(251, 191, 36, 0.4) 100%);
+      background: rgba(251, 191, 36, 0.15);
+    }
+    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(251, 191, 36, 0.25);
+    }
+    .blackdog-theme .animated-gradient-container {
+      scrollbar-color: rgba(251, 191, 36, 0.15) transparent;
+    }
+
+    /* BlackDog keypad hover */
+    .blackdog-theme .keypad-toggle-btn:hover {
+      background: rgba(251, 191, 36, 0.06);
+      border-color: rgba(251, 191, 36, 0.15);
+      color: rgba(251, 191, 36, 0.7);
+    }
+
+    /* ============================================
+       CONFIRMATION MODAL
+       ============================================ */
+    .confirm-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(20px) saturate(1.2);
+      animation: confirmOverlayIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      padding: 1rem;
+    }
+
+    @keyframes confirmOverlayIn {
+      from { opacity: 0; backdrop-filter: blur(0px); }
+      to { opacity: 1; backdrop-filter: blur(20px); }
+    }
+
+    .confirm-modal-card {
+      background: linear-gradient(165deg, rgba(28, 28, 32, 0.96) 0%, rgba(16, 16, 20, 0.98) 100%);
+      backdrop-filter: blur(40px) saturate(1.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 32px;
+      padding: 2.5rem 2rem 1.25rem;
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      animation: confirmCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top highlight shimmer */
+    .confirm-modal-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(34, 197, 94, 0.4) 30%, rgba(34, 197, 94, 0.6) 50%, rgba(34, 197, 94, 0.4) 70%, transparent 100%);
+      background-size: 200% 100%;
+      animation: modalShimmer 3s ease-in-out infinite;
+      border-radius: 32px 32px 0 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Subtle side glow */
+    .confirm-modal-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 32px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+    }
+
+    @keyframes modalShimmer {
+      0%, 100% { background-position: -100% 0; opacity: 0.6; }
+      50% { background-position: 200% 0; opacity: 1; }
+    }
+
+    .confirm-modal-card.is-late {
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 0 40px rgba(245, 158, 11, 0.06);
+    }
+    .confirm-modal-card.is-late::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(245, 158, 11, 0.4) 30%, rgba(245, 158, 11, 0.7) 50%, rgba(245, 158, 11, 0.4) 70%, transparent 100%);
+      background-size: 200% 100%;
+    }
+
+    /* Naz theme modal */
+    .naz-theme .confirm-modal-card::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(156, 163, 175, 0.3) 30%, rgba(156, 163, 175, 0.5) 50%, rgba(156, 163, 175, 0.3) 70%, transparent 100%);
+      background-size: 200% 100%;
+    }
+    .naz-theme .confirm-modal-card.is-late::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(245, 158, 11, 0.4) 30%, rgba(245, 158, 11, 0.7) 50%, rgba(245, 158, 11, 0.4) 70%, transparent 100%);
+      background-size: 200% 100%;
+    }
+
+    /* BlackDog theme modal */
+    .blackdog-theme .confirm-modal-card::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(251, 191, 36, 0.4) 30%, rgba(251, 191, 36, 0.7) 50%, rgba(251, 191, 36, 0.4) 70%, transparent 100%);
+      background-size: 200% 100%;
+    }
+
+    @keyframes confirmCardIn {
+      from { opacity: 0; transform: scale(0.88) translateY(16px); filter: blur(4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+    }
+
+    .confirm-modal-card.confirm-modal-exit {
+      animation: confirmCardOut 0.3s ease-in forwards;
+    }
+
+    @keyframes confirmCardOut {
+      from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+      to { opacity: 0; transform: scale(0.92) translateY(8px); filter: blur(4px); }
+    }
+
+    /* Icon */
+    .confirm-modal-icon-wrap {
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+
+    /* Ripple ring behind icon */
+    .confirm-modal-icon-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 1px solid rgba(34, 197, 94, 0.15);
+      animation: iconRipple 2s ease-out infinite;
+    }
+    .is-late .confirm-modal-icon-wrap::after {
+      border-color: rgba(245, 158, 11, 0.15);
+    }
+    .blackdog-theme .confirm-modal-icon-wrap::after {
+      border-color: rgba(251, 191, 36, 0.15);
+    }
+    .naz-theme .confirm-modal-icon-wrap::after {
+      border-color: rgba(156, 163, 175, 0.15);
+    }
+
+    @keyframes iconRipple {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .confirm-modal-icon {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      z-index: 1;
+    }
+
+    .confirm-modal-icon i {
+      font-size: 3rem;
+    }
+
+    .confirm-modal-icon--success {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.1) 100%);
+      border: 1.5px solid rgba(34, 197, 94, 0.35);
+      box-shadow: 0 0 40px rgba(34, 197, 94, 0.2), 0 0 80px rgba(34, 197, 94, 0.05);
+      backdrop-filter: blur(8px);
+    }
+    .confirm-modal-icon--success i {
+      color: #22c55e;
+      filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.4));
+    }
+
+    /* Blackdog: golden success */
+    .blackdog-theme .confirm-modal-icon--success {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+      border-color: rgba(251, 191, 36, 0.4);
+      box-shadow: 0 0 40px rgba(251, 191, 36, 0.2), 0 0 80px rgba(251, 191, 36, 0.05);
+    }
+    .blackdog-theme .confirm-modal-icon--success i {
+      color: #fbbf24;
+      filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4));
+    }
+
+    /* Naz: silver success */
+    .naz-theme .confirm-modal-icon--success {
+      background: linear-gradient(135deg, rgba(156, 163, 175, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%);
+      border-color: rgba(156, 163, 175, 0.4);
+      box-shadow: 0 0 40px rgba(156, 163, 175, 0.2), 0 0 80px rgba(156, 163, 175, 0.05);
+    }
+    .naz-theme .confirm-modal-icon--success i {
+      color: #9ca3af;
+      filter: drop-shadow(0 0 12px rgba(156, 163, 175, 0.4));
+    }
+
+    .confirm-modal-icon--late {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+      border: 1.5px solid rgba(245, 158, 11, 0.35);
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.2), 0 0 80px rgba(245, 158, 11, 0.05);
+      backdrop-filter: blur(8px);
+    }
+    .confirm-modal-icon--late i {
+      color: #f59e0b;
+      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+    }
+
+    @keyframes confirmIconPulse {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.12); opacity: 1; }
+      70% { transform: scale(0.96); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Title + Time */
+    .confirm-modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: rgba(243, 244, 246, 0.85);
+      text-align: center;
+      line-height: 1.3;
+      letter-spacing: 0.01em;
+    }
+
+    .confirm-modal-time {
+      font-size: 2.25rem;
+      font-weight: 800;
+      text-align: center;
+      margin-top: -0.1rem;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+      animation: timeReveal 0.5s ease-out 0.2s both;
+    }
+
+    @keyframes timeReveal {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .blackdog-theme .confirm-modal-time {
+      color: #fbbf24;
+      text-shadow: 0 0 24px rgba(251, 191, 36, 0.25);
+    }
+    .naz-theme .confirm-modal-time {
+      color: #d1d5db;
+      text-shadow: 0 0 24px rgba(156, 163, 175, 0.2);
+    }
+    .confirm-modal-time {
+      color: #4ade80;
+      text-shadow: 0 0 24px rgba(34, 197, 94, 0.2);
+    }
+    .is-late .confirm-modal-time {
+      color: #fbbf24;
+      text-shadow: 0 0 24px rgba(245, 158, 11, 0.25);
+    }
+
+    /* Late box */
+    .confirm-modal-late-box {
+      width: 100%;
+      padding: 0.9rem 1.25rem;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.04) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      text-align: center;
+      backdrop-filter: blur(8px);
+      animation: slideUp 0.4s ease-out 0.3s both;
+    }
+    .confirm-modal-late-header {
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .confirm-modal-late-detail {
+      color: rgba(252, 211, 77, 0.85);
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Very late */
+    .confirm-modal-verylate-box {
+      width: 100%;
+      padding: 0.9rem 1.25rem;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(185, 28, 28, 0.04) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      text-align: center;
+      backdrop-filter: blur(8px);
+      animation: slideUp 0.4s ease-out 0.4s both;
+    }
+    .confirm-modal-verylate-header {
+      color: #f87171;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .confirm-modal-verylate-detail {
+      color: rgba(252, 165, 165, 0.85);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    /* Streak box */
+    .confirm-modal-streak-box {
+      width: 100%;
+      padding: 0.7rem 1.1rem;
+      border-radius: 16px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      backdrop-filter: blur(8px);
+      animation: slideUp 0.4s ease-out 0.35s both;
+    }
+
+    .blackdog-theme .confirm-modal-streak-box {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: #fbbf24;
+    }
+    .naz-theme .confirm-modal-streak-box {
+      background: linear-gradient(135deg, rgba(156, 163, 175, 0.12) 0%, rgba(107, 114, 128, 0.06) 100%);
+      border: 1px solid rgba(156, 163, 175, 0.3);
+      color: #d1d5db;
+    }
+    .confirm-modal-streak-box {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(22, 163, 74, 0.06) 100%);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+    }
+
+    /* Phrase box */
+    .confirm-modal-phrase-box {
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      border-radius: 20px;
+      text-align: center;
+      font-style: italic;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+      backdrop-filter: blur(8px);
+      animation: phraseReveal 0.5s ease-out 0.5s both;
+    }
+
+    @keyframes phraseReveal {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .blackdog-theme .confirm-modal-phrase-box {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.15);
+      color: rgba(252, 211, 77, 0.9);
+    }
+    .naz-theme .confirm-modal-phrase-box {
+      background: linear-gradient(135deg, rgba(156, 163, 175, 0.06) 0%, rgba(156, 163, 175, 0.02) 100%);
+      border: 1px solid rgba(156, 163, 175, 0.15);
+      color: rgba(209, 213, 219, 0.9);
+    }
+    .confirm-modal-phrase-box {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(59, 130, 246, 0.02) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      color: rgba(147, 197, 253, 0.9);
+    }
+
+    /* Progress bar */
+    .confirm-modal-progress-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 0 0 31px 31px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+
+    .confirm-modal-progress-bar {
+      height: 100%;
+      border-radius: 0 0 31px 31px;
+      animation: confirmProgressShrink 6s linear forwards, progressShimmer 2s ease-in-out infinite;
+      background-size: 200% 100%;
+    }
+
+    @keyframes progressShimmer {
+      0%, 100% { background-position: 0% 0%; }
+      50% { background-position: 100% 0%; }
+    }
+
+    .blackdog-theme .confirm-modal-progress-bar {
+      background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
+      background-size: 200% 100%;
       box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
     }
-    
-    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 0.8) 0%, rgba(251, 191, 36, 0.6) 100%);
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    .naz-theme .confirm-modal-progress-bar {
+      background: linear-gradient(90deg, #9ca3af, #6b7280, #9ca3af);
+      background-size: 200% 100%;
+      box-shadow: 0 0 10px rgba(156, 163, 175, 0.2);
     }
-    
-    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:active {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 1) 0%, rgba(251, 191, 36, 0.8) 100%);
+    .confirm-modal-progress-bar {
+      background: linear-gradient(90deg, #22c55e, #16a34a, #22c55e);
+      background-size: 200% 100%;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
     }
-    
-    .blackdog-theme .animated-gradient-container {
-      scrollbar-color: rgba(251, 191, 36, 0.6) rgba(0, 0, 0, 0.3);
+    .confirm-modal-progress-bar.is-late {
+      background: linear-gradient(90deg, #f59e0b, #d97706, #f59e0b) !important;
+      background-size: 200% 100% !important;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
     }
-    
-    /* Iconos amarillos para Black Dog */
-    .blackdog-theme .pi-building,
-    .blackdog-theme .pi-user {
-      color: #fbbf24 !important;
+
+    @keyframes confirmProgressShrink {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+
+    /* ====== BIRTHDAY STYLES ====== */
+    .confirm-modal-card.is-birthday {
+      border-color: rgba(236, 72, 153, 0.3);
+      box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.6),
+        0 0 60px rgba(236, 72, 153, 0.15),
+        0 0 120px rgba(168, 85, 247, 0.06);
+      background: linear-gradient(165deg, rgba(28, 22, 30, 0.97) 0%, rgba(40, 16, 40, 0.98) 100%);
+    }
+
+    .confirm-modal-card.is-birthday::before {
+      background: linear-gradient(90deg, transparent 0%, rgba(236, 72, 153, 0.5) 20%, rgba(168, 85, 247, 0.6) 40%, rgba(251, 191, 36, 0.5) 60%, rgba(236, 72, 153, 0.5) 80%, transparent 100%);
+      background-size: 300% 100%;
+      animation: birthdayShimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes birthdayShimmer {
+      0%, 100% { background-position: -100% 0; }
+      50% { background-position: 200% 0; }
+    }
+
+    .is-birthday .confirm-modal-icon-wrap::after {
+      border-color: rgba(236, 72, 153, 0.2);
+    }
+
+    .is-birthday .confirm-modal-time {
+      color: #f472b6;
+      text-shadow: 0 0 24px rgba(236, 72, 153, 0.25);
+    }
+
+    .confirm-modal-icon--birthday {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%);
+      border: 1.5px solid rgba(236, 72, 153, 0.4);
+      box-shadow: 0 0 40px rgba(236, 72, 153, 0.3), 0 0 80px rgba(168, 85, 247, 0.1);
+      backdrop-filter: blur(8px);
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22, 1, 0.36, 1), birthdayGlow 2s ease-in-out infinite;
+    }
+
+    .birthday-icon-emoji {
+      font-size: 2.75rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.5));
+    }
+
+    @keyframes birthdayGlow {
+      0%, 100% { box-shadow: 0 0 40px rgba(236, 72, 153, 0.3), 0 0 80px rgba(168, 85, 247, 0.1); }
+      50% { box-shadow: 0 0 50px rgba(236, 72, 153, 0.5), 0 0 100px rgba(168, 85, 247, 0.2); }
+    }
+
+    .confirm-modal-birthday-greeting {
+      font-size: 1.4rem;
+      font-weight: 800;
+      text-align: center;
+      background: linear-gradient(135deg, #f472b6, #a78bfa, #fbbf24);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: birthdayTextShimmer 3s ease-in-out infinite;
+      line-height: 1.3;
+    }
+
+    @keyframes birthdayTextShimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .confirm-modal-phrase-box.birthday-phrase {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(168, 85, 247, 0.06) 100%);
+      border-color: rgba(236, 72, 153, 0.25);
+      color: rgba(249, 168, 212, 0.9);
+    }
+
+    .birthday-phrase-icon {
+      font-style: normal;
+    }
+
+    .confirm-modal-progress-bar.is-birthday {
+      background: linear-gradient(90deg, #ec4899, #a855f7, #fbbf24, #ec4899) !important;
+      background-size: 300% 100% !important;
+      animation: confirmProgressShrink 10s linear forwards, birthdayProgressShimmer 1.5s linear infinite !important;
+      box-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+    }
+
+    @keyframes birthdayProgressShimmer {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 300% 0%; }
+    }
+
+    /* ====== CONFETTI ====== */
+    .confetti-container {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 32px;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      top: -10px;
+      opacity: 0;
+      animation: confettiFall 3s ease-in forwards;
+      animation-delay: calc(var(--i) * 0.15s);
+    }
+
+    .confetti-piece:nth-child(odd) { background: #ec4899; border-radius: 50%; }
+    .confetti-piece:nth-child(even) { background: #fbbf24; border-radius: 2px; transform: rotate(45deg); }
+    .confetti-piece:nth-child(3n) { background: #a855f7; width: 6px; height: 10px; border-radius: 3px; }
+    .confetti-piece:nth-child(4n) { background: #34d399; width: 10px; height: 6px; border-radius: 2px; }
+    .confetti-piece:nth-child(5n) { background: #60a5fa; border-radius: 50%; }
+
+    .confetti-piece:nth-child(1) { left: 5%; }
+    .confetti-piece:nth-child(2) { left: 12%; }
+    .confetti-piece:nth-child(3) { left: 20%; }
+    .confetti-piece:nth-child(4) { left: 28%; }
+    .confetti-piece:nth-child(5) { left: 35%; }
+    .confetti-piece:nth-child(6) { left: 42%; }
+    .confetti-piece:nth-child(7) { left: 48%; }
+    .confetti-piece:nth-child(8) { left: 55%; }
+    .confetti-piece:nth-child(9) { left: 62%; }
+    .confetti-piece:nth-child(10) { left: 68%; }
+    .confetti-piece:nth-child(11) { left: 75%; }
+    .confetti-piece:nth-child(12) { left: 82%; }
+    .confetti-piece:nth-child(13) { left: 88%; }
+    .confetti-piece:nth-child(14) { left: 93%; }
+    .confetti-piece:nth-child(15) { left: 8%; }
+    .confetti-piece:nth-child(16) { left: 25%; }
+    .confetti-piece:nth-child(17) { left: 40%; }
+    .confetti-piece:nth-child(18) { left: 58%; }
+    .confetti-piece:nth-child(19) { left: 72%; }
+    .confetti-piece:nth-child(20) { left: 90%; }
+
+    @keyframes confettiFall {
+      0% { top: -10px; opacity: 1; transform: rotate(0deg) translateX(0); }
+      25% { opacity: 1; }
+      100% { top: 110%; opacity: 0; transform: rotate(720deg) translateX(30px); }
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .confirm-modal-card {
+        padding: 1.75rem 1.25rem 0.75rem;
+        max-width: 360px;
+        border-radius: 28px;
+      }
+      .confirm-modal-icon {
+        width: 72px;
+        height: 72px;
+      }
+      .confirm-modal-icon i {
+        font-size: 2.25rem;
+      }
+      .birthday-icon-emoji {
+        font-size: 2.25rem;
+      }
+      .confirm-modal-title {
+        font-size: 1rem;
+      }
+      .confirm-modal-time {
+        font-size: 1.75rem;
+      }
+      .confirm-modal-birthday-greeting {
+        font-size: 1.15rem;
+      }
+      .confirm-modal-late-box,
+      .confirm-modal-verylate-box,
+      .confirm-modal-phrase-box {
+        border-radius: 16px;
+      }
+      .confetti-container {
+        border-radius: 28px;
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .confirm-modal-overlay,
+      .confirm-modal-card,
+      .confirm-modal-icon,
+      .confirm-modal-card.confirm-modal-exit,
+      .confirm-modal-card::before {
+        animation: none !important;
+      }
     }
 
   `,
@@ -1041,11 +2047,18 @@ export class TimeclockComponent implements OnDestroy {
   private timeSync = inject(TimeSyncService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
+  private phrases = inject(TimeclockPhrasesService);
+
+  /** Employees that can mark from any IP address */
+  private readonly IP_BYPASS_EMPLOYEE_IDS = new Set([
+    '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8', // Tristan Whitehead
+  ]);
   private readonly DISPLAY_TIMEZONE = 'America/Panama';
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
+  public showKeypadPanel = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
@@ -1058,6 +2071,25 @@ export class TimeclockComponent implements OnDestroy {
   );
   // Ya no hay tablas naz_*, todo es por company_id
   private employeesTable = computed(() => 'employees');
+
+  // Custom confirmation modal signals
+  public confirmModalVisible = signal(false);
+  public confirmModalExiting = signal(false);
+  public confirmModalData = signal<{
+    message: string;
+    phrase: string;
+    streak: number;
+    isLate: boolean;
+    delayText: string;
+    isVeryLate: boolean;
+    typeLabel: string;
+    time: string;
+    isBirthday: boolean;
+    employeeName: string;
+    isLunchOvertime: boolean;
+    lunchExceededMinutes: number;
+  } | null>(null);
+  private confirmModalTimer: ReturnType<typeof setTimeout> | undefined;
 
   private injector = inject(Injector);
   private timeInterval: any;
@@ -1292,6 +2324,9 @@ export class TimeclockComponent implements OnDestroy {
     if (this.timeInterval) {
       clearInterval(this.timeInterval);
     }
+    if (this.confirmModalTimer) {
+      clearTimeout(this.confirmModalTimer);
+    }
     // Detener monitoreo de IP si está activo
     if (this.isKioskMode()) {
       this.ipMonitor.stopMonitoring();
@@ -1473,6 +2508,41 @@ export class TimeclockComponent implements OnDestroy {
     this.form.get('otp')?.setValue('');
   }
 
+  toggleKeypad() {
+    this.showKeypadPanel.update(v => !v);
+  }
+
+  openAuthenticator(event: Event) {
+    event.preventDefault();
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    if (isIOS) {
+      window.open('https://apps.apple.com/app/google-authenticator/id388497605', '_blank');
+    } else {
+      window.open('https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2', '_blank');
+    }
+  }
+
+  async pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const digits = text.replace(/\D/g, '').slice(0, 6);
+      if (digits) {
+        this.form.get('otp')?.setValue(digits);
+        if (digits.length === 6) {
+          setTimeout(() => this.validateOtp(), 200);
+        }
+      }
+    } catch {
+      this.message.add({
+        severity: 'warn',
+        summary: 'No se pudo pegar',
+        detail: 'Permita el acceso al portapapeles o ingrese el PIN manualmente',
+        life: 3000,
+      });
+    }
+  }
+
   // Format time for display (12-hour format with AM/PM)
   formattedTime = computed(() => {
     return formatInTimeZone(
@@ -1498,8 +2568,8 @@ export class TimeclockComponent implements OnDestroy {
     if (this.isNazCompany()) return true;
 
     const ip = this.getIP();
-    // If IP is localhost (dev fallback), always allow
-    if (ip === '127.0.0.1') return true;
+    // If IP is localhost or bypass IP, always allow
+    if (ip === '127.0.0.1' || ip === '181.197.126.10') return true;
     const branches = this.currentBranchesResource();
     if (!branches) return true;
     return branches.some((branch: Branch | NazBranch) => branch.ip === ip);
@@ -1581,7 +2651,7 @@ export class TimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri',
+      select: 'id,first_name,father_name,code_uri,birth_date',
       order: 'father_name',
       is_active: 'eq.true',
     };
@@ -1779,6 +2849,7 @@ export class TimeclockComponent implements OnDestroy {
 
   onEnterKey(event: KeyboardEvent) {
     event.preventDefault();
+    event.stopPropagation();
     if (this.form.valid) {
       this.validateOtp();
     }
@@ -1996,10 +3067,17 @@ export class TimeclockComponent implements OnDestroy {
         branch_id,
         finalCompanyId,
         type,
-        employeeName
+        employeeName,
+        employee.birth_date as any
       );
     } else {
       this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'PIN no configurado',
+        detail: 'Este empleado no tiene PIN configurado. Contacte a Recursos Humanos.',
+        life: 8000,
+      });
     }
   }
 
@@ -2008,10 +3086,11 @@ export class TimeclockComponent implements OnDestroy {
     branchId: string,
     companyId: string,
     type: string,
-    employeeName: string
+    employeeName: string,
+    birthDate?: string
   ) {
-    // Validar IP normalmente
-    const invalidValue = !this.validIP();
+    // Validar IP - bypass for specific employees
+    const invalidValue = this.IP_BYPASS_EMPLOYEE_IDS.has(employeeId) ? false : !this.validIP();
 
     // Asegurar que el company_id sea correcto para la organización actual
     const serviceCompanyId = this.organizationService.getCurrentCompanyId();
@@ -2247,12 +3326,66 @@ export class TimeclockComponent implements OnDestroy {
             }
           }
 
+          // Check if today is the employee's birthday
+          const isBirthday = this.isTodayBirthday(birthDate);
+
+          // Calculate exit diff for punctuality detection
+          let exitDiffMinutes: number | undefined;
+          if (type === 'exit' && result.schedule?.exit_time) {
+            const exitParts = result.schedule.exit_time.split(':');
+            const scheduledExit = parseInt(exitParts[0]) * 60 + parseInt(exitParts[1]);
+            const nowInPanama2 = toZonedTime(officialTime, this.DISPLAY_TIMEZONE);
+            const currentMinutes = getHours(nowInPanama2) * 60 + getMinutes(nowInPanama2);
+            exitDiffMinutes = currentMinutes - scheduledExit;
+          }
+
+          // Detect lunch overtime (> 60 minutes)
+          const isLunchOvertime = type === 'lunch_end' && result.lunchExceededMinutes && result.lunchExceededMinutes > 0;
+
+          // Frase motivacional contextual
+          const phrase = this.phrases.getPhrase(isLate, isBirthday, type, exitDiffMinutes);
+          message += `<div style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+            <span style="color: #93c5fd; font-style: italic;">${phrase}</span>
+          </div>`;
+
           message += `</div>`;
+
+          // Build delay text for the custom modal
+          let delayText = '';
+          if (isLate && type === 'entry') {
+            const hoursLate = Math.floor(delayMinutes / 60);
+            const minutesLate = delayMinutes % 60;
+            if (hoursLate > 0 && minutesLate > 0) {
+              delayText = `${hoursLate} hora${hoursLate > 1 ? 's' : ''} y ${minutesLate} minuto${minutesLate !== 1 ? 's' : ''}`;
+            } else if (hoursLate > 0) {
+              delayText = `${hoursLate} hora${hoursLate > 1 ? 's' : ''}`;
+            } else if (minutesLate > 0) {
+              delayText = `${minutesLate} minuto${minutesLate !== 1 ? 's' : ''}`;
+            } else {
+              delayText = 'menos de 1 minuto';
+            }
+          }
+
+          const timeFormatted = formatInTimeZone(
+            officialTime,
+            this.DISPLAY_TIMEZONE,
+            'h:mm:ss aaa'
+          );
 
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
           // Mostrar diálogo con sonido apropiado
-          this.showConfirmationDialogWithSound(message, isLate, employeeId);
+          this.showConfirmationDialogWithSound(message, isLate, employeeId, {
+            typeLabel,
+            time: timeFormatted,
+            phrase,
+            delayText,
+            isVeryLate,
+            isBirthday,
+            employeeName,
+            isLunchOvertime: !!isLunchOvertime,
+            lunchExceededMinutes: result.lunchExceededMinutes || 0,
+          });
         },
         error: () => {
           this.isProcessing.set(false);
@@ -2260,91 +3393,189 @@ export class TimeclockComponent implements OnDestroy {
       });
   }
 
-  // Mostrar diálogo de confirmación
-  private showConfirmationDialog(message: string): void {
-    this.showConfirmationDialogWithSound(message, false);
-  }
-
   // Mostrar diálogo de confirmación con sonido según tardanza
-  private showConfirmationDialogWithSound(message: string, isLate: boolean, employeeId?: string): void {
+  private showConfirmationDialogWithSound(
+    _message: string,
+    isLate: boolean,
+    employeeId?: string,
+    modalData?: {
+      typeLabel: string;
+      time: string;
+      phrase: string;
+      delayText: string;
+      isVeryLate: boolean;
+      isBirthday: boolean;
+      employeeName: string;
+      isLunchOvertime: boolean;
+      lunchExceededMinutes: number;
+    }
+  ): void {
     this.isProcessing.set(false);
-    // Reproducir sonido según si llegó tarde o no
-    if (isLate) {
+
+    // Immediately reset form fields so button is disabled during modal display
+    this.form.get('otp')?.reset();
+    this.form.get('employee')?.reset();
+
+    // Reproducir sonido según contexto
+    if (modalData?.isBirthday) {
+      playBirthdaySound();
+    } else if (modalData?.isLunchOvertime) {
+      playLateSound(); // Sad trumpet for lunch overtime
+    } else if (isLate) {
       playLateSound();
     } else {
       playSuccessSound(employeeId);
     }
-    this.confirmation.confirm({
-      message,
-      key: 'confirm1',
-      header: isLate ? 'Registrado con Tardanza' : 'Éxito',
-      icon: isLate ? 'pi pi-clock' : 'pi pi-check',
-      acceptLabel: 'Aceptar',
-      rejectVisible: false,
-      accept: () => {
-        this.form.get('otp')?.reset();
-        this.form.get('employee')?.reset();
-        this.showKeypad.set(false);
-        // Solo validar IP si NO es Naz
-        if (!this.isNazCompany() && !this.validIP()) {
-          this.alertInvalidIP();
-        }
-      },
+
+    // Set modal data (streak will be updated async)
+    this.confirmModalData.set({
+      message: _message,
+      phrase: modalData?.phrase || '',
+      streak: 0,
+      isLate,
+      delayText: modalData?.delayText || '',
+      isVeryLate: modalData?.isVeryLate || false,
+      typeLabel: modalData?.typeLabel || '',
+      time: modalData?.time || '',
+      isBirthday: modalData?.isBirthday || false,
+      employeeName: modalData?.employeeName || '',
+      isLunchOvertime: modalData?.isLunchOvertime || false,
+      lunchExceededMinutes: modalData?.lunchExceededMinutes || 0,
     });
+    this.confirmModalExiting.set(false);
+    this.confirmModalVisible.set(true);
+
+    // Calculate streak async for entry type
+    if (!isLate && employeeId) {
+      this.calculateAndShowStreak(employeeId);
+    }
+
+    // Auto-dismiss: 10 seconds for birthday, 6 seconds for regular
+    const dismissTime = modalData?.isBirthday ? 10000 : 6000;
+    this.confirmModalTimer = setTimeout(() => {
+      this.dismissConfirmModal();
+    }, dismissTime);
   }
 
-  // Audio delegated to timeclock-audio.utils.ts
+  /** Dismiss the success confirmation modal */
+  public dismissConfirmModal(): void {
+    if (!this.confirmModalVisible()) return;
 
-  private async calculateAndShowStreak(employeeId: string): Promise<number> {
+    if (this.confirmModalTimer) {
+      clearTimeout(this.confirmModalTimer);
+      this.confirmModalTimer = undefined;
+    }
+
+    // Trigger exit animation
+    this.confirmModalExiting.set(true);
+
+    setTimeout(() => {
+      this.confirmModalVisible.set(false);
+      this.confirmModalExiting.set(false);
+      this.confirmModalData.set(null);
+
+      // Form was already reset in showConfirmationDialogWithSound
+      this.showKeypad.set(false);
+      // Solo validar IP si NO es Naz y no es bypass
+      const lastEmployeeId = this.confirmModalData()?.employeeName; // already dismissed
+      if (!this.isNazCompany() && !this.validIP()) {
+        this.alertInvalidIP();
+      }
+    }, 300);
+  }
+
+  /** Generate fire emojis based on streak length */
+  public getStreakFires(streak: number): string {
+    const fireCount = Math.min(Math.ceil(streak / 5), 5);
+    return '\uD83D\uDD25'.repeat(fireCount);
+  }
+
+  /** Calculate and show attendance streak for the employee */
+  private async calculateAndShowStreak(employeeId: string): Promise<void> {
     try {
-      const timelogsUrl = this.apiUrl.build('rest/v1/timelogs', {
+      const companyId = this.organizationService.getCurrentCompanyId();
+      const today = format(new Date(), 'yyyy-MM-dd');
+
+      // Fetch recent entry timelogs (last 60 days)
+      const timelogsParams: Record<string, string> = {
+        select: 'id,type,created_at',
         employee_id: `eq.${employeeId}`,
         type: 'eq.entry',
         order: 'created_at.desc',
-        limit: '100',
-      });
-      const anonKey = getEnv('ENV_SUPABASE_API_KEY');
-      const headers = {
-        apikey: anonKey!,
-        Authorization: `Bearer ${anonKey}`,
+        limit: '60',
       };
+      if (companyId) {
+        timelogsParams['company_id'] = `eq.${companyId}`;
+      }
 
       const timelogs = await firstValueFrom(
-        this.http.get<TimeLog[]>(timelogsUrl, { headers }).pipe(
-          catchError(() => of([])),
-          map((logs) => logs || [])
+        this.http.get<TimeLog[]>(
+          this.apiUrl.build('rest/v1/timelogs', timelogsParams)
         )
       );
 
-      if (!timelogs.length) return 0;
+      if (!timelogs || timelogs.length === 0) return;
 
-      const schedulesUrl = this.apiUrl.build('rest/v1/employee_schedules', {
-        employee_id: `eq.${employeeId}`,
+      // Fetch schedules that overlap with these timelogs
+      const schedulesParams: Record<string, string> = {
         select: '*,schedule:schedules(*)',
-        order: 'start_date.desc',
-        limit: '100',
-      });
+        employee_id: `eq.${employeeId}`,
+        end_date: `gte.${format(new Date(timelogs[timelogs.length - 1].created_at), 'yyyy-MM-dd')}`,
+        start_date: `lte.${today}`,
+      };
+      if (companyId) {
+        schedulesParams['company_id'] = `eq.${companyId}`;
+      }
+
       const schedules = await firstValueFrom(
-        this.http.get<EmployeeSchedule[]>(schedulesUrl, { headers }).pipe(
-          catchError(() => of([])),
-          map((scheds) => scheds || [])
+        this.http.get<EmployeeSchedule[]>(
+          this.apiUrl.build('rest/v1/employee_schedules', schedulesParams)
         )
       );
 
-      return calculateStreak(timelogs, schedules);
+      if (!schedules || schedules.length === 0) return;
+
+      const streak = calculateStreak(timelogs, schedules);
+
+      if (streak >= 2) {
+        // Update the modal data with the streak
+        const current = this.confirmModalData();
+        if (current) {
+          this.confirmModalData.set({ ...current, streak });
+        }
+      }
     } catch {
-      return 0;
+      // Silently ignore streak calculation errors - it's non-critical
     }
   }
 
+  /** Check if a date string represents today's birthday (same day+month) */
+  private isTodayBirthday(birthDate?: string): boolean {
+    if (!birthDate) return false;
+    try {
+      const today = new Date();
+      const birth = new Date(birthDate);
+      return birth.getDate() === today.getDate() && birth.getMonth() === today.getMonth();
+    } catch {
+      return false;
+    }
+  }
+
+  // IP warning modal signals
+  public ipWarningVisible = signal(false);
+  public ipWarningExiting = signal(false);
+
   private alertInvalidIP() {
-    this.confirmation.confirm({
-      message: `La IP actual no coincide con la IP de ninguna sucursal, por favor verifique con Recursos Humanos`,
-      header: 'Advertencia',
-      key: 'confirm2',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Aceptar',
-      rejectVisible: false,
-    });
+    this.ipWarningVisible.set(true);
+    this.ipWarningExiting.set(false);
+  }
+
+  public dismissIpWarning() {
+    if (!this.ipWarningVisible()) return;
+    this.ipWarningExiting.set(true);
+    setTimeout(() => {
+      this.ipWarningVisible.set(false);
+      this.ipWarningExiting.set(false);
+    }, 300);
   }
 }

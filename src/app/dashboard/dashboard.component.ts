@@ -50,6 +50,8 @@ import { EmployeePortalComponent } from './employee-portal.component';
 import { DogAnimationComponent } from './components/dog.component';
 import { PermissionsService } from '../services/permissions.service';
 import { DeviceService } from '../services/device.service';
+import { NotificationsService } from '../services/notifications.service';
+import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
 import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mobile-bottom-nav.component';
 
 @Component({
@@ -86,6 +88,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
     ScreenLockComponent,
     DogAnimationComponent,
     MobileBottomNavComponent,
+    NotificationsDropdownComponent,
   ],
   template: `
     <p-toast />
@@ -131,14 +134,14 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
             </div>
             <div class="header-menu hidden lg:flex">
               <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
-                @if(canAccessHome() && store.isAdmin() && canAccessAdmin()) {
+                @if(canAccessHome()) {
                 <a
                   (click)="navigateTo('home')"
                   [class.selected]="isHomeActive()"
                   class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
                   ><i class="pi pi-home text-base flex-shrink-0"></i> <span>Inicio</span></a
                 >
-                } @if(store.isAdmin() && canAccessAdmin()) {
+                } @if(canAccessAdmin()) {
                 <a
                   (click)="navigateTo('admin')"
                   [class.selected]="isAdminActive()"
@@ -147,7 +150,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                   <i class="pi pi-building text-base flex-shrink-0"></i>
                   <span>Administración</span></a
                 >
-                } @if(store.isAdmin() && canAccessPayroll()) {
+                } @if(canAccessPayroll()) {
                 <a
                   (click)="navigateTo('payroll')"
                   [class.selected]="isPayrollActive()"
@@ -156,7 +159,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                   <i class="pi pi-money-bill text-base flex-shrink-0"></i>
                   <span>Planilla</span></a
                 >
-                } @if((store.isAdmin() || store.hasTimeManagementAccess()) && canAccessTimeManagement()) {
+                } @if(canAccessTimeManagement()) {
                 <a
                   (click)="navigateTo('time-management')"
                   [class.selected]="isTimeManagementActive()"
@@ -164,7 +167,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                   ><i class="pi pi-calendar text-base flex-shrink-0"></i>
                   <span>Gestión de tiempo</span></a
                 >
-                } @if((store.isAdmin() || store.hasDashboardAccess() || store.hasTimeManagementAccess()) && canAccessTimeclock()) {
+                } @if(canAccessTimeclock()) {
                 <a
                   (click)="navigateTo('timeclock')"
                   [class.selected]="isTimeclockActive()"
@@ -175,8 +178,30 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                 }
               </div>
             </div>
-            <div class="header-user hidden md:block">
+            <div class="header-user hidden md:flex items-center gap-2">
               @if(user) {
+              <!-- Campana de notificaciones -->
+              <div class="relative">
+                <button
+                  type="button"
+                  (click)="toggleNotificationsDropdown()"
+                  class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
+                  title="Notificaciones"
+                >
+                  <i class="pi pi-bell text-lg"></i>
+                  @if (unreadNotificationsCount() > 0) {
+                  <span
+                    class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
+                  >
+                    {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
+                  </span>
+                  }
+                </button>
+                <pt-notifications-dropdown
+                  [isVisible]="showNotificationsDropdown()"
+                  [onClose]="closeNotificationsDropdown.bind(this)"
+                />
+              </div>
               <p-menu
                 #menu
                 [model]="getMenuItems()"
@@ -235,7 +260,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(canAccessHome() && store.isAdmin() && canAccessAdmin()) {
+            @if(canAccessHome()) {
             <a
               (click)="navigateTo('home'); toggleMenu()"
               [class.bg-gray-700]="isHomeActive()"
@@ -244,7 +269,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
-            } @if(store.isAdmin() && canAccessAdmin()) {
+            } @if(canAccessAdmin()) {
             <a
               (click)="navigateTo('admin'); toggleMenu()"
               [class.bg-gray-700]="isAdminActive()"
@@ -254,7 +279,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               ><i class="pi pi-building text-lg"></i>
               <span>Administración</span></a
             >
-            } @if((store.isAdmin() || store.hasTimeManagementAccess()) && canAccessTimeManagement()) {
+            } @if(canAccessTimeManagement()) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isTimeManagementActive()"
@@ -264,7 +289,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               ><i class="pi pi-calendar text-lg"></i>
               <span>Gestión de tiempo</span></a
             >
-            } @if(store.isAdmin() && canAccessPayroll()) {
+            } @if(canAccessPayroll()) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
               [class.bg-gray-700]="isPayrollActive()"
@@ -273,7 +298,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Planilla</span></a
             >
-            } @if((store.isAdmin() || store.hasDashboardAccess() || store.hasTimeManagementAccess()) && canAccessTimeclock()) {
+            } @if(canAccessTimeclock()) {
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isTimeclockActive()"
@@ -287,6 +312,29 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
+            <!-- Campana de notificaciones mobile -->
+            <div class="relative mb-3 flex items-center gap-3">
+              <button
+                type="button"
+                (click)="toggleNotificationsDropdown()"
+                class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50"
+                title="Notificaciones"
+              >
+                <i class="pi pi-bell text-lg"></i>
+                @if (unreadNotificationsCount() > 0) {
+                <span
+                  class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
+                >
+                  {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
+                </span>
+                }
+              </button>
+              <span class="text-sm text-gray-300">Notificaciones</span>
+              <pt-notifications-dropdown
+                [isVisible]="showNotificationsDropdown()"
+                [onClose]="closeNotificationsDropdown.bind(this)"
+              />
+            </div>
             <p-menu
               #mobileMenu
               [model]="getMenuItems()"
@@ -717,6 +765,9 @@ export class DashboardComponent {
   public screenLockService = inject(ScreenLockService);
   private permissionsService = inject(PermissionsService);
   private injector = inject(Injector);
+  public notificationsService = inject(NotificationsService);
+  public showNotificationsDropdown = signal(false);
+  public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
 
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
@@ -744,19 +795,19 @@ export class DashboardComponent {
   // Mobile admin bottom nav tabs (computed based on permissions)
   public adminMobileTabs = computed<MobileNavTab[]>(() => {
     const tabs: MobileNavTab[] = [];
-    if (this.store.isAdmin() && this.canAccessAdmin()) {
+    if (this.canAccessAdmin()) {
       if (this.canAccessHome()) {
         tabs.push({ id: 'home', label: 'Inicio', icon: 'pi pi-home' });
       }
       tabs.push({ id: 'admin', label: 'Admin', icon: 'pi pi-building' });
     }
-    if ((this.store.isAdmin() || this.store.hasTimeManagementAccess()) && this.canAccessTimeManagement()) {
+    if (this.canAccessTimeManagement()) {
       tabs.push({ id: 'time-management', label: 'Tiempo', icon: 'pi pi-calendar' });
     }
-    if ((this.store.isAdmin() || this.store.hasDashboardAccess() || this.store.hasTimeManagementAccess()) && this.canAccessTimeclock()) {
+    if (this.canAccessTimeclock()) {
       tabs.push({ id: 'timeclock', label: 'Reloj', icon: 'pi pi-clock' });
     }
-    if (this.store.isAdmin() && this.canAccessPayroll()) {
+    if (this.canAccessPayroll()) {
       tabs.push({ id: 'payroll', label: 'Nómina', icon: 'pi pi-money-bill' });
     }
     return tabs;
@@ -865,6 +916,14 @@ export class DashboardComponent {
   private previousOrganization: Organization | null = null;
 
   constructor() {
+    // Inicializar notificaciones cuando cambia el empleado actual
+    effect(() => {
+      const employeeId = this.store.currentEmployee()?.id;
+      if (employeeId) {
+        this.notificationsService.setCurrentEmployeeId(employeeId);
+      }
+    });
+
     // Obtener IP actual al inicializar
     this.fetchCurrentIP();
 
@@ -1213,6 +1272,14 @@ export class DashboardComponent {
 
   async toggleMenu() {
     this.isCollapsed.update((value) => !value);
+  }
+
+  public toggleNotificationsDropdown(): void {
+    this.showNotificationsDropdown.update((v) => !v);
+  }
+
+  public closeNotificationsDropdown(): void {
+    this.showNotificationsDropdown.set(false);
   }
 
   toggleCompany(companyId: string | null) {

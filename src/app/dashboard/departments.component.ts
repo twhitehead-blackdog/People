@@ -67,30 +67,32 @@ import { TooltipModule } from 'primeng/tooltip';
     </p-card>
     } @else {
     <div class="mobile-departments flex flex-col min-h-[60vh]">
-      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
-        <div class="flex items-center justify-between gap-2 mb-2">
-          <h2 class="m-0 text-lg font-bold text-white truncate">Áreas</h2>
-          <p-button icon="pi pi-plus" [label]="''" (click)="editDepartment()" rounded size="small" pTooltip="Nueva área" tooltipPosition="bottom" />
+      <div class="mobile-section-header">
+        <div>
+          <span class="mobile-section-header__title">Áreas</span>
+          <span class="mobile-section-header__count">{{ departments().length }}</span>
         </div>
-        <p class="text-xs text-gray-400 m-0">Listado de áreas/departamentos</p>
-      </header>
+        <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.75rem;height:2.75rem;" (click)="editDepartment()" aria-label="Nueva área">
+          <i class="pi pi-plus"></i>
+        </button>
+      </div>
       <main class="flex-1 overflow-y-auto px-3 py-3">
         @if (departments().length === 0) {
-          <div class="text-center py-12 text-gray-400">
-            <i class="pi pi-sitemap text-4xl block mb-2 opacity-60"></i>
-            <p class="text-sm font-medium">No hay áreas</p>
-            <p class="text-xs mt-1">Agrega una desde el botón superior</p>
+          <div class="mobile-empty-state">
+            <i class="pi pi-sitemap mobile-empty-state__icon"></i>
+            <p class="mobile-empty-state__title">No hay áreas</p>
+            <p class="mobile-empty-state__desc">Agrega una desde el botón superior</p>
           </div>
         } @else {
-          <div class="flex flex-col gap-2 pb-4">
+          <div class="mobile-card-list pb-4">
             @for (item of departments(); track item.id) {
-              <div (click)="editDepartment(item)" class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3 active:bg-neutral-700/50 transition-colors cursor-pointer">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="font-semibold text-white text-sm m-0">{{ item.name }}</p>
-                  <div class="flex gap-1 flex-shrink-0" (click)="$event.stopPropagation()">
-                    <p-button icon="pi pi-pen" [label]="''" (onClick)="editDepartment(item)" rounded text severity="success" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Editar" />
-                    <p-button icon="pi pi-trash" [label]="''" (onClick)="deleteDepartment(item.id)" rounded text severity="danger" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Eliminar" />
-                  </div>
+              <div class="mobile-card-item" (click)="editDepartment(item)">
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">{{ item.name }}</div>
+                </div>
+                <div class="mobile-card-item__action" style="display:flex;gap:0.25rem;" (click)="$event.stopPropagation()">
+                  <p-button icon="pi pi-pen-to-square" [label]="''" (onClick)="editDepartment(item)" rounded text severity="success" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Editar" />
+                  <p-button icon="pi pi-trash" [label]="''" (onClick)="deleteDepartment(item.id)" rounded text severity="danger" size="small" class="min-w-[44px] min-h-[44px]" pTooltip="Eliminar" />
                 </div>
               </div>
             }

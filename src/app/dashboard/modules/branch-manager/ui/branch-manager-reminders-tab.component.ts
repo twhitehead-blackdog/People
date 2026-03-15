@@ -67,11 +67,130 @@ import {
         />
       </div>
 
+      <!-- Mobile card view -->
+      @if (isMobile()) {
+        @if (isLoading()) {
+          <div class="mobile-card-list">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="mobile-card-item" style="pointer-events: none">
+                <div class="mobile-card-item__avatar" style="background: rgba(255,255,255,0.05); animation: pulse 1.5s infinite"></div>
+                <div class="mobile-card-item__body">
+                  <div style="height: 0.875rem; width: 70%; background: rgba(255,255,255,0.05); border-radius: 0.25rem; animation: pulse 1.5s infinite"></div>
+                  <div style="height: 0.75rem; width: 45%; background: rgba(255,255,255,0.05); border-radius: 0.25rem; margin-top: 0.375rem; animation: pulse 1.5s infinite"></div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (filteredReminders().length === 0) {
+          <div class="mobile-empty-state">
+            <i class="pi pi-inbox mobile-empty-state__icon"></i>
+            <p class="mobile-empty-state__title">No hay recordatorios</p>
+            <p class="mobile-empty-state__desc">Los recordatorios creados aparecerán aquí</p>
+          </div>
+        } @else {
+          <div class="mobile-section-header">
+            <span class="mobile-section-header__title">Recordatorios</span>
+            <span class="mobile-section-header__count">{{ filteredReminders().length }}</span>
+          </div>
+          <div class="mobile-card-list">
+            @for (reminder of filteredReminders(); track reminder.id || $index) {
+              <div
+                class="mobile-card-item"
+                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent"
+                [ngClass]="{
+                  'opacity-60': reminder.is_completed,
+                  'border-l-3 border-l-red-500': isOverdue(reminder) && !reminder.is_completed,
+                  'border-l-3 border-l-purple-500': reminder.audit_task_instance_id && !isOverdue(reminder) && !reminder.is_completed
+                }"
+              >
+                <!-- Type icon as avatar -->
+                <div class="mobile-card-item__avatar" [ngClass]="{
+                  'bg-purple-500/10 border-purple-500/20': reminder.audit_task_instance_id,
+                  'bg-blue-500/10 border-blue-500/20': !reminder.audit_task_instance_id
+                }">
+                  @if (reminder.audit_task_instance_id) {
+                    <i class="pi pi-check-square text-purple-400"></i>
+                  } @else {
+                    <i class="pi pi-bookmark text-blue-400"></i>
+                  }
+                </div>
+
+                <!-- Body -->
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">{{ reminder.message }}</div>
+                  @if (reminder.category) {
+                    <div class="mobile-card-item__subtitle">{{ getCategoryLabel(reminder.category) }}</div>
+                  }
+                  <div class="mobile-card-item__subtitle">
+                    <span [ngClass]="{'text-red-500 font-semibold': isOverdue(reminder)}">
+                      {{ reminder.due_date | date : 'dd/MM/yyyy' : 'UTC' }}
+                    </span>
+                  </div>
+                  <div class="mobile-card-item__meta">
+                    <!-- Priority -->
+                    @if (reminder.priority) {
+                      <span class="mobile-card-item__tag" [ngClass]="{
+                        'mobile-card-item__tag--danger': reminder.priority === 'high' || reminder.priority === 'urgent',
+                        'mobile-card-item__tag--warning': reminder.priority === 'medium',
+                        'mobile-card-item__tag--info': reminder.priority === 'low'
+                      }">{{ getPriorityLabel(reminder.priority) }}</span>
+                    }
+                    <!-- Status -->
+                    @if (reminder.is_completed || reminder.status === 'completed') {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--success">Completado</span>
+                    } @else if (reminder.status === 'not_applicable') {
+                      <span class="mobile-card-item__tag" style="background: rgba(107,114,128,0.12); color: #9ca3af">No Aplica</span>
+                    } @else if (isOverdue(reminder)) {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--danger">Vencido</span>
+                    } @else if (reminder.status === 'in_progress') {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--info">En Progreso</span>
+                    } @else {
+                      <span class="mobile-card-item__tag mobile-card-item__tag--warning">Pendiente</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col gap-1 flex-shrink-0">
+                  @if (!reminder.is_completed && reminder.status !== 'completed' && reminder.status !== 'not_applicable') {
+                    <button
+                      class="w-11 h-11 rounded-lg flex items-center justify-center text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                      style="touch-action: manipulation; -webkit-tap-highlight-color: transparent"
+                      (click)="complete.emit(reminder)"
+                    >
+                      <i class="pi pi-check"></i>
+                    </button>
+                    @if (reminder.audit_task_instance_id) {
+                      <button
+                        class="w-11 h-11 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-500/10 transition-colors"
+                        style="touch-action: manipulation; -webkit-tap-highlight-color: transparent"
+                        (click)="markNotApplicable.emit(reminder)"
+                      >
+                        <i class="pi pi-ban"></i>
+                      </button>
+                    }
+                  }
+                  @if (!reminder.audit_task_instance_id) {
+                    <button
+                      class="w-11 h-11 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-colors"
+                      style="touch-action: manipulation; -webkit-tap-highlight-color: transparent"
+                      (click)="deleteReminder.emit(reminder.id)"
+                    >
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      } @else {
+      <!-- Desktop table view -->
       <p-table
         [value]="filteredReminders()"
         [loading]="isLoading()"
         [paginator]="true"
-        [rows]="isMobile() ? 10 : 25"
+        [rows]="25"
         [rowsPerPageOptions]="[10, 25, 50]"
         styleClass="p-datatable-sm"
         responsiveLayout="scroll"
@@ -227,6 +346,7 @@ import {
           </tr>
         </ng-template>
       </p-table>
+      }
     </div>
 
     <!-- Dialog para crear recordatorio -->
