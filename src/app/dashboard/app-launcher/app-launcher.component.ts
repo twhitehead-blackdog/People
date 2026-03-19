@@ -17,10 +17,10 @@ interface Module {
 const PEOPLE_MODULES: Module[] = [
   {
     id: 'home',
-    label: 'Inicio',
+    label: 'Dashboard RRHH',
     description: 'KPIs y métricas ejecutivas',
     icon: 'pi-chart-bar',
-    target: 'home',
+    target: 'admin/home',
     moduleId: 'home',
     tw: 'blue',
   },
@@ -29,7 +29,7 @@ const PEOPLE_MODULES: Module[] = [
     label: 'Administración',
     description: 'Empleados, posiciones y más',
     icon: 'pi-building',
-    target: 'admin/employees',
+    target: 'admin',
     moduleId: 'admin',
     tw: 'violet',
   },
@@ -38,7 +38,7 @@ const PEOPLE_MODULES: Module[] = [
     label: 'Gestión de tiempo',
     description: 'Horarios, turnos y timelogs',
     icon: 'pi-clock',
-    target: 'time-management/timelogs',
+    target: 'time-management',
     moduleId: 'time_management',
     tw: 'emerald',
   },
@@ -47,7 +47,7 @@ const PEOPLE_MODULES: Module[] = [
     label: 'Planilla',
     description: 'Nóminas, deducciones y décimo',
     icon: 'pi-wallet',
-    target: 'payroll/payrolls',
+    target: 'payroll',
     moduleId: 'payroll',
     tw: 'amber',
   },
@@ -144,7 +144,7 @@ const COLOR_MAP: Record<string, { hex: string; bgCls: string; iconCls: string; h
   selector: 'pt-app-launcher',
   standalone: true,
   template: `
-    <div class="min-h-screen bg-[#0a0a0a] px-4 sm:px-6 md:px-10 py-8 space-y-10">
+    <div class="bg-[#0a0a0a] px-2 sm:px-6 md:px-10 py-6 space-y-8" style="min-height: 100dvh">
 
       <!-- Greeting -->
       <div class="flex flex-col items-center text-center gap-1 pt-2">
@@ -166,7 +166,7 @@ const COLOR_MAP: Record<string, { hex: string; bgCls: string; iconCls: string; h
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">People</span>
           <div class="flex-1 h-px bg-white/[0.06]"></div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 max-w-5xl mx-auto">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 max-w-5xl mx-auto">
           @for (mod of visiblePeopleModules(); track mod.id) {
             @let c = colors(mod.tw);
             <button (click)="open(mod)"
@@ -195,7 +195,7 @@ const COLOR_MAP: Record<string, { hex: string; bgCls: string; iconCls: string; h
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Servicios</span>
           <div class="flex-1 h-px bg-white/[0.06]"></div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 max-w-5xl mx-auto">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
           @for (mod of EXTERNAL_MODULES; track mod.id) {
             @let c = colors(mod.tw);
             <button (click)="open(mod)"

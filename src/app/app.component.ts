@@ -97,28 +97,31 @@ import { PwaService } from './services/pwa.service';
     <router-outlet />
     <pt-diagnostic-panel />
 
-    <p-dialog
-      header="Nueva versi\u00F3n disponible"
-      [visible]="versionCheck.updateAvailable()"
-      [modal]="true"
-      [closable]="false"
-      [draggable]="false"
-      [resizable]="false"
-      [style]="{ width: '28rem' }"
-    >
-      <div class="flex flex-col items-center gap-4 py-2">
-        <i class="pi pi-refresh text-4xl text-yellow-500"></i>
-        <p class="text-center text-lg">
-          Hay una nueva versi\u00F3n de la aplicaci\u00F3n disponible.
-          Por favor, actualiza para continuar.
-        </p>
-      </div>
-      <ng-template #footer>
-        <div class="flex justify-center w-full">
-          <p-button label="Actualizar ahora" icon="pi pi-refresh" (onClick)="reloadApp()" />
+    <!-- Version update countdown banner -->
+    @if (versionCheck.updateAvailable()) {
+      <div class="version-update-banner">
+        <div class="version-update-content">
+          <i class="pi pi-refresh version-update-icon"></i>
+          <span class="version-update-text">Nueva versión disponible — actualizando en</span>
+          <button
+            class="version-update-countdown"
+            [class.fast]="versionCheck.speedMultiplier() === 5"
+            [class.urgent]="versionCheck.countdown() <= 10"
+            (click)="versionCheck.activateFastMode()"
+            title="Clic para acelerar 5x"
+          >
+            <span class="countdown-number">{{ versionCheck.countdown() }}</span>
+            <span class="countdown-unit">s</span>
+            @if (versionCheck.speedMultiplier() === 5) {
+              <span class="speed-badge">5×</span>
+            }
+          </button>
+          <button class="version-update-now" (click)="reloadApp()">
+            Actualizar ahora
+          </button>
         </div>
-      </ng-template>
-    </p-dialog>
+      </div>
+    }
 
     <!-- PWA Install Banner -->
     @if (pwa.showInstallBanner()) {
@@ -227,6 +230,24 @@ import { PwaService } from './services/pwa.service';
     .pwa-banner-btn{background:#fbbf24;color:#0a0a0a;border:none;border-radius:8px;padding:8px 16px;font-weight:600;font-size:.8rem;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
     .pwa-banner-close{background:none;border:none;color:#78716c;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:.875rem}
     @keyframes pwa-slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+
+    /* Version update banner */
+    .version-update-banner{position:fixed;top:0;left:0;right:0;z-index:10001;padding:10px 16px;background:linear-gradient(90deg,#1a1200,#2d1f00,#1a1200);border-bottom:1px solid rgba(251,191,36,.3);animation:vu-slideDown .4s cubic-bezier(.4,0,.2,1)}
+    @keyframes vu-slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    .version-update-content{display:flex;align-items:center;gap:10px;max-width:700px;margin:0 auto;flex-wrap:wrap}
+    .version-update-icon{color:#fbbf24;font-size:1.1rem;animation:vu-spin 2s linear infinite}
+    @keyframes vu-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .version-update-text{color:#d4a21a;font-size:.8rem;font-weight:500;flex:1;min-width:120px}
+    .version-update-countdown{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:64px;height:40px;padding:0 12px;border-radius:12px;border:2px solid rgba(251,191,36,.4);background:rgba(251,191,36,.08);cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;animation:vu-pulse 1s ease-in-out infinite}
+    @keyframes vu-pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.3)}50%{box-shadow:0 0 0 6px rgba(251,191,36,.0)}}
+    .version-update-countdown.urgent{border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.12);animation:vu-pulse-red 0.5s ease-in-out infinite}
+    @keyframes vu-pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,.0)}}
+    .version-update-countdown.fast{border-color:rgba(251,191,36,.8);background:rgba(251,191,36,.15)}
+    .countdown-number{color:#fbbf24;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+    .countdown-unit{color:#a16207;font-size:.65rem;font-weight:600}
+    .speed-badge{position:absolute;top:-8px;right:-6px;background:#fbbf24;color:#0a0a0a;font-size:.55rem;font-weight:800;padding:1px 4px;border-radius:4px}
+    .version-update-now{background:#fbbf24;color:#0a0a0a;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:.75rem;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .15s}
+    .version-update-now:hover{background:#f59e0b}
 
     /* Notification Prompt */
     .notif-prompt{position:fixed;top:20px;right:20px;z-index:10000;animation:notif-slideIn .4s cubic-bezier(.4,0,.2,1)}

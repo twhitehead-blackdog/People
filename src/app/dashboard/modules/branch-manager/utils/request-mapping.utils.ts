@@ -76,11 +76,13 @@ export function mapBranchEmployeeRequests(
       const employee = employeeMap[r.employee_id];
       const reviewer = r.reviewed_by ? employeeMap[r.reviewed_by] : null;
 
-      let requestType: 'documentos' | 'uniform_request' | 'timelog_correction' = 'documentos';
+      let requestType: 'documentos' | 'uniform_request' | 'timelog_correction' | 'supply_request' = 'documentos';
       if (r.document_type === 'uniform_request') {
         requestType = 'uniform_request';
       } else if (r.document_type === 'timelog_correction') {
         requestType = 'timelog_correction';
+      } else if (r.document_type === 'supply_request') {
+        requestType = 'supply_request';
       }
 
       return {
@@ -240,6 +242,18 @@ export function mapUnifiedRequest(r: any): any {
       { label: 'Cantidad', value: String(quantity) },
     ];
     if (r.reason) details.push({ label: 'Notas', value: r.reason });
+  } else if (r.requestType === 'supply_request') {
+    const metadata = r.metadata || {};
+    displayDate = r.created_at ? format(new Date(r.created_at), 'dd/MM/yyyy') : '-';
+    const area = metadata.area || '-';
+    const description = metadata.supply_description || '-';
+    const reason = metadata.supply_reason || r.reason || '-';
+    summary = `Insumo - ${area}`;
+    details = [
+      { label: 'Área', value: area },
+      { label: 'Descripción', value: description },
+      { label: 'Motivo', value: reason },
+    ];
   } else if (r.requestType === 'timelog_correction') {
     const metadata = r.metadata || {};
     const timelogDateParsed = parseUTCDateString(metadata.timelog_date);

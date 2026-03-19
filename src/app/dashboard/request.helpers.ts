@@ -10,6 +10,7 @@ export function getRequestIcon(requestType: string): string {
     vacaciones: 'pi-sun',
     documentos: 'pi-file',
     uniform_request: 'pi-tag',
+    supply_request: 'pi-box',
     timelog_correction: 'pi-exclamation-triangle',
     work_permit: 'pi-id-card',
   };
@@ -40,6 +41,10 @@ export function getRequestColorClass(
     uniform_request: {
       bg: 'bg-teal-500/20 border-teal-500',
       active: 'text-teal-400',
+    },
+    supply_request: {
+      bg: 'bg-amber-500/20 border-amber-500',
+      active: 'text-amber-400',
     },
     timelog_correction: {
       bg: 'bg-orange-500/20 border-orange-500',
@@ -91,6 +96,7 @@ export function getRequestTypeLabel(requestType: string): string {
     vacaciones: 'Vacaciones',
     documentos: 'Documento',
     uniform_request: 'Uniforme',
+    supply_request: 'Solicitud de Insumo',
     timelog_correction: 'Omisión de Marcación',
     work_permit: 'Permiso',
   };
@@ -109,6 +115,7 @@ export function getRequestTypeSeverity(
     vacaciones: 'contrast',
     documentos: 'success',
     uniform_request: 'info',
+    supply_request: 'warn',
     timelog_correction: 'warn',
     work_permit: 'warn',
   };

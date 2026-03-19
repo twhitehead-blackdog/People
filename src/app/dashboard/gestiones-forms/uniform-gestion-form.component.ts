@@ -70,7 +70,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
         </div>
       </div>
 
-      <!-- Paso 2: Talla y Cantidad -->
+      <!-- Paso 2: Talla y Cantidades -->
       <div
         class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
       >
@@ -81,10 +81,10 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
             <i class="pi pi-sliders-h text-teal-400"></i>
           </div>
           <h3 class="text-lg font-semibold text-white m-0">
-            Paso 2: Talla y Cantidad
+            Paso 2: Talla y Cantidades
           </h3>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="flex flex-col gap-2">
             <label class="text-sm font-medium text-gray-300">Talla</label>
             <p-select
@@ -98,9 +98,18 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
             />
           </div>
           <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium text-gray-300"
-              >Cantidad</label
-            >
+            <label class="text-sm font-medium text-gray-300">Cantidad que posee actualmente</label>
+            <input
+              pInputText
+              type="number"
+              [ngModel]="currentQuantity()"
+              (ngModelChange)="currentQuantity.set($event)"
+              min="0"
+              class="w-full"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Cantidad que necesita</label>
             <input
               pInputText
               type="number"
@@ -111,9 +120,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
               class="w-full"
               ptTutorialStep="uniform-quantity"
             />
-            <small class="text-gray-500 text-xs"
-              >Máximo 5 unidades por solicitud</small
-            >
+            <small class="text-gray-500 text-xs">Máximo 5 unidades</small>
           </div>
         </div>
         @if (itemType() && size() && quantity() >= 1) {
@@ -123,11 +130,11 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
           <p class="text-sm text-teal-300">
             <i class="pi pi-check-circle mr-2"></i>
             Solicitud:
-            <strong
-              >{{ quantity() }}x
-              {{ getItemTypeLabel() }}</strong
-            >
+            <strong>{{ quantity() }}x {{ getItemTypeLabel() }}</strong>
             - Talla <strong>{{ size() }}</strong>
+            @if (currentQuantity() > 0) {
+              <span class="ml-2 text-gray-400">(posee: {{ currentQuantity() }})</span>
+            }
           </p>
         </div>
         }
@@ -193,6 +200,7 @@ export class UniformGestionFormComponent {
 
   public itemType = signal<string>('');
   public size = signal<string>('M');
+  public currentQuantity = signal<number>(0);
   public quantity = signal<number>(1);
   public notes = signal<string>('');
   public submitting = signal<boolean>(false);
@@ -223,6 +231,7 @@ export class UniformGestionFormComponent {
       const it = this.itemType();
       const s = this.size();
       const q = this.quantity();
+      const cq = this.currentQuantity();
       const n = this.notes();
 
       const data = {
@@ -236,6 +245,7 @@ export class UniformGestionFormComponent {
           item_type: it,
           size: s,
           quantity: q,
+          current_quantity: cq,
           branch_id: employee.branch?.id || this.currentBranch()?.id || null,
         },
       };

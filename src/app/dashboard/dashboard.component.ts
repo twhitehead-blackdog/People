@@ -128,11 +128,9 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
 
           <!-- Nav items - single row, all dropdowns -->
           <div class="header-menu hidden lg:flex items-center gap-0.5 flex-1 min-w-0">
-            @if(canAccessHome()) {
-            <a (click)="navigateTo('home')" [class.nav-active]="isHomeActive()" class="nav-item">
-              <i class="pi pi-home"></i><span>Inicio</span>
+            <a (click)="navigateTo('launcher')" [class.nav-active]="isLauncherActive()" class="nav-item">
+              <i class="pi pi-th-large"></i><span>Inicio</span>
             </a>
-            }
             @if(canAccessAdmin()) {
             <div class="relative" (mouseenter)="openDropdown('admin')" (mouseleave)="closeDropdown()">
               <a [class.nav-active]="isAdminActive()" class="nav-item">
@@ -162,16 +160,31 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
                     <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
                     <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
-                    <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-desktop"></i>Dispositivos</a>
+                    <a (click)="navigateAbsolute('admin/news'); closeDropdown()" class="dd-item"><i class="pi pi-megaphone"></i>Noticias</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
                     <span class="dd-col-label">RRHH</span>
+                    @if(canAccessHome()) {
+                    <a (click)="navigateAbsolute('admin/home'); closeDropdown()" class="dd-item"><i class="pi pi-chart-bar"></i>Dashboard RRHH</a>
+                    }
                     <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Tiempo</a>
-                    <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list"></i>Auditoría</a>
-                    <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance</a>
+                    <a (click)="navigateAbsolute('admin/hr/disabilities'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Solicitudes RRHH</a>
                     <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
                   </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Auditoría</span>
+                    <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list-check"></i>Tareas de Auditoría</a>
+                    <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance 360</a>
+                  </div>
+                  @if(canAccessCompras()) {
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Compras</span>
+                    <a (click)="navigateAbsolute('admin/compras'); closeDropdown()" class="dd-item"><i class="pi pi-shopping-cart"></i>Compras</a>
+                  </div>
+                  }
                 </div>
               </div>
               }
@@ -198,6 +211,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('payroll/creditors'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Acreedores</a>
                     <a (click)="navigateAbsolute('payroll/banks'); closeDropdown()" class="dd-item"><i class="pi pi-building"></i>Bancos</a>
                     <a (click)="navigateAbsolute('payroll/import'); closeDropdown()" class="dd-item"><i class="pi pi-upload"></i>Importar</a>
+                    <a (click)="navigateAbsolute('payroll/admin'); closeDropdown()" class="dd-item"><i class="pi pi-cog"></i>Administración</a>
                   </div>
                 </div>
               </div>
@@ -216,25 +230,20 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <span class="dd-col-label">Seguimiento</span>
                     <a (click)="navigateAbsolute('time-management/timelogs'); closeDropdown()" class="dd-item"><i class="pi pi-clock"></i>Registros</a>
                     <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Horarios</a>
-                    <a (click)="navigateAbsolute('time-management/shifts'); closeDropdown()" class="dd-item"><i class="pi pi-sliders-h"></i>Turnos</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
                     <span class="dd-col-label">Calendarios</span>
                     <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>General</a>
                     <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Veterinaria</a>
-                    <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Salón</a>
+                    <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Peluquería</a>
                   </div>
                 </div>
               </div>
               }
             </div>
             }
-            @if(canAccessTimeclock()) {
-            <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
-              <i class="pi pi-clock"></i><span>Reloj de marcación</span>
-            </a>
-            }
+            @if(canAccessServices()) {
             <div class="relative" (mouseenter)="openDropdown('services')" (mouseleave)="closeDropdown()">
               <a [class.nav-active]="isLiveActive()" class="nav-item">
                 <i class="pi pi-server"></i><span>Servicios</span><i class="pi pi-chevron-down nav-caret"></i>
@@ -248,6 +257,17 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               </div>
               }
             </div>
+            }
+            @if(canAccessCompras()) {
+            <a (click)="navigateAbsolute('admin/compras')" [class.nav-active]="isComprasActive()" class="nav-item">
+              <i class="pi pi-shopping-cart"></i><span>Compras</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
+              <i class="pi pi-clock"></i><span>Reloj de marcación</span>
+            </a>
+            }
           </div>
 
           <!-- Right: notifications + user -->
@@ -293,12 +313,10 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(canAccessHome()) {
-            <a (click)="navigateTo('home'); toggleMenu()" [class.bg-gray-700]="isHomeActive()" [class.text-white]="isHomeActive()"
+            <a (click)="navigateTo('launcher'); toggleMenu()" [class.bg-gray-700]="isLauncherActive()" [class.text-white]="isLauncherActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
-              <i class="pi pi-home text-lg"></i><span>Inicio</span>
+              <i class="pi pi-th-large text-lg"></i><span>Inicio</span>
             </a>
-            }
             @if(canAccessAdmin()) {
             <a (click)="navigateTo('admin'); toggleMenu()" [class.bg-gray-700]="isAdminActive()" [class.text-white]="isAdminActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
@@ -317,16 +335,24 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               <i class="pi pi-money-bill text-lg"></i><span>Planilla</span>
             </a>
             }
+            @if(canAccessServices()) {
+            <a (click)="navigateTo('live'); toggleMenu()" [class.bg-gray-700]="isLiveActive()" [class.text-white]="isLiveActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-objects-column text-lg"></i><span>Asistencia en vivo</span>
+            </a>
+            }
+            @if(canAccessCompras()) {
+            <a (click)="navigateAbsolute('admin/compras'); toggleMenu()" [class.bg-gray-700]="isComprasActive()" [class.text-white]="isComprasActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-shopping-cart text-lg"></i><span>Compras</span>
+            </a>
+            }
             @if(canAccessTimeclock()) {
             <a (click)="navigateTo('timeclock'); toggleMenu()" [class.bg-gray-700]="isTimeclockActive()" [class.text-white]="isTimeclockActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
               <i class="pi pi-clock text-lg"></i><span>Reloj de marcación</span>
             </a>
             }
-            <a (click)="navigateTo('live'); toggleMenu()" [class.bg-gray-700]="isLiveActive()" [class.text-white]="isLiveActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
-              <i class="pi pi-objects-column text-lg"></i><span>Asistencia en vivo</span>
-            </a>
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
@@ -403,9 +429,20 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
       <!-- Mobile top bar -->
       <nav class="bg-neutral-900 w-full z-[1000] flex-shrink-0">
         <div class="flex items-center justify-between h-[52px] px-3">
-          <a (click)="navigateToDefault()" class="flex items-center cursor-pointer" style="-webkit-tap-highlight-color: transparent;">
-            <img [src]="logoPath()" class="h-7" alt="People" />
-          </a>
+          <div class="flex items-center gap-1">
+            @if (mobileBackTarget()) {
+            <button
+              (click)="router.navigateByUrl(mobileBackTarget()!)"
+              class="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              style="-webkit-tap-highlight-color: transparent;"
+            >
+              <i class="pi pi-arrow-left text-base"></i>
+            </button>
+            }
+            <a (click)="navigateToDefault()" class="flex items-center cursor-pointer" style="-webkit-tap-highlight-color: transparent;">
+              <img [src]="logoPath()" class="h-7" alt="People" />
+            </a>
+          </div>
           <div class="flex items-center gap-2">
             @if(user) {
             <p-menu
@@ -420,8 +457,8 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               (click)="mobileMenuTop.toggle($event)"
             >
               <div class="relative flex-shrink-0">
-                <div class="w-7 h-7 rounded-full overflow-hidden border border-gray-600/40">
-                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
+                <div class="w-7 h-7 rounded-full overflow-hidden border border-gray-600/40 flex items-center justify-center">
+                  <img [src]="user.picture" class="w-full h-full object-cover rounded-full" alt="" referrerpolicy="no-referrer" />
                 </div>
                 <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-neutral-900"></div>
               </div>
@@ -806,6 +843,7 @@ export class DashboardComponent {
   public router = inject(Router);
   public route = inject(ActivatedRoute);
   public currentRoute = signal('');
+  public currentUrl = signal('');
   public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
   private realtimeService = inject(SupabaseRealtimeService);
@@ -848,24 +886,74 @@ export class DashboardComponent {
   public canAccessBranchManager = computed(() =>
     this.permissionsService.canAccessModule('branch_manager')
   );
+  public canAccessServices = computed(() =>
+    this.permissionsService.canAccessModule('services')
+  );
+  public canAccessCompras = computed(() =>
+    this.permissionsService.canAccessModule('compras')
+  );
+  public canAccessAnalytics = computed(() =>
+    this.permissionsService.canAccessSubModule('services', 'analytics_access')
+  );
+
+  // Sub-module access computeds (used by dropdown items)
+  public adminSubs = computed(() => ({
+    employees: this.permissionsService.canAccessSubModule('admin', 'employees'),
+    organigrama: this.permissionsService.canAccessSubModule('admin', 'organigrama'),
+    companies: this.permissionsService.canAccessSubModule('admin', 'companies'),
+    departments: this.permissionsService.canAccessSubModule('admin', 'departments'),
+    positions: this.permissionsService.canAccessSubModule('admin', 'positions'),
+    branches: this.permissionsService.canAccessSubModule('admin', 'branches'),
+    settings: this.permissionsService.canAccessSubModule('admin', 'settings'),
+    user_management: this.permissionsService.canAccessSubModule('admin', 'user_management'),
+    permissions: this.permissionsService.canAccessSubModule('admin', 'permissions'),
+    complaints: this.permissionsService.canAccessSubModule('admin', 'complaints'),
+    job_applications: this.permissionsService.canAccessSubModule('admin', 'job_applications'),
+    device_inventory: this.permissionsService.canAccessSubModule('admin', 'device_inventory'),
+    audit_tasks: this.permissionsService.canAccessSubModule('admin', 'audit_tasks'),
+  }));
+  public hrSubs = computed(() => ({
+    time_dashboard: this.permissionsService.canAccessSubModule('hr', 'hr_time_dashboard'),
+    disabilities: this.permissionsService.canAccessSubModule('hr', 'hr_disabilities'),
+    surveys: this.permissionsService.canAccessSubModule('hr', 'hr_surveys'),
+  }));
+  public canAccessPerformance = computed(() =>
+    this.permissionsService.canAccessModule('performance')
+  );
+  public payrollSubs = computed(() => ({
+    payrolls: this.permissionsService.canAccessSubModule('payroll', 'payrolls'),
+    creditors: this.permissionsService.canAccessSubModule('payroll', 'creditors'),
+    banks: this.permissionsService.canAccessSubModule('payroll', 'banks'),
+    payroll_admin: this.permissionsService.canAccessSubModule('payroll', 'payroll_admin'),
+    payroll_import: this.permissionsService.canAccessSubModule('payroll', 'payroll_import'),
+  }));
+  public tmSubs = computed(() => ({
+    timelogs: this.permissionsService.canAccessSubModule('time_management', 'timelogs'),
+    timetables: this.permissionsService.canAccessSubModule('time_management', 'timetables'),
+    schedules: this.permissionsService.canAccessSubModule('time_management', 'schedules'),
+    vet_schedule: this.permissionsService.canAccessSubModule('time_management', 'vet_schedule'),
+    salon_schedule: this.permissionsService.canAccessSubModule('time_management', 'salon_schedule'),
+  }));
 
   // Mobile admin bottom nav tabs (computed based on permissions)
   public adminMobileTabs = computed<MobileNavTab[]>(() => {
-    const tabs: MobileNavTab[] = [];
+    const tabs: MobileNavTab[] = [
+      { id: 'launcher', label: 'Inicio', icon: 'pi pi-th-large' },
+    ];
     if (this.canAccessAdmin()) {
-      if (this.canAccessHome()) {
-        tabs.push({ id: 'home', label: 'Inicio', icon: 'pi pi-home' });
-      }
       tabs.push({ id: 'admin', label: 'Admin', icon: 'pi pi-building' });
     }
     if (this.canAccessTimeManagement()) {
       tabs.push({ id: 'time-management', label: 'Tiempo', icon: 'pi pi-calendar' });
     }
+    if (this.canAccessPayroll()) {
+      tabs.push({ id: 'payroll', label: 'Nómina', icon: 'pi pi-money-bill' });
+    }
     if (this.canAccessTimeclock()) {
       tabs.push({ id: 'timeclock', label: 'Reloj', icon: 'pi pi-clock' });
     }
-    if (this.canAccessPayroll()) {
-      tabs.push({ id: 'payroll', label: 'Nómina', icon: 'pi pi-money-bill' });
+    if (this.canAccessAnalytics()) {
+      tabs.push({ id: 'analytics', label: 'Analítica', icon: 'pi pi-chart-bar' });
     }
     return tabs;
   });
@@ -916,7 +1004,7 @@ export class DashboardComponent {
         } else if (mode === 'gerente') {
           this.router.navigate(['/time-management']);
         } else if (mode === 'admin' || mode === null) {
-          this.router.navigate(['/home']);
+          this.router.navigate(['/launcher']);
         }
       }
     }
@@ -1034,14 +1122,18 @@ export class DashboardComponent {
 
         // Detectar la ruta principal: buscar si alguno de los segmentos principales está presente
         const mainRoutes = [
+          'launcher',
           'home',
           'admin',
           'payroll',
           'time-management',
           'timeclock',
           'branch-manager',
+          'analytics',
+          'live',
+          'my-portal',
         ];
-        let route = 'home'; // default
+        let route = 'launcher'; // default
 
         // Buscar la primera ruta principal que aparezca en los segmentos
         for (const segment of segments) {
@@ -1057,6 +1149,7 @@ export class DashboardComponent {
         }
 
         this.currentRoute.set(route);
+        this.currentUrl.set(url);
       });
 
     // Set initial route
@@ -1086,6 +1179,7 @@ export class DashboardComponent {
     }
 
     this.currentRoute.set(route);
+    this.currentUrl.set(url);
 
     // Sincronizar empleado con ScreenLockService para persistencia tras reload
     effect(() => {
@@ -1106,22 +1200,30 @@ export class DashboardComponent {
   }
 
   navigateToDefault() {
-    if (this.canAccessHome()) {
-      this.navigateTo('home');
-    } else {
-      this.navigateTo('admin');
-    }
+    this.navigateTo('launcher');
   }
 
   onMobileAdminTabChange(tabId: string) {
-    this.navigateTo(tabId);
+    this.navigateAbsolute(tabId);
   }
 
   // Computed signals para rutas activas - se actualizan solo cuando cambia la URL
   // Usan currentRoute signal que se actualiza en el evento NavigationEnd
-  public isHomeActive = computed(() => {
+  public isLauncherActive = computed(() => {
     const route = this.currentRoute();
-    return route === 'home' || route === '';
+    return route === 'launcher' || route === '';
+  });
+
+  public mobileBackTarget = computed((): string | null => {
+    const url = this.currentUrl();
+    const parts = url.split('/').filter(s => s && s !== '');
+    if (parts.length <= 1) return null;
+    const module = parts[0];
+    const sub = parts.slice(1).join('/');
+    if (sub === 'hub') return '/launcher';
+    const hubModules = ['admin', 'payroll', 'time-management'];
+    if (hubModules.includes(module)) return '/' + module;
+    return null;
   });
 
   public isAdminActive = computed(() => {
@@ -1154,6 +1256,11 @@ export class DashboardComponent {
     return route === 'live';
   });
 
+  public isComprasActive = computed(() => {
+    const url = this.router.url;
+    return url.includes('/admin/compras');
+  });
+
   public activeDropdown = signal<string | null>(null);
 
   public openDropdown(name: string) {
@@ -1173,7 +1280,7 @@ export class DashboardComponent {
   isActiveRoute(route: string): boolean {
     switch (route) {
       case 'home':
-        return this.isHomeActive();
+        return this.isLauncherActive();
       case 'admin':
         return this.isAdminActive();
       case 'payroll':

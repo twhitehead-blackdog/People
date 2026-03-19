@@ -68,7 +68,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
     TimelogsTableComponent,
     OvertimeConfirmationDialogComponent,
   ],
-  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
+  template: `<div class="px-3 sm:px-5 md:px-8 pt-3 sm:pt-5 pb-4" [ngClass]="{ 'naz-theme': isNaz() }">
     <p-card>
       <ng-template #title>
         <div

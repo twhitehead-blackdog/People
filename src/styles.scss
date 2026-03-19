@@ -667,3 +667,117 @@ pt-login .switch-button-active .p-button-icon {
   color: #1a1a1a !important;
   filter: none !important;
 }
+/* ══════════════════════════════════════════════════════════════
+   Mobile shared styles for admin cards/lists
+   Used by: companies, departments, positions, branches, payrolls, etc.
+   ══════════════════════════════════════════════════════════════ */
+.mobile-section-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  background: rgba(23, 23, 23, 0.95);
+  border-bottom: 1px solid rgba(64, 64, 64, 0.5);
+  backdrop-filter: blur(8px);
+}
+.mobile-section-header__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+}
+.mobile-section-header__count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  padding: 0.125rem 0.45rem;
+  border-radius: 9999px;
+}
+.mobile-fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #000;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+.mobile-fab:active { transform: scale(0.95); }
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mobile-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: rgba(38, 38, 38, 0.8);
+  border: 1px solid rgba(64, 64, 64, 0.5);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mobile-card-item:active { background: rgba(64, 64, 64, 0.6); }
+.mobile-card-item__body { flex: 1; min-width: 0; }
+.mobile-card-item__title {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mobile-card-item__subtitle {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.15rem;
+}
+.mobile-card-item__meta { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.3rem; }
+.mobile-card-item__tag {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+}
+.mobile-card-item__action { flex-shrink: 0; margin-left: 0.5rem; }
+.mobile-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+.mobile-empty-state__icon { font-size: 2.5rem; color: rgba(255, 255, 255, 0.15); margin-bottom: 0.75rem; }
+.mobile-empty-state__title { font-size: 0.875rem; font-weight: 600; color: rgba(255, 255, 255, 0.5); margin: 0; }
+.mobile-empty-state__desc { font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); margin: 0.25rem 0 0; }
+.mobile-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(38, 38, 38, 0.6);
+  border: 1px solid rgba(64, 64, 64, 0.4);
+  border-radius: 0.75rem;
+}
+.mobile-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.8rem;
+}
+.mobile-search input::placeholder { color: rgba(255, 255, 255, 0.3); }
+.mobile-search i { color: rgba(255, 255, 255, 0.3); font-size: 0.8rem; }

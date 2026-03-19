@@ -136,7 +136,7 @@ const BREEDS: Record<DogBreed, DogConfig> = {
         <div
           class="dog-sprite w-[50px] h-[50px]"
           [ngStyle]="dogStyle()"
-          [class.scale-x-[-1]]="currentDirection() === 'left'"
+          [style.transform]="currentDirection() === 'left' ? 'scaleX(-1)' : 'scaleX(1)'"
         ></div>
       </div>
     </div>
