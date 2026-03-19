@@ -62,7 +62,7 @@ const ADMIN_SECTIONS: Section[] = [
       { id: 'permissions',     label: 'Permisos',           description: 'Control de accesos',        icon: 'pi-shield',    route: '/admin/permissions',      moduleId: 'admin', subModuleId: 'permissions',      tw: 'rose' },
       { id: 'complaints',      label: 'Buzón de Quejas',    description: 'Gestión de quejas',         icon: 'pi-inbox',     route: '/admin/complaints-inbox', moduleId: 'admin', subModuleId: 'complaints',       tw: 'amber' },
       { id: 'job-apps',        label: 'Solicitudes Empleo', description: 'Feria de empleo',           icon: 'pi-file',      route: '/admin/job-applications', moduleId: 'admin', subModuleId: 'job_applications', tw: 'lime' },
-      { id: 'devices',         label: 'Inventario IT',      description: 'Dispositivos y equipos',    icon: 'pi-desktop',   route: '/admin/device-inventory', moduleId: 'admin', subModuleId: 'device_inventory', tw: 'purple' },
+      { id: 'news',            label: 'Noticias',           description: 'Anuncios y noticias',       icon: 'pi-megaphone', route: '/admin/news',             moduleId: 'admin', subModuleId: 'device_inventory', tw: 'purple' },
     ],
   },
   {
@@ -116,7 +116,7 @@ const TIME_SECTIONS: Section[] = [
       { id: 'schedules',    label: 'General',          description: 'Programación general',      icon: 'pi-calendar-clock', route: '/time-management/schedules',     moduleId: 'time_management', subModuleId: 'schedules',     tw: 'cyan' },
 
       { id: 'vet-schedule', label: 'Horario Vet',      description: 'Programación veterinaria',  icon: 'pi-heart-fill',     route: '/time-management/vet-schedule',  moduleId: 'time_management', subModuleId: 'vet_schedule',  tw: 'rose' },
-      { id: 'salon',        label: 'Peluquería',       description: 'Programación de peluquería', icon: 'pi-scissors',       route: '/time-management/salon-schedule',moduleId: 'time_management', subModuleId: 'salon_schedule',tw: 'pink' },
+      { id: 'salon',        label: 'Peluquería',       description: 'Programación de peluquería', icon: 'pi-sparkles',       route: '/time-management/salon-schedule',moduleId: 'time_management', subModuleId: 'salon_schedule',tw: 'pink' },
     ],
   },
 ];

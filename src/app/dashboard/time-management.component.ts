@@ -15,7 +15,7 @@ import { PermissionsService } from '../services/permissions.service';
   imports: [RouterOutlet, NgClass],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
     <main
-      class="bg-neutral-900 min-h-screen"
+      class="bg-neutral-900 min-h-full"
       [ngClass]="{ 'naz-main': isNaz() }"
     >
       <router-outlet />

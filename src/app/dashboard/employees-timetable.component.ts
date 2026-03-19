@@ -92,7 +92,7 @@ import {
     AuditHistoryDialogComponent,
     SpecificAuditDialogComponent,
   ],
-  template: `<div class="timetable-wrapper">
+  template: `<div class="timetable-wrapper px-3 sm:px-5 md:px-8 pt-2 sm:pt-5 pb-4">
       <!-- Desktop title -->
       <div class="hidden md:block">
         <h2 class="text-xl font-bold text-white m-0">Turnos</h2>

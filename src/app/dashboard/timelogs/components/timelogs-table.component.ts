@@ -44,7 +44,84 @@ import {
     PanamaDatePipe,
   ],
   template: `
-    <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+    <!-- Mobile card view -->
+    <div class="md:hidden">
+      @if (isLoading) {
+        <div class="flex justify-center py-8"><i class="pi pi-spin pi-spinner text-xl text-amber-400"></i></div>
+      } @else if (logs().length === 0) {
+        <div class="mobile-empty-state">
+          <i class="pi pi-clock mobile-empty-state__icon"></i>
+          <p class="mobile-empty-state__title">Sin marcaciones</p>
+          <p class="mobile-empty-state__desc">Ajusta los filtros o fechas</p>
+        </div>
+      } @else {
+        <div class="mobile-card-list pb-2">
+          @for (log of logs(); track $index) {
+            <div class="mobile-card-item" style="flex-direction:column;align-items:stretch;gap:0.4rem;padding:0.6rem 0.75rem;">
+              <!-- Row 1: Employee + Day -->
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:0.35rem;min-width:0;flex:1;">
+                  <span class="text-[10px] font-mono text-gray-500">{{ log.employee.employee_number }}</span>
+                  <span class="mobile-card-item__title" style="font-size:0.75rem;">{{ log.employee.first_name }} {{ log.employee.father_name }}</span>
+                </div>
+                <span class="text-[10px] text-gray-500 shrink-0">{{ log.day | panamaDate : 'shortDate' }}</span>
+              </div>
+              <!-- Row 2: Schedule + Alert -->
+              <div style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;">
+                <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold"
+                  [ngClass]="log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!] ? colorVariants[log.schedule!.schedule!.color!] : 'bg-neutral-700 text-gray-400'"
+                  [ngStyle]="log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!] ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!) : null"
+                >{{ log?.schedule?.schedule?.name || 'Sin horario' }}</span>
+                @if (log.alert) {
+                  <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
+                    [ngClass]="{'bg-red-500/20 text-red-400': log.alert === 'Falta' || log.alert === 'Aus. Injustificada', 'bg-yellow-500/20 text-yellow-400': log.alert === 'Feriado' || log.alert === 'Día Libre', 'bg-blue-500/20 text-blue-400': log.alert === 'Permiso' || log.alert === 'Justificada', 'bg-pink-500/20 text-pink-400': log.alert === 'Cert. Médico', 'bg-amber-500/20 text-amber-400': true}"
+                  >{{ log.alert }}</span>
+                }
+              </div>
+              <!-- Row 3: Entry/Exit times + Hours -->
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;gap:0.75rem;align-items:center;">
+                  <div class="flex flex-col items-center">
+                    <span class="text-[8px] text-gray-600 uppercase">Ent</span>
+                    <span class="text-[11px] font-semibold" [ngClass]="log.delay ? 'text-red-400' : 'text-green-400'">{{ log.entry?.date | panamaDate : 'hh:mm a' }}</span>
+                  </div>
+                  @if (log.lunch_start) {
+                  <div class="flex flex-col items-center">
+                    <span class="text-[8px] text-gray-600 uppercase">Alm</span>
+                    <span class="text-[11px] text-gray-400">{{ log.lunch_start?.date | panamaDate : 'hh:mm' }}-{{ log.lunch_end?.date | panamaDate : 'hh:mm' }}</span>
+                  </div>
+                  }
+                  <div class="flex flex-col items-center">
+                    <span class="text-[8px] text-gray-600 uppercase">Sal</span>
+                    <span class="text-[11px] font-semibold" [ngClass]="log.earlyExit ? 'text-red-400' : 'text-white'">{{ log.exit?.date | panamaDate : 'hh:mm a' }}</span>
+                  </div>
+                </div>
+                <div class="flex flex-col items-end">
+                  <span class="text-[8px] text-gray-600 uppercase">Horas</span>
+                  <span class="text-xs font-bold" [ngClass]="(log.totalHours ?? 0) >= 8 ? 'text-green-400' : (log.totalHours ?? 0) > 0 ? 'text-amber-400' : 'text-gray-600'">{{ log.totalHours ? formatHours(log.totalHours) : '-' }}</span>
+                </div>
+              </div>
+              <!-- Row 4: Tags (delay, lunch exceeded, overtime) -->
+              @if (log.delay || log.lunchExceeded || log.overtimeHours) {
+              <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+                @if (log.delay) {
+                  <span class="text-[9px] px-1.5 py-0.5 bg-red-500/15 text-red-400 rounded-full">Retraso {{ log.delay }}min</span>
+                }
+                @if (log.lunchExceeded && log.lunchMinutes) {
+                  <span class="text-[9px] px-1.5 py-0.5 bg-orange-500/15 text-orange-400 rounded-full">Almuerzo +{{ log.lunchMinutes - 60 }}min</span>
+                }
+                @if (log.overtimeHours) {
+                  <span class="text-[9px] px-1.5 py-0.5 bg-cyan-500/15 text-cyan-400 rounded-full">Extra {{ log.overtimeHours }}</span>
+                }
+              </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <!-- Desktop table view -->
+    <div class="hidden md:block overflow-x-auto">
       <p-table
         [value]="logs()"
         [rows]="isMobile() ? 10 : 25"

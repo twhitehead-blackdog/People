@@ -57,7 +57,7 @@ interface EmailConfig {
   ],
   providers: [MessageService],
   template: `
-    <div class="mx-4 md:mx-6 flex flex-col gap-4 py-6">
+    <div class="mx-3 md:mx-6 flex flex-col gap-3 md:gap-4 py-3 md:py-6">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-white">
           <i class="pi pi-cog mr-2"></i>

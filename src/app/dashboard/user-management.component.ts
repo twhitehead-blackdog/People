@@ -59,10 +59,10 @@ type ApprovalStatus = 'all' | 'pending' | 'approved' | 'rejected';
   template: `
     <p-toast />
     <p-confirmDialog />
-    <div class="mx-4 md:mx-6 flex flex-col gap-4 py-6">
+    <div class="mx-3 md:mx-6 flex flex-col gap-3 md:gap-4 py-3 md:py-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-white">
+          <h1 class="text-lg md:text-2xl font-bold text-white">
             <i class="pi pi-users mr-2"></i>
             Gestión de Usuarios
           </h1>
@@ -73,49 +73,49 @@ type ApprovalStatus = 'all' | 'pending' | 'approved' | 'rejected';
       </div>
 
       <!-- Estadísticas -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         <p-card>
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm text-gray-400 mb-1">Total Usuarios</div>
-              <div class="text-2xl font-bold text-white">
+              <div class="text-lg md:text-2xl font-bold text-white">
                 {{ totalUsers() }}
               </div>
             </div>
-            <i class="pi pi-users text-3xl text-blue-400"></i>
+            <i class="pi pi-users text-xl md:text-3xl text-blue-400"></i>
           </div>
         </p-card>
         <p-card>
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm text-gray-400 mb-1">Pendientes</div>
-              <div class="text-2xl font-bold text-yellow-400">
+              <div class="text-lg md:text-2xl font-bold text-yellow-400">
                 {{ pendingUsers() }}
               </div>
             </div>
-            <i class="pi pi-clock text-3xl text-yellow-400"></i>
+            <i class="pi pi-clock text-xl md:text-3xl text-yellow-400"></i>
           </div>
         </p-card>
         <p-card>
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm text-gray-400 mb-1">Aprobados</div>
-              <div class="text-2xl font-bold text-green-400">
+              <div class="text-lg md:text-2xl font-bold text-green-400">
                 {{ approvedUsers() }}
               </div>
             </div>
-            <i class="pi pi-check-circle text-3xl text-green-400"></i>
+            <i class="pi pi-check-circle text-xl md:text-3xl text-green-400"></i>
           </div>
         </p-card>
         <p-card>
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm text-gray-400 mb-1">Con Portal</div>
-              <div class="text-2xl font-bold text-purple-400">
+              <div class="text-lg md:text-2xl font-bold text-purple-400">
                 {{ portalUsers() }}
               </div>
             </div>
-            <i class="pi pi-id-card text-3xl text-purple-400"></i>
+            <i class="pi pi-id-card text-xl md:text-3xl text-purple-400"></i>
           </div>
         </p-card>
       </div>

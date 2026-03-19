@@ -135,6 +135,14 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'news',
+            canActivate: [modulePermissionGuard('admin', 'device_inventory')],
+            loadComponent: () =>
+              import('./news-management.component').then(
+                (x) => x.NewsManagementComponent
+              ),
+          },
+          {
             path: 'hr',
             canActivate: [modulePermissionGuard('hr')],
             children: [

@@ -53,7 +53,8 @@ function hasFrontendDashboardAccess(employee: Employee | undefined): boolean {
       modules['payroll']?.enabled ||
       modules['hr']?.enabled ||
       modules['performance']?.enabled ||
-      modules['services']?.enabled
+      modules['services']?.enabled ||
+      modules['compras']?.enabled
     );
   } catch {
     return false;

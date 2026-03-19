@@ -27,60 +27,100 @@ import { isManagerPosition } from './services/schedule-manager-rules';
   selector: 'pt-schedules',
   imports: [Card, TableModule, Button, TimePipe, NgClass, NgStyle],
   providers: [DynamicDialogRef, DialogService],
-  template: `<p-card>
+  template: `
+  @if (isMobile()) {
+  <!-- ===== MOBILE ===== -->
+  <div class="flex flex-col min-h-[60vh]">
+    <div class="mobile-section-header">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <span class="mobile-section-header__title">Horarios</span>
+        <span class="mobile-section-header__count">{{ schedules().length }}</span>
+      </div>
+      @if(dashboardStore.isAdmin() && !isBlockedManager()) {
+      <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.25rem;height:2.25rem;font-size:0.8rem;" (click)="editSchedule()" aria-label="Nuevo">
+        <i class="pi pi-plus"></i>
+      </button>
+      }
+    </div>
+    <main class="flex-1 overflow-y-auto px-3 py-3">
+      @if (schedules().length === 0) {
+        <div class="mobile-empty-state">
+          <i class="pi pi-calendar mobile-empty-state__icon"></i>
+          <p class="mobile-empty-state__title">No hay horarios</p>
+          <p class="mobile-empty-state__desc">Crea uno desde el botón superior</p>
+        </div>
+      } @else {
+        <div class="mobile-card-list pb-4">
+          @for (schedule of schedules(); track schedule.id) {
+            <div class="mobile-card-item" (click)="dashboardStore.isAdmin() && !isBlockedManager() ? editSchedule(schedule) : null">
+              <div style="display:flex;align-items:center;gap:0.6rem;flex:1;min-width:0;">
+                <span
+                  class="rounded-full h-8 w-8 flex items-center justify-center ring-2 ring-neutral-700 shrink-0"
+                  [ngClass]="colorVariants[schedule.color || ''] || ''"
+                  [ngStyle]="!colorVariants[schedule.color || ''] ? getScheduleColorInlineStyle(schedule.color ?? '') : null"
+                >
+                  @if(schedule.day_off) {
+                    <i class="pi pi-moon text-[10px]"></i>
+                  }
+                </span>
+                <div class="mobile-card-item__body">
+                  <div class="mobile-card-item__title">{{ schedule.name }}</div>
+                  <div class="mobile-card-item__subtitle">
+                    @if(schedule.day_off) {
+                      Día libre
+                    } @else {
+                      {{ $any(schedule.entry_time) | time }} — {{ $any(schedule.exit_time) | time }}
+                      <span style="color:rgba(255,255,255,0.25);margin:0 3px;">·</span>
+                      Toler. {{ schedule.minutes_tolerance }}min
+                    }
+                  </div>
+                </div>
+              </div>
+              @if(dashboardStore.isAdmin() && !isBlockedManager()) {
+              <i class="pi pi-chevron-right text-gray-600 flex-shrink-0 text-xs"></i>
+              }
+            </div>
+          }
+        </div>
+      }
+    </main>
+  </div>
+  } @else {
+  <!-- ===== DESKTOP ===== -->
+  <p-card>
     <ng-template #title>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+      <div class="flex items-center justify-between w-full gap-3">
         <div>
-          <h2 class="text-lg sm:text-xl font-semibold m-0">Horarios</h2>
-          <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
-            Listado de horarios y turnos disponibles
-          </p>
+          <h2 class="text-xl font-semibold m-0">Horarios</h2>
+          <p class="text-sm text-gray-400 m-0 mt-1">Listado de horarios y turnos disponibles</p>
         </div>
         <div class="flex gap-2">
           @if(dashboardStore.isAdmin() && !isBlockedManager()) {
-          <p-button
-            label="Nuevo"
-            icon="pi pi-plus-circle"
-            (onClick)="editSchedule()"
-            rounded
-            size="small"
-          />
+          <p-button label="Nuevo" icon="pi pi-plus-circle" (onClick)="editSchedule()" rounded size="small" />
           }
         </div>
       </div>
     </ng-template>
-    <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+    <div class="overflow-x-auto">
       <p-table
         [value]="schedules()"
-        [rows]="isMobile() ? 5 : 10"
+        [rows]="10"
         [rowsPerPageOptions]="[5, 10, 20, 50]"
         sortField="entry_time"
         paginator
         paginatorDropdownAppendTo="body"
-        responsiveLayout="scroll"
         [scrollable]="true"
         scrollHeight="calc(100vh - 350px)"
-        styleClass="min-w-[900px] md:min-w-full"
       >
         <ng-template #header>
           <tr>
             <th pSortableColumn="name" class="min-w-[120px]">Nombre<p-sortIcon field="name" /></th>
             <th class="min-w-[60px]">Color</th>
-            <th pSortableColumn="entry_time" class="min-w-[80px]">
-              Inicio<p-sortIcon field="entry_time" />
-            </th>
-            <th pSortableColumn="lunch_start_time" class="min-w-[100px] hidden sm:table-cell">
-              Inicio Alm.<p-sortIcon field="lunch_start_time" />
-            </th>
-            <th pSortableColumn="lunch_end_time" class="min-w-[100px] hidden sm:table-cell">
-              Fin Alm.<p-sortIcon field="lunch_end_time" />
-            </th>
-            <th pSortableColumn="exit_time" class="min-w-[80px]">
-              Fin<p-sortIcon field="exit_time" />
-            </th>
-            <th pSortableColumn="minutes_tolerance" class="min-w-[90px]">
-              Toler.<p-sortIcon field="minutes_tolerance" />
-            </th>
+            <th pSortableColumn="entry_time" class="min-w-[80px]">Inicio<p-sortIcon field="entry_time" /></th>
+            <th pSortableColumn="lunch_start_time" class="min-w-[100px]">Inicio Alm.<p-sortIcon field="lunch_start_time" /></th>
+            <th pSortableColumn="lunch_end_time" class="min-w-[100px]">Fin Alm.<p-sortIcon field="lunch_end_time" /></th>
+            <th pSortableColumn="exit_time" class="min-w-[80px]">Fin<p-sortIcon field="exit_time" /></th>
+            <th pSortableColumn="minutes_tolerance" class="min-w-[90px]">Toler.<p-sortIcon field="minutes_tolerance" /></th>
             <th class="min-w-[60px]">Libre</th>
             <th class="min-w-[100px]"></th>
           </tr>
@@ -89,40 +129,27 @@ import { isManagerPosition } from './services/schedule-manager-rules';
           <tr>
             <td class="font-medium">{{ schedule.name }}</td>
             <td>
-              <span
-                class="rounded-full h-7 w-7 flex items-center justify-center ring-2 ring-neutral-700 hover:ring-amber-400/50 transition-all"
-                [ngClass]="colorVariants[schedule.color] || ''"
-                [ngStyle]="
-                  !colorVariants[schedule.color]
-                    ? getScheduleColorInlineStyle(schedule.color)
-                    : null
-                "
-                ><i class="pi pi-check text-xs"></i
-              ></span>
+              <span class="rounded-full h-7 w-7 flex items-center justify-center ring-2 ring-neutral-700 hover:ring-amber-400/50 transition-all"
+                [ngClass]="colorVariants[schedule.color || ''] || ''"
+                [ngStyle]="!colorVariants[schedule.color || ''] ? getScheduleColorInlineStyle(schedule.color ?? '') : null"
+              ><i class="pi pi-check text-xs"></i></span>
             </td>
-            <td>{{ schedule.entry_time | time }}</td>
-            <td class="hidden sm:table-cell">{{ schedule.lunch_start_time | time }}</td>
-            <td class="hidden sm:table-cell">{{ schedule.lunch_end_time | time }}</td>
-            <td>{{ schedule.exit_time | time }}</td>
+            <td>{{ $any(schedule.entry_time) | time }}</td>
+            <td>{{ $any(schedule.lunch_start_time) | time }}</td>
+            <td>{{ $any(schedule.lunch_end_time) | time }}</td>
+            <td>{{ $any(schedule.exit_time) | time }}</td>
             <td>{{ schedule.minutes_tolerance }} min.</td>
             <td class="text-center">
               @if(schedule.day_off) {
               <i class="pi pi-check-circle text-green-400 text-lg"></i>
-              }@else {
+              } @else {
               <i class="pi pi-times-circle text-red-400 text-lg"></i>
               }
             </td>
             <td>
               @if(dashboardStore.isAdmin() && !isBlockedManager()) {
               <div class="flex gap-1 items-center">
-                <p-button
-                  severity="success"
-                  icon="pi pi-pen-to-square"
-                  text
-                  rounded
-                  size="small"
-                  (onClick)="editSchedule(schedule)"
-                />
+                <p-button severity="success" icon="pi pi-pen-to-square" text rounded size="small" (onClick)="editSchedule(schedule)" />
                 <p-button severity="danger" icon="pi pi-trash" text rounded size="small" />
               </div>
               }
@@ -131,7 +158,8 @@ import { isManagerPosition } from './services/schedule-manager-rules';
         </ng-template>
       </p-table>
     </div>
-  </p-card>`,
+  </p-card>
+  }`,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

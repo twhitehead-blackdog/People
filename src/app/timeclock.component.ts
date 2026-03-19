@@ -53,6 +53,7 @@ import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
+import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import {
   initAudioContext,
   playFailureSound,
@@ -82,6 +83,7 @@ import {
     ConfirmDialogModule,
     TrimPipe,
     NgClass,
+    NewsTickerComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
@@ -240,6 +242,7 @@ import {
           style="max-width: 90%; height: auto;"
         />
         }
+        <pt-news-ticker class="w-full max-w-lg" [variant]="isKioskMode() ? 'kiosk' : 'default'" />
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
             <div class="flex flex-col items-center py-1">

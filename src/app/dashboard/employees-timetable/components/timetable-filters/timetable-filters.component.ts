@@ -9,14 +9,14 @@ import { Branch, Position } from '../../../../models';
   standalone: true,
   imports: [FormsModule, InputText, Select],
   template: `
-    <div class="flex xl:flex-row flex-col gap-2 mb-2">
+    <div class="flex xl:flex-row flex-col gap-1.5 md:gap-2 mb-2">
       <input
         pInputText
         type="text"
         [ngModel]="employeeSearch()()"
         (ngModelChange)="employeeSearch().set($event)"
         placeholder="Buscar empleado por nombre..."
-        class="w-full xl:w-auto flex-1 text-sm"
+        class="w-full xl:w-auto flex-1 text-xs md:text-sm"
       />
       <p-select
         fluid

@@ -312,7 +312,8 @@ type ManagementCard = {
             />
           </div>
 
-          <!-- Banner del empleado seleccionado -->
+          <!-- Banner del empleado seleccionado (oculto para supply_request que tiene su propio banner) -->
+          @if (selectedGestionType() !== 'supply_request') {
           <div
             class="bg-gradient-to-r from-cyan-500/10 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4"
           >
@@ -341,6 +342,7 @@ type ManagementCard = {
               }
             </div>
           </div>
+          }
 
           <!-- Formularios específicos según el tipo de gestión -->
           @if (selectedGestionType() === 'compensatory') {
@@ -1741,6 +1743,11 @@ export class BranchManagerGestionesComponent {
   }
 
   public backToEmployeeSelection(): void {
+    // For supply_request there is no employee picker — go all the way back
+    if (this.selectedGestionType() === 'supply_request') {
+      this.reset();
+      return;
+    }
     this.selectedEmployee.set(null);
   }
 

@@ -160,7 +160,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
                     <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
                     <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
-                    <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-desktop"></i>Dispositivos</a>
+                    <a (click)="navigateAbsolute('admin/news'); closeDropdown()" class="dd-item"><i class="pi pi-megaphone"></i>Noticias</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
@@ -170,9 +170,13 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     }
                     <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Tiempo</a>
                     <a (click)="navigateAbsolute('admin/hr/disabilities'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Solicitudes RRHH</a>
-                    <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list"></i>Auditoría</a>
-                    <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance</a>
                     <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
+                  </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Auditoría</span>
+                    <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list-check"></i>Tareas de Auditoría</a>
+                    <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance 360</a>
                   </div>
                   @if(canAccessCompras()) {
                   <div class="dd-col-sep"></div>
@@ -1239,6 +1243,11 @@ export class DashboardComponent {
   public isLiveActive = computed(() => {
     const route = this.currentRoute();
     return route === 'live';
+  });
+
+  public isComprasActive = computed(() => {
+    const url = this.router.url;
+    return url.includes('/admin/compras');
   });
 
   public activeDropdown = signal<string | null>(null);
