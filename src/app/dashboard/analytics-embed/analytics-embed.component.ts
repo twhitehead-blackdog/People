@@ -24,9 +24,9 @@ const ANALYTICS_PAGES: AnalyticsPage[] = [
   selector: 'pt-analytics-embed',
   standalone: true,
   template: `
-    <div class="flex h-full">
+    <div class="flex w-full" style="height: calc(100dvh - 56px)">
       <!-- Sidebar -->
-      <aside class="w-44 bg-neutral-900 border-r border-neutral-800 flex flex-col py-3 gap-1 shrink-0">
+      <aside class="w-44 bg-neutral-900 border-r border-neutral-800 flex flex-col py-3 gap-1 shrink-0 overflow-y-auto">
         @for (page of pages; track page.id) {
           <button
             (click)="selectPage(page.id)"
@@ -42,20 +42,17 @@ const ANALYTICS_PAGES: AnalyticsPage[] = [
           </button>
         }
       </aside>
-      <!-- Iframe -->
+      <!-- Iframe fills remaining width -->
       <iframe
         [src]="iframeUrl()"
-        class="flex-1 border-none"
-        style="height: 100%"
+        class="flex-1 border-none block"
+        style="width: 100%; height: 100%"
         frameborder="0"
       ></iframe>
     </div>
   `,
   styles: [`
-    :host {
-      display: flex;
-      height: 100%;
-    }
+    :host { display: block; width: 100%; }
   `]
 })
 export class AnalyticsEmbedComponent {

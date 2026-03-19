@@ -139,24 +139,39 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                 <i class="pi pi-building"></i><span>Administración</span><i class="pi pi-chevron-down nav-caret"></i>
               </a>
               @if(activeDropdown() === 'admin') {
-              <div class="dd-menu dd-grid">
-                <div class="dd-menu-inner">
-                  <a (click)="navigateAbsolute('admin/employees'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Empleados</a>
-                  <a (click)="navigateAbsolute('admin/organigrama'); closeDropdown()" class="dd-item"><i class="pi pi-sitemap"></i>Organigrama</a>
-                  <a (click)="navigateAbsolute('admin/companies'); closeDropdown()" class="dd-item"><i class="pi pi-briefcase"></i>Empresas</a>
-                  <a (click)="navigateAbsolute('admin/departments'); closeDropdown()" class="dd-item"><i class="pi pi-table"></i>Departamentos</a>
-                  <a (click)="navigateAbsolute('admin/positions'); closeDropdown()" class="dd-item"><i class="pi pi-tag"></i>Puestos</a>
-                  <a (click)="navigateAbsolute('admin/branches'); closeDropdown()" class="dd-item"><i class="pi pi-map-marker"></i>Sucursales</a>
-                  <a (click)="navigateAbsolute('admin/settings'); closeDropdown()" class="dd-item"><i class="pi pi-cog"></i>Ajustes</a>
-                  <a (click)="navigateAbsolute('admin/user-management'); closeDropdown()" class="dd-item"><i class="pi pi-user-edit"></i>Usuarios</a>
-                  <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
-                  <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
-                  <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
-                  <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-desktop"></i>Dispositivos</a>
-                  <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>RRHH Tiempo</a>
-                  <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list"></i>Auditoría</a>
-                  <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance</a>
-                  <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
+              <div class="dd-menu">
+                <div class="dd-menu-inner dd-cols">
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Personas</span>
+                    <a (click)="navigateAbsolute('admin/employees'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Empleados</a>
+                    <a (click)="navigateAbsolute('admin/organigrama'); closeDropdown()" class="dd-item"><i class="pi pi-sitemap"></i>Organigrama</a>
+                  </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Estructura</span>
+                    <a (click)="navigateAbsolute('admin/companies'); closeDropdown()" class="dd-item"><i class="pi pi-briefcase"></i>Empresas</a>
+                    <a (click)="navigateAbsolute('admin/departments'); closeDropdown()" class="dd-item"><i class="pi pi-table"></i>Departamentos</a>
+                    <a (click)="navigateAbsolute('admin/positions'); closeDropdown()" class="dd-item"><i class="pi pi-tag"></i>Puestos</a>
+                    <a (click)="navigateAbsolute('admin/branches'); closeDropdown()" class="dd-item"><i class="pi pi-map-marker"></i>Sucursales</a>
+                  </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Sistema</span>
+                    <a (click)="navigateAbsolute('admin/settings'); closeDropdown()" class="dd-item"><i class="pi pi-cog"></i>Ajustes</a>
+                    <a (click)="navigateAbsolute('admin/user-management'); closeDropdown()" class="dd-item"><i class="pi pi-user-edit"></i>Usuarios</a>
+                    <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
+                    <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
+                    <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
+                    <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-desktop"></i>Dispositivos</a>
+                  </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">RRHH</span>
+                    <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Tiempo</a>
+                    <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list"></i>Auditoría</a>
+                    <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance</a>
+                    <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
+                  </div>
                 </div>
               </div>
               }
@@ -169,14 +184,21 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               </a>
               @if(activeDropdown() === 'payroll') {
               <div class="dd-menu">
-                <div class="dd-menu-inner">
-                  <a (click)="navigateAbsolute('payroll/payrolls'); closeDropdown()" class="dd-item"><i class="pi pi-money-bill"></i>Planillas</a>
-                  <a (click)="navigateAbsolute('payroll/creditors'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Acreedores</a>
-                  <a (click)="navigateAbsolute('payroll/banks'); closeDropdown()" class="dd-item"><i class="pi pi-building"></i>Bancos</a>
-                  <a (click)="navigateAbsolute('payroll/decimo'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Décimo</a>
-                  <a (click)="navigateAbsolute('payroll/vacations'); closeDropdown()" class="dd-item"><i class="pi pi-sun"></i>Vacaciones</a>
-                  <a (click)="navigateAbsolute('payroll/liquidation'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Liquidación</a>
-                  <a (click)="navigateAbsolute('payroll/import'); closeDropdown()" class="dd-item"><i class="pi pi-upload"></i>Importar</a>
+                <div class="dd-menu-inner dd-cols">
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Nóminas</span>
+                    <a (click)="navigateAbsolute('payroll/payrolls'); closeDropdown()" class="dd-item"><i class="pi pi-money-bill"></i>Planillas</a>
+                    <a (click)="navigateAbsolute('payroll/decimo'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Décimo</a>
+                    <a (click)="navigateAbsolute('payroll/vacations'); closeDropdown()" class="dd-item"><i class="pi pi-sun"></i>Vacaciones</a>
+                    <a (click)="navigateAbsolute('payroll/liquidation'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Liquidación</a>
+                  </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Configuración</span>
+                    <a (click)="navigateAbsolute('payroll/creditors'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Acreedores</a>
+                    <a (click)="navigateAbsolute('payroll/banks'); closeDropdown()" class="dd-item"><i class="pi pi-building"></i>Bancos</a>
+                    <a (click)="navigateAbsolute('payroll/import'); closeDropdown()" class="dd-item"><i class="pi pi-upload"></i>Importar</a>
+                  </div>
                 </div>
               </div>
               }
@@ -189,13 +211,20 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               </a>
               @if(activeDropdown() === 'time') {
               <div class="dd-menu">
-                <div class="dd-menu-inner">
-                  <a (click)="navigateAbsolute('time-management/timelogs'); closeDropdown()" class="dd-item"><i class="pi pi-clock"></i>Registros</a>
-                  <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Horarios</a>
-                  <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>Calendarios</a>
-                  <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Horario Vet</a>
-                  <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Horario Salón</a>
-                  <a (click)="navigateAbsolute('time-management/shifts'); closeDropdown()" class="dd-item"><i class="pi pi-sliders-h"></i>Turnos</a>
+                <div class="dd-menu-inner dd-cols">
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Seguimiento</span>
+                    <a (click)="navigateAbsolute('time-management/timelogs'); closeDropdown()" class="dd-item"><i class="pi pi-clock"></i>Registros</a>
+                    <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Horarios</a>
+                    <a (click)="navigateAbsolute('time-management/shifts'); closeDropdown()" class="dd-item"><i class="pi pi-sliders-h"></i>Turnos</a>
+                  </div>
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Calendarios</span>
+                    <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>General</a>
+                    <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Veterinaria</a>
+                    <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Salón</a>
+                  </div>
                 </div>
               </div>
               }
@@ -503,6 +532,19 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
       .dd-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
       .dd-item:hover i { opacity: 0.8; }
       .dd-active { color: #fbbf24 !important; }
+      /* ── Dropdown column groups ── */
+      .dd-cols { display: flex; align-items: flex-start; gap: 0; }
+      .dd-col-group { display: flex; flex-direction: column; min-width: 130px; padding: 4px; }
+      .dd-col-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: rgba(255,255,255,0.22);
+        padding: 5px 10px 3px;
+        white-space: nowrap;
+      }
+      .dd-col-sep { width: 1px; background: rgba(255,255,255,0.06); margin: 6px 0; align-self: stretch; }
       
       ::ng-deep .p-menu {
         border-radius: 0.5rem !important;
