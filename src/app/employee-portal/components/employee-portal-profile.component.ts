@@ -6,6 +6,7 @@ import { Card } from 'primeng/card';
 import { InputText } from 'primeng/inputtext';
 import { Employee } from '../../models';
 import { DeviceService } from '../../services/device.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'pt-employee-portal-profile',
@@ -334,6 +335,61 @@ import { DeviceService } from '../../services/device.service';
           </button>
         </div>
       </p-card>
+
+      <!-- Tema de la Aplicación Card -->
+      <p-card class="shadow-lg border border-neutral-700/50">
+        <ng-template #title>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-palette text-lg text-amber-400"></i>
+            <h4 class="text-base font-bold text-white m-0">Tema de la Aplicación</h4>
+          </div>
+        </ng-template>
+        <div class="flex flex-col gap-3">
+          <p class="text-sm text-gray-400 m-0">Escoge cómo quieres que se vea People.</p>
+          <div class="flex gap-3">
+            <button
+              class="theme-option"
+              [ngClass]="themeService.isDark() ? 'theme-option--active' : ''"
+              (click)="themeService.setTheme('dark')"
+            >
+              <div class="theme-preview theme-preview--dark">
+                <div class="theme-preview__bar"></div>
+                <div class="theme-preview__body">
+                  <div class="theme-preview__sidebar"></div>
+                  <div class="theme-preview__content">
+                    <div class="theme-preview__line"></div>
+                    <div class="theme-preview__line short"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 mt-2">
+                <i class="pi pi-moon text-sm"></i>
+                <span class="text-sm font-medium">Oscuro</span>
+              </div>
+            </button>
+            <button
+              class="theme-option"
+              [ngClass]="themeService.isLight() ? 'theme-option--active' : ''"
+              (click)="themeService.setTheme('light')"
+            >
+              <div class="theme-preview theme-preview--light">
+                <div class="theme-preview__bar"></div>
+                <div class="theme-preview__body">
+                  <div class="theme-preview__sidebar"></div>
+                  <div class="theme-preview__content">
+                    <div class="theme-preview__line"></div>
+                    <div class="theme-preview__line short"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 mt-2">
+                <i class="pi pi-sun text-sm"></i>
+                <span class="text-sm font-medium">Claro</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </p-card>
     </div>
 
     } @else {
@@ -546,6 +602,61 @@ import { DeviceService } from '../../services/device.service';
           </div>
         </div>
       </div>
+
+      <!-- Tema (mobile) -->
+      <div class="bg-neutral-800/60 rounded-xl border border-neutral-700/30 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 py-2.5 border-b border-neutral-700/30">
+          <i class="pi pi-palette text-amber-400 text-sm"></i>
+          <span class="text-sm font-semibold text-white">Tema</span>
+        </div>
+        <div class="p-3">
+          <p class="text-xs text-gray-400 m-0 mb-2">Escoge cómo quieres que se vea People.</p>
+          <div class="flex gap-3">
+            <button
+              class="theme-option flex-1"
+              [ngClass]="themeService.isDark() ? 'theme-option--active' : ''"
+              (click)="themeService.setTheme('dark')"
+              style="-webkit-tap-highlight-color: transparent;"
+            >
+              <div class="theme-preview theme-preview--dark">
+                <div class="theme-preview__bar"></div>
+                <div class="theme-preview__body">
+                  <div class="theme-preview__sidebar"></div>
+                  <div class="theme-preview__content">
+                    <div class="theme-preview__line"></div>
+                    <div class="theme-preview__line short"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center justify-center gap-1.5 mt-1.5">
+                <i class="pi pi-moon text-xs"></i>
+                <span class="text-xs font-medium">Oscuro</span>
+              </div>
+            </button>
+            <button
+              class="theme-option flex-1"
+              [ngClass]="themeService.isLight() ? 'theme-option--active' : ''"
+              (click)="themeService.setTheme('light')"
+              style="-webkit-tap-highlight-color: transparent;"
+            >
+              <div class="theme-preview theme-preview--light">
+                <div class="theme-preview__bar"></div>
+                <div class="theme-preview__body">
+                  <div class="theme-preview__sidebar"></div>
+                  <div class="theme-preview__content">
+                    <div class="theme-preview__line"></div>
+                    <div class="theme-preview__line short"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center justify-center gap-1.5 mt-1.5">
+                <i class="pi pi-sun text-xs"></i>
+                <span class="text-xs font-medium">Claro</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
     }
   `,
@@ -575,11 +686,109 @@ import { DeviceService } from '../../services/device.service';
     }
     .push-toggle__thumb--on { left: 23px; }
     .push-toggle__thumb--off { left: 3px; }
+
+    /* Theme option buttons */
+    .theme-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: rgba(255,255,255,0.7);
+    }
+    .theme-option:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .theme-option--active {
+      border-color: #fbbf24 !important;
+      background: rgba(251,191,36,0.08) !important;
+      color: #fbbf24 !important;
+    }
+
+    /* Mini preview mockups */
+    .theme-preview {
+      width: 100px;
+      height: 64px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .theme-preview--dark {
+      background: #0a0a0a;
+    }
+    .theme-preview--dark .theme-preview__bar {
+      height: 10px;
+      background: #1a1a1a;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .theme-preview--dark .theme-preview__body {
+      display: flex;
+      height: calc(100% - 10px);
+    }
+    .theme-preview--dark .theme-preview__sidebar {
+      width: 22px;
+      background: #141414;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .theme-preview--dark .theme-preview__content {
+      flex: 1;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .theme-preview--dark .theme-preview__line {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.1);
+    }
+    .theme-preview--dark .theme-preview__line.short {
+      width: 60%;
+    }
+
+    .theme-preview--light {
+      background: #f5f5f5;
+      border-color: rgba(0,0,0,0.15);
+    }
+    .theme-preview--light .theme-preview__bar {
+      height: 10px;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .theme-preview--light .theme-preview__body {
+      display: flex;
+      height: calc(100% - 10px);
+    }
+    .theme-preview--light .theme-preview__sidebar {
+      width: 22px;
+      background: #ffffff;
+      border-right: 1px solid rgba(0,0,0,0.08);
+    }
+    .theme-preview--light .theme-preview__content {
+      flex: 1;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .theme-preview--light .theme-preview__line {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.12);
+    }
+    .theme-preview--light .theme-preview__line.short {
+      width: 60%;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeePortalProfileComponent {
   protected device = inject(DeviceService);
+  public themeService = inject(ThemeService);
   // Inputs
   public employee = input<Employee | null | undefined>();
   public editMode = input.required<boolean>();

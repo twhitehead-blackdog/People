@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <script>
       // Desregistrar service workers viejos para evitar cache stale
@@ -141,7 +141,14 @@
     <title>People | Registro de Empleados</title>
     <base href="/" />
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#0a0a0a" id="theme-color-meta" />
+    <script>
+      // Update theme-color meta based on saved theme
+      try {
+        var t = localStorage.getItem('app_theme');
+        if (t === 'light') document.getElementById('theme-color-meta').content = '#ffffff';
+      } catch(e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="People" />
@@ -179,18 +186,17 @@
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap" /></noscript>
     <script>
-      // Forzar modo oscuro siempre
-      document.documentElement.classList.add('dark');
-      // Prevenir cambios de tema
-      if (window.matchMedia) {
-        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-        darkModeMediaQuery.addEventListener('change', () => {
-          document.documentElement.classList.add('dark');
-        });
-      }
+      // Aplicar tema guardado o usar dark como default
+      (function() {
+        var saved = 'dark';
+        try { saved = localStorage.getItem('app_theme') || 'dark'; } catch(e) {}
+        document.documentElement.classList.remove('dark', 'light');
+        document.documentElement.classList.add(saved);
+        document.documentElement.style.colorScheme = saved;
+      })();
     </script>
   </head>
-  <body class="dark">
+  <body>
     <pt-root>
       <style>
         /* Portal skeleton */
