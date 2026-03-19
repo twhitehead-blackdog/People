@@ -13,13 +13,8 @@ import { OrganizationService } from '../services/organization.service';
   standalone: true,
   imports: [RouterOutlet, NgClass],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
-    <main
-      class="min-h-screen dark:bg-neutral-900"
-      [ngClass]="{ 'naz-main': isNaz() }"
-    >
-      <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <router-outlet />
-      </div>
+    <main [ngClass]="{ 'naz-main': isNaz() }" style="min-height: calc(100dvh - 52px - 68px)">
+      <router-outlet />
     </main>
   </div>`,
   styles: `

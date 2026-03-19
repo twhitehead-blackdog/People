@@ -10,6 +10,11 @@ export interface DocumentRequestMetadata {
   item_type?: string;
   size?: string;
   quantity?: number;
+  current_quantity?: number;
+  // For supply_request
+  area?: string;
+  supply_description?: string;
+  supply_reason?: string;
 }
 
 export interface DocumentRequest {

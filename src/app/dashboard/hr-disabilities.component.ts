@@ -31,7 +31,6 @@ import { DocumentRequestsService } from './modules/document-requests/data/docume
 import { DeviceService } from '../services/device.service';
 import { DocumentRequestsComponent } from './modules/document-requests/ui/document-requests.component';
 import { TimelogCorrectionsComponent } from './modules/timelog-corrections/ui/timelog-corrections.component';
-import { UniformRequestsComponent } from './modules/uniform-requests/ui/uniform-requests.component';
 import { WorkPermitsComponent } from './modules/work-permits/ui/work-permits.component';
 import { WorkPermitsService } from './modules/work-permits/data/work-permits.service';
 import { VacationsService } from './modules/vacations/data/vacations.service';
@@ -75,7 +74,6 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
     DocumentRequestsComponent,
     VacationsComponent,
     TimelogCorrectionsComponent,
-    UniformRequestsComponent,
     WorkPermitsComponent,
     DisabilitiesTabComponent,
     CompensatoryTabComponent,
@@ -290,24 +288,6 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
               }
             </button>
             <button
-              (click)="navigateToTab('uniform_request')"
-              [class]="
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
-                (activeTab() === 'uniform_request'
-                  ? 'bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-300 shadow-md border border-teal-400/30'
-                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
-              "
-            >
-              <i class="pi pi-tag mr-1.5 text-xs"></i>
-              Uniformes @if (uniformRequestPendingCount() > 0) {
-              <span
-                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
-              >
-                {{ uniformRequestPendingCount() }}
-              </span>
-              }
-            </button>
-            <button
               (click)="navigateToTab('work_permits')"
               [class]="
                 'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
@@ -358,9 +338,6 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
         } @if (activeTab() === 'timelog_correction') {
         <!-- Dashboard de Omisión de Marcación -->
         <pt-timelog-corrections />
-        } @if (activeTab() === 'uniform_request') {
-        <!-- Dashboard de Solicitudes de Uniformes -->
-        <pt-uniform-requests />
         } @if (activeTab() === 'work_permits') {
         <!-- Dashboard de Permisos de Trabajo -->
         <pt-work-permits />
@@ -402,9 +379,6 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
           <button (click)="navigateToTab('timelog_correction')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'timelog_correction' ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' : 'text-gray-400 bg-neutral-700/30')">
             <i class="pi pi-exclamation-triangle mr-1 text-xs"></i>Marcación
           </button>
-          <button (click)="navigateToTab('uniform_request')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'uniform_request' ? 'bg-teal-500/20 text-teal-300 border border-teal-400/30' : 'text-gray-400 bg-neutral-700/30')">
-            <i class="pi pi-tag mr-1 text-xs"></i>Uniformes
-          </button>
           <button (click)="navigateToTab('work_permits')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'work_permits' ? 'bg-violet-500/20 text-violet-300 border border-violet-400/30' : 'text-gray-400 bg-neutral-700/30')">
             <i class="pi pi-id-card mr-1 text-xs"></i>Permisos @if (workPermitsPendingCount() > 0) { <span class="ml-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{{ workPermitsPendingCount() }}</span> }
           </button>
@@ -439,7 +413,6 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
           @if (activeTab() === 'documents') { <pt-document-requests /> }
           @if (activeTab() === 'vacations') { <pt-vacations /> }
           @if (activeTab() === 'timelog_correction') { <pt-timelog-corrections /> }
-          @if (activeTab() === 'uniform_request') { <pt-uniform-requests /> }
           @if (activeTab() === 'work_permits') { <pt-work-permits /> }
         </main>
       </div>
@@ -668,7 +641,6 @@ export class HRDisabilitiesComponent {
       | 'documents'
       | 'vacations'
       | 'timelog_correction'
-      | 'uniform_request'
       | 'work_permits'
   ): void {
     this.activeTab.set(tab);
@@ -681,7 +653,6 @@ export class HRDisabilitiesComponent {
     | 'vacations'
     | 'suggestions'
     | 'timelog_correction'
-    | 'uniform_request'
     | 'work_permits'
   >('disabilities');
   public globalSearchText = signal('');
@@ -927,7 +898,8 @@ export class HRDisabilitiesComponent {
           (d) =>
             d.status === 'pending' &&
             d.document_type !== 'timelog_correction' &&
-            d.document_type !== 'uniform_request'
+            d.document_type !== 'uniform_request' &&
+            d.document_type !== 'supply_request'
         ).length || 0
   );
 
@@ -938,15 +910,6 @@ export class HRDisabilitiesComponent {
         .filter(
           (d) =>
             d.status === 'pending' && d.document_type === 'timelog_correction'
-        ).length || 0
-  );
-
-  public uniformRequestPendingCount = computed(
-    () =>
-      this.documentRequestsService
-        .value()
-        .filter(
-          (d) => d.status === 'pending' && d.document_type === 'uniform_request'
         ).length || 0
   );
 

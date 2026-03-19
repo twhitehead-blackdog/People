@@ -353,11 +353,20 @@ import {
                 />
                 <button
                   type="button"
-                  class="paste-btn md:hidden"
+                  class="paste-btn flex md:hidden"
                   (click)="pasteFromClipboard()"
                   title="Pegar código"
                 >
                   <i class="pi pi-clipboard"></i>
+                </button>
+                <!-- Desktop: on-screen keyboard toggle -->
+                <button
+                  type="button"
+                  class="paste-btn hidden md:flex"
+                  (click)="toggleKeypad()"
+                  [title]="showKeypadPanel() ? 'Ocultar teclado' : 'Teclado en pantalla'"
+                >
+                  <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-times' : 'pi-th-large'"></i>
                 </button>
               </div>
 
@@ -1260,7 +1269,6 @@ import {
 
     /* Paste button */
     .paste-btn {
-      display: flex;
       align-items: center;
       justify-content: center;
       width: 40px;

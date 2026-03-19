@@ -158,6 +158,14 @@ export const DASHBOARD_ROUTES: Routes = [
             ],
           },
           {
+            path: 'compras',
+            canActivate: [modulePermissionGuard('compras', 'compras_dashboard')],
+            loadComponent: () =>
+              import('./compras-dashboard.component').then(
+                (x) => x.ComprasDashboardComponent
+              ),
+          },
+          {
             path: 'audit-tasks',
             canActivate: [modulePermissionGuard('admin', 'audit_tasks')],
             loadComponent: () =>
@@ -242,12 +250,7 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.SalonScheduleComponent
               ),
           },
-          {
-            path: 'shifts',
-            canActivate: [modulePermissionGuard('time_management', 'shifts')],
-            loadComponent: () =>
-              import('./shifts.component').then((x) => x.ShiftsComponent),
-          },
+
           {
             path: 'hub',
             data: { module: 'time-management' },
@@ -416,7 +419,7 @@ export const DASHBOARD_ROUTES: Routes = [
           import('./analytics-embed/analytics-embed.component').then(
             (x) => x.AnalyticsEmbedComponent
           ),
-        canActivate: [employeePortalGuard, modulePermissionGuard('services', 'analytics_access')],
+        canActivate: [modulePermissionGuard('services', 'analytics_access')],
       },
       {
         path: 'live',

@@ -11,9 +11,7 @@ import { OrganizationService } from '../services/organization.service';
   providers: [PayrollStore, CreditorsStore],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
     <main class="bg-neutral-900 min-h-screen" [ngClass]="{ 'naz-main': isNaz() }">
-      <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <router-outlet />
-      </div>
+      <router-outlet />
     </main>
   </div>`,
   styles: `

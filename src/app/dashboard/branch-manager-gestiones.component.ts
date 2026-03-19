@@ -46,6 +46,7 @@ import {
   getRequestTypeSeverity,
   getSeverityColor,
 } from './request.helpers';
+import { SupplyGestionFormComponent } from './gestiones-forms/supply-gestion-form.component';
 
 type ManagementCard = {
   id: string;
@@ -60,6 +61,7 @@ type ManagementCard = {
     | 'compensatory'
     | 'timelog_correction'
     | 'uniform_request'
+    | 'supply_request'
     | 'work_permit';
 };
 
@@ -80,6 +82,7 @@ type ManagementCard = {
     EmployeePortalCompensatoryComponent,
     TutorialStepDirective,
     TutorialSpotlightComponent,
+    SupplyGestionFormComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -1126,6 +1129,15 @@ type ManagementCard = {
               />
             </div>
           </div>
+          } @if (selectedGestionType() === 'supply_request') {
+          @if (currentEmployee) {
+          <pt-supply-gestion-form
+            [currentEmployee]="currentEmployee"
+            [currentBranch]="currentBranch ?? null"
+            (requestCreated)="onSupplyRequestCreated()"
+            (close)="reset()"
+          />
+          }
           } @if (selectedGestionType() === 'work_permit') {
           <div class="space-y-5">
             <!-- Paso 1: Tipo de Permiso -->
@@ -1346,6 +1358,7 @@ export class BranchManagerGestionesComponent {
     | 'compensatory'
     | 'timelog_correction'
     | 'uniform_request'
+    | 'supply_request'
     | 'work_permit'
     | null
   >(null);
@@ -1588,6 +1601,14 @@ export class BranchManagerGestionesComponent {
       section: 'uniform_request',
     },
     {
+      id: 'supply_request',
+      label: 'Solicitud de Insumo',
+      description: 'Solicitar insumos para la sucursal',
+      icon: 'pi-box',
+      colorClass: 'bg-amber-500/20 text-amber-400',
+      section: 'supply_request',
+    },
+    {
       id: 'documents',
       label: 'Documentos',
       description: 'Solicitar cartas laborales y certificados',
@@ -1620,6 +1641,7 @@ export class BranchManagerGestionesComponent {
       | 'compensatory'
       | 'timelog_correction'
       | 'uniform_request'
+      | 'supply_request'
       | 'work_permit'
   ): void {
     // Check if we're in the intro tutorial before changing state
@@ -1628,6 +1650,11 @@ export class BranchManagerGestionesComponent {
       this.tutorialService.currentConfig()?.id === 'gestiones-intro';
 
     this.selectedGestionType.set(type);
+
+    // Supply request: skip employee picker, use branch manager as requester
+    if (type === 'supply_request' && this.currentEmployee) {
+      this.selectedEmployee.set(this.currentEmployee as Employee);
+    }
 
     // If intro tutorial was active, start the specific tutorial for this gestión
     if (wasInIntroTutorial && GESTIONES_TUTORIALS[type]) {
@@ -2650,6 +2677,11 @@ export class BranchManagerGestionesComponent {
     } finally {
       this.submittingWorkPermit.set(false);
     }
+  }
+
+  public onSupplyRequestCreated(): void {
+    this.requestCreated.emit();
+    this.reset();
   }
 
   // Opciones para documentos

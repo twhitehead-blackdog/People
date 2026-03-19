@@ -18,9 +18,7 @@ import { PermissionsService } from '../services/permissions.service';
       class="bg-neutral-900 min-h-screen"
       [ngClass]="{ 'naz-main': isNaz() }"
     >
-      <div class="mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:px-8">
-        <router-outlet />
-      </div>
+      <router-outlet />
     </main>
   </div>`,
   styles: `
@@ -43,7 +41,6 @@ export class TimeManagementComponent {
     schedules: this.permissionsService.canAccessSubModule('time_management', 'schedules'),
     vet_schedule: this.permissionsService.canAccessSubModule('time_management', 'vet_schedule'),
     salon_schedule: this.permissionsService.canAccessSubModule('time_management', 'salon_schedule'),
-    shifts: this.permissionsService.canAccessSubModule('time_management', 'shifts'),
   }));
 
   // Redirigir al primer sub-módulo disponible cuando la URL es exactamente /time-management
@@ -53,7 +50,6 @@ export class TimeManagementComponent {
     if (url === '/time-management' || url === '/time-management/') {
       const subModuleRoutes: { key: keyof typeof subs; route: string }[] = [
         { key: 'timetables', route: 'timetables' },
-        { key: 'shifts', route: 'shifts' },
         { key: 'schedules', route: 'schedules' },
         { key: 'timelogs', route: 'timelogs' },
         { key: 'vet_schedule', route: 'vet-schedule' },

@@ -69,7 +69,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'schedules', label: 'Programaciones', description: 'Programaciones de turnos', icon: 'pi pi-calendar-plus', route: 'schedules' },
       { id: 'vet_schedule', label: 'Horario Veterinaria', description: 'Horarios específicos de veterinaria', icon: 'pi pi-calendar-clock', route: 'vet-schedule' },
       { id: 'salon_schedule', label: 'Horario Peluquería', description: 'Horarios específicos de peluquería', icon: 'pi pi-calendar-clock', route: 'salon-schedule' },
-      { id: 'shifts', label: 'Turnos', description: 'Gestión de turnos de trabajo', icon: 'pi pi-sort', route: 'shifts' },
+
     ],
   },
   {
@@ -96,6 +96,16 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'hr_time_dashboard', label: 'Dashboard de Tiempo', description: 'Panel de control de asistencia', icon: 'pi pi-chart-bar', route: 'time-dashboard' },
       { id: 'hr_disabilities', label: 'Incapacidades', description: 'Gestión de incapacidades', icon: 'pi pi-file-o', route: 'disabilities' },
       { id: 'hr_surveys', label: 'Encuestas', description: 'Gestión de encuestas de RRHH', icon: 'pi pi-chart-bar', route: 'surveys' },
+    ],
+  },
+  {
+    id: 'compras',
+    label: 'Compras',
+    description: 'Gestión de compras, insumos y uniformes',
+    icon: 'pi pi-shopping-cart',
+    route: '/admin/compras',
+    subModules: [
+      { id: 'compras_dashboard', label: 'Dashboard de Compras', description: 'Panel de aprobación de compras', icon: 'pi pi-shopping-cart', route: '' },
     ],
   },
   {

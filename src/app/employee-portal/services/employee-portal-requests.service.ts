@@ -297,6 +297,7 @@ export class EmployeePortalRequestsService {
       salary_certificate: 'Certificado de Salario',
       employment_certificate: 'Certificado de Empleo',
       other: 'Otro',
+      supply_request: 'Solicitud de Insumo',
     };
     return labels[type] || type;
   }

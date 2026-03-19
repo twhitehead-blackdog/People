@@ -26,7 +26,7 @@ import {
 } from '../../shared/utils/hr-status.utils';
 
 @Component({
-  selector: 'pt-uniform-requests',
+  selector: 'pt-supply-requests',
   standalone: true,
   imports: [
     CommonModule,
@@ -56,7 +56,7 @@ import {
         [approvedCount]="completedCount()"
         [rejectedCount]="rejectedCount()"
         approvedLabel="Completadas"
-        icon="pi-shopping-bag"
+        icon="pi-box"
       />
 
       <!-- Filtros -->
@@ -64,7 +64,7 @@ import {
         [statusOptions]="statusOptions"
         [totalCount]="totalCount()"
         [filteredCount]="filteredRequests().length"
-        searchPlaceholder="Empleado o tipo de prenda..."
+        searchPlaceholder="Empleado o área..."
         (searchChange)="onSearchChange($event)"
         (statusChange)="onStatusChange($event)"
         (dateRangeChange)="onDateRangeChange($event)"
@@ -80,8 +80,8 @@ import {
           <h3
             class="text-sm font-semibold text-white m-0 flex items-center gap-1.5"
           >
-            <i class="pi pi-shopping-bag text-teal-400 text-sm"></i>
-            Solicitudes de Uniforme
+            <i class="pi pi-box text-amber-400 text-sm"></i>
+            Solicitudes de Insumos
           </h3>
         </div>
         @if (service.isLoading()) {
@@ -90,8 +90,8 @@ import {
         </div>
         } @else if (filteredRequests().length === 0) {
         <div class="text-center py-8">
-          <i class="pi pi-shopping-bag text-gray-400 text-4xl mb-3"></i>
-          <p class="text-gray-400">No se encontraron solicitudes</p>
+          <i class="pi pi-box text-gray-400 text-4xl mb-3"></i>
+          <p class="text-gray-400">No se encontraron solicitudes de insumos</p>
         </div>
         } @else {
         <p-table
@@ -108,55 +108,49 @@ import {
             <tr>
               <th style="width: 180px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
-                  <i class="pi pi-user text-teal-400 text-xs"></i>
+                  <i class="pi pi-user text-amber-400 text-xs"></i>
                   <span class="text-xs">Empleado</span>
                 </div>
               </th>
-              <th style="width: 150px; padding: 0.4rem; text-align: center;">
+              <th style="width: 100px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-tag text-teal-400 text-xs"></i>
-                  <span class="text-xs">Prenda</span>
+                  <i class="pi pi-map-marker text-amber-400 text-xs"></i>
+                  <span class="text-xs">Área</span>
                 </div>
               </th>
-              <th style="width: 80px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-expand text-teal-400 text-xs"></i>
-                  <span class="text-xs">Talla</span>
+              <th style="width: 200px; padding: 0.4rem; text-align: left;">
+                <div class="flex items-center gap-1">
+                  <i class="pi pi-box text-amber-400 text-xs"></i>
+                  <span class="text-xs">Descripción</span>
                 </div>
               </th>
-              <th style="width: 70px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-inbox text-gray-400 text-xs"></i>
-                  <span class="text-xs">Posee</span>
-                </div>
-              </th>
-              <th style="width: 60px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-hashtag text-teal-400 text-xs"></i>
-                  <span class="text-xs">Necesita</span>
+              <th style="width: 150px; padding: 0.4rem; text-align: left;">
+                <div class="flex items-center gap-1">
+                  <i class="pi pi-comment text-amber-400 text-xs"></i>
+                  <span class="text-xs">Motivo</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-tag text-teal-400 text-xs"></i>
+                  <i class="pi pi-tag text-amber-400 text-xs"></i>
                   <span class="text-xs">Estado</span>
                 </div>
               </th>
               <th style="width: 100px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-calendar text-teal-400 text-xs"></i>
+                  <i class="pi pi-calendar text-amber-400 text-xs"></i>
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
               <th style="width: 140px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-user-plus text-teal-400 text-xs"></i>
+                  <i class="pi pi-user-plus text-amber-400 text-xs"></i>
                   <span class="text-xs">Creador</span>
                 </div>
               </th>
               <th style="width: 150px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
-                  <i class="pi pi-cog text-teal-400 text-xs"></i>
+                  <i class="pi pi-cog text-amber-400 text-xs"></i>
                   <span class="text-xs">Acciones</span>
                 </div>
               </th>
@@ -167,12 +161,12 @@ import {
               class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
               (click)="viewDetails(request)"
             >
-              <td style="padding: 0.4rem; text-align: center;">
+              <td style="padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <div
-                    class="w-5 h-5 rounded-full bg-gradient-to-br from-teal-500/20 to-teal-600/20 flex items-center justify-center flex-shrink-0"
+                    class="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center flex-shrink-0"
                   >
-                    <i class="pi pi-user text-teal-400 text-[9px]"></i>
+                    <i class="pi pi-user text-amber-400 text-[9px]"></i>
                   </div>
                   <div class="flex flex-col min-w-0">
                     <span class="font-medium text-white text-xs truncate">
@@ -186,23 +180,18 @@ import {
                 </div>
               </td>
               <td style="padding: 0.4rem; text-align: center;">
-                <span class="text-sm text-white font-medium">
-                  {{ request.metadata?.item_type || '-' }}
+                <span class="text-xs text-amber-300 font-semibold">
+                  {{ request.metadata?.area || '-' }}
                 </span>
               </td>
-              <td style="padding: 0.4rem; text-align: center;">
-                <span class="text-sm text-teal-300 font-semibold">
-                  {{ request.metadata?.size || '-' }}
+              <td style="padding: 0.4rem; text-align: left;">
+                <span class="text-xs text-white">
+                  {{ request.metadata?.supply_description || '-' }}
                 </span>
               </td>
-              <td style="padding: 0.4rem; text-align: center;">
-                <span class="text-sm text-gray-400">
-                  {{ request.metadata?.current_quantity ?? '-' }}
-                </span>
-              </td>
-              <td style="padding: 0.4rem; text-align: center;">
-                <span class="text-sm text-white font-medium">
-                  {{ request.metadata?.quantity || 1 }}
+              <td style="padding: 0.4rem; text-align: left;">
+                <span class="text-xs text-gray-300">
+                  {{ request.metadata?.supply_reason || request.reason || '-' }}
                 </span>
               </td>
               <td style="padding: 0.4rem; text-align: center;">
@@ -289,10 +278,8 @@ import {
     >
       <ng-template pTemplate="header">
         <div class="flex items-center gap-2">
-          <i class="pi pi-shopping-bag text-teal-400"></i>
-          <span class="text-lg font-semibold text-white"
-            >Detalles de Solicitud de Uniforme</span
-          >
+          <i class="pi pi-box text-amber-400"></i>
+          <span class="text-lg font-semibold text-white">Detalles de Solicitud de Insumo</span>
         </div>
       </ng-template>
 
@@ -300,134 +287,74 @@ import {
       <div class="space-y-4 pt-4">
         <!-- Información del Empleado -->
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-user text-teal-400"></i>
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-user text-amber-400"></i>
             Información del Empleado
           </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Nombre</label
-              >
+              <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
               <p class="text-white">
                 {{ selectedRequest()!.employee?.first_name }}
                 {{ selectedRequest()!.employee?.father_name }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Sucursal</label
-              >
-              <p class="text-white">
-                {{ selectedRequest()!.employee?.branch?.name || '-' }}
-              </p>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Sucursal</label>
+              <p class="text-white">{{ selectedRequest()!.employee?.branch?.name || '-' }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Detalles del Uniforme -->
-        <div
-          class="p-4 bg-gradient-to-r from-teal-500/10 to-teal-600/5 rounded-lg border border-teal-400/30"
-        >
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-shopping-bag text-teal-400"></i>
-            Detalles del Uniforme
+        <!-- Detalles del Insumo -->
+        <div class="p-4 bg-gradient-to-r from-amber-500/10 to-amber-600/5 rounded-lg border border-amber-400/30">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-box text-amber-400"></i>
+            Detalles del Insumo
           </h3>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="space-y-3">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Tipo de Prenda</label
-              >
-              <p class="text-white text-lg font-semibold">
-                {{ selectedRequest()!.metadata?.item_type || '-' }}
-              </p>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Área</label>
+              <p class="text-amber-300 text-lg font-semibold">{{ selectedRequest()!.metadata?.area || '-' }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Talla</label
-              >
-              <p class="text-teal-300 text-lg font-semibold">
-                {{ selectedRequest()!.metadata?.size || '-' }}
-              </p>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Descripción del Insumo</label>
+              <p class="text-white whitespace-pre-wrap">{{ selectedRequest()!.metadata?.supply_description || '-' }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Posee actualmente</label
-              >
-              <p class="text-gray-300 text-lg font-semibold">
-                {{ selectedRequest()!.metadata?.current_quantity ?? '-' }}
-              </p>
+              <label class="block text-sm font-medium text-gray-400 mb-1">Motivo de la Solicitud</label>
+              <p class="text-white whitespace-pre-wrap">{{ selectedRequest()!.metadata?.supply_reason || selectedRequest()!.reason || '-' }}</p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Cantidad solicitada</label
-              >
-              <p class="text-white text-lg font-semibold">
-                {{ selectedRequest()!.metadata?.quantity || 1 }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4 mt-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Estado</label
-              >
-              <p-tag
-                [value]="getStatusLabel(selectedRequest()!.status)"
-                [severity]="getStatusSeverity(selectedRequest()!.status)"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha Solicitud</label
-              >
-              <p class="text-white">
-                {{ selectedRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
-              </p>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Estado</label>
+                <p-tag
+                  [value]="getStatusLabel(selectedRequest()!.status)"
+                  [severity]="getStatusSeverity(selectedRequest()!.status)"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Fecha Solicitud</label>
+                <p class="text-white">{{ selectedRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Notas -->
-        @if (selectedRequest()!.reason) {
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-comment text-teal-400"></i>
-            Notas Adicionales
-          </h3>
-          <p class="text-white whitespace-pre-wrap">
-            {{ selectedRequest()!.reason }}
-          </p>
-        </div>
-        } @if (selectedRequest()!.status === 'rejected' &&
-        selectedRequest()!.rejection_comment) {
-        <!-- Motivo de Rechazo -->
+        @if (selectedRequest()!.status === 'rejected' && selectedRequest()!.rejection_comment) {
         <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
             <i class="pi pi-exclamation-triangle text-red-400"></i>
             Motivo del Rechazo
           </h3>
-          <p class="text-red-300 whitespace-pre-wrap">
-            {{ selectedRequest()!.rejection_comment }}
-          </p>
+          <p class="text-red-300 whitespace-pre-wrap">{{ selectedRequest()!.rejection_comment }}</p>
         </div>
         }
 
-        <!-- Acciones -->
         @if (selectedRequest()!.status === 'pending') {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-cog text-teal-400"></i>
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-cog text-amber-400"></i>
             Acciones
           </h3>
           <div class="flex gap-2">
@@ -435,18 +362,13 @@ import {
               label="Aprobar"
               icon="pi pi-check"
               severity="success"
-              (onClick)="
-                approveRequest(selectedRequest()!); showDetailsDialog.set(false)
-              "
+              (onClick)="approveRequest(selectedRequest()!); showDetailsDialog.set(false)"
             />
             <p-button
               label="Rechazar"
               icon="pi pi-times"
               severity="danger"
-              (onClick)="
-                showDetailsDialog.set(false);
-                openRejectionDialog(selectedRequest()!)
-              "
+              (onClick)="showDetailsDialog.set(false); openRejectionDialog(selectedRequest()!)"
             />
           </div>
         </div>
@@ -468,15 +390,13 @@ import {
       <ng-template pTemplate="header">
         <div class="flex items-center gap-2">
           <i class="pi pi-exclamation-triangle text-red-400"></i>
-          <span class="text-lg font-semibold text-white"
-            >Confirmar Rechazo</span
-          >
+          <span class="text-lg font-semibold text-white">Confirmar Rechazo</span>
         </div>
       </ng-template>
 
       <div class="space-y-4 pt-4">
         <p class="text-gray-300">
-          Por favor, indica el motivo del rechazo de esta solicitud de uniforme.
+          Por favor, indica el motivo del rechazo de esta solicitud de insumo.
         </p>
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-2">
@@ -490,9 +410,7 @@ import {
             class="w-full"
             maxlength="500"
           ></textarea>
-          <p class="text-xs text-gray-500 mt-1">
-            {{ rejectionComment().length }}/500 caracteres
-          </p>
+          <p class="text-xs text-gray-500 mt-1">{{ rejectionComment().length }}/500 caracteres</p>
         </div>
       </div>
 
@@ -516,54 +434,45 @@ import {
     </p-dialog>
   `,
 })
-export class UniformRequestsComponent {
+export class SupplyRequestsComponent {
   public service = inject(DocumentRequestsService);
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
-  private confirmationService = inject(ConfirmationService);
   private dashboardStore = inject(DashboardStore);
 
-  // Filters
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
   public dateRange = signal<Date[] | null>(null);
 
-  // Dialog
   public showDetailsDialog = signal(false);
   public selectedRequest = signal<DocumentRequest | null>(null);
-
-  // Rejection dialog signals
   public showRejectionDialog = signal(false);
   public rejectionComment = signal('');
   public requestToReject = signal<DocumentRequest | null>(null);
 
-  // Status options
   public statusOptions = [
     { label: 'Pendiente', value: 'pending' },
     { label: 'Completada', value: 'completed' },
     { label: 'Rechazada', value: 'rejected' },
   ];
 
-  // Filtered requests (only uniform_request type)
-  public uniformRequests = computed(() =>
-    this.service.value().filter((d) => d.document_type === 'uniform_request')
+  public supplyRequests = computed(() =>
+    this.service.value().filter((d) => d.document_type === 'supply_request')
   );
 
-  // Statistics
-  public totalCount = computed(() => this.uniformRequests().length);
+  public totalCount = computed(() => this.supplyRequests().length);
   public pendingCount = computed(
-    () => this.uniformRequests().filter((d) => d.status === 'pending').length
+    () => this.supplyRequests().filter((d) => d.status === 'pending').length
   );
   public completedCount = computed(
-    () => this.uniformRequests().filter((d) => d.status === 'completed').length
+    () => this.supplyRequests().filter((d) => d.status === 'completed').length
   );
   public rejectedCount = computed(
-    () => this.uniformRequests().filter((d) => d.status === 'rejected').length
+    () => this.supplyRequests().filter((d) => d.status === 'rejected').length
   );
 
-  // Filtered requests
   public filteredRequests = computed(() => {
-    let requests = this.uniformRequests();
+    let requests = this.supplyRequests();
     const search = this.searchText().toLowerCase();
     const status = this.selectedStatus();
     const range = this.dateRange();
@@ -573,7 +482,8 @@ export class UniformRequestsComponent {
         (r) =>
           r.employee?.first_name?.toLowerCase().includes(search) ||
           r.employee?.father_name?.toLowerCase().includes(search) ||
-          r.metadata?.item_type?.toLowerCase().includes(search)
+          r.metadata?.area?.toLowerCase().includes(search) ||
+          r.metadata?.supply_description?.toLowerCase().includes(search)
       );
     }
 
@@ -593,32 +503,17 @@ export class UniformRequestsComponent {
     return requests;
   });
 
-  // Filter handlers
-  onSearchChange(value: string): void {
-    this.searchText.set(value);
-  }
-
-  onStatusChange(value: string | null): void {
-    this.selectedStatus.set(value);
-  }
-
-  onDateRangeChange(value: Date[] | null): void {
-    this.dateRange.set(value);
-  }
-
+  onSearchChange(value: string): void { this.searchText.set(value); }
+  onStatusChange(value: string | null): void { this.selectedStatus.set(value); }
+  onDateRangeChange(value: Date[] | null): void { this.dateRange.set(value); }
   onClearFilters(): void {
     this.searchText.set('');
     this.selectedStatus.set(null);
     this.dateRange.set(null);
   }
 
-  getStatusLabel(status: string): string {
-    return getStatusLabel(status);
-  }
-
-  getStatusSeverity(status: string): TagSeverity {
-    return getStatusSeverity(status);
-  }
+  getStatusLabel(status: string): string { return getStatusLabel(status); }
+  getStatusSeverity(status: string): TagSeverity { return getStatusSeverity(status); }
 
   viewDetails(request: DocumentRequest): void {
     this.selectedRequest.set(request);
@@ -632,9 +527,7 @@ export class UniformRequestsComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
-            request.id
-          }`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${request.id}`,
           {
             status: 'completed',
             processed_by: currentEmployee.id,
@@ -659,18 +552,12 @@ export class UniformRequestsComponent {
     }
   }
 
-  /**
-   * Opens the rejection dialog
-   */
   openRejectionDialog(request: DocumentRequest): void {
     this.requestToReject.set(request);
     this.rejectionComment.set('');
     this.showRejectionDialog.set(true);
   }
 
-  /**
-   * Confirms rejection with the comment
-   */
   async confirmRejection(): Promise<void> {
     const comment = this.rejectionComment().trim();
     const request = this.requestToReject();
@@ -684,9 +571,7 @@ export class UniformRequestsComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
-            request.id
-          }`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${request.id}`,
           {
             status: 'rejected',
             processed_by: currentEmployee.id,
@@ -704,7 +589,6 @@ export class UniformRequestsComponent {
 
       this.service.reload();
 
-      // Update local signal if viewing details
       if (this.selectedRequest()?.id === request.id) {
         this.selectedRequest.update((r) =>
           r ? { ...r, status: 'rejected', rejection_comment: comment } : null
@@ -716,50 +600,6 @@ export class UniformRequestsComponent {
         summary: 'Error',
         detail: 'No se pudo rechazar la solicitud',
       });
-    }
-  }
-
-  // --- Export ---
-  public async exportData(): Promise<void> {
-    try {
-      const xlsxModule = await import('xlsx-js-style');
-      const XLSX = (xlsxModule as any).default || xlsxModule;
-      const { format } = await import('date-fns');
-      const { styleDataSheet, styleSummarySheet, MODULE_COLORS } = await import('../../shared/utils/excel-style.utils');
-      const items = this.filteredRequests();
-      if (items.length === 0) { this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay solicitudes de uniformes para exportar con los filtros aplicados' }); return; }
-      const data = items.map((r) => ({
-        Empleado: `${r.employee?.first_name || ''} ${r.employee?.father_name || ''}`.trim(),
-        Email: r.employee?.work_email || 'N/A',
-        'Posición': r.employee?.position?.name || 'N/A',
-        Sucursal: r.employee?.branch?.name || 'N/A',
-        Prenda: r.metadata?.item_type || '',
-        Talla: r.metadata?.size || '',
-        'Posee Actualmente': r.metadata?.current_quantity ?? 0,
-        'Cantidad Solicitada': r.metadata?.quantity || 0,
-        Estado: getStatusLabel(r.status),
-        'Comentario Rechazo': r.rejection_comment || '',
-        'Fecha Solicitud': r.created_at ? format(new Date(r.created_at), 'dd/MM/yyyy HH:mm') : '',
-      }));
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Uniformes');
-      ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 30 }, { wch: 18 }];
-      styleDataSheet(ws, XLSX.utils, MODULE_COLORS['uniform_request']);
-      const summaryData = [
-        ['Resumen - Uniformes'], ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
-        ['Total Solicitudes', items.length], ['Pendientes', this.pendingCount()],
-        ['Completadas', this.completedCount()], ['Rechazadas', this.rejectedCount()],
-      ];
-      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
-      styleSummarySheet(summaryWs, XLSX.utils, MODULE_COLORS['uniform_request']);
-      XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
-      XLSX.writeFile(wb, `Uniformes_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`);
-      this.messageService.add({ severity: 'success', summary: 'Exportación exitosa', detail: `Se exportaron ${items.length} solicitudes` });
-    } catch (error) {
-      console.error('Error exportando datos:', error);
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar los datos' });
     }
   }
 }
