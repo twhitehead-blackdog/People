@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   effect,
+  HostListener,
   inject,
   Injector,
   model,
@@ -92,25 +93,72 @@ import {
     SpecificAuditDialogComponent,
   ],
   template: `<div class="timetable-wrapper">
+      <!-- Desktop title -->
       <div class="hidden md:block">
         <h2 class="text-xl font-bold text-white m-0">Turnos</h2>
         <p class="text-sm text-gray-400 m-0 mt-0.5">Vista semanal de turnos y horarios de empleados</p>
       </div>
 
-      <div class="items-center gap-2 w-full my-2 hidden">
-        <p-toggleswitch
-          inputId="active"
-          [(ngModel)]="editionLocked"
-          (onChange)="unlockEdition($event)"
-        />
-        <label for="active"
-          ><i [ngClass]="editionLocked() ? 'pi pi-lock' : 'pi pi-unlock'"></i>
-          Modificacion bloqueada</label
-        >
+      <!-- Mobile compact header bar -->
+      <div class="flex md:hidden items-center gap-2 mb-2">
+        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+          <span class="text-sm font-bold text-white shrink-0">Turnos</span>
+          <pt-timetable-header
+            [currentWeekLabel]="currentWeek()"
+            [menuItems]="menuItems"
+          />
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          @if(permissionsService.canApproveSchedules() && !bulkSelectionMode() && totalPendingCount() > 0) {
+            <button
+              class="relative w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center"
+              (click)="toggleBulkSelectionMode()"
+            >
+              <i class="pi pi-check-square text-xs"></i>
+              <span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 bg-amber-500 rounded-full text-[9px] text-black font-bold flex items-center justify-center leading-none">{{ totalPendingCount() }}</span>
+            </button>
+          }
+          @if(permissionsService.canAddEmployees()) {
+            <button
+              class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center"
+              (click)="openAddEmployeeDialog()"
+            >
+              <i class="pi pi-user-plus text-xs"></i>
+            </button>
+          }
+          @if(!permissionsService.isStoreManager()) {
+            <button
+              class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center"
+              (click)="openAuditHistoryDialog()"
+            >
+              <i class="pi pi-history text-xs"></i>
+            </button>
+          }
+          <button
+            class="w-8 h-8 rounded-lg border flex items-center justify-center transition-colors"
+            [class]="filtersOpen() ? 'bg-amber-500/10 border-amber-500/40 text-amber-400' : 'bg-neutral-800 border-neutral-700/50 text-gray-400'"
+            (click)="filtersOpen.set(!filtersOpen())"
+          >
+            <i class="pi pi-sliders-h text-xs"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Filtros y controles de navegación -->
-      <div class="mb-4">
+      <!-- Mobile bulk selection bar -->
+      @if (bulkSelectionMode()) {
+        <div class="flex md:hidden items-center gap-2 bg-neutral-700/30 rounded-xl px-3 py-2 mb-2 border border-cyan-500/20">
+          <span class="text-xs text-cyan-400 font-medium flex-1">
+            <i class="pi pi-check-square mr-1.5"></i>{{ selectedShiftsCount() }} seleccionados
+          </span>
+          @if (selectedShiftsCount() > 0) {
+            <button class="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold" (click)="onBulkApprove()">Aprobar</button>
+          }
+          <button class="px-3 py-1.5 rounded-lg bg-neutral-700 border border-neutral-600 text-gray-300 text-xs" (click)="cancelBulkSelection()">Cancelar</button>
+        </div>
+      }
+
+      <!-- Filtros: siempre visible en desktop, colapsable en mobile -->
+      <div class="mb-4" [class.hidden]="isMobileView() && !filtersOpen()">
         <pt-timetable-filters
           [branches]="store.branches.entities()"
           [positions]="store.positions.entities()"
@@ -119,75 +167,60 @@ import {
           [currentBranch]="filterService.currentBranch"
           [currentPosition]="filterService.currentPosition"
         >
-          <div
-            class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2 w-full xl:w-auto"
-          >
+          <!-- Controles de navegación solo en desktop -->
+          <div class="hidden md:flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2 w-full xl:w-auto">
             <pt-timetable-header
               [currentWeekLabel]="currentWeek()"
               [menuItems]="menuItems"
             />
             <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-              @if(permissionsService.canApproveSchedules()) { @if
-              (!bulkSelectionMode()) {
-              <p-button
-                [label]="'Seleccionar (' + totalPendingCount() + ')'"
-                icon="pi pi-check-square"
-                severity="info"
-                [outlined]="true"
-                size="small"
-                pTooltip="Seleccionar múltiples turnos para aprobar"
-                tooltipPosition="top"
-                (onClick)="toggleBulkSelectionMode()"
-                [disabled]="totalPendingCount() === 0"
-              />
-              } @else {
-              <div
-                class="flex items-center gap-2 bg-neutral-700/50 rounded-lg px-2 py-1"
-              >
-                <span class="text-xs text-cyan-400 font-medium">
-                  <i class="pi pi-check-square mr-1"></i
-                  >{{ selectedShiftsCount() }} seleccionados
-                </span>
-                @if (selectedShiftsCount() > 0) {
-                <p-button
-                  [label]="'Aprobar (' + selectedShiftsCount() + ')'"
-                  icon="pi pi-check"
-                  severity="success"
-                  size="small"
-                  (onClick)="onBulkApprove()"
-                />
+              @if(permissionsService.canApproveSchedules()) {
+                @if (!bulkSelectionMode()) {
+                  <p-button
+                    [label]="'Seleccionar (' + totalPendingCount() + ')'"
+                    icon="pi pi-check-square"
+                    severity="info"
+                    [outlined]="true"
+                    size="small"
+                    pTooltip="Seleccionar múltiples turnos para aprobar"
+                    tooltipPosition="top"
+                    (onClick)="toggleBulkSelectionMode()"
+                    [disabled]="totalPendingCount() === 0"
+                  />
+                } @else {
+                  <div class="flex items-center gap-2 bg-neutral-700/50 rounded-lg px-2 py-1">
+                    <span class="text-xs text-cyan-400 font-medium">
+                      <i class="pi pi-check-square mr-1"></i>{{ selectedShiftsCount() }} seleccionados
+                    </span>
+                    @if (selectedShiftsCount() > 0) {
+                      <p-button [label]="'Aprobar (' + selectedShiftsCount() + ')'" icon="pi pi-check" severity="success" size="small" (onClick)="onBulkApprove()" />
+                    }
+                    <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [outlined]="true" size="small" (onClick)="cancelBulkSelection()" />
+                  </div>
                 }
+              }
+              @if(permissionsService.canAddEmployees()) {
                 <p-button
-                  label="Cancelar"
-                  icon="pi pi-times"
-                  severity="secondary"
-                  [outlined]="true"
+                  label="¿No aparece un empleado?"
+                  icon="pi pi-user-plus"
+                  severity="help"
+                  outlined
+                  rounded
                   size="small"
-                  (onClick)="cancelBulkSelection()"
+                  (onClick)="openAddEmployeeDialog()"
                 />
-              </div>
-              } } @if(permissionsService.canAddEmployees()) {
-              <p-button
-                label="¿No aparece un empleado?"
-                icon="pi pi-user-plus"
-                severity="help"
-                outlined
-                rounded
-                size="small"
-                (onClick)="openAddEmployeeDialog()"
-              />
               }
               @if (!permissionsService.isStoreManager()) {
-              <p-button
-                icon="pi pi-history"
-                severity="info"
-                outlined
-                rounded
-                size="small"
-                pTooltip="Historial de auditoría de turnos"
-                tooltipPosition="top"
-                (onClick)="openAuditHistoryDialog()"
-              />
+                <p-button
+                  icon="pi pi-history"
+                  severity="info"
+                  outlined
+                  rounded
+                  size="small"
+                  pTooltip="Historial de auditoría de turnos"
+                  tooltipPosition="top"
+                  (onClick)="openAuditHistoryDialog()"
+                />
               }
             </div>
           </div>
@@ -273,6 +306,8 @@ export class EmployeesTimetableComponent implements OnInit {
   });
   public selectedWeek = signal<number>(1);
   public disableBranch = signal(true);
+  public filtersOpen = signal(false);
+  public isMobileView = signal(typeof window !== 'undefined' && window.innerWidth < 768);
 
   // Audit history
   public showAuditHistoryDialog = signal(false);
@@ -477,6 +512,11 @@ export class EmployeesTimetableComponent implements OnInit {
   ];
 
   // ========== Lifecycle ==========
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.isMobileView.set(window.innerWidth < 768);
+  }
 
   ngOnInit(): void {
     this.editionLocked.set(true);

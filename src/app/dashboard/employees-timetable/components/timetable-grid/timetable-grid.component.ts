@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, HostListener, input, output, signal, TemplateRef } from '@angular/core';
+import { isToday as dateFnsIsToday } from 'date-fns';
 import { TableModule } from 'primeng/table';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
@@ -36,25 +37,27 @@ type EmployeeWithDays = {
           </div>
         </div>
         <!-- Days scroll -->
-        <div class="flex overflow-x-auto py-2 px-1 gap-1 -webkit-overflow-scrolling-touch" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
+        <div class="flex overflow-x-auto py-2 px-2 gap-1.5" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
           @for(day of employee.days; track day.date){
-          <div class="flex-shrink-0 w-[52px] text-center">
-            <div class="text-[9px] text-gray-500 uppercase font-medium">{{ day.date | date : 'EEE' }}</div>
-            <div class="text-[11px] text-gray-400 font-semibold mb-1">{{ day.date | date : 'd' }}</div>
-            <pt-shift-cell
-              [shift]="day.shift"
-              [date]="day.date"
-              [employeeId]="employee.id"
-              [canManageSchedules]="canManageSchedules()"
-              [canApprove]="canApproveSchedules()"
-              [isStoreManager]="isStoreManager()"
-              [scheduleWarning]="day.scheduleWarning ?? null"
-              (edit)="onEditShift($event)"
-              (delete)="onDeleteShift($event)"
-              (approve)="onApproveShift($event)"
-              (add)="onAddShift($event)"
-              (viewAudit)="onViewAudit($event)"
-            />
+          <div class="flex-shrink-0 w-[58px] text-center">
+            <div class="text-[9px] text-gray-500 uppercase font-medium mb-0.5">{{ day.date | date : 'EEE' }}</div>
+            <div class="text-[11px] font-semibold mb-1" [class]="isToday(day.date) ? 'text-amber-400' : 'text-gray-400'">{{ day.date | date : 'd' }}</div>
+            <div class="w-full">
+              <pt-shift-cell
+                [shift]="day.shift"
+                [date]="day.date"
+                [employeeId]="employee.id"
+                [canManageSchedules]="canManageSchedules()"
+                [canApprove]="canApproveSchedules()"
+                [isStoreManager]="isStoreManager()"
+                [scheduleWarning]="day.scheduleWarning ?? null"
+                (edit)="onEditShift($event)"
+                (delete)="onDeleteShift($event)"
+                (approve)="onApproveShift($event)"
+                (add)="onAddShift($event)"
+                (viewAudit)="onViewAudit($event)"
+              />
+            </div>
           </div>
           }
         </div>
@@ -215,5 +218,9 @@ export class TimetableGridComponent {
 
   public hasAnyShift(employee: EmployeeWithDays): boolean {
     return employee.days.some((d) => d.shift);
+  }
+
+  public isToday(date: Date): boolean {
+    return dateFnsIsToday(date);
   }
 }

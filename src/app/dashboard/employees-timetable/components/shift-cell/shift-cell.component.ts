@@ -12,7 +12,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
   template: `
     @if (shift(); as shiftValue) {
     <div
-      class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] transition-all duration-200 border border-black/20 shadow-sm"
+      class="w-full flex gap-0.5 py-0.5 px-1 rounded-sm font-medium items-center justify-center text-[11px] transition-all duration-200 border border-black/20 shadow-sm overflow-hidden min-h-[24px]"
       [class]="getColorClass(shiftValue?.schedule?.color)"
       [ngClass]="{
         'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
@@ -27,16 +27,16 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       @if (scheduleWarning(); as warn) {
         <i class="pi pi-exclamation-triangle text-amber-400 text-[10px] flex-shrink-0" [pTooltip]="warn" tooltipPosition="top"></i>
       }
-      <span class="line-clamp-2 max-w-[72px] font-semibold leading-tight break-words">
+      <span class="truncate font-semibold leading-tight min-w-0">
         {{ shiftValue?.schedule?.name }}
       </span>
         @if (shiftValue?.approved) {
         <i
-          class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
+          class="pi pi-check-circle text-green-400 text-[9px] flex-shrink-0"
         ></i>
         } @else if (!isStoreManager()) {
         <i
-          class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+          class="pi pi-exclamation-circle text-yellow-200 text-[9px] animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
         ></i>
         }
     </div>
