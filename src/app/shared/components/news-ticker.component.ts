@@ -126,9 +126,9 @@ export class NewsTickerComponent implements OnInit, OnDestroy {
       const birthdays = await this.loadBirthdays();
       allItems.push(...birthdays);
 
-      // 3. Store target achievements
-      const targets = await this.loadStoreTargets();
-      allItems.push(...targets);
+      // 3. Store target achievements (disabled - reading wrong data)
+      // const targets = await this.loadStoreTargets();
+      // allItems.push(...targets);
 
       this.items.set(allItems);
     } catch (e) {

@@ -258,11 +258,6 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               }
             </div>
             }
-            @if(canAccessCompras()) {
-            <a (click)="navigateAbsolute('admin/compras')" [class.nav-active]="isComprasActive()" class="nav-item">
-              <i class="pi pi-shopping-cart"></i><span>Compras</span>
-            </a>
-            }
             @if(canAccessTimeclock()) {
             <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
               <i class="pi pi-clock"></i><span>Reloj de marcación</span>
@@ -339,12 +334,6 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
             <a (click)="navigateTo('live'); toggleMenu()" [class.bg-gray-700]="isLiveActive()" [class.text-white]="isLiveActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
               <i class="pi pi-objects-column text-lg"></i><span>Asistencia en vivo</span>
-            </a>
-            }
-            @if(canAccessCompras()) {
-            <a (click)="navigateAbsolute('admin/compras'); toggleMenu()" [class.bg-gray-700]="isComprasActive()" [class.text-white]="isComprasActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
-              <i class="pi pi-shopping-cart text-lg"></i><span>Compras</span>
             </a>
             }
             @if(canAccessTimeclock()) {
