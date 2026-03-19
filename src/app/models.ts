@@ -81,6 +81,7 @@ export type Employee = {
   full_name?: string;
   hourly_salary?: number;
   payroll_type?: 'regular' | 'honorarios';
+  use_timelog?: boolean;
   debts?: PayrollDebt[];
   has_portal_access?: boolean;
   account_approved?: boolean;
@@ -298,6 +299,8 @@ export type AttendanceSheet = {
   justified_hours?: number;
   late_hours: number;
   overtime_hours: number;
+  overtime_hours_payment: number;
+  holiday_hours_payment: number;
   created_at?: Date;
 };
 

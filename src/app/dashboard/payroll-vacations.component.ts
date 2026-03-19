@@ -385,6 +385,7 @@ export class PayrollVacationsComponent {
       select: 'id,first_name,father_name,document_id,start_date,monthly_salary',
       company_id: `eq.${companyId}`,
       is_active: 'eq.true',
+      payroll_type: 'eq.regular',
       order: 'first_name.asc',
     });
     const result = await firstValueFrom(this.http.get<Partial<Employee>[]>(url));

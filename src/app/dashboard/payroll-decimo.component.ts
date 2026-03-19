@@ -495,9 +495,10 @@ export class PayrollDecimoComponent {
       // 1. Fetch all payroll_payment_employees in the date range
       //    Join through payroll_payments to get the date range filter
       const payUrl = this.apiUrl.build('rest/v1/payroll_payment_employees', {
-        select: 'id,employee_id,income_amount,overtime_amount,sunday_amount,holiday_amount,employee:employees(id,first_name,father_name,document_id,branch:branches(id,name))',
+        select: 'id,employee_id,income_amount,overtime_amount,sunday_amount,holiday_amount,employee:employees(id,first_name,father_name,document_id,payroll_type,branch:branches(id,name))',
         'payroll_payment.start_date': `gte.${startStr}`,
         'payroll_payment.end_date': `lte.${endStr}`,
+        'employee.payroll_type': 'eq.regular',
       });
 
       // Use an RPC-style approach: fetch payments in range first, then employees
@@ -520,8 +521,9 @@ export class PayrollDecimoComponent {
 
       // Fetch employees for these payments
       const empUrl = this.apiUrl.build('rest/v1/payroll_payment_employees', {
-        select: 'id,employee_id,income_amount,overtime_amount,sunday_amount,holiday_amount,employee:employees(id,first_name,father_name,document_id,branch:branches(id,name))',
+        select: 'id,employee_id,income_amount,overtime_amount,sunday_amount,holiday_amount,employee:employees(id,first_name,father_name,document_id,payroll_type,branch:branches(id,name))',
         payroll_payment_id: `in.(${paymentIds.join(',')})`,
+        'employee.payroll_type': 'eq.regular',
       });
 
       const empRecords = await firstValueFrom(
@@ -545,13 +547,8 @@ export class PayrollDecimoComponent {
       for (const rec of empRecords) {
         const empId = rec.employee_id;
         const existing = byEmployee.get(empId);
-        // Earnings = income_amount (base + extras already included)
-        // income_amount includes salary, overtime_amount, sunday_amount, holiday_amount
-        const periodEarnings =
-          (rec.income_amount ?? 0) +
-          (rec.overtime_amount ?? 0) +
-          (rec.sunday_amount ?? 0) +
-          (rec.holiday_amount ?? 0);
+        // Earnings = income_amount solo (ya incluye extras, no sumar por separado — evita doble conteo)
+        const periodEarnings = rec.income_amount ?? 0;
 
         if (existing) {
           existing.earnings_total += periodEarnings;

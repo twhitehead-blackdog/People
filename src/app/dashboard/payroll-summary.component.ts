@@ -38,7 +38,10 @@ import { Button } from 'primeng/button';
     <p class="text-gray-800 dark:text-gray-200 uppercase text-center ">
       Total: {{ totalValue() | currency : '$' }}
     </p>
-    <p-button label="Generar Documento" (click)="generateDocument()" />
+    <div class="flex gap-2 flex-wrap">
+      <p-button label="Generar Documento" (click)="generateDocument()" />
+      <p-button label="TXT Banco General" icon="pi pi-download" severity="secondary" outlined (click)="generateBancoGeneralTxt()" />
+    </div>
     <p-accordion value="0">
       @for(branch of completedByBranch() | keyvalue; track $index; let index =
       $index) {
@@ -168,7 +171,7 @@ export class PayrollSummaryComponent {
     }
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: `*, items:payroll_payment_employee_items(*), employee:employees(id, first_name, father_name, document_id, branch:branches(id, name))`,
+      select: `*, items:payroll_payment_employee_items(*), employee:employees(id, first_name, father_name, document_id, bank, account_number, bank_account_type, branch:branches(id, name))`,
       payroll_payment_id: `eq.${this.payment_id()}`,
     };
     
@@ -264,6 +267,45 @@ export class PayrollSummaryComponent {
           this.payroll.value()?.[0]?.title || ''
         }.pdf`
       );
+  }
+
+  public generateBancoGeneralTxt(): void {
+    const records = this.completed.value() ?? [];
+    const title = this.payroll.value()?.[0]?.title ?? 'planilla';
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+
+    const lines: string[] = [];
+    let totalAmount = 0;
+    const empLines: string[] = [];
+
+    for (const rec of records) {
+      const emp = rec.employee as any;
+      if (!emp?.account_number) continue;
+      const amount = rec.total_amount ?? 0;
+      if (amount <= 0) continue;
+      const accountType = emp.bank_account_type === 'Corriente' ? 'CC' : 'CA';
+      const amountStr = amount.toFixed(2).replace('.', '').padStart(12, '0');
+      const name = `${emp.first_name ?? ''} ${emp.father_name ?? ''}`.trim().substring(0, 40).padEnd(40, ' ');
+      const cedula = (emp.document_id ?? '').substring(0, 15).padEnd(15, ' ');
+      const account = (emp.account_number ?? '').substring(0, 20).padEnd(20, ' ');
+      empLines.push(`2${account}${accountType}${amountStr}${name}${cedula}`);
+      totalAmount += amount;
+    }
+
+    const totalStr = totalAmount.toFixed(2).replace('.', '').padStart(12, '0');
+    const companyName = (this.companyName() ?? 'BLACK DOG').substring(0, 40).padEnd(40, ' ');
+    lines.push(`1${companyName}${dateStr}${String(empLines.length).padStart(6, '0')}${totalStr}`);
+    lines.push(...empLines);
+    lines.push(`9${String(empLines.length).padStart(6, '0')}${totalStr}`);
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ACH_BancoGeneral_${title}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   public documentDefinition() {

@@ -47,6 +47,7 @@ import {
   EmployeeSchedule,
   Payroll,
   PayrollEmployee,
+  PayrollHoliday,
   PayrollPayment,
   PayrollPaymentEmployee,
   PayrollPaymentEmployeeItem,
@@ -55,6 +56,7 @@ import {
   TimeLogEnum,
 } from '../models';
 import { roundNumber } from '../services/util.service';
+import { calculateISR, isHoliday } from '../utils/payroll-calculation.utils';
 import { PayrollService } from '../services/payroll.service';
 import { EmailService } from '../services/email.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -551,20 +553,10 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     const employee = this.selectedEmployee();
     const deductions = this.payroll.value()?.[0].deductions ?? [];
     if (!deductions.length || !employee) return 0;
+    if (employee.employee?.payroll_type === 'honorarios') return 0;
     const incomeTax = deductions.find((deduction) => deduction.income_tax);
     if (!incomeTax) return 0;
-    const income = this.totalIncome();
-    const annualIncome = income * 13 * 2;
-    let taxAmount = 0;
-    if (annualIncome < 11000) return 0;
-    if (annualIncome > 50000) {
-      taxAmount = (annualIncome - 50000) * 0.25;
-      taxAmount += (annualIncome - 11000) * 0.15;
-    } else {
-      taxAmount = (annualIncome - 11000) * 0.15;
-    }
-
-    return taxAmount / 13 / 2;
+    return calculateISR(this.totalIncome());
   });
 
   public payment = httpResource<PayrollPayment[]>(() => ({
@@ -585,7 +577,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       method: 'GET',
       params: {
         select:
-          '*, employee:employees!inner(id, first_name, father_name, monthly_salary, hourly_salary, week_hours, use_timelog, branch_id, is_active, debts:payroll_debts(*))',
+          '*, employee:employees!inner(id, first_name, father_name, monthly_salary, hourly_salary, week_hours, use_timelog, payroll_type, branch_id, is_active, debts:payroll_debts(*))',
         payroll_id: `eq.${this.payment.value()?.[0]?.payroll_id}`,
         'employee.is_active': 'eq.true', // Solo empleados activos
       },
@@ -931,6 +923,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   }
 
   approvePayment(id: string) {
+    if (this.isApproved()) return;
     this.loading.set(true);
     const attendanceSheet = this.sheetRegistry();
     const sheets$ = this.http.post(
@@ -994,6 +987,22 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         type: 'income',
         amount: income.amount,
         description: income.description,
+      });
+    }
+    if (this.summary().overtime_hours_payment > 0) {
+      items.push({
+        payment_employee_id: '',
+        type: 'income',
+        amount: this.summary().overtime_hours_payment,
+        description: 'Horas extra (1.25×)',
+      });
+    }
+    if (this.summary().holiday_hours_payment > 0) {
+      items.push({
+        payment_employee_id: '',
+        type: 'income',
+        amount: this.summary().holiday_hours_payment,
+        description: 'Recargo feriado (1.5×)',
       });
     }
     items.push({
@@ -1140,6 +1149,11 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       method: 'GET',
     };
   });
+  public holidays = httpResource<PayrollHoliday[]>(() => ({
+    url: this.apiUrl.build('rest/v1/payroll_holidays', {}),
+    method: 'GET',
+  }));
+
   public currentAttendanceSheets = computed(() =>
     Object.values(this.attendanceSheet()).map(
       (attendanceSheet) => attendanceSheet
@@ -1165,6 +1179,10 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
           absence_hours: acc.absence_hours + attendanceSheet.absence_hours,
           absence_hours_payment:
             acc.absence_hours_payment + attendanceSheet.absence_hours_payment,
+          overtime_hours_payment:
+            acc.overtime_hours_payment + (attendanceSheet.overtime_hours_payment ?? 0),
+          holiday_hours_payment:
+            acc.holiday_hours_payment + (attendanceSheet.holiday_hours_payment ?? 0),
           other_income: this.otherIncome().reduce(
             (acc, otherIncome) => acc + otherIncome.amount,
             0
@@ -1181,6 +1199,8 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         compensatory_hours_payment: 0,
         absence_hours: 0,
         absence_hours_payment: 0,
+        overtime_hours_payment: 0,
+        holiday_hours_payment: 0,
         other_income: 0,
       }
     )
@@ -1190,8 +1210,11 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     roundNumber(
       this.employeeSalaryBase() +
         this.summary().sunday_payment +
+        this.summary().holiday_hours_payment +
+        this.summary().overtime_hours_payment +
         this.summary().compensatory_hours_payment -
-        this.summary().late_hours_payment +
+        this.summary().late_hours_payment -
+        this.summary().absence_hours_payment +
         this.summary().other_income
     )
   );
@@ -1210,7 +1233,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   employeeSalaryBase = linkedSignal(() => {
     const employee = this.selectedEmployee();
     if (!employee) return 0;
-    return roundNumber(employee.hourly_salary * 104.28);
+    return roundNumber(employee.monthly_salary / 2);
   });
 
   public employeeSummary = computed<PayrollPaymentEmployee>(() => ({
@@ -1224,9 +1247,9 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     absence_amount: this.summary().absence_hours_payment,
     income_amount: this.totalIncome(),
     deduction_amount: this.totalDeductions(),
-    overtime_amount: 0,
+    overtime_amount: this.summary().overtime_hours_payment,
     sunday_amount: this.summary().sunday_payment,
-    holiday_amount: 0,
+    holiday_amount: this.summary().holiday_hours_payment,
     employer_cost: 0,
   }));
 
@@ -1299,11 +1322,12 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         schedule: schedule!,
       });
       const is_sunday = isSunday(toDate(day, { timeZone: 'America/Panama' }));
-      const hourly_salary = this.selectedEmployee()!.hourly_salary!;
+      const hourly_salary = roundNumber(
+        (this.selectedEmployee()!.monthly_salary ?? 0) / 30 / 8
+      );
       const worked_hours_payment = roundNumber(
         schedule?.day_off || worked_hours === 0 ? 0 : 8 * hourly_salary
       );
-
       const late_hours_payment = roundNumber(
         late_hours * hourly_salary * (is_sunday ? 1.5 : 1)
       );
@@ -1311,8 +1335,27 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         is_sunday && worked_hours > 0 && !schedule?.day_off
           ? roundNumber(8 * hourly_salary * 0.5)
           : 0;
-      const absence_hours = 0;
-      const absence_hours_payment = 0;
+
+      // Overtime payment: 1.25× hourly (Art. 26 CT)
+      const overtime_hours_payment = roundNumber(overtime_hours * hourly_salary * 1.25);
+
+      // Feriados: 1.5× (Art. 30 CT)
+      const dayIsHoliday = isHoliday(
+        toDate(day, { timeZone: 'America/Panama' }),
+        this.holidays.value() ?? []
+      );
+      const holiday_hours_payment =
+        dayIsHoliday && worked_hours > 0 && !schedule?.day_off
+          ? roundNumber(8 * hourly_salary * 1.5)
+          : 0;
+
+      // Ausencias: descuento 8h si usa timelog y no marcó (Art. 67-68 CT)
+      const usesTimelog =
+        this.selectedEmployee()?.employee?.use_timelog ?? false;
+      const isAbsent =
+        usesTimelog && !!schedule && !schedule.day_off && !entryTime && !dayIsHoliday;
+      const absence_hours = isAbsent ? 8 : 0;
+      const absence_hours_payment = isAbsent ? roundNumber(8 * hourly_salary) : 0;
 
       employeeTimelog[day] = {
         employee_id: this.selectedEmployee()!.employee!.id,
@@ -1334,11 +1377,13 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         lunch_start_time: lunchStartTime ?? null,
         lunch_end_time: lunchEndTime ?? null,
         is_sunday,
-        is_holiday: false,
+        is_holiday: dayIsHoliday,
         worked_hours_payment,
         late_hours_payment,
         sunday_payment,
-        holiday_payment: 0,
+        holiday_payment: holiday_hours_payment,
+        holiday_hours_payment,
+        overtime_hours_payment,
         absence_hours,
         absence_hours_payment,
         compensatory_hours: 0,
@@ -1350,7 +1395,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
           : entryTime &&
             schedule?.entry_time &&
             this.calcTimeDiff(
-              format(entryTime, 'hh:mm:ss'),
+              format(entryTime, 'HH:mm:ss'),
               schedule.entry_time as string
             ) > schedule.minutes_tolerance
           ? true
@@ -1368,6 +1413,49 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         attendanceSheets
       )
       .subscribe(); */
+  }
+
+  // Toggle T×T: empleado elige tiempo por tiempo en lugar de pago de horas extra
+  toggleOvertimeComp(day: string) {
+    this.attendanceSheet.update((sheet) => {
+      const entry = sheet[day];
+      if (!entry) return sheet;
+      const hourly_salary = roundNumber(
+        (this.selectedEmployee()!.monthly_salary ?? 0) / 30 / 8
+      );
+      const isComp = (entry.compensatory_hours ?? 0) > 0;
+      return {
+        ...sheet,
+        [day]: {
+          ...entry,
+          overtime_hours_payment: isComp ? roundNumber(entry.overtime_hours * hourly_salary * 1.25) : 0,
+          compensatory_hours: isComp ? 0 : entry.overtime_hours,
+          compensatory_hours_payment: isComp ? 0 : roundNumber(entry.overtime_hours * hourly_salary),
+        },
+      };
+    });
+  }
+
+  // Toggle compensatorio en feriado (Black Dog policy)
+  toggleHolidayComp(day: string) {
+    this.attendanceSheet.update((sheet) => {
+      const entry = sheet[day];
+      if (!entry) return sheet;
+      const hourly_salary = roundNumber(
+        (this.selectedEmployee()!.monthly_salary ?? 0) / 30 / 8
+      );
+      const isComp = (entry.compensatory_hours ?? 0) > 0;
+      return {
+        ...sheet,
+        [day]: {
+          ...entry,
+          holiday_hours_payment: isComp ? roundNumber(8 * hourly_salary * 1.5) : 0,
+          holiday_payment: isComp ? roundNumber(8 * hourly_salary * 1.5) : 0,
+          compensatory_hours: isComp ? 0 : 8,
+          compensatory_hours_payment: isComp ? 0 : roundNumber(8 * hourly_salary),
+        },
+      };
+    });
   }
 
   calcTimeDiff = (time1: string, time2: string) => {
@@ -1455,11 +1543,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     const hours = Math.floor(workedMinutes / 60);
     if (hours > 8) {
       const overtimeMinutes = workedMinutes - 8 * 60;
-      const overtimeHours = Math.floor(overtimeMinutes / 60);
-      const overtimeMinutesLeft = overtimeMinutes % 60;
-      const overtimeTotalHours = Math.floor(
-        overtimeHours + overtimeMinutesLeft / 60
-      );
+      const overtimeTotalHours = roundNumber(overtimeMinutes / 60); // Art. 26 CT: fracción proporcional
       return {
         worked_hours: 8,
         overtime_hours: overtimeTotalHours,
@@ -1485,11 +1569,11 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return 0;
     }
     const totalMinutes = this.calcTimeDiff(
-      format(entryTime, 'hh:mm:ss'),
+      format(entryTime, 'HH:mm:ss'),
       schedule.entry_time as string
     );
     const earlyMinutes = this.calcTimeDiff(
-      format(entryTime, 'hh:mm:ss'),
+      format(entryTime, 'HH:mm:ss'),
       schedule.exit_time as string
     );
     if (totalMinutes < schedule.minutes_tolerance && earlyMinutes < 0) {

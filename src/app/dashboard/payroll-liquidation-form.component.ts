@@ -331,6 +331,8 @@ export class PayrollLiquidationFormComponent {
     const url = this.apiUrl.build('rest/v1/employees', {
       select: 'id,first_name,father_name,mother_name,document_id,start_date,monthly_salary,branch:branches(id,name),position:positions(id,name),department:departments(id,name)',
       company_id: `eq.${companyId}`,
+      is_active: 'eq.true',
+      payroll_type: 'eq.regular',
       order: 'first_name.asc',
     });
     const result = await firstValueFrom(this.http.get<Partial<Employee>[]>(url));

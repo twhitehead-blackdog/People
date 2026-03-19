@@ -140,9 +140,9 @@ export function calculateISR(
 ): number {
   if (biweeklyGross <= 0) return 0;
 
-  // Proyectar a anual incluyendo XIII mes
+  // Proyectar a anual: XIII mes exento de ISR (Art. 168 CT + Art. 761 CF)
   const monthlyGross = biweeklyGross * 2;
-  const annualGross = monthlyGross * 13;
+  const annualGross = monthlyGross * 12;
 
   // Deducir CSS y SE del ingreso bruto anual
   const annualCSS = annualGross * cssRate;
