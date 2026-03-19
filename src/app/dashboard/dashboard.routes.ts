@@ -377,6 +377,30 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
         canActivate: [employeePortalGuard, modulePermissionGuard('branch_manager')],
       },
+      {
+        path: 'launcher',
+        loadComponent: () =>
+          import('./app-launcher/app-launcher.component').then(
+            (x) => x.AppLauncherComponent
+          ),
+        canActivate: [employeePortalGuard],
+      },
+      {
+        path: 'analytics',
+        loadComponent: () =>
+          import('./analytics-embed/analytics-embed.component').then(
+            (x) => x.AnalyticsEmbedComponent
+          ),
+        canActivate: [employeePortalGuard],
+      },
+      {
+        path: 'live',
+        loadComponent: () =>
+          import('./live-embed/live-embed.component').then(
+            (x) => x.LiveEmbedComponent
+          ),
+        canActivate: [employeePortalGuard],
+      },
     ],
   },
 ];

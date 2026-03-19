@@ -5,7 +5,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { readFileSync } from 'fs';
 import helmet from 'helmet';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import nodemailer from 'nodemailer';
 import path from 'path';
 
@@ -145,6 +145,98 @@ export function app(): express.Express {
   const JWKS = auth0Domain
     ? createRemoteJWKSet(new URL(`https://${auth0Domain}/.well-known/jwks.json`))
     : null;
+
+  // Shared session secret for bd_session cookie (.blackdogpanama.com parent domain)
+  const BD_SESSION_SECRET = new TextEncoder().encode(
+    process.env['BD_SESSION_SECRET'] || 'bd-shared-session-2026-blackdog-panama'
+  );
+
+  async function issueBdSessionCookie(res: express.Response): Promise<void> {
+    const token = await new SignJWT({ auth: true })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(BD_SESSION_SECRET);
+    res.cookie('bd_session', token, {
+      domain: '.blackdogpanama.com',
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 8 * 60 * 60 * 1000,
+    });
+  }
+
+  async function checkBdSession(cookies: string): Promise<boolean> {
+    const match = cookies.match(/(?:^|;)\s*bd_session=([^;]+)/);
+    if (!match) return false;
+    try {
+      await jwtVerify(match[1], BD_SESSION_SECRET);
+      return true;
+    } catch { return false; }
+  }
+
+  // Auth check para nginx auth_request (dashboards, analytics, etc.)
+  server.get('/api/auth/check', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ') && JWKS) {
+      const token = authHeader.split(' ')[1];
+      try {
+        await jwtVerify(token, JWKS, {
+          issuer: `https://${auth0Domain}/`,
+          audience: auth0Audience || undefined,
+        });
+        res.status(200).json({ authenticated: true });
+        return;
+      } catch {
+        // fall through to cookie check
+      }
+    }
+    const cookies = req.headers.cookie || '';
+    // Check bd_session JWT (shared across .blackdogpanama.com subdomains)
+    if (await checkBdSession(cookies)) {
+      res.status(200).json({ authenticated: true });
+      return;
+    }
+    // Check Auth0 session cookie (set by People Angular app)
+    const clientId = process.env['ENV_AUTH0_CLIENT_ID'] || '';
+    const hasAuth0Session = cookies.includes(`auth0.${clientId}.is.authenticated`) ||
+      cookies.includes('@@auth0spajs@@');
+    if (hasAuth0Session) {
+      res.status(200).json({ authenticated: true });
+      return;
+    }
+    // Allow if Referer is people.blackdogpanama.com (iframe embed)
+    const referer = req.headers.referer || req.headers['referrer'] || '';
+    if (typeof referer === 'string' && referer.includes('people.blackdogpanama.com')) {
+      res.status(200).json({ authenticated: true });
+      return;
+    }
+    res.status(401).json({ authenticated: false });
+  });
+
+  // Issue shared session — called by nginx redirect when user visits protected subdomain
+  // Sets bd_session cookie on .blackdogpanama.com and redirects to returnTo
+  server.get('/api/auth/issue-session', async (req, res) => {
+    const returnTo = (req.query['returnTo'] as string) || 'https://people.blackdogpanama.com';
+    // Validate returnTo is a blackdogpanama.com URL
+    const safeReturnTo = returnTo.startsWith('https://') && returnTo.includes('blackdogpanama.com')
+      ? returnTo : 'https://people.blackdogpanama.com';
+
+    const cookies = req.headers.cookie || '';
+    const clientId = process.env['ENV_AUTH0_CLIENT_ID'] || '';
+    const hasAuth0Session = cookies.includes(`auth0.${clientId}.is.authenticated`) ||
+      cookies.includes('@@auth0spajs@@') ||
+      await checkBdSession(cookies);
+
+    if (hasAuth0Session) {
+      await issueBdSessionCookie(res);
+      res.redirect(302, safeReturnTo);
+    } else {
+      // Not authenticated — go to People login, store returnTo in URL
+      res.redirect(302, `https://people.blackdogpanama.com/login?returnTo=${encodeURIComponent(safeReturnTo)}`);
+    }
+  });
 
   const requireAuth: express.RequestHandler = async (req, res, next) => {
     const authHeader = req.headers.authorization;

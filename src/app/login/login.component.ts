@@ -1217,6 +1217,15 @@ export class LoginComponent {
   );
 
   constructor() {
+    // Si hay returnTo en la URL, guardarlo en sessionStorage para post-login
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get('returnTo');
+      if (returnTo && returnTo.startsWith('https://') && returnTo.includes('blackdogpanama.com')) {
+        sessionStorage.setItem('auth_returnTo', returnTo);
+      }
+    }
+
     // Obtener email del usuario si está autenticado
     this.auth.user$.subscribe((user) => {
       if (user?.email) {
@@ -1302,7 +1311,8 @@ export class LoginComponent {
     }
 
     // Usar Auth0 para iniciar sesión
-    this.auth.loginWithRedirect();
+    const savedReturnTo = typeof window !== 'undefined' ? sessionStorage.getItem('auth_returnTo') : null;
+    this.auth.loginWithRedirect(savedReturnTo ? { appState: { returnTo: savedReturnTo } } : undefined);
   }
 
   openKioskMode() {

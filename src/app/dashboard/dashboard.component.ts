@@ -176,6 +176,26 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                   <span>Reloj de marcación</span></a
                 >
                 }
+                <div class="relative"
+                     (mouseenter)="openDropdown('services')"
+                     (mouseleave)="closeDropdown()">
+                  <a class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
+                     [class.selected]="isLiveActive()">
+                    <i class="pi pi-server text-base flex-shrink-0"></i>
+                    <span>Servicios</span>
+                    <i class="pi pi-chevron-down text-[9px] opacity-50"></i>
+                  </a>
+                  @if (activeDropdown() === 'services') {
+                  <div class="dd-panel">
+                    <a (click)="navigateTo('live'); closeDropdown()" class="dd-item" [class.dd-active]="isLiveActive()">
+                      <i class="pi pi-objects-column text-xs opacity-60"></i> Asistencia en vivo
+                    </a>
+                    <a (click)="navigateTo('analytics'); closeDropdown()" class="dd-item">
+                      <i class="pi pi-chart-line text-xs opacity-60"></i> Analytics
+                    </a>
+                  </div>
+                  }
+                </div>
               </div>
             </div>
             <div class="header-user hidden md:flex items-center gap-2">
@@ -309,6 +329,12 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               <span>Reloj de marcación</span></a
             >
             }
+            <a (click)="navigateTo('live'); toggleMenu()"
+               [class.bg-gray-700]="isLiveActive()"
+               [class.text-white]="isLiveActive()"
+               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
+              ><i class="pi pi-objects-column text-lg"></i>
+              <span>Asistencia en vivo</span></a>
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
@@ -406,7 +432,8 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
     } @else {
     <!-- ========== MOBILE ========== -->
     <div
-      class="h-screen flex flex-col overflow-hidden mobile-shell"
+      class="flex flex-col overflow-hidden mobile-shell"
+      style="height: 100dvh"
       [ngClass]="{ 'naz-theme': isNaz() }"
     >
       <!-- Mobile top bar -->
@@ -459,7 +486,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
       }
 
       <!-- Content area -->
-      <div class="flex-1 overflow-y-auto" [class.mobile-content-padded]="!showEmployeePortalView()">
+      <div class="flex-1 min-h-0 overflow-y-auto pb-[68px]">
         @if(showEmployeePortalView()) {
         <pt-employee-portal />
         } @else {
@@ -467,14 +494,12 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
         }
       </div>
 
-      <!-- Bottom nav (only for admin routes, not employee portal) -->
-      @if(!showEmployeePortalView()) {
+      <!-- Bottom nav fixed at bottom -->
       <pt-mobile-bottom-nav
         [tabs]="adminMobileTabs()"
         [activeTab]="activeMobileAdminTab()"
         (tabChange)="onMobileAdminTabChange($event)"
       />
-      }
       <pt-screen-lock></pt-screen-lock>
     </div>
     }
@@ -483,6 +508,33 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
       .mobile-content-padded {
         padding-bottom: 72px;
       }
+
+      .dd-panel {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        min-width: 180px;
+        background: #1f2937;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+        padding: 0.25rem;
+        z-index: 1002;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      }
+      .dd-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        color: rgba(255,255,255,0.75);
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        white-space: nowrap;
+      }
+      .dd-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+      .dd-active { color: #fbbf24 !important; }
 
       .selected {
         @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
@@ -1087,6 +1139,21 @@ export class DashboardComponent {
     const route = this.currentRoute();
     return route === 'branch-manager';
   });
+
+  public isLiveActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'live';
+  });
+
+  public activeDropdown = signal<string | null>(null);
+
+  public openDropdown(name: string) {
+    this.activeDropdown.set(name);
+  }
+
+  public closeDropdown() {
+    this.activeDropdown.set(null);
+  }
 
   public isUserManagementActive = computed(() => {
     const url = typeof window !== 'undefined' ? window.location.pathname : '';

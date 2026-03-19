@@ -72,6 +72,17 @@ export const appConfig: ApplicationConfig = {
       },
       useRefreshTokens: true,
       cacheLocation: 'localstorage',
+      // @ts-ignore - onRedirectCallback is valid in this version
+      onRedirectCallback: (appState: any) => {
+        // Después del login, redirigir a returnTo si existe (ej: dashboards.blackdogpanama.com)
+        const returnTo = (appState?.returnTo as string | undefined)
+          || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('auth_returnTo') : null)
+          || null;
+        if (returnTo && returnTo.startsWith('https://') && returnTo.includes('blackdogpanama.com')) {
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('auth_returnTo');
+          window.location.href = '/api/auth/issue-session?returnTo=' + encodeURIComponent(returnTo);
+        }
+      },
     }),
     providePrimeNG({
       theme: {
