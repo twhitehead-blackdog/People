@@ -109,291 +109,218 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
       [ngClass]="{ 'naz-theme': isNaz() }"
     >
       <nav
-        class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg relative z-[1000]"
+        class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full shadow-lg relative z-[1000]"
         [ngClass]="{ 'naz-nav': isNaz() }"
       >
-        <!-- Constrained Area for Dog (Logo Zone) -->
-        <div
-          class="absolute bottom-0 left-2 sm:left-4 lg:left-6 w-[280px] h-0 z-[30]"
-        >
+        <!-- Dog animation zone -->
+        <div class="absolute bottom-0 left-2 sm:left-4 lg:left-6 w-[280px] h-0 z-[30]">
           <pt-dog-animation></pt-dog-animation>
         </div>
-        <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
-          <div class="header-container h-14 md:h-20">
-            <div class="header-logo relative">
-              <a
-                (click)="navigateToDefault()"
-                class="flex items-center gap-2 group cursor-pointer"
-              >
-                <img
-                  [src]="logoPath()"
-                  class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105"
-                  alt="People"
-                />
-              </a>
-            </div>
-            <div class="header-menu hidden lg:flex">
-              <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
-                @if(canAccessHome()) {
-                <a
-                  (click)="navigateTo('home')"
-                  [class.selected]="isHomeActive()"
-                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
-                  ><i class="pi pi-home text-base flex-shrink-0"></i> <span>Inicio</span></a
-                >
-                } @if(canAccessAdmin()) {
-                <a
-                  (click)="navigateTo('admin')"
-                  [class.selected]="isAdminActive()"
-                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
-                >
-                  <i class="pi pi-building text-base flex-shrink-0"></i>
-                  <span>Administración</span></a
-                >
-                } @if(canAccessPayroll()) {
-                <a
-                  (click)="navigateTo('payroll')"
-                  [class.selected]="isPayrollActive()"
-                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
-                >
-                  <i class="pi pi-money-bill text-base flex-shrink-0"></i>
-                  <span>Planilla</span></a
-                >
-                } @if(canAccessTimeManagement()) {
-                <a
-                  (click)="navigateTo('time-management')"
-                  [class.selected]="isTimeManagementActive()"
-                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
-                  ><i class="pi pi-calendar text-base flex-shrink-0"></i>
-                  <span>Gestión de tiempo</span></a
-                >
-                } @if(canAccessTimeclock()) {
-                <a
-                  (click)="navigateTo('timeclock')"
-                  [class.selected]="isTimeclockActive()"
-                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
-                  ><i class="pi pi-clock text-base flex-shrink-0"></i>
-                  <span>Reloj de marcación</span></a
-                >
-                }
-                <div class="relative"
-                     (mouseenter)="openDropdown('services')"
-                     (mouseleave)="closeDropdown()">
-                  <a class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
-                     [class.selected]="isLiveActive()">
-                    <i class="pi pi-server text-base flex-shrink-0"></i>
-                    <span>Servicios</span>
-                    <i class="pi pi-chevron-down text-[9px] opacity-50"></i>
-                  </a>
-                  @if (activeDropdown() === 'services') {
-                  <div class="dd-panel">
-                    <a (click)="navigateTo('live'); closeDropdown()" class="dd-item" [class.dd-active]="isLiveActive()">
-                      <i class="pi pi-objects-column text-xs opacity-60"></i> Asistencia en vivo
-                    </a>
-                    <a (click)="navigateTo('analytics'); closeDropdown()" class="dd-item">
-                      <i class="pi pi-chart-line text-xs opacity-60"></i> Analytics
-                    </a>
-                  </div>
-                  }
-                </div>
-              </div>
-            </div>
-            <div class="header-user hidden md:flex items-center gap-2">
-              @if(user) {
-              <!-- Campana de notificaciones -->
-              <div class="relative">
-                <button
-                  type="button"
-                  (click)="toggleNotificationsDropdown()"
-                  class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
-                  title="Notificaciones"
-                >
-                  <i class="pi pi-bell text-lg"></i>
-                  @if (unreadNotificationsCount() > 0) {
-                  <span
-                    class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
-                  >
-                    {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
-                  </span>
-                  }
-                </button>
-                <pt-notifications-dropdown
-                  [isVisible]="showNotificationsDropdown()"
-                  [onClose]="closeNotificationsDropdown.bind(this)"
-                />
-              </div>
-              <p-menu
-                #menu
-                [model]="getMenuItems()"
-                popup
-                [autoZIndex]="true"
-              />
-              <div
-                class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
-                (click)="menu.toggle($event)"
-              >
-                <div class="relative flex-shrink-0">
-                  <div class="avatar-container">
-                    <p-avatar
-                      [image]="user?.picture"
-                      shape="circle"
-                      size="normal"
-                    />
-                  </div>
-                  <div
-                    class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
-                  ></div>
-                </div>
-                <div class="flex flex-col min-w-0 flex-1">
-                  <div
-                    class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate"
-                  >
-                    {{ currentEmployeeName() }}
-                  </div>
-                  <div
-                    class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate"
-                  >
-                    {{ currentEmployeePosition() }}
-                  </div>
-                </div>
-                <i
-                  class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"
-                ></i>
-              </div>
 
+        <!-- Single-row header -->
+        <div class="flex items-center h-14 px-3 sm:px-4 lg:px-6 gap-2 min-w-0">
+          <!-- Logo -->
+          <div class="header-logo relative flex-shrink-0">
+            <a (click)="navigateToDefault()" class="flex items-center gap-2 group cursor-pointer">
+              <img [src]="logoPath()" class="h-7 transition-transform duration-300 group-hover:scale-105" alt="People" />
+            </a>
+          </div>
+
+          <!-- Nav items - single row, all dropdowns -->
+          <div class="header-menu hidden lg:flex items-center gap-0.5 flex-1 min-w-0">
+            @if(canAccessHome()) {
+            <a (click)="navigateTo('home')" [class.nav-active]="isHomeActive()" class="nav-item">
+              <i class="pi pi-home"></i><span>Inicio</span>
+            </a>
+            }
+            @if(canAccessAdmin()) {
+            <div class="relative" (mouseenter)="openDropdown('admin')" (mouseleave)="closeDropdown()">
+              <a [class.nav-active]="isAdminActive()" class="nav-item">
+                <i class="pi pi-building"></i><span>Administración</span><i class="pi pi-chevron-down nav-caret"></i>
+              </a>
+              @if(activeDropdown() === 'admin') {
+              <div class="dd-menu dd-grid">
+                <a (click)="navigateAbsolute('admin/employees'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Empleados</a>
+                <a (click)="navigateAbsolute('admin/organigrama'); closeDropdown()" class="dd-item"><i class="pi pi-sitemap"></i>Organigrama</a>
+                <a (click)="navigateAbsolute('admin/companies'); closeDropdown()" class="dd-item"><i class="pi pi-briefcase"></i>Empresas</a>
+                <a (click)="navigateAbsolute('admin/departments'); closeDropdown()" class="dd-item"><i class="pi pi-table"></i>Departamentos</a>
+                <a (click)="navigateAbsolute('admin/positions'); closeDropdown()" class="dd-item"><i class="pi pi-tag"></i>Puestos</a>
+                <a (click)="navigateAbsolute('admin/branches'); closeDropdown()" class="dd-item"><i class="pi pi-map-marker"></i>Sucursales</a>
+                <a (click)="navigateAbsolute('admin/settings'); closeDropdown()" class="dd-item"><i class="pi pi-cog"></i>Ajustes</a>
+                <a (click)="navigateAbsolute('admin/user-management'); closeDropdown()" class="dd-item"><i class="pi pi-user-edit"></i>Usuarios</a>
+                <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
+                <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
+                <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
+                <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-desktop"></i>Dispositivos</a>
+                <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>RRHH Tiempo</a>
+                <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list"></i>Auditoría</a>
+                <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance</a>
+                <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
+              </div>
               }
             </div>
-            <div class="-mr-2 flex lg:hidden">
-              <p-button
-                rounded
-                text
-                [icon]="isCollapsed() ? 'pi pi-bars' : 'pi pi-times'"
-                severity="secondary"
-                (onClick)="toggleMenu()"
-                class="text-white hover:bg-gray-700/50 min-w-[44px] min-h-[44px]"
-              />
+            }
+            @if(canAccessPayroll()) {
+            <div class="relative" (mouseenter)="openDropdown('payroll')" (mouseleave)="closeDropdown()">
+              <a [class.nav-active]="isPayrollActive()" class="nav-item">
+                <i class="pi pi-money-bill"></i><span>Planilla</span><i class="pi pi-chevron-down nav-caret"></i>
+              </a>
+              @if(activeDropdown() === 'payroll') {
+              <div class="dd-menu">
+                <a (click)="navigateAbsolute('payroll/payrolls'); closeDropdown()" class="dd-item"><i class="pi pi-money-bill"></i>Planillas</a>
+                <a (click)="navigateAbsolute('payroll/creditors'); closeDropdown()" class="dd-item"><i class="pi pi-users"></i>Acreedores</a>
+                <a (click)="navigateAbsolute('payroll/banks'); closeDropdown()" class="dd-item"><i class="pi pi-building"></i>Bancos</a>
+                <a (click)="navigateAbsolute('payroll/decimo'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Décimo</a>
+                <a (click)="navigateAbsolute('payroll/vacations'); closeDropdown()" class="dd-item"><i class="pi pi-sun"></i>Vacaciones</a>
+                <a (click)="navigateAbsolute('payroll/liquidation'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Liquidación</a>
+                <a (click)="navigateAbsolute('payroll/import'); closeDropdown()" class="dd-item"><i class="pi pi-upload"></i>Importar</a>
+              </div>
+              }
+            </div>
+            }
+            @if(canAccessTimeManagement()) {
+            <div class="relative" (mouseenter)="openDropdown('time')" (mouseleave)="closeDropdown()">
+              <a [class.nav-active]="isTimeManagementActive()" class="nav-item">
+                <i class="pi pi-calendar"></i><span>Tiempo</span><i class="pi pi-chevron-down nav-caret"></i>
+              </a>
+              @if(activeDropdown() === 'time') {
+              <div class="dd-menu">
+                <a (click)="navigateAbsolute('time-management/timelogs'); closeDropdown()" class="dd-item"><i class="pi pi-clock"></i>Registros</a>
+                <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Horarios</a>
+                <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>Calendarios</a>
+                <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Horario Vet</a>
+                <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Horario Salón</a>
+                <a (click)="navigateAbsolute('time-management/shifts'); closeDropdown()" class="dd-item"><i class="pi pi-sliders-h"></i>Turnos</a>
+              </div>
+              }
+            </div>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
+              <i class="pi pi-clock"></i><span>Reloj</span>
+            </a>
+            }
+            <div class="relative" (mouseenter)="openDropdown('services')" (mouseleave)="closeDropdown()">
+              <a [class.nav-active]="isLiveActive()" class="nav-item">
+                <i class="pi pi-server"></i><span>Servicios</span><i class="pi pi-chevron-down nav-caret"></i>
+              </a>
+              @if(activeDropdown() === 'services') {
+              <div class="dd-menu">
+                <a (click)="navigateTo('live'); closeDropdown()" class="dd-item" [class.dd-active]="isLiveActive()"><i class="pi pi-objects-column"></i>Asistencia en vivo</a>
+                <a (click)="navigateTo('analytics'); closeDropdown()" class="dd-item"><i class="pi pi-chart-line"></i>Analytics</a>
+              </div>
+              }
             </div>
           </div>
+
+          <!-- Right: notifications + user -->
+          <div class="header-user hidden md:flex items-center gap-2">
+            @if(user) {
+            <div class="relative">
+              <button type="button" (click)="toggleNotificationsDropdown()"
+                class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
+                title="Notificaciones">
+                <i class="pi pi-bell text-lg"></i>
+                @if (unreadNotificationsCount() > 0) {
+                <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
+                  {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
+                </span>
+                }
+              </button>
+              <pt-notifications-dropdown [isVisible]="showNotificationsDropdown()" [onClose]="closeNotificationsDropdown.bind(this)" />
+            </div>
+            <p-menu #menu [model]="getMenuItems()" popup [autoZIndex]="true" />
+            <div class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200" (click)="menu.toggle($event)">
+              <div class="relative flex-shrink-0">
+                <div class="avatar-container">
+                  <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+                </div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+              </div>
+              <div class="flex flex-col min-w-0 flex-1">
+                <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">{{ currentEmployeeName() }}</div>
+                <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">{{ currentEmployeePosition() }}</div>
+              </div>
+              <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
+            </div>
+            }
+          </div>
+          <div class="-mr-2 flex lg:hidden">
+            <p-button rounded text [icon]="isCollapsed() ? 'pi pi-bars' : 'pi pi-times'" severity="secondary" (onClick)="toggleMenu()" class="text-white hover:bg-gray-700/50 min-w-[44px] min-h-[44px]" />
+          </div>
         </div>
+
+        <!-- Tablet/mobile hamburger panel -->
         <div
           class="lg:hidden border-t border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm absolute top-full left-0 right-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto z-[1001] shadow-2xl"
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
             @if(canAccessHome()) {
-            <a
-              (click)="navigateTo('home'); toggleMenu()"
-              [class.bg-gray-700]="isHomeActive()"
-              [class.text-white]="isHomeActive()"
-              [class.shadow-md]="isHomeActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
-            >
-            } @if(canAccessAdmin()) {
-            <a
-              (click)="navigateTo('admin'); toggleMenu()"
-              [class.bg-gray-700]="isAdminActive()"
-              [class.text-white]="isAdminActive()"
-              [class.shadow-md]="isAdminActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-building text-lg"></i>
-              <span>Administración</span></a
-            >
-            } @if(canAccessTimeManagement()) {
-            <a
-              (click)="navigateTo('time-management'); toggleMenu()"
-              [class.bg-gray-700]="isTimeManagementActive()"
-              [class.text-white]="isTimeManagementActive()"
-              [class.shadow-md]="isTimeManagementActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-calendar text-lg"></i>
-              <span>Gestión de tiempo</span></a
-            >
-            } @if(canAccessPayroll()) {
-            <a
-              (click)="navigateTo('payroll'); toggleMenu()"
-              [class.bg-gray-700]="isPayrollActive()"
-              [class.text-white]="isPayrollActive()"
-              [class.shadow-md]="isPayrollActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-money-bill text-lg"></i> <span>Planilla</span></a
-            >
-            } @if(canAccessTimeclock()) {
-            <a
-              (click)="navigateTo('timeclock'); toggleMenu()"
-              [class.bg-gray-700]="isTimeclockActive()"
-              [class.text-white]="isTimeclockActive()"
-              [class.shadow-md]="isTimeclockActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-clock text-lg"></i>
-              <span>Reloj de marcación</span></a
-            >
+            <a (click)="navigateTo('home'); toggleMenu()" [class.bg-gray-700]="isHomeActive()" [class.text-white]="isHomeActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-home text-lg"></i><span>Inicio</span>
+            </a>
             }
-            <a (click)="navigateTo('live'); toggleMenu()"
-               [class.bg-gray-700]="isLiveActive()"
-               [class.text-white]="isLiveActive()"
-               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-objects-column text-lg"></i>
-              <span>Asistencia en vivo</span></a>
+            @if(canAccessAdmin()) {
+            <a (click)="navigateTo('admin'); toggleMenu()" [class.bg-gray-700]="isAdminActive()" [class.text-white]="isAdminActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-building text-lg"></i><span>Administración</span>
+            </a>
+            }
+            @if(canAccessTimeManagement()) {
+            <a (click)="navigateTo('time-management'); toggleMenu()" [class.bg-gray-700]="isTimeManagementActive()" [class.text-white]="isTimeManagementActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-calendar text-lg"></i><span>Gestión de tiempo</span>
+            </a>
+            }
+            @if(canAccessPayroll()) {
+            <a (click)="navigateTo('payroll'); toggleMenu()" [class.bg-gray-700]="isPayrollActive()" [class.text-white]="isPayrollActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-money-bill text-lg"></i><span>Planilla</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock'); toggleMenu()" [class.bg-gray-700]="isTimeclockActive()" [class.text-white]="isTimeclockActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-clock text-lg"></i><span>Reloj de marcación</span>
+            </a>
+            }
+            <a (click)="navigateTo('live'); toggleMenu()" [class.bg-gray-700]="isLiveActive()" [class.text-white]="isLiveActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-objects-column text-lg"></i><span>Asistencia en vivo</span>
+            </a>
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
-            <!-- Campana de notificaciones mobile -->
             <div class="relative mb-3 flex items-center gap-3">
-              <button
-                type="button"
-                (click)="toggleNotificationsDropdown()"
+              <button type="button" (click)="toggleNotificationsDropdown()"
                 class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50"
-                title="Notificaciones"
-              >
+                title="Notificaciones">
                 <i class="pi pi-bell text-lg"></i>
                 @if (unreadNotificationsCount() > 0) {
-                <span
-                  class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
-                >
+                <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
                   {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
                 </span>
                 }
               </button>
               <span class="text-sm text-gray-300">Notificaciones</span>
-              <pt-notifications-dropdown
-                [isVisible]="showNotificationsDropdown()"
-                [onClose]="closeNotificationsDropdown.bind(this)"
-              />
+              <pt-notifications-dropdown [isVisible]="showNotificationsDropdown()" [onClose]="closeNotificationsDropdown.bind(this)" />
             </div>
-            <p-menu
-              #mobileMenu
-              [model]="getMenuItems()"
-              popup
-              [appendTo]="'body'"
-            />
-            <div
-              class="flex items-center gap-3 cursor-pointer group px-2 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 touch-manipulation"
-              (click)="$event.stopPropagation(); mobileMenu.toggle($event)"
-            >
+            <p-menu #mobileMenu [model]="getMenuItems()" popup [appendTo]="'body'" />
+            <div class="flex items-center gap-3 cursor-pointer group px-2 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 touch-manipulation"
+              (click)="$event.stopPropagation(); mobileMenu.toggle($event)">
               <div class="relative flex-shrink-0">
                 <div class="avatar-container">
-                  <p-avatar
-                    [image]="user.picture"
-                    shape="circle"
-                    size="normal"
-                  />
+                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
                 </div>
-                <div
-                  class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
-                ></div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="text-base font-semibold text-white truncate">
-                  {{ currentEmployeeName() }}
-                </div>
-                <div class="text-sm text-gray-400 truncate">
-                  {{ currentEmployeePosition() }}
-                </div>
+                <div class="text-base font-semibold text-white truncate">{{ currentEmployeeName() }}</div>
+                <div class="text-sm text-gray-400 truncate">{{ currentEmployeePosition() }}</div>
               </div>
-              <i
-                class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-sm flex-shrink-0"
-              ></i>
+              <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-sm flex-shrink-0"></i>
             </div>
           </div>
           }
@@ -509,37 +436,61 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
         padding-bottom: 72px;
       }
 
-      .dd-panel {
+      /* ── Desktop nav items ── */
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.62);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.15s, background 0.15s;
+        user-select: none;
+        line-height: 1;
+      }
+      .nav-item i:first-child { font-size: 13px; flex-shrink: 0; }
+      .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.95); }
+      .nav-active { background: rgba(251,191,36,0.12) !important; color: #fbbf24 !important; }
+      .nav-caret { font-size: 9px !important; opacity: 0.45; margin-left: 1px; }
+
+      /* ── Dropdown menus ── */
+      .dd-menu {
         position: absolute;
-        top: 100%;
+        top: calc(100% + 6px);
         left: 0;
-        min-width: 180px;
-        background: #1f2937;
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 0.5rem;
-        padding: 0.25rem;
+        min-width: 190px;
+        background: #171717;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 4px;
         z-index: 1002;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+      }
+      .dd-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-width: 340px;
       }
       .dd-item {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 0.375rem;
-        color: rgba(255,255,255,0.75);
-        font-size: 0.875rem;
+        gap: 7px;
+        padding: 7px 10px;
+        border-radius: 5px;
+        color: rgba(255,255,255,0.68);
+        font-size: 13px;
         cursor: pointer;
-        transition: background 0.15s;
+        transition: background 0.12s, color 0.12s;
         white-space: nowrap;
       }
-      .dd-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+      .dd-item i { font-size: 12px; opacity: 0.55; flex-shrink: 0; }
+      .dd-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+      .dd-item:hover i { opacity: 0.8; }
       .dd-active { color: #fbbf24 !important; }
-
-      .selected {
-        @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
-        border-left: 3px solid #FBBF24;
-      }
       
       ::ng-deep .p-menu {
         border-radius: 0.5rem !important;
@@ -646,18 +597,18 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
 
       .header-logo {
         flex-shrink: 0;
-        margin-right: auto;
+        margin-right: 0.75rem;
       }
 
       .header-menu {
         flex: 1;
         min-width: 0;
-        justify-content: center;
+        overflow: hidden;
       }
 
       .header-user {
         flex-shrink: 0;
-        margin-left: auto;
+        margin-left: 0.5rem;
       }
 
       /* Touch-friendly: botones y enlaces grandes en móvil/tablet */
@@ -729,11 +680,10 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
         background: rgba(255, 255, 255, 0.10) !important;
       }
 
-      :host-context(.naz-theme) .header-menu a.selected,
-      .naz-theme .header-menu a.selected {
-        background: #0D0D0D !important;
+      :host-context(.naz-theme) .nav-active,
+      .naz-theme .nav-active {
+        background: rgba(255,255,255,0.1) !important;
         color: #FFFFFF !important;
-        border-left-color: #FFFFFF !important;
       }
 
       :host-context(.naz-theme) .header-user,
@@ -1094,6 +1044,10 @@ export class DashboardComponent {
   navigateTo(route: string) {
     // Navigate relative to the current activated route (which is the dashboard component)
     this.router.navigate([route], { relativeTo: this.route });
+  }
+
+  navigateAbsolute(path: string) {
+    this.router.navigateByUrl('/' + path);
   }
 
   navigateToDefault() {
