@@ -188,8 +188,8 @@ function resolveNavigation(
     state.url.includes('/my-portal') ||
     state.url.includes('/employee-portal');
   const isHomeRoute =
-    currentRoute === 'home' ||
-    state.url.includes('/home') ||
+    (currentRoute === 'home' && !state.url.includes('/admin/home')) ||
+    (state.url.includes('/home') && !state.url.includes('/admin/home')) ||
     state.url === '/' ||
     state.url === '';
 
@@ -337,7 +337,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       // Super admin bypass (solo si no está en modo de prueba restringido)
       // Para /home NO hacemos bypass: necesitamos verificar si home está deshabilitado
       const isHomeRoute =
-        state.url.includes('/home') || state.url === '/' || state.url === '';
+        (state.url.includes('/home') && !state.url.includes('/admin/home')) || state.url === '/' || state.url === '';
       if (
         userEmail &&
         superAdminEmails.includes(userEmail) &&

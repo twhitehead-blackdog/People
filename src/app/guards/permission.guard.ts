@@ -35,7 +35,7 @@ function findFirstAvailableRoute(permissions: PermissionsService): string {
     { moduleId: 'timeclock', route: '/timeclock' },
     { moduleId: 'admin', route: '/admin' },
     { moduleId: 'payroll', route: '/payroll' },
-    { moduleId: 'home', route: '/home' },
+    { moduleId: 'home', route: '/admin/home' },
   ];
 
   for (const entry of moduleRouteMap) {
@@ -164,35 +164,3 @@ export const combinedPermissionGuard = (
   };
 };
 
-/**
- * Guard para la ruta /home.
- * Si el módulo 'home' está desactivado, redirige al primer módulo disponible.
- * Si está activado (o el empleado aún no cargó), permite el acceso.
- */
-export const homeGuard: CanActivateFn = async () => {
-  const permissions = inject(PermissionsService);
-  const router = inject(Router);
-  const dashboardStore = inject(DashboardStore);
-
-  const loaded = await waitForEmployee(dashboardStore);
-  if (!loaded) {
-    // Si no cargó el empleado, dejar pasar (employeePortalGuard ya maneja esto)
-    return true;
-  }
-
-  // Si home está habilitado, dejar pasar normalmente
-  if (permissions.canAccessModule('home')) {
-    return true;
-  }
-
-  // Home desactivado: buscar primera ruta disponible (excluyendo home)
-  const fallback = findFirstAvailableRoute(permissions);
-
-  // Si el fallback es home (porque home está primero en la lista), ir a admin directamente
-  if (fallback === '/home') {
-    router.navigate(['/admin']);
-  } else {
-    router.navigate([fallback]);
-  }
-  return false;
-};

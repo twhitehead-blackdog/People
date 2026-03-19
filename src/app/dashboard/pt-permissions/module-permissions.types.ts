@@ -30,7 +30,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     label: 'Inicio',
     description: 'Página principal del dashboard',
     icon: 'pi pi-home',
-    route: '/home',
+    route: '/admin/home',
     subModules: [
       { id: 'home_access', label: 'Acceso a Inicio', description: 'Permite ver la página principal del dashboard', icon: 'pi pi-home', route: '' },
     ],
@@ -82,6 +82,8 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'payrolls', label: 'Planillas', description: 'Gestión de planillas de pago', icon: 'pi pi-list', route: 'payrolls' },
       { id: 'creditors', label: 'Acreedores', description: 'Gestión de acreedores', icon: 'pi pi-users', route: 'creditors' },
       { id: 'banks', label: 'Bancos', description: 'Configuración de bancos', icon: 'pi pi-building', route: 'banks' },
+      { id: 'payroll_admin', label: 'Config. Nómina', description: 'Configuración avanzada de nómina', icon: 'pi pi-sliders-h', route: 'admin' },
+      { id: 'payroll_import', label: 'Importar Nómina', description: 'Importación masiva de datos de nómina', icon: 'pi pi-upload', route: 'import' },
     ],
   },
   {
@@ -138,6 +140,18 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     route: '/timeclock',
     subModules: [
       { id: 'timeclock_access', label: 'Marcar Asistencia', description: 'Permite marcar entrada y salida', icon: 'pi pi-clock', route: '' },
+    ],
+  },
+  {
+    id: 'services',
+    label: 'Servicios',
+    description: 'Acceso a servicios integrados y herramientas avanzadas',
+    icon: 'pi pi-server',
+    route: '/services',
+    subModules: [
+      { id: 'live_access', label: 'Asistencia en Vivo', description: 'Vista en tiempo real de la asistencia', icon: 'pi pi-objects-column', route: '/live' },
+      { id: 'analytics_access', label: 'Analytics', description: 'Panel de análisis y reportes avanzados', icon: 'pi pi-chart-line', route: '/analytics' },
+      { id: 'launcher_access', label: 'Lanzador de Apps', description: 'Acceso al lanzador de aplicaciones', icon: 'pi pi-th-large', route: '/launcher' },
     ],
   },
 ];
