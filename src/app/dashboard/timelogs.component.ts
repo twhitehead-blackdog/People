@@ -68,86 +68,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
     TimelogsTableComponent,
     OvertimeConfirmationDialogComponent,
   ],
-  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
-    <!-- Mobile header -->
-    <div class="md:hidden mobile-section-header">
-      <div style="display:flex;align-items:center;gap:0.5rem;">
-        <span class="mobile-section-header__title">Marcaciones</span>
-      </div>
-      <div class="flex gap-1">
-        <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.25rem;height:2.25rem;font-size:0.8rem;" (click)="infoDialogVisible.set(true)" aria-label="Info">
-          <i class="pi pi-info-circle"></i>
-        </button>
-        <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.25rem;height:2.25rem;font-size:0.8rem;" (click)="generateReport()" aria-label="Exportar">
-          <i class="pi pi-file-excel"></i>
-        </button>
-      </div>
-    </div>
-    <!-- Mobile: no p-card wrapper, direct content -->
-    <div class="md:hidden px-2 pt-2 pb-4">
-      <pt-timelogs-filters
-        [dateRange]="dateRange"
-        [employeeSearchInput]="employeeSearchInput"
-        [employeeId]="employeeId"
-        [branchId]="branchId"
-        [onlyDelayed]="onlyDelayed"
-        [onlyErrors]="onlyErrors"
-        [onlyEarlyExit]="onlyEarlyExit"
-        [onlyLunchExceeded]="onlyLunchExceeded"
-        [onlyWithMarcaciones]="onlyWithMarcaciones"
-        [lunchExceededRange]="lunchExceededRange"
-        [delayRange]="delayRange"
-        [delayToleranceMinutes]="delayToleranceMinutes"
-        [filtersExpanded]="filtersExpanded"
-        [activeEmployeesList]="activeEmployeesList"
-        [branchOptions]="branchOptionsList"
-        [lunchExceededOptions]="lunchExceededOptions"
-        [delayRangeOptions]="delayRangeOptions"
-        [hasActiveFilters]="hasActiveFilters"
-        [activeFiltersCount]="getActiveFiltersCount"
-        (searchRequested)="onEmployeeSearchEnter()"
-      ></pt-timelogs-filters>
-      @if(selectedEmployee()) {
-      <div class="mb-3">
-        <div class="flex items-center gap-2 mb-2">
-          <i class="pi pi-user text-amber-400 text-xs"></i>
-          <span class="text-xs font-medium text-gray-300">{{ selectedEmployee()?.first_name }} {{ selectedEmployee()?.father_name }}</span>
-        </div>
-        <div class="grid grid-cols-3 gap-1.5">
-          <div class="p-2 bg-neutral-800/60 rounded-lg border border-neutral-700/50 text-center">
-            <span class="text-[9px] text-gray-400 block">Cert. Méd.</span>
-            <span class="text-sm font-bold text-white">{{ employeeSummaryCounts().certMedicos }}</span>
-          </div>
-          <div class="p-2 bg-neutral-800/60 rounded-lg border border-neutral-700/50 text-center">
-            <span class="text-[9px] text-gray-400 block">Injustificada</span>
-            <span class="text-sm font-bold text-white">{{ employeeSummaryCounts().injustificada }}</span>
-          </div>
-          <div class="p-2 bg-neutral-800/60 rounded-lg border border-neutral-700/50 text-center">
-            <span class="text-[9px] text-gray-400 block">Permisos</span>
-            <span class="text-sm font-bold text-white">{{ employeeSummaryCounts().permiso }}</span>
-          </div>
-        </div>
-      </div>
-      }
-      <div class="overflow-x-auto -mx-2 px-2 rounded-lg border border-neutral-700/50">
-        <pt-timelogs-table
-          [logs]="filteredDaylogs"
-          [isLoading]="logs.isLoading() && !silentReloading()"
-          [delayToleranceMinutes]="delayToleranceMinutes"
-          [employeeId]="employeeId"
-          [maxEmployeeTagWidth]="maxEmployeeTagWidth()"
-          [maxScheduleBadgeWidth]="maxScheduleBadgeWidth()"
-          [maxDelayTagWidth]="maxDelayTagWidth()"
-          [maxLunchTagWidth]="maxLunchTagWidth()"
-          [maxExitTagWidth]="maxExitTagWidth()"
-          [maxHoursTagWidth]="maxHoursTagWidth()"
-          [isAdmin]="store.isAdmin()"
-          (overtimeAction)="onOvertimeAction($event)"
-        ></pt-timelogs-table>
-      </div>
-    </div>
-    <!-- Desktop: original p-card layout -->
-    <div class="hidden md:block px-5 md:px-8 pt-5 pb-4">
+  template: `<div class="px-3 sm:px-5 md:px-8 pt-3 sm:pt-5 pb-4" [ngClass]="{ 'naz-theme': isNaz() }">
     <p-card>
       <ng-template #title>
         <div
@@ -391,7 +312,6 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
         </div>
       </div>
     </p-dialog>
-    </div>
   </div>`,
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
