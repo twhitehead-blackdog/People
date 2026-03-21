@@ -58,24 +58,36 @@ import { logger } from '../utils/logger';
           <main class="login-pc__main">
             <section class="login-pc__panel" [ngClass]="{ 'login-pc__panel--naz': isNaz() }">
               <div class="login-pc__heading">
-                <p class="login-pc__subtitle" [ngClass]="{ 'login-pc__subtitle--naz': isNaz() }">Sistema de Gestión de Personal</p>
-                <h1 class="login-pc__title" [ngClass]="{ 'login-pc__title--naz': isNaz() }">Iniciar sesión</h1>
-                <p class="login-pc__desc" [ngClass]="{ 'login-pc__desc--naz': isNaz() }">Ingresa con tu cuenta para continuar</p>
+                <h1 class="login-pc__title" [ngClass]="{ 'login-pc__title--naz': isNaz() }">Bienvenido</h1>
+                <p class="login-pc__desc" [ngClass]="{ 'login-pc__desc--naz': isNaz() }">Selecciona cómo deseas ingresar</p>
               </div>
-              <div class="login-pc__actions">
-                <button type="button" class="login-pc__action-btn"
-                  [ngClass]="{ 'login-pc__action-btn--active': activeMode() === 'dashboard', 'login-pc__action-btn--naz': isNaz(), 'login-pc__action-btn--fly': isFlying() }"
+              <div class="login-pc__actions-v2">
+                <button type="button" class="login-pc__card-btn"
+                  [ngClass]="{ 'login-pc__card-btn--active': activeMode() === 'dashboard', 'login-pc__card-btn--naz': isNaz(), 'login-pc__action-btn--fly': isFlying() }"
                   [disabled]="isFlying()" (click)="launchButton()">
-                  <i class="pi pi-sign-in"></i>
-                  <span>Entrar al dashboard</span>
+                  <div class="login-pc__card-icon" [ngClass]="{ 'login-pc__card-icon--active': activeMode() === 'dashboard' }">
+                    <i class="pi pi-th-large"></i>
+                  </div>
+                  <div class="login-pc__card-text">
+                    <span class="login-pc__card-label">Dashboard</span>
+                    <span class="login-pc__card-sub">Accede al sistema completo</span>
+                  </div>
+                  <i class="pi pi-arrow-right login-pc__card-arrow"></i>
                 </button>
-                <button type="button" class="login-pc__action-btn"
-                  [ngClass]="{ 'login-pc__action-btn--active': activeMode() === 'kiosk', 'login-pc__action-btn--naz': isNaz() }"
+                <button type="button" class="login-pc__card-btn"
+                  [ngClass]="{ 'login-pc__card-btn--active': activeMode() === 'kiosk', 'login-pc__card-btn--naz': isNaz() }"
                   (click)="openKioskMode()">
-                  <i class="pi pi-desktop"></i>
-                  <span>Modo Kiosko</span>
+                  <div class="login-pc__card-icon">
+                    <i class="pi pi-desktop"></i>
+                  </div>
+                  <div class="login-pc__card-text">
+                    <span class="login-pc__card-label">Modo Kiosko</span>
+                    <span class="login-pc__card-sub">Reloj de marcación para sucursal</span>
+                  </div>
+                  <i class="pi pi-arrow-right login-pc__card-arrow"></i>
                 </button>
               </div>
+              <p class="login-pc__footer-text" [ngClass]="{ 'login-pc__footer-text--naz': isNaz() }">People · Sistema de Gestión de Personal</p>
             </section>
           </main>
         </div>
@@ -316,6 +328,7 @@ import { logger } from '../utils/logger';
     }
     .login-pc__brand {
       flex-shrink: 0;
+      animation: login-fadeUp 0.6s ease-out both;
     }
     .login-pc__logo-row {
       display: flex;
@@ -325,11 +338,11 @@ import { logger } from '../utils/logger';
     }
     .login-pc__logo-wrap {
       position: relative;
-      width: 190px;
-      height: 5.75rem;
+      width: 260px;
+      height: 8rem;
     }
     @media (min-width: 1024px) {
-      .login-pc__logo-wrap { width: 230px; height: 7.5rem; }
+      .login-pc__logo-wrap { width: 320px; height: 10rem; }
     }
     .login-pc__logo {
       position: absolute;
@@ -338,6 +351,11 @@ import { logger } from '../utils/logger';
       height: 100%;
       object-fit: contain;
       transition: opacity 0.5s ease;
+      animation: login-logoPulse 3s ease-in-out infinite;
+    }
+    @keyframes login-logoPulse {
+      0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+      50% { filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.12)); }
     }
     .login-pc__logo--hidden {
       opacity: 0;
@@ -379,6 +397,7 @@ import { logger } from '../utils/logger';
     }
     .login-pc__main {
       width: 100%;
+      animation: login-fadeUp 0.6s ease-out 0.15s both;
     }
     .login-pc__panel {
       width: 100%;
@@ -408,6 +427,7 @@ import { logger } from '../utils/logger';
     .login-pc__heading {
       text-align: center;
       margin-bottom: 1.75rem;
+      animation: login-fadeUp 0.5s ease-out 0.3s both;
     }
     .login-pc__subtitle {
       font-size: 0.6875rem;
@@ -464,6 +484,89 @@ import { logger } from '../utils/logger';
       justify-content: center;
       flex-wrap: wrap;
     }
+    /* V2 card-style action buttons */
+    .login-pc__actions-v2 {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .login-pc__actions-v2 .login-pc__card-btn:nth-child(1) { animation: login-fadeUp 0.4s ease-out 0.4s both; }
+    .login-pc__actions-v2 .login-pc__card-btn:nth-child(2) { animation: login-fadeUp 0.4s ease-out 0.5s both; }
+    .login-pc__card-btn {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      padding: 1rem 1.25rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      font-family: inherit;
+    }
+    .login-pc__card-btn:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .login-pc__card-btn--active {
+      background: rgba(251, 191, 36, 0.1) !important;
+      border-color: rgba(251, 191, 36, 0.3) !important;
+    }
+    .login-pc__card-btn--active .login-pc__card-arrow { color: #fbbf24; }
+    .login-pc__card-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+    .login-pc__card-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .login-pc__card-icon i { font-size: 1.125rem; color: rgba(255, 255, 255, 0.6); }
+    .login-pc__card-icon--active { background: rgba(251, 191, 36, 0.15); }
+    .login-pc__card-icon--active i { color: #fbbf24; }
+    .login-pc__card-text { flex: 1; min-width: 0; }
+    .login-pc__card-label { display: block; font-size: 0.9375rem; font-weight: 600; color: #fff; }
+    .login-pc__card-sub { display: block; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); margin-top: 2px; }
+    .login-pc__card-arrow { font-size: 0.75rem; color: rgba(255, 255, 255, 0.15); transition: color 0.2s, transform 0.2s; flex-shrink: 0; }
+    .login-pc__card-btn:hover .login-pc__card-arrow { color: rgba(255, 255, 255, 0.4); }
+    .login-pc__footer-text {
+      text-align: center;
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.2);
+      margin: 1.5rem 0 0;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      animation: login-fadeUp 0.4s ease-out 0.6s both;
+    }
+    @keyframes login-fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .login-pc__footer-text--naz { color: rgba(198, 194, 191, 0.3); }
+    /* Naz card buttons */
+    .login-pc__card-btn--naz { border-color: rgba(255, 255, 255, 0.12); }
+    .login-pc__card-btn--naz:hover { border-color: rgba(255, 255, 255, 0.25); }
+    .login-pc__card-btn--active.login-pc__card-btn--naz {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+    :host-context(html.light) .login-pc__card-btn { border-color: rgba(0, 0, 0, 0.08); background: rgba(0, 0, 0, 0.02); }
+    :host-context(html.light) .login-pc__card-btn:hover { background: rgba(0, 0, 0, 0.04); border-color: rgba(0, 0, 0, 0.12); }
+    :host-context(html.light) .login-pc__card-icon { background: rgba(0, 0, 0, 0.04); }
+    :host-context(html.light) .login-pc__card-icon i { color: rgba(0, 0, 0, 0.5); }
+    :host-context(html.light) .login-pc__card-label { color: #1f2937; }
+    :host-context(html.light) .login-pc__card-sub { color: rgba(0, 0, 0, 0.4); }
+    :host-context(html.light) .login-pc__card-arrow { color: rgba(0, 0, 0, 0.15); }
+    :host-context(html.light) .login-pc__card-btn--active { background: rgba(251, 191, 36, 0.08) !important; border-color: rgba(251, 191, 36, 0.3) !important; }
+    :host-context(html.light) .login-pc__card-icon--active { background: rgba(251, 191, 36, 0.12); }
+    :host-context(html.light) .login-pc__card-icon--active i { color: #d97706; }
+    :host-context(html.light) .login-pc__footer-text { color: rgba(0, 0, 0, 0.2); }
     /* Botones nativos PC — mismo estilo para ambos, sin glow */
     .login-pc__action-btn {
       min-width: 200px;

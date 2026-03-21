@@ -698,18 +698,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       return;
     }
 
-    // Gerentes de tienda solo pueden visualizar horarios
-    if (this.isStoreManager()) {
-      this.message.add({
-        severity: 'error',
-        summary: 'Sin permisos',
-        detail: 'Los gerentes de tienda solo pueden visualizar horarios.',
-      });
-      this.loading.set(false);
-      return;
-    }
-
     const value = this.form.getRawValue();
+    // Gerentes/Sub Gerentes nunca pueden aprobar: forzar approved=false
+    if (this.isStoreManager()) {
+      value.approved = false;
+    }
     if (this.form.invalid) {
       this.message.add({
         severity: 'error',

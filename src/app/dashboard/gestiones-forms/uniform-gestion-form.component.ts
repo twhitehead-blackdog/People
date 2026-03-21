@@ -9,6 +9,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { UniformTypesService } from '../modules/uniform-requests/data/uniform-types.service';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -59,7 +60,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
           <p-select
             [ngModel]="itemType()"
             (ngModelChange)="itemType.set($event)"
-            [options]="itemTypeOptions"
+            [options]="itemTypeOptions()"
             optionLabel="label"
             optionValue="value"
             placeholder="Selecciona el tipo de prenda"
@@ -197,6 +198,7 @@ export class UniformGestionFormComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private uniformTypesService = inject(UniformTypesService);
 
   public itemType = signal<string>('');
   public size = signal<string>('M');
@@ -207,17 +209,16 @@ export class UniformGestionFormComponent {
 
   public sizeOptions = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
 
-  public itemTypeOptions = [
-    { label: 'Camisa', value: 'camisa' },
-    { label: 'Suéter', value: 'sueter' },
-  ];
+  public itemTypeOptions = computed(() =>
+    this.uniformTypesService.getOptionsForBranch(this.selectedEmployee()?.branch?.name)
+  );
 
   public canSubmit = computed(() => {
     return !!(this.itemType().trim() && this.size() && this.quantity() >= 1);
   });
 
   public getItemTypeLabel(): string {
-    const option = this.itemTypeOptions.find((o) => o.value === this.itemType());
+    const option = this.itemTypeOptions().find((o) => o.value === this.itemType());
     return option?.label || this.itemType() || 'Prenda';
   }
 

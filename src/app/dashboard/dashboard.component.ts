@@ -126,8 +126,47 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
             </a>
           </div>
 
-          <!-- Nav items - single row, all dropdowns -->
+          <!-- Nav items -->
           <div class="header-menu hidden lg:flex items-center gap-0.5 flex-1 min-w-0">
+            @if(isManagerView()) {
+            <!-- Manager: direct links, no dropdowns -->
+            @if(tmSubs().timetables) {
+            <a (click)="navigateAbsolute('time-management/timetables')" [class.nav-active]="currentUrl().includes('/timetables')" class="nav-item">
+              <i class="pi pi-calendar"></i><span>Turnos</span>
+            </a>
+            }
+            @if(tmSubs().timelogs) {
+            <a (click)="navigateAbsolute('time-management/timelogs')" [class.nav-active]="currentUrl().includes('/timelogs')" class="nav-item">
+              <i class="pi pi-clock"></i><span>Registros</span>
+            </a>
+            }
+            @if(tmSubs().schedules) {
+            <a (click)="navigateAbsolute('time-management/schedules')" [class.nav-active]="currentUrl().includes('time-management/schedules')" class="nav-item">
+              <i class="pi pi-calendar-plus"></i><span>Schedules</span>
+            </a>
+            }
+            @if(tmSubs().vet_schedule) {
+            <a (click)="navigateAbsolute('time-management/vet-schedule')" [class.nav-active]="currentUrl().includes('/vet-schedule')" class="nav-item">
+              <i class="pi pi-heart"></i><span>Veterinaria</span>
+            </a>
+            }
+            @if(tmSubs().salon_schedule) {
+            <a (click)="navigateAbsolute('time-management/salon-schedule')" [class.nav-active]="currentUrl().includes('/salon-schedule')" class="nav-item">
+              <i class="pi pi-star"></i><span>Peluquería</span>
+            </a>
+            }
+            @if(canAccessBranchManager()) {
+            <a (click)="navigateAbsolute('branch-manager')" [class.nav-active]="isBranchManagerActive()" class="nav-item">
+              <i class="pi pi-shop"></i><span>Mi Sucursal</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
+              <i class="pi pi-stopwatch"></i><span>Marcar Asistencia</span>
+            </a>
+            }
+            } @else {
+            <!-- Admin/full nav with dropdowns -->
             <a (click)="navigateTo('launcher')" [class.nav-active]="isLauncherActive()" class="nav-item">
               <i class="pi pi-th-large"></i><span>Inicio</span>
             </a>
@@ -158,9 +197,8 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('admin/settings'); closeDropdown()" class="dd-item"><i class="pi pi-cog"></i>Ajustes</a>
                     <a (click)="navigateAbsolute('admin/user-management'); closeDropdown()" class="dd-item"><i class="pi pi-user-edit"></i>Usuarios</a>
                     <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
-                    <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
-                    <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
                     <a (click)="navigateAbsolute('admin/news'); closeDropdown()" class="dd-item"><i class="pi pi-megaphone"></i>Noticias</a>
+                    <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-mobile"></i>Dispositivos</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
@@ -169,8 +207,10 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('admin/home'); closeDropdown()" class="dd-item"><i class="pi pi-chart-bar"></i>Dashboard RRHH</a>
                     }
                     <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Tiempo</a>
-                    <a (click)="navigateAbsolute('admin/hr/disabilities'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Solicitudes RRHH</a>
+                    <a (click)="navigateAbsolute('admin/hr/disabilities'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Gestiones de Empleados</a>
                     <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
+                    <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
+                    <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Feria de Empleo</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
@@ -229,12 +269,12 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                   <div class="dd-col-group">
                     <span class="dd-col-label">Seguimiento</span>
                     <a (click)="navigateAbsolute('time-management/timelogs'); closeDropdown()" class="dd-item"><i class="pi pi-clock"></i>Registros</a>
-                    <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Horarios</a>
+                    <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Turnos</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
                     <span class="dd-col-label">Calendarios</span>
-                    <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>General</a>
+                    <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>Schedules</a>
                     <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Veterinaria</a>
                     <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Peluquería</a>
                   </div>
@@ -262,6 +302,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
             <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
               <i class="pi pi-clock"></i><span>Reloj de marcación</span>
             </a>
+            }
             }
           </div>
 
@@ -308,6 +349,39 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+            @if(isManagerView()) {
+            <!-- Manager: direct links -->
+            @if(tmSubs().timetables) {
+            <a (click)="navigateAbsolute('time-management/timetables'); toggleMenu()" [class.bg-gray-700]="currentUrl().includes('/timetables')" [class.text-white]="currentUrl().includes('/timetables')"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-calendar text-lg"></i><span>Turnos</span>
+            </a>
+            }
+            @if(tmSubs().timelogs) {
+            <a (click)="navigateAbsolute('time-management/timelogs'); toggleMenu()" [class.bg-gray-700]="currentUrl().includes('/timelogs')" [class.text-white]="currentUrl().includes('/timelogs')"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-clock text-lg"></i><span>Registros</span>
+            </a>
+            }
+            @if(tmSubs().schedules) {
+            <a (click)="navigateAbsolute('time-management/schedules'); toggleMenu()" [class.bg-gray-700]="currentUrl().includes('time-management/schedules')" [class.text-white]="currentUrl().includes('time-management/schedules')"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-calendar-plus text-lg"></i><span>Schedules</span>
+            </a>
+            }
+            @if(canAccessBranchManager()) {
+            <a (click)="navigateAbsolute('branch-manager'); toggleMenu()" [class.bg-gray-700]="isBranchManagerActive()" [class.text-white]="isBranchManagerActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-shop text-lg"></i><span>Mi Sucursal</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock'); toggleMenu()" [class.bg-gray-700]="isTimeclockActive()" [class.text-white]="isTimeclockActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-stopwatch text-lg"></i><span>Marcar Asistencia</span>
+            </a>
+            }
+            } @else {
             <a (click)="navigateTo('launcher'); toggleMenu()" [class.bg-gray-700]="isLauncherActive()" [class.text-white]="isLauncherActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
               <i class="pi pi-th-large text-lg"></i><span>Inicio</span>
@@ -341,6 +415,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
               <i class="pi pi-clock text-lg"></i><span>Reloj de marcación</span>
             </a>
+            }
             }
           </div>
           @if(user) {
@@ -885,6 +960,11 @@ export class DashboardComponent {
     this.permissionsService.canAccessSubModule('services', 'analytics_access')
   );
 
+  // Manager view: not admin, but has time_management or branch_manager access
+  public isManagerView = computed(() => {
+    return !this.store.isAdmin() && (this.canAccessTimeManagement() || this.canAccessBranchManager());
+  });
+
   // Sub-module access computeds (used by dropdown items)
   public adminSubs = computed(() => ({
     employees: this.permissionsService.canAccessSubModule('admin', 'employees'),
@@ -926,6 +1006,25 @@ export class DashboardComponent {
 
   // Mobile admin bottom nav tabs (computed based on permissions)
   public adminMobileTabs = computed<MobileNavTab[]>(() => {
+    // Manager view: direct sub-module tabs
+    if (this.isManagerView()) {
+      const tabs: MobileNavTab[] = [];
+      if (this.tmSubs().timetables) {
+        tabs.push({ id: 'time-management/timetables', label: 'Turnos', icon: 'pi pi-calendar' });
+      }
+      if (this.tmSubs().timelogs) {
+        tabs.push({ id: 'time-management/timelogs', label: 'Registros', icon: 'pi pi-clock' });
+      }
+      if (this.canAccessBranchManager()) {
+        tabs.push({ id: 'branch-manager', label: 'Sucursal', icon: 'pi pi-shop' });
+      }
+      if (this.canAccessTimeclock()) {
+        tabs.push({ id: 'timeclock', label: 'Reloj', icon: 'pi pi-stopwatch' });
+      }
+      return tabs;
+    }
+
+    // Admin/full view
     const tabs: MobileNavTab[] = [
       { id: 'launcher', label: 'Inicio', icon: 'pi pi-th-large' },
     ];
@@ -1189,6 +1288,16 @@ export class DashboardComponent {
   }
 
   navigateToDefault() {
+    if (this.isManagerView()) {
+      if (this.tmSubs().timetables) {
+        this.navigateAbsolute('time-management/timetables');
+      } else if (this.canAccessBranchManager()) {
+        this.navigateAbsolute('branch-manager');
+      } else {
+        this.navigateTo('launcher');
+      }
+      return;
+    }
     this.navigateTo('launcher');
   }
 

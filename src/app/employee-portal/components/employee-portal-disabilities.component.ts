@@ -8,7 +8,6 @@ import {
   Output,
 } from '@angular/core';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
@@ -22,25 +21,25 @@ import { DeviceService } from '../../services/device.service';
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     DatePicker,
     InputTextarea,
     FileUpload,
     Button,
-    TooltipModule,
-  ],
+    TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-file-medical text-blue-400"></i>
-          <span>Incapacidades</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeManagement.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Incapacidades</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Carga documentos de incapacidad médica</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>Carga documentos de incapacidad médica</ng-template>
+      </div>
 
       <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
         <div class="flex items-center gap-3 mb-4">
@@ -195,7 +194,7 @@ import { DeviceService } from '../../services/device.service';
           severity="success"
         />
       </div>
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">

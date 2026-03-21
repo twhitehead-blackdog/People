@@ -32,6 +32,7 @@ export interface DocumentRequest {
     father_name: string;
     work_email: string;
     company_id: string;
+    start_date?: string;
     position?: { name: string };
     branch?: { name: string; id: string };
   };

@@ -3,10 +3,12 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   OnDestroy,
   OnInit,
   signal,
+  ViewChild,
 } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -84,124 +86,113 @@ type NavSection = {
 
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <div class="h-screen flex flex-col">
-      <nav
-        class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg"
-        style="position: relative; z-index: 1000;"
-      >
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="flex h-16 items-center justify-between">
-            <div class="flex items-center">
-              <a
-                (click)="navigateToTimeclock()"
-                class="shrink-0 flex items-center gap-2 group cursor-pointer"
+    <div class="h-screen flex flex-col overflow-hidden">
+      <nav class="portal-nav w-full flex-shrink-0" style="z-index: 1000;">
+        <div class="flex items-center h-14 px-4 lg:px-6 gap-3">
+          <!-- Logo -->
+          <a (click)="navigateToTimeclock()" class="shrink-0 flex items-center group cursor-pointer mr-2">
+            <img
+              [src]="isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
+              class="h-7 transition-transform duration-300 group-hover:scale-105"
+              [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
+            />
+          </a>
+
+          <!-- Nav items -->
+          <div class="flex items-center justify-center gap-1 flex-1">
+            @for (nav of navSections; track nav.id) {
+              @if (!nav.children) {
+              <button
+                type="button"
+                (click)="navigateToSection(nav.section!)"
+                class="portal-nav-item"
+                [class.portal-nav-active]="isActiveSection(nav.section!)"
               >
-                <img
-                  [src]="isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-                  class="h-9 transition-transform duration-300 group-hover:scale-105"
-                  [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
-                />
-              </a>
-              <div class="ml-10 flex items-center space-x-3">
-                @for (nav of navSections; track nav.id) { @if (!nav.children) {
-                <button
-                  type="button"
-                  (click)="navigateToSection(nav.section!)"
-                  [class.selected]="isActiveSection(nav.section!)"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                >
-                  <i [class]="nav.icon + ' text-base'"></i>
-                  <span class="whitespace-nowrap">{{ nav.label }}</span>
+                <i [class]="nav.icon + ' text-sm'"></i>
+                <span>{{ nav.label }}</span>
+              </button>
+              } @else {
+              <div
+                class="relative"
+                (mouseenter)="openDropdownWithDelay(nav.id)"
+                (mouseleave)="closeDropdownWithDelay()"
+              >
+                <button type="button" class="portal-nav-item"
+                  [class.portal-nav-active]="isActiveSection(nav.section || nav.id)">
+                  <i [class]="nav.icon + ' text-sm'"></i>
+                  <span>{{ nav.label }}</span>
+                  <i class="pi pi-chevron-down text-[9px] opacity-40 ml-0.5"></i>
                 </button>
-                } @else {
+                @if (openDropdown() === nav.id) {
                 <div
-                  class="relative"
+                  class="absolute left-0 top-full pt-1.5 min-w-[200px] z-50"
                   (mouseenter)="openDropdownWithDelay(nav.id)"
                   (mouseleave)="closeDropdownWithDelay()"
                 >
-                  <button
-                    type="button"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i [class]="nav.icon + ' text-base'"></i>
-                    <span class="whitespace-nowrap">{{ nav.label }}</span>
-                    <i class="pi pi-chevron-down text-xs"></i>
-                  </button>
-                  @if (openDropdown() === nav.id) {
-                  <div
-                    class="absolute left-0 top-full w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-50 py-2 mt-0"
-                    style="margin-top: -1px;"
-                    (mouseenter)="openDropdownWithDelay(nav.id)"
-                    (mouseleave)="closeDropdownWithDelay()"
-                  >
+                  <div class="portal-dropdown rounded-xl p-1">
                     @for (child of nav.children; track child.id) {
                     <button
                       type="button"
                       (click)="navigateToSection(child.section)"
-                      [class.selected]="isActiveSection(child.section)"
-                      class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700/60 flex items-center gap-2 transition-colors"
+                      class="portal-dropdown-item"
+                      [class.portal-dropdown-active]="isActiveSection(child.section)"
                     >
-                      <i [class]="child.icon + ' text-sm'"></i>
-                      <span class="truncate">{{ child.label }}</span>
+                      <i [class]="child.icon + ' text-xs opacity-60'"></i>
+                      <span>{{ child.label }}</span>
                     </button>
                     }
                   </div>
-                  }
                 </div>
-                } }
-              </div>
-            </div>
-            <div class="flex items-center">
-              @if(user) {
-              <div class="ml-4 flex items-center md:ml-6 gap-3">
-                <div class="relative">
-                  <button
-                    type="button"
-                    (click)="toggleNotificationsDropdown()"
-                    class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
-                    pTooltip="Notificaciones"
-                    title="Notificaciones"
-                  >
-                    <i class="pi pi-bell text-xl"></i>
-                    @if (unreadNotificationsCount() > 0) {
-                    <span
-                      class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
-                    >
-                      {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
-                    </span>
-                    }
-                  </button>
-                  <pt-notifications-dropdown
-                    [isVisible]="showNotificationsDropdown()"
-                    [onClose]="closeNotificationsDropdown.bind(this)"
-                  />
-                </div>
-                <div class="flex items-center gap-3">
-                  <p-menu #menu [model]="items" popup />
-                  <div
-                    class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
-                    (click)="menu.toggle($event)"
-                  >
-                    <div class="relative flex-shrink-0">
-                      <div class="avatar-container">
-                        <p-avatar [image]="user?.picture" shape="circle" size="normal" />
-                      </div>
-                      <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
-                    </div>
-                    <div class="flex flex-col min-w-0 flex-1">
-                      <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
-                        {{ store.currentEmployee()?.first_name }} {{ store.currentEmployee()?.father_name }}
-                      </div>
-                      <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
-                        {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
-                      </div>
-                    </div>
-                    <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
-                  </div>
-                </div>
+                }
               </div>
               }
+            }
+          </div>
+
+          <!-- Right side: notifications + user -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            @if(user) {
+            <div class="relative">
+              <button
+                type="button"
+                (click)="toggleNotificationsDropdown()"
+                class="relative w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200 text-gray-400 hover:text-white flex items-center justify-center border border-white/5 hover:border-white/10"
+                title="Notificaciones"
+              >
+                <i class="pi pi-bell text-sm"></i>
+                @if (unreadNotificationsCount() > 0) {
+                <span class="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-neutral-900">
+                  {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
+                </span>
+                }
+              </button>
+              <pt-notifications-dropdown
+                [isVisible]="showNotificationsDropdown()"
+                [onClose]="closeNotificationsDropdown.bind(this)"
+              />
             </div>
+            <p-menu #menu [model]="items" popup [autoZIndex]="true" />
+            <div
+              class="flex items-center gap-2.5 cursor-pointer group px-2.5 py-1.5 rounded-lg hover:bg-white/5 transition-all duration-200"
+              (click)="menu.toggle($event)"
+            >
+              <div class="relative flex-shrink-0">
+                <div class="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center">
+                  <p-avatar [image]="user?.picture" shape="circle" size="normal" styleClass="w-full h-full" />
+                </div>
+                <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-neutral-900"></div>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="text-sm font-semibold text-white truncate leading-tight">
+                  {{ store.currentEmployee()?.first_name }} {{ store.currentEmployee()?.father_name }}
+                </span>
+                <span class="text-[0.65rem] text-gray-500 truncate leading-tight">
+                  {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
+                </span>
+              </div>
+              <i class="pi pi-chevron-down text-gray-500 text-[9px] flex-shrink-0"></i>
+            </div>
+            }
           </div>
         </div>
       </nav>
@@ -210,9 +201,9 @@ type NavSection = {
 
     } @else {
     <!-- ========== MOBILE ========== -->
-    <div class="h-screen flex flex-col bg-neutral-950">
-      <!-- Slim top bar -->
-      <nav class="bg-neutral-900 border-b border-neutral-800 px-4 flex items-center justify-between" style="height: 52px; min-height: 52px; padding-top: env(safe-area-inset-top, 0px); z-index: 1000;">
+    <div class="flex flex-col bg-neutral-950" style="height: 100dvh;">
+      <!-- Slim top bar - always visible -->
+      <nav class="bg-neutral-900 border-b border-neutral-800 px-4 flex items-center justify-between flex-shrink-0" style="height: 52px; min-height: 52px; padding-top: env(safe-area-inset-top, 0px); z-index: 1000; position: sticky; top: 0;">
         <a (click)="navigateToTimeclock()" class="flex items-center cursor-pointer">
           <img
             [src]="isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
@@ -235,8 +226,8 @@ type NavSection = {
         </div>
       </nav>
 
-      <!-- Content area with bottom padding for tab bar -->
-      <div class="flex-1 overflow-y-auto pb-[72px]">
+      <!-- Content area - scrolls between fixed header and footer -->
+      <div #scrollContainer id="portal-scroll" class="flex-1 min-h-0 overflow-y-auto pb-[72px]">
         <router-outlet />
       </div>
 
@@ -251,50 +242,104 @@ type NavSection = {
   `,
   styles: [
     `
-      .selected {
-        @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
-        border-bottom: 2px solid #fbbf24;
-        border-left: none;
-      }
-      
-      /* Tema Naz - cambiar amarillo a gris */
-      :host-context(.naz-theme) .selected,
-      .naz-theme .selected {
-        border-left-color: #C6C2BF !important;
+      /* ── Portal nav bar ── */
+      .portal-nav {
+        background: linear-gradient(135deg, rgba(10, 10, 10, 0.97), rgba(23, 23, 23, 0.95));
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(12px);
       }
 
-      ::ng-deep .p-menu {
-        background: #1f2937 !important;
-        border: 1px solid rgba(251, 191, 36, 0.2) !important;
-        border-radius: 0.5rem !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
-        padding: 0.5rem !important;
+      .portal-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.15s, background 0.15s;
+        user-select: none;
+        border: 1px solid transparent;
+        line-height: 1;
       }
-      
-      /* Tema Naz - cambiar amarillo a gris en menú */
-      :host-context(.naz-theme) ::ng-deep .p-menu,
-      .naz-theme ::ng-deep .p-menu {
-        border: 1px solid rgba(198, 194, 191, 0.2) !important;
+      .portal-nav-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .portal-nav-active {
+        background: rgba(251, 191, 36, 0.08) !important;
+        color: #fbbf24 !important;
+        border-color: rgba(251, 191, 36, 0.15);
+      }
+
+      /* ── Portal dropdown ── */
+      .portal-dropdown {
+        background: rgba(15, 15, 15, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(16px);
+      }
+      .portal-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        text-align: left;
+        padding: 8px 12px;
+        border-radius: 6px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s;
+        white-space: nowrap;
+      }
+      .portal-dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+      }
+      .portal-dropdown-active {
+        color: #fbbf24 !important;
+        background: rgba(251, 191, 36, 0.06);
+      }
+
+      /* ── Naz theme overrides ── */
+      :host-context(.naz-theme) .portal-nav-active,
+      .naz-theme .portal-nav-active {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #fff !important;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      :host-context(.naz-theme) .portal-dropdown-active,
+      .naz-theme .portal-dropdown-active {
+        color: #fff !important;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      /* ── PrimeNG menu popup ── */
+      ::ng-deep .p-menu {
+        background: #0f0f0f !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
+        padding: 0.375rem !important;
       }
 
       ::ng-deep .p-menu .p-menuitem-link {
-        padding: 0.75rem 1rem !important;
-        border-radius: 0.375rem !important;
-        transition: all 0.2s ease !important;
+        padding: 0.625rem 0.875rem !important;
+        border-radius: 0.5rem !important;
+        transition: all 0.15s ease !important;
       }
 
       ::ng-deep .p-menu .p-menuitem-link:hover {
-        background: rgba(251, 191, 36, 0.1) !important;
-      }
-      
-      /* Tema Naz - hover gris */
-      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover,
-      .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover {
-        background: rgba(198, 194, 191, 0.1) !important;
+        background: rgba(255, 255, 255, 0.06) !important;
       }
 
       ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
-        color: #e5e7eb !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 0.8125rem !important;
       }
 
       ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-text {
@@ -302,52 +347,24 @@ type NavSection = {
       }
 
       ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
-        color: #fbbf24 !important;
-      }
-      
-      /* Tema Naz - iconos grises */
-      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon,
-      .naz-theme ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
-        color: #C6C2BF !important;
-      }
-      
-      /* Tema Naz - hover iconos blancos */
-      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon,
-      .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon {
-        color: #FFFFFF !important;
+        color: rgba(255, 255, 255, 0.4) !important;
+        font-size: 0.875rem !important;
       }
 
-      /* Avatar Container Styles */
-      .avatar-container {
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 50%;
-        overflow: hidden;
-        border: 2px solid rgba(107, 114, 128, 0.6);
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon {
+        color: rgba(255, 255, 255, 0.7) !important;
       }
 
-      .avatar-container:hover {
-        border-color: rgba(156, 163, 175, 0.4);
-      }
-
-      ::ng-deep .avatar-container .p-avatar {
+      /* ── Avatar ── */
+      ::ng-deep .w-8.h-8 .p-avatar {
         width: 100% !important;
         height: 100% !important;
       }
-
-      ::ng-deep .avatar-container .p-avatar img {
+      ::ng-deep .w-8.h-8 .p-avatar img {
         width: 100% !important;
         height: 100% !important;
         object-fit: cover;
         border-radius: 50%;
-      }
-
-      ::ng-deep .avatar-container .p-avatar-circle {
-        border-radius: 50% !important;
       }
 
       /* Estilos para textarea - igual que otros inputs */
@@ -402,6 +419,8 @@ type NavSection = {
   ],
 })
 export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
+  @ViewChild('scrollContainer') scrollContainerRef?: ElementRef<HTMLElement>;
+
   public auth = inject(AuthService);
   public router = inject(Router);
   public store = inject(DashboardStore);
@@ -508,7 +527,22 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   });
 
   onMobileTabChange(tabId: string) {
+    const el = this.scrollContainerRef?.nativeElement;
+    if (el) {
+      el.style.height = el.offsetHeight + 'px';
+      el.style.overflow = 'hidden';
+      el.scrollTop = 0;
+    }
     this.navigateToSection(tabId);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (el) {
+          el.scrollTop = 0;
+          el.style.height = '';
+          el.style.overflow = '';
+        }
+      });
+    });
   }
 
   ngOnInit() {
@@ -570,13 +604,6 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
     }).then(() => {
       this.currentFragment.set(section);
       this.updateFragment();
-      
-      setTimeout(() => {
-        const element = document.querySelector('pt-employee-portal');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 200);
     });
     this.openDropdown.set(null);
     if (!this.isCollapsed()) {

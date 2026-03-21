@@ -53,6 +53,7 @@ import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
+import { DogAnimationComponent } from './dashboard/components/dog.component';
 import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import {
   initAudioContext,
@@ -84,6 +85,7 @@ import {
     TrimPipe,
     NgClass,
     NewsTickerComponent,
+    DogAnimationComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
@@ -231,6 +233,14 @@ import {
       }"
       style="width: 100%; position: relative;"
     >
+      <!-- Animated background orbs -->
+      <div class="bg-orbs" aria-hidden="true">
+        <div class="bg-orb bg-orb--1"></div>
+        <div class="bg-orb bg-orb--2"></div>
+        <div class="bg-orb bg-orb--3"></div>
+        <div class="bg-orb bg-orb--4"></div>
+      </div>
+
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
       <div
         class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
@@ -464,6 +474,9 @@ import {
         </div>
       </div>
       }
+
+      <!-- Walking dog at the bottom -->
+      <pt-dog-animation></pt-dog-animation>
     </div>`,
   styles: `
     :host {
@@ -505,29 +518,83 @@ import {
       background: #08080c;
     }
 
-    /* Subtle ambient glow blobs */
-    .animated-gradient-container::before,
-    .animated-gradient-container::after {
-      content: '';
+    /* ============================================
+       ANIMATED BACKGROUND ORBS
+       ============================================ */
+    .bg-orbs {
       position: fixed;
-      border-radius: 50%;
-      filter: blur(120px);
-      pointer-events: none;
+      inset: 0;
       z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
     }
-    .animated-gradient-container::before {
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 1;
+      will-change: transform;
+    }
+    .bg-orb--1 {
       width: 500px;
       height: 500px;
-      background: radial-gradient(circle, rgba(107, 114, 128, 0.06), transparent 70%);
-      top: -150px;
-      left: -150px;
+      background: radial-gradient(circle, rgba(247, 177, 4, 0.30), transparent 70%);
+      top: -10%;
+      left: -8%;
+      animation: orb-drift-1 18s ease-in-out infinite alternate;
     }
-    .animated-gradient-container::after {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(107, 114, 128, 0.04), transparent 70%);
-      bottom: -100px;
-      right: -100px;
+    .bg-orb--2 {
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.22), transparent 70%);
+      bottom: -5%;
+      right: -6%;
+      animation: orb-drift-2 22s ease-in-out infinite alternate;
+    }
+    .bg-orb--3 {
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.20), transparent 70%);
+      top: 40%;
+      left: 50%;
+      animation: orb-drift-3 25s ease-in-out infinite alternate;
+    }
+    .bg-orb--4 {
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(247, 177, 4, 0.16), transparent 70%);
+      top: 60%;
+      right: 30%;
+      animation: orb-drift-4 20s ease-in-out infinite alternate;
+    }
+    @keyframes orb-drift-1 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(12vw, 18vh) scale(1.15); }
+      100% { transform: translate(-5vw, 10vh) scale(0.9); }
+    }
+    @keyframes orb-drift-2 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(-15vw, -12vh) scale(1.1); }
+      100% { transform: translate(8vw, -18vh) scale(0.95); }
+    }
+    @keyframes orb-drift-3 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(-10vw, 8vh) scale(1.2); }
+      100% { transform: translate(6vw, -6vh) scale(0.85); }
+    }
+    @keyframes orb-drift-4 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(10vw, -10vh) scale(1.1); }
+      100% { transform: translate(-8vw, 5vh) scale(1.05); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bg-orb { animation: none !important; }
+    }
+    @media (max-width: 640px) {
+      .bg-orb--1 { width: 250px; height: 250px; }
+      .bg-orb--2 { width: 200px; height: 200px; }
+      .bg-orb--3 { width: 180px; height: 180px; }
+      .bg-orb--4 { width: 150px; height: 150px; }
     }
 
     /* Thin scrollbar */

@@ -71,6 +71,7 @@ export type Employee = {
   created_at?: Date;
   updated_at?: Date;
   is_active: boolean;
+  profile_photo_url?: string;
   uniform_size?: UniformSize;
   timeoffs?: TimeOff[];
   qr_code?: string;

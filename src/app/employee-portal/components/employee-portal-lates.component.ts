@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, Input } from '@angular/core';
-import { Card } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { PanamaDatePipe } from '../../pipes/panama-date.pipe';
 import { DeviceService } from '../../services/device.service';
@@ -8,11 +7,11 @@ import { DeviceService } from '../../services/device.service';
 @Component({
   selector: 'pt-employee-portal-lates',
   standalone: true,
-  imports: [CommonModule, Card, TableModule, PanamaDatePipe],
+  imports: [CommonModule, TableModule, PanamaDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
-    <p-card>
+    <div class="portal-form-panel rounded-2xl">
       <div class="overflow-x-auto">
         <p-table
           [value]="lates"
@@ -61,7 +60,7 @@ import { DeviceService } from '../../services/device.service';
           </ng-template>
         </p-table>
       </div>
-    </p-card>
+    </div>
     } @else {
     <div class="px-4 py-4">
       @if (lates.length === 0) {

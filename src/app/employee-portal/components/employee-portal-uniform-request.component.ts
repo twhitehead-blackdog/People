@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { Select } from 'primeng/select';
@@ -27,25 +26,25 @@ type SelectOption = {
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     InputTextarea,
     InputNumber,
     Button,
     Select,
-    TooltipModule,
-  ],
+    TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-tag text-teal-400"></i>
-          <span>Solicitud de Uniforme</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Solicitud de Uniforme</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Solicita uniformes o prendas de trabajo</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>Solicita uniformes o prendas de trabajo</ng-template>
+      </div>
 
       <div
         class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
@@ -163,7 +162,7 @@ type SelectOption = {
           class="ml-auto"
         />
       </div>
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">
@@ -283,15 +282,14 @@ export class EmployeePortalUniformRequestComponent {
   @Output() submitRequest = new EventEmitter<void>();
   @Output() closeSection = new EventEmitter<void>();
 
-  public itemTypes: SelectOption[] = [
+  @Input() itemTypes: SelectOption[] = [
     { label: 'Camiseta Polo', value: 'polo_shirt' },
     { label: 'Camiseta Cuello Redondo', value: 'tshirt' },
     { label: 'Pantalón', value: 'pants' },
     { label: 'Delantal', value: 'apron' },
     { label: 'Gorra', value: 'cap' },
     { label: 'Calzado de Trabajo', value: 'work_shoes' },
-    { label: 'Otro', value: 'other' },
-  ];
+    { label: 'Otro', value: 'other' }];
 
   public sizes: SelectOption[] = [
     { label: 'XS', value: 'XS' },
@@ -300,8 +298,7 @@ export class EmployeePortalUniformRequestComponent {
     { label: 'L', value: 'L' },
     { label: 'XL', value: 'XL' },
     { label: 'XXL', value: 'XXL' },
-    { label: 'XXXL', value: 'XXXL' },
-  ];
+    { label: 'XXXL', value: 'XXXL' }];
 
   public getItemTypeLabel(value: string): string {
     const type = this.itemTypes.find((t) => t.value === value);

@@ -18,8 +18,9 @@ export class VersionCheckService {
   /** Segundos restantes para la recarga automática */
   readonly countdown = signal(COUNTDOWN_SECONDS);
 
-  /** Multiplicador de velocidad actual (1x o 5x) */
+  /** Multiplicador de velocidad actual */
   readonly speedMultiplier = signal(1);
+  private readonly speedSteps = [5, 10, 20, 50] as const;
 
   startPolling(): void {
     if (this.updateAvailable() || this.pollingIntervalId) return;
@@ -32,11 +33,13 @@ export class VersionCheckService {
     });
   }
 
-  /** Activa el modo 5x al hacer clic en el contador */
+  /** Cicla entre velocidades: 1→5→10→20→50 */
   activateFastMode(): void {
-    if (this.speedMultiplier() === 5) return;
-    this.speedMultiplier.set(5);
-    // Reiniciar el interval del countdown a 200ms (1s / 5)
+    const current = this.speedMultiplier();
+    const idx = this.speedSteps.indexOf(current as any);
+    const next = idx === -1 ? this.speedSteps[0] : this.speedSteps[Math.min(idx + 1, this.speedSteps.length - 1)];
+    if (next === current) return;
+    this.speedMultiplier.set(next);
     this.startCountdown();
   }
 

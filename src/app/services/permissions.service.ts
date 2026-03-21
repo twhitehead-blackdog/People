@@ -26,6 +26,7 @@ import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { PositionsStore } from '../stores/positions.store';
 import { GERENTE_TEST_FRONTEND_PERMISSIONS } from './test-mode.service';
+import { isStoreManagerRole } from '../utils/permission.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -489,6 +490,13 @@ export class PermissionsService {
     // Si soporte2 está en modo gerente, usar permisos simulados
     if (this.store.testMode.isSupportUser(currentEmployee.work_email) && this.store.testMode.currentMode === 'gerente') {
       return hasSubModuleAccess(GERENTE_TEST_FRONTEND_PERMISSIONS as any, moduleId, subModuleId);
+    }
+
+    // Gerentes/Sub Gerentes siempre pueden ver la lista de turnos (view-only)
+    if (moduleId === 'time_management' && subModuleId === 'schedules') {
+      if (isStoreManagerRole(this.store.isScheduleAdmin(), this.store.isAdmin(), currentEmployee.position?.name ?? '')) {
+        return true;
+      }
     }
 
     const profile = this.buildUserProfile(currentEmployee);

@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
@@ -24,28 +23,26 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     Button,
     DatePicker,
     FileUpload,
     InputTextarea,
     TooltipModule,
-    TutorialStepDirective,
-  ],
+    TutorialStepDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-clock text-cyan-400"></i>
-          <span>Tiempo Compensatorio</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Tiempo Compensatorio</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Horas extras trabajadas</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>
-        Solicita tiempo compensatorio basado en tus horas extras trabajadas
-      </ng-template>
+      </div>
 
       <div class="space-y-6 mt-4">
         <!-- Información del empleado seleccionado (solo en vista branch manager) -->
@@ -486,7 +483,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
           />
         </div>
       </div>
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">

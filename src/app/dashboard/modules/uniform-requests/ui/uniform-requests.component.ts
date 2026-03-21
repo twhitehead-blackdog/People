@@ -2,6 +2,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { SeniorityPipe } from '../../../../pipes/seniority.pipe';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -43,6 +44,7 @@ import {
     TextareaModule,
     HrStatsGridComponent,
     HrFiltersPanelComponent,
+    SeniorityPipe,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -110,6 +112,12 @@ import {
                 <div class="flex items-center gap-1">
                   <i class="pi pi-user text-teal-400 text-xs"></i>
                   <span class="text-xs">Empleado</span>
+                </div>
+              </th>
+              <th style="width: 110px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center justify-center gap-1">
+                  <i class="pi pi-clock text-teal-400 text-xs"></i>
+                  <span class="text-xs">Antigüedad</span>
                 </div>
               </th>
               <th style="width: 150px; padding: 0.4rem; text-align: center;">
@@ -184,6 +192,13 @@ import {
                     </span>
                   </div>
                 </div>
+              </td>
+              <td style="padding: 0.4rem; text-align: center;">
+                @if (request.employee?.start_date) {
+                <span class="text-xs text-gray-300">{{ request.employee!.start_date | seniority }}</span>
+                } @else {
+                <span class="text-xs text-gray-500">-</span>
+                }
               </td>
               <td style="padding: 0.4rem; text-align: center;">
                 <span class="text-sm text-white font-medium">
@@ -322,6 +337,16 @@ import {
               >
               <p class="text-white">
                 {{ selectedRequest()!.employee?.branch?.name || '-' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Antigüedad</label
+              >
+              <p class="text-teal-300">
+                @if (selectedRequest()!.employee?.start_date) {
+                  {{ selectedRequest()!.employee!.start_date! | seniority }}
+                } @else { - }
               </p>
             </div>
           </div>

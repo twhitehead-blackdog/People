@@ -8,7 +8,6 @@ import {
   Output,
 } from '@angular/core';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 
@@ -21,43 +20,47 @@ import { DeviceService } from '../../services/device.service';
   standalone: true,
   imports: [
     CommonModule,
-    Card,
     Button,
     TableModule,
     TooltipModule,
     CalendarComponent,
     PanamaDatePipe,
   ],
+  styles: [`
+    .portal-timelogs-panel {
+      background: rgba(23, 23, 23, 0.5);
+      border: 1px solid rgba(64, 64, 64, 0.25);
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-calendar-clock text-amber-400"></i>
-            <span>Calendario de Marcaciones</span>
+    <div class="portal-timelogs-panel rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/12 flex items-center justify-center ring-1 ring-amber-500/15">
+            <i class="pi pi-clock text-amber-400 text-sm"></i>
           </div>
-          <div class="flex items-center gap-2">
-            <p-button
-              [icon]="timelogViewMode === 'calendar' ? 'pi pi-table' : 'pi pi-calendar'"
-              [label]="timelogViewMode === 'calendar' ? 'Vista Tabla' : 'Vista Calendario'"
-              [outlined]="true"
-              severity="secondary"
-              size="small"
-              (onClick)="toggleView()"
-              [pTooltip]="timelogViewMode === 'calendar' ? 'Cambiar a vista de tabla' : 'Cambiar a vista de calendario'"
-              tooltipPosition="left"
-            />
+          <div>
+            <span class="text-sm font-bold text-white tracking-tight">Calendario de Marcaciones</span>
+            <p class="text-[0.65rem] text-gray-500 m-0 mt-0.5">
+              {{ timelogViewMode === 'calendar' ? 'Vista calendario' : 'Vista tabla' }}
+            </p>
           </div>
         </div>
-      </ng-template>
-      <ng-template #subtitle>
-        {{ timelogViewMode === 'calendar' ? 'Visualiza tus marcaciones en formato calendario' : 'Visualiza tus marcaciones en formato tabla' }}
-      </ng-template>
-
-      <div class="mt-2"></div>
+        <p-button
+          [icon]="timelogViewMode === 'calendar' ? 'pi pi-table' : 'pi pi-calendar'"
+          [label]="timelogViewMode === 'calendar' ? 'Vista Tabla' : 'Vista Calendario'"
+          [outlined]="true"
+          severity="secondary"
+          size="small"
+          (onClick)="toggleView()"
+          [pTooltip]="timelogViewMode === 'calendar' ? 'Cambiar a vista de tabla' : 'Cambiar a vista de calendario'"
+          tooltipPosition="left"
+        />
+      </div>
+      <div class="mt-4"></div>
 
       @if (isLoading) {
       <div class="flex items-center justify-center py-12">
@@ -196,7 +199,7 @@ import { DeviceService } from '../../services/device.service';
         }
       }
 
-    </p-card>
+    </div>
 
     } @else {
     <!-- ========== MOBILE ========== -->

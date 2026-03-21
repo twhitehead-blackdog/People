@@ -42,6 +42,7 @@ import { EmployeePortalRequestDetailsDialogComponent } from './components/employ
 import { EmployeePortalTimelogCorrectionComponent } from './components/employee-portal-timelog-correction.component';
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
 import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
+import { UniformTypesService } from '../dashboard/modules/uniform-requests/data/uniform-types.service';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
 import { EmployeePortalWorkPermitComponent } from './components/employee-portal-work-permit.component';
 import { EmployeePortalSurveysComponent } from './components/employee-portal-surveys.component';
@@ -108,7 +109,10 @@ import { getEnv } from '../utils/env.utils';
     EmployeePortalProfileService,
   ],
   template: `
-    <div class="portal-content">
+    <div class="portal-content"
+      (touchstart)="onTouchStart($event)"
+      (touchend)="onTouchEnd($event)"
+    >
       <!-- Dashboard Section -->
       @if (portalStore.activeSection() === 'dashboard') {
       <div id="dashboard" class="section-content">
@@ -137,24 +141,21 @@ import { getEnv } from '../utils/env.utils';
       portalStore.activeSection() === 'gestiones') {
       <div id="management" class="section-content">
         @if (device.isDesktop()) {
-        <p-card>
-          <ng-template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-briefcase text-amber-400"></i>
-              <span>Gestiones</span>
+        <div>
+          <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-8 h-8 rounded-lg bg-blue-500/12 flex items-center justify-center ring-1 ring-blue-500/15">
+              <i class="pi pi-briefcase text-blue-400 text-sm"></i>
             </div>
-          </ng-template>
-          <ng-template #subtitle
-            >Accede a todos los formularios y solicitudes
-            disponibles</ng-template
-          >
-          <div class="flex flex-col gap-6">
-            <pt-employee-portal-management-navigation
-              [activeSection]="portalStore.activeSection()"
-              (sectionChange)="setActiveSection($event)"
-            />
+            <div>
+              <span class="text-sm font-bold text-white tracking-tight">Gestiones</span>
+              <p class="text-[0.65rem] text-gray-500 m-0 mt-0.5">Formularios y solicitudes disponibles</p>
+            </div>
           </div>
-        </p-card>
+          <pt-employee-portal-management-navigation
+            [activeSection]="portalStore.activeSection()"
+            (sectionChange)="setActiveSection($event)"
+          />
+        </div>
         } @else {
         <div class="px-4 py-4">
           <div class="flex items-center gap-2 mb-3">
@@ -212,6 +213,7 @@ import { getEnv } from '../utils/env.utils';
           (editAddressChange)="editAddress.set($event)"
           (togglePush)="onTogglePush()"
           (savePin)="onSaveHrPin($event)"
+          (photoUploaded)="onPhotoUploaded($event)"
         />
         } @else {
         <div class="flex justify-center items-center h-64">
@@ -383,6 +385,7 @@ import { getEnv } from '../utils/env.utils';
       @if (portalStore.activeSection() === 'uniform_request') {
       <div id="uniform_request" class="section-content">
         <pt-employee-portal-uniform-request
+          [itemTypes]="uniformItemTypeOptions()"
           [itemType]="uniformItemType()"
           (itemTypeChange)="uniformItemType.set($event)"
           [size]="uniformSize()"
@@ -628,6 +631,13 @@ import { getEnv } from '../utils/env.utils';
       }
     }
 
+    /* Modern form panels */
+    ::ng-deep .portal-form-panel {
+      background: rgba(23, 23, 23, 0.5);
+      border: 1px solid rgba(64, 64, 64, 0.25);
+      padding: 1.5rem;
+    }
+
     /* Responsive cards */
     ::ng-deep .p-card {
       border-radius: 0.5rem;
@@ -684,15 +694,13 @@ import { getEnv } from '../utils/env.utils';
       }
     }
 
-    /* Section content */
+    /* Section content - instant, no animation */
     .section-content {
-      animation: fadeIn 0.3s ease-in;
     }
 
-    @keyframes fadeIn {
+    @keyframes slideIn {
       from {
-        opacity: 0;
-        transform: translateY(10px);
+        opacity: 1;
       }
       to {
         opacity: 1;
@@ -750,6 +758,10 @@ export class EmployeePortalComponent {
   public timelogsService = inject(EmployeePortalTimelogsService);
   public requestsService = inject(EmployeePortalRequestsService);
   public profileService = inject(EmployeePortalProfileService);
+  private uniformTypesService = inject(UniformTypesService);
+  public uniformItemTypeOptions = computed(() =>
+    this.uniformTypesService.getOptionsForBranch(this.currentEmployee()?.branch?.name)
+  );
   private pushService = inject(PushSubscriptionService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
@@ -819,11 +831,58 @@ export class EmployeePortalComponent {
   });
 
   public setActiveSection(section: string): void {
+    const el = document.getElementById('portal-scroll');
+    if (el) {
+      // Freeze height, hide content, reset scroll
+      const h = el.offsetHeight;
+      el.style.height = h + 'px';
+      el.style.overflow = 'hidden';
+      el.innerHTML; // force reflow
+      el.scrollTop = 0;
+    }
     this.portalStore.setActiveSection(section);
+    this.router.navigate(['/employee-portal'], { fragment: section, replaceUrl: true });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (el) {
+          el.style.height = '';
+          el.style.overflow = '';
+        }
+      });
+    });
+  }
+
+  // Swipe navigation between main tabs
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private readonly mainTabs = ['dashboard', 'management', 'timelogs', 'notifications', 'profile'];
+
+  public onTouchStart(e: TouchEvent): void {
+    this.touchStartX = e.touches[0].clientX;
+    this.touchStartY = e.touches[0].clientY;
+  }
+
+  public onTouchEnd(e: TouchEvent): void {
+    const dx = e.changedTouches[0].clientX - this.touchStartX;
+    const dy = e.changedTouches[0].clientY - this.touchStartY;
+    // Only horizontal swipes (ignore vertical scroll)
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+    // Only navigate between main tabs (not sub-sections of gestiones)
+    const current = this.portalStore.activeSection();
+    const idx = this.mainTabs.indexOf(current);
+    if (idx === -1) return;
+    if (dx < 0 && idx < this.mainTabs.length - 1) {
+      // Swipe left → next tab
+      this.setActiveSection(this.mainTabs[idx + 1]);
+    } else if (dx > 0 && idx > 0) {
+      // Swipe right → prev tab
+      this.setActiveSection(this.mainTabs[idx - 1]);
+    }
   }
 
   public closeSubSection(): void {
-    this.portalStore.setActiveSection(this.device.isDesktop() ? 'management' : 'dashboard');
+    const target = this.device.isDesktop() ? 'management' : 'dashboard';
+    this.setActiveSection(target);
   }
 
   public setVacationStartDate(value: Date | null): void {
@@ -2168,5 +2227,18 @@ export class EmployeePortalComponent {
     } finally {
       this.savingHrPin.set(false);
     }
+  }
+
+  // Profile photo uploaded - refresh employee data
+  public onPhotoUploaded(photoUrl: string): void {
+    const employee = this.currentEmployee();
+    if (employee) {
+      this.employees.ensureEmployeeLoaded(employee.id);
+    }
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Foto actualizada',
+      detail: 'Tu foto de perfil ha sido actualizada.',
+    });
   }
 }

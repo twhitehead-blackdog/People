@@ -8,8 +8,6 @@ import {
   Output,
 } from '@angular/core';
 import { DeviceService } from '../../services/device.service';
-import { Card } from 'primeng/card';
-
 type ManagementNavCard = {
   id: string;
   label: string;
@@ -22,31 +20,25 @@ type ManagementNavCard = {
 @Component({
   selector: 'pt-employee-portal-management-navigation',
   standalone: true,
-  imports: [CommonModule, Card],
+  imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 gap-4">
       @for (card of cards; track card.id) {
-      <p-card
-        [class.border-yellow-400]="activeSection === card.section"
-        [class.border-neutral-700]="activeSection !== card.section"
-        class="cursor-pointer hover:shadow-lg transition-all border-2"
+      <button
+        class="mgmt-card group"
+        [class.mgmt-card--active]="activeSection === card.section"
         (click)="selectSection(card.section)"
       >
-        <div class="flex flex-col items-center text-center gap-3">
-          <div
-            [class]="
-              'w-12 h-12 rounded-full flex items-center justify-center ' +
-              card.colorClass
-            "
-          >
-            <i [class]="'pi ' + card.icon + ' text-xl'"></i>
-          </div>
-          <h3 class="text-lg font-semibold text-white m-0">{{ card.label }}</h3>
-          <p class="text-sm text-gray-400 m-0">{{ card.description }}</p>
+        <div [class]="'w-14 h-14 rounded-2xl flex items-center justify-center ring-1 transition-all duration-200 flex-shrink-0 ' + card.colorClass">
+          <i [class]="'pi ' + card.icon + ' text-xl'"></i>
         </div>
-      </p-card>
+        <div class="text-left min-w-0">
+          <span class="text-base font-semibold text-white block">{{ card.label }}</span>
+          <span class="text-xs text-gray-500 block mt-1 leading-snug">{{ card.description }}</span>
+        </div>
+      </button>
       }
     </div>
     } @else {
@@ -70,6 +62,31 @@ type ManagementNavCard = {
     </div>
     }
   `,
+  styles: [`
+    .mgmt-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 1.25rem;
+      border-radius: 1rem;
+      background: rgba(23, 23, 23, 0.5);
+      border: 1px solid rgba(64, 64, 64, 0.25);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mgmt-card:hover {
+      background: rgba(30, 30, 30, 0.8);
+      border-color: rgba(82, 82, 82, 0.4);
+      transform: translateY(-1px);
+    }
+    .mgmt-card:active { transform: scale(0.98); }
+    .mgmt-card--active {
+      border-color: rgba(251, 191, 36, 0.3) !important;
+      background: rgba(251, 191, 36, 0.06) !important;
+    }
+  `],
 })
 export class EmployeePortalManagementNavigationComponent {
   protected device = inject(DeviceService);
@@ -83,7 +100,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Sube documentos de incapacidad médica',
       icon: 'pi-file-plus',
       section: 'disabilities',
-      colorClass: 'bg-blue-500/20 text-blue-400',
+      colorClass: 'bg-blue-500/12 ring-blue-500/15 text-blue-400',
     },
     {
       id: 'documents',
@@ -91,7 +108,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Solicita cartas de trabajo u otros documentos',
       icon: 'pi-file-edit',
       section: 'documents',
-      colorClass: 'bg-green-500/20 text-green-400',
+      colorClass: 'bg-green-500/12 ring-green-500/15 text-green-400',
     },
     {
       id: 'vacations',
@@ -99,7 +116,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Solicita tus días de vacaciones',
       icon: 'pi-calendar-plus',
       section: 'vacations',
-      colorClass: 'bg-purple-500/20 text-purple-400',
+      colorClass: 'bg-purple-500/12 ring-purple-500/15 text-purple-400',
     },
     {
       id: 'compensatory',
@@ -107,7 +124,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Solicita tiempo compensatorio por horas extras',
       icon: 'pi-clock',
       section: 'compensatory',
-      colorClass: 'bg-cyan-500/20 text-cyan-400',
+      colorClass: 'bg-cyan-500/12 ring-cyan-500/15 text-cyan-400',
     },
     {
       id: 'timelog_correction',
@@ -115,7 +132,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Solicita corrección de marcación de asistencia',
       icon: 'pi-exclamation-triangle',
       section: 'timelog_correction',
-      colorClass: 'bg-orange-500/20 text-orange-400',
+      colorClass: 'bg-orange-500/12 ring-orange-500/15 text-orange-400',
     },
     {
       id: 'work_permit',
@@ -123,7 +140,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Solicita permisos laborales',
       icon: 'pi-id-card',
       section: 'work_permit',
-      colorClass: 'bg-amber-500/20 text-amber-400',
+      colorClass: 'bg-amber-500/12 ring-amber-500/15 text-amber-400',
     },
     {
       id: 'uniform_request',
@@ -131,7 +148,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Solicita uniformes o prendas de trabajo',
       icon: 'pi-tag',
       section: 'uniform_request',
-      colorClass: 'bg-teal-500/20 text-teal-400',
+      colorClass: 'bg-teal-500/12 ring-teal-500/15 text-teal-400',
     },
     {
       id: 'surveys',
@@ -139,7 +156,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Completa encuestas asignadas por HR',
       icon: 'pi-chart-bar',
       section: 'surveys',
-      colorClass: 'bg-pink-500/20 text-pink-400',
+      colorClass: 'bg-pink-500/12 ring-pink-500/15 text-pink-400',
     },
     {
       id: 'my-requests',
@@ -147,7 +164,7 @@ export class EmployeePortalManagementNavigationComponent {
       description: 'Visualiza todas tus solicitudes',
       icon: 'pi-list',
       section: 'my-requests',
-      colorClass: 'bg-indigo-500/20 text-indigo-400',
+      colorClass: 'bg-indigo-500/12 ring-indigo-500/15 text-indigo-400',
     },
   ];
 
