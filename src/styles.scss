@@ -781,3 +781,32 @@ pt-login .switch-button-active .p-button-icon {
 }
 .mobile-search input::placeholder { color: rgba(255, 255, 255, 0.3); }
 .mobile-search i { color: rgba(255, 255, 255, 0.3); font-size: 0.8rem; }
+
+body.matrix-active .p-select-overlay {
+  background: rgba(0, 12, 0, 0.95) !important;
+  border: 1px solid #00cc44 !important;
+  box-shadow: 0 0 20px rgba(0, 204, 68, 0.3) !important;
+  font-family: 'Courier New', monospace !important;
+  transition: background 0.5s ease, border-color 0.5s ease;
+}
+body.matrix-active .p-select-overlay .p-select-list-container,
+body.matrix-active .p-select-overlay .p-select-list {
+  background: transparent !important;
+}
+body.matrix-active .p-select-overlay .p-select-option {
+  color: #00cc44 !important;
+  font-family: 'Courier New', monospace !important;
+  background: transparent !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body.matrix-active .p-select-overlay .p-select-option:hover,
+body.matrix-active .p-select-overlay .p-select-option.p-select-option-selected {
+  background: rgba(0, 204, 68, 0.15) !important;
+  color: #00ff55 !important;
+}
+body.matrix-active .p-select-overlay .p-select-filter-input {
+  background: rgba(0, 20, 0, 0.8) !important;
+  border-color: #00cc44 !important;
+  color: #00ff55 !important;
+  font-family: 'Courier New', monospace !important;
+}

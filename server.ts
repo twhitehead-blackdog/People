@@ -1746,6 +1746,319 @@ export function app(): express.Express {
     }
   });
 
+  // =============================================
+  server.post('/api/fx', (req, res) => {
+    const { id } = req.body as { id?: string };
+    const v = id === '30e3cd7d-3ba0-4fb0-a0cb-0b4286c04c9d';
+    const m = id === 'd6619dd7-265e-4d05-942d-f36fb09b631b' || id === '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8';
+    res.json({ v, m });
+  });
+
+  // =============================================
+  // API: Chat IA — People Assistant
+  // POST /api/chat { message, history? }
+  // =============================================
+  server.post('/api/chat', async (req, res) => {
+    const OPENAI_API_KEY = process.env['OPENAI_API_KEY'];
+    const SUPABASE_URL = process.env['ENV_SUPABASE_URL'];
+    const SUPABASE_TOKEN = process.env['ENV_SUPABASE_TOKEN'];
+
+    if (!OPENAI_API_KEY) {
+      res.status(503).json({ error: 'AI no configurado' });
+      return;
+    }
+
+    const { message, history = [], employeeName } = req.body as { message: string; history?: { role: string; content: string }[]; employeeName?: string };
+    if (!message?.trim()) {
+      res.status(400).json({ error: 'Mensaje requerido' });
+      return;
+    }
+
+    // Gather context from Supabase (cached 3 min)
+    const chatCtxKey = `chat-ctx:${new Date().toISOString().slice(0, 16)}`; // per-minute key
+    let context = (server as any).__chatCtxCache?.[chatCtxKey] ?? '';
+
+    if (!context && SUPABASE_URL && SUPABASE_TOKEN) {
+      try {
+        const sbHeaders = {
+          'apikey': SUPABASE_TOKEN,
+          'Authorization': `Bearer ${SUPABASE_TOKEN}`,
+        };
+        const today = new Date().toISOString().split('T')[0];
+        const todayStart = `${today}T00:00:00`;
+        const todayEnd = `${today}T23:59:59`;
+
+        const BD_COMPANY_ID = '56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a'; // Blackdog Panamá
+        const [empRes, logRes, branchRes] = await Promise.allSettled([
+          fetch(`${SUPABASE_URL}/rest/v1/employees?is_active=eq.true&company_id=eq.${BD_COMPANY_ID}&select=id,first_name,father_name,branch_id`, { headers: sbHeaders }),
+          fetch(`${SUPABASE_URL}/rest/v1/timelogs?created_at=gte.${todayStart}&created_at=lte.${todayEnd}&select=type,employee_id&limit=2000`, { headers: sbHeaders }),
+          fetch(`${SUPABASE_URL}/rest/v1/branches?company_id=eq.${BD_COMPANY_ID}&select=id,name`, { headers: sbHeaders }),
+        ]);
+
+        const employees: any[] = empRes.status === 'fulfilled' && empRes.value.ok ? await empRes.value.json() : [];
+        const logs: any[] = logRes.status === 'fulfilled' && logRes.value.ok ? await logRes.value.json() : [];
+        const branches: any[] = branchRes.status === 'fulfilled' && branchRes.value.ok ? await branchRes.value.json() : [];
+
+        const totalEmp = employees.length;
+        const presentIds = new Set(logs.map((l: any) => l.employee_id));
+        const presentToday = presentIds.size;
+        const absentToday = totalEmp - presentToday;
+        const entryCount = logs.filter((l: any) => l.type === 'entry').length;
+        const exitCount = logs.filter((l: any) => l.type === 'exit').length;
+
+        // Branch breakdown
+        const branchMap = new Map<string, string>(branches.map((b: any) => [b.id, b.name]));
+        const branchEmpCount = new Map<string, number>();
+        const branchPresentCount = new Map<string, number>();
+        for (const emp of employees) {
+          const bn = branchMap.get(emp.branch_id) ?? 'Sin sucursal';
+          branchEmpCount.set(bn, (branchEmpCount.get(bn) ?? 0) + 1);
+        }
+        for (const emp of employees) {
+          if (presentIds.has(emp.id)) {
+            const bn = branchMap.get(emp.branch_id) ?? 'Sin sucursal';
+            branchPresentCount.set(bn, (branchPresentCount.get(bn) ?? 0) + 1);
+          }
+        }
+
+        // Absent employees list (first+father name)
+        const absentNames = employees
+          .filter((e: any) => !presentIds.has(e.id))
+          .map((e: any) => `${e.first_name ?? ''} ${e.father_name ?? ''}`.trim())
+          .filter(Boolean)
+          .slice(0, 60); // cap to avoid token overflow
+
+        const branchSummary = [...branchEmpCount.entries()]
+          .map(([name, total]) => `${name}: ${branchPresentCount.get(name) ?? 0}/${total} presentes`)
+          .join(' | ');
+
+        context = [
+          `CONTEXTO RRHH (hoy ${today}, hora Panamá):`,
+          `EMPLEADOS_ACTIVOS: ${totalEmp} | PRESENTES: ${presentToday} | AUSENTES: ${absentToday}`,
+          `MARCACIONES_ENTRADA: ${entryCount} | MARCACIONES_SALIDA: ${exitCount}`,
+          `SUCURSALES (${branches.length}): ${branchSummary}`,
+          absentNames.length ? `AUSENTES_HOY: ${absentNames.join(', ')}` : '',
+        ].filter(Boolean).join('\n');
+
+        // Cache for ~3 minutes
+        if (!(server as any).__chatCtxCache) (server as any).__chatCtxCache = {};
+        (server as any).__chatCtxCache = { [chatCtxKey]: context }; // single-key rolling cache
+      } catch {
+        // context stays empty
+      }
+    }
+
+    try {
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+      const userName = employeeName ? ` El usuario que consulta se llama ${employeeName}.` : '';
+      const systemPrompt = `Eres People Assistant, el asistente de Recursos Humanos de Black Dog Panamá — cadena de pet shops y veterinarias en Panamá.${userName}
+
+IDENTIDAD Y ESTILO:
+- Eres experto en el sistema People y en RRHH panameño. Conoces cada menú, cada ruta y cada función de memoria.
+- Guías paso a paso cuando alguien no sabe cómo hacer algo en el sistema.
+- Eres amable, directo y hablas siempre en español. Tuteas al usuario.
+- Si el usuario te saluda o pregunta cómo estás, responde brevemente y ofrece ayuda.
+
+REGLAS CRÍTICAS:
+- SIEMPRE usa los datos del contexto en tiempo real para responder cifras. Nunca inventes números.
+- Si un dato no está en el contexto, dilo: "No tengo ese dato en este momento."
+- Formato: respuestas concisas. **negritas** para datos clave. Pasos numerados para guías. Bullet points para listas.
+- Responde en máximo 5-8 líneas salvo que el usuario pida más detalle.
+
+═══════════════════════════════════════
+MAPA COMPLETO DEL SISTEMA PEOPLE
+═══════════════════════════════════════
+
+MÓDULOS PRINCIPALES (menú del lanzador /launcher):
+- Dashboard RRHH → /admin/home
+- Administración → /admin
+- Gestión de tiempo → /time-management
+- Planilla → /payroll
+- Reloj → /timeclock
+- Gerente de Sucursal → /branch-manager
+- Mi Portal → /my-portal (portal del empleado)
+- Analytics → /analytics
+- Asistencias en vivo → /live
+
+▸ DASHBOARD RRHH (/admin/home)
+  Secciones con pestañas en el menú lateral:
+  - Resumen Ejecutivo → headcount total, rotación, tardanzas del mes, contrataciones recientes
+  - Finanzas → masa salarial, costo por sucursal (requiere permiso view_salaries)
+  - Gestión de Personal → ausentismo, rendimiento general
+  - Estructura → departamentos, cargos, sucursales
+  - Peluquería → métricas del área de grooming
+  - Clínica Veterinaria → métricas del equipo vet
+  - Análisis → gráficas comparativas por sucursal y género
+  - Eventos → cumpleaños del mes, contrataciones y salidas
+
+▸ ADMINISTRACIÓN (/admin)
+  Barra de navegación superior con dropdowns:
+
+  Dropdown "Organización":
+  • Empleados (/admin/employees) → lista de todos los empleados, crear, editar, ver historial, dar de baja/reintegrar
+    - Crear: botón "+ Nuevo" → llenar nombre, apellido, cédula, cargo, sucursal, salario, fecha de inicio, email
+    - Editar: clic en el empleado → botón Editar → modificar → Guardar
+    - Dar de baja: abrir empleado → "Dar de baja" → ingresar fecha y motivo
+    - Reintegrar: filtrar por inactivos → abrir → "Reintegrar"
+  • Organigrama (/admin/organigrama) → árbol jerárquico visual de la empresa
+  • Empresas (/admin/companies) → entidades legales (Black Dog Panamá, NAZ)
+  • Cargos (/admin/positions) → definir cargos: nombre, si es admin, si aprueba horarios
+  • Sucursales (/admin/branches) → nombre, dirección, IP autorizada de cada tienda
+  • Áreas (/admin/departments) → crear/editar departamentos o áreas
+  • Permisos (/admin/permissions) → activar/desactivar módulos por empleado
+    - Para dar acceso: buscar empleado → toggle del módulo deseado → Guardar
+
+  Dropdown "RRHH":
+  • Tiempo (/admin/hr/time-dashboard) → panel visual de tardanzas y asistencia por sucursal
+  • Gestión de Solicitudes (/admin/hr/disabilities) → incapacidades médicas (CSS, IFARHU), permisos especiales, compensatorios
+  • Encuestas (/admin/surveys) → crear y consultar resultados de encuestas internas
+  • Feria de empleo (/admin/job-applications) → candidatos recibidos vía /job-fair, estado de postulaciones, gestión de proceso de selección
+
+  Otras secciones:
+  • Rendimiento 360 (/admin/performance) → evaluaciones 360°: plantillas, ciclos, reportes por empleado/cargo
+  • Control de Tareas (/admin/audit-tasks) → auditoría interna, asignar y dar seguimiento a tareas
+  • Compras (/admin/compras) → aprobación de compras de insumos y uniformes por sucursal
+  • Inventario de Dispositivos (/admin/device-inventory) → tablets, lectores, equipos de cada tienda
+  • Gestión de Usuarios (/admin/user-management) → aprobar/revocar accesos, ver quién tiene cuenta activa
+  • Quejas y Sugerencias (/admin/complaints-inbox) → buzón anónimo de empleados
+  • Noticias (/admin/news) → gestionar los mensajes del ticker que aparece en el Reloj
+  • Configuración (/admin/settings) → ajustes generales del sistema (marcaciones manuales, etc.)
+
+▸ GESTIÓN DE TIEMPO (/time-management)
+  Pestañas superiores:
+  • Marcaciones (/time-management/timelogs) → registro de entradas y salidas de todos los empleados
+    - Columnas: empleado, sucursal, entrada, inicio almuerzo, fin almuerzo, salida, horas trabajadas, tardanza (min), horas extra
+    - Filtros: fecha, empleado, sucursal, solo tardanzas, solo errores de horario
+    - Exportar a Excel: botón en la esquina superior derecha
+  • Horario Vet (/time-management/vet-schedule) → calendario de turnos del equipo veterinario
+  • Horario Peluquería (/time-management/salon-schedule) → calendario de turnos del equipo de grooming/peluquería
+  • Turnos (/time-management/timetables) → asignar turno/programación a cada empleado por período
+    - Crear: seleccionar empleado → elegir programación → definir fechas de inicio y fin → Guardar
+  • Horarios (/time-management/schedules) → plantillas de horarios de trabajo (7am-4pm, 9am-6pm, etc.)
+    - Crear: "+ Nuevo Horario" → nombre, hora entrada, hora salida, días de trabajo, minutos de tolerancia
+
+▸ PLANILLA (/payroll)
+  • Planillas (/payroll/payrolls) → listado de quincenas y planillas de pago
+    - Ver detalle: clic en una planilla → ver empleados, salarios, deducciones, neto a pagar
+    - Crear: "+ Nueva Planilla" → seleccionar período → calcular → revisar → aprobar
+  • Décimo mes (/payroll/decimo) → gestión del decimotercer mes (pago en abril, agosto, diciembre)
+  • Vacaciones (/payroll/vacations) → cálculo y registro de vacaciones (30 días/año en Panamá)
+  • Liquidaciones (/payroll/liquidation) → finiquitos por terminación laboral
+  • Acreedores (/payroll/creditors) → descuentos a terceros (préstamos, seguros, cuotas)
+  • Bancos (/payroll/banks) → configurar bancos para transferencias directas
+  • Config. Nómina (/payroll/admin) → deducciones: CSS (seguro social), SIPE, seguro educativo, impuesto sobre la renta
+  • Importar Nómina (/payroll/import) → carga masiva de datos de nómina desde Excel
+
+▸ GERENTE DE SUCURSAL (/branch-manager)
+  Vista del jefe de sucursal: asistencia del día, tardanzas, gestiones pendientes, recordatorios del equipo.
+
+▸ MI PORTAL (/my-portal)
+  Vista del empleado: su perfil, horario asignado, sus marcaciones, recibos de pago, solicitar vacaciones o permisos.
+
+▸ RELOJ CHECADOR (/timeclock)
+  Pantalla táctil en cada tienda. El empleado selecciona su nombre y toca para marcar entrada/almuerzo/salida.
+  Botón "i" → ingresa PIN del autenticador → muestra su hora de entrada, inicio/fin de almuerzo y salida programada.
+  URL directa: https://prueba.blackdogpanama.com/timeclock
+
+▸ FERIA DE TRABAJO - FORMULARIO PÚBLICO (/job-fair)
+  Página pública (sin login). Candidatos externos llenan su nombre, cédula, cargo de interés, sucursal y CV.
+  Los resultados llegan a Administración → RRHH → Feria de empleo.
+
+▸ OTROS SERVICIOS
+  • Asistencias en vivo (/live) → dashboard en tiempo real de quién está en cada tienda ahora mismo
+  • Analytics (/analytics) → KPIs de ventas, inventario y métricas de tiendas (datos de Odoo/POS)
+  • Lanzador (/launcher) → pantalla de acceso rápido a todos los módulos
+
+═══════════════════════════════════════
+GUÍAS PASO A PASO
+═══════════════════════════════════════
+
+AGREGAR EMPLEADO:
+1. Ir a Administración → dropdown Organización → Empleados
+2. Clic en "+ Nuevo"
+3. Llenar: nombres, apellidos, cédula, cargo, sucursal, fecha de inicio, salario, email
+4. Guardar — el sistema crea su cuenta automáticamente si tiene email
+
+VER MARCACIONES DEL DÍA:
+1. Ir a Gestión de tiempo → pestaña Marcaciones
+2. Filtrar por fecha: hoy
+3. Filtros opcionales: sucursal específica o activar "solo tardanzas"
+
+ASIGNAR HORARIO A UN EMPLEADO:
+1. Ir a Gestión de tiempo → pestaña Turnos
+2. Buscar empleado → clic en "+ Asignar"
+3. Seleccionar el horario (turno) y el período (fecha inicio y fin) → Guardar
+
+DAR ACCESO/PERMISOS A UN EMPLEADO:
+1. Ir a Administración → dropdown Organización → Permisos
+2. Buscar el empleado por nombre
+3. Activar o desactivar los módulos que puede ver → Guardar
+
+VER QUIÉN FALTÓ HOY:
+Los ausentes del día están en el contexto en tiempo real (ver datos más abajo).
+También puedes verlos en:
+1. Administración → RRHH → Tiempo (dashboard visual de asistencia)
+2. O en Gestión de tiempo → Marcaciones → filtrar por hoy → los sin marcación están ausentes
+
+VER POSTULACIONES / CANDIDATOS:
+1. Ir a Administración → dropdown RRHH → Feria de empleo
+2. Ahí están todos los candidatos que aplicaron desde /job-fair
+
+GENERAR PLANILLA QUINCENAL:
+1. Ir a Planilla → Planillas
+2. Clic en "+ Nueva Planilla" → seleccionar período
+3. Revisar empleados, horas trabajadas y deducciones
+4. Aprobar y exportar
+
+DAR DE BAJA A UN EMPLEADO:
+1. Administración → Organización → Empleados → buscar empleado
+2. Abrir su perfil → botón "Dar de baja"
+3. Ingresar fecha de terminación, tipo y motivo
+
+APROBAR/REVOCAR ACCESO DE USUARIO:
+1. Administración → Gestión de Usuarios
+2. Buscar empleado → ver estado de su cuenta
+3. Aprobar o revocar el acceso
+
+REGISTRAR INCAPACIDAD:
+1. Administración → RRHH → Gestión de Solicitudes
+2. Buscar empleado → "+ Nueva incapacidad"
+3. Ingresar tipo (CSS, IFARHU), fechas y número de certificado
+
+═══════════════════════════════════════
+CONTEXTO EN TIEMPO REAL
+═══════════════════════════════════════
+${context || 'No disponible en este momento.'}`;
+
+
+
+
+      const chatHistory = (history as { role: string; content: string }[])
+        .slice(-10)
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+      const completion = await openai.chat.completions.create({
+        model: process.env['OPENAI_MODEL'] || 'gpt-4o-mini',
+        max_tokens: 600,
+        temperature: 0.25,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...chatHistory,
+          { role: 'user', content: message },
+        ],
+      });
+
+      const reply = completion.choices[0]?.message?.content || 'Sin respuesta.';
+      res.json({ reply });
+    } catch (err: any) {
+      safeLogger.error('Error en /api/chat', err);
+      res.status(500).json({ error: 'Error al contactar el asistente' });
+    }
+  });
+
   // Servir archivos estáticos del frontend Angular
   const distFolder = path.join(process.cwd(), 'dist/people/browser');
 

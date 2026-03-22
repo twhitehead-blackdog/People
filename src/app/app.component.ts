@@ -13,6 +13,7 @@ import { ThemeService } from './services/theme.service';
 import { VersionCheckService } from './services/version-check.service';
 import { isPortalDomain } from './utils/domain.utils';
 import { PwaService } from './services/pwa.service';
+import { DesignVersionService } from './services/design-version.service';
 
 @Component({
   imports: [RouterOutlet, DiagnosticPanelComponent, DialogModule, Button],
@@ -271,6 +272,7 @@ export class AppComponent implements OnInit {
   private themeService = inject(ThemeService);
   readonly versionCheck = inject(VersionCheckService);
   readonly pwa = inject(PwaService);
+  readonly designVersion = inject(DesignVersionService);
 
   /** Detecta si estamos en el dominio del portal */
   readonly isPortal = isPortalDomain();

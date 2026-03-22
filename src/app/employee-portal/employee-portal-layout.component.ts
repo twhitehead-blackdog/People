@@ -21,6 +21,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, Subscription } from 'rxjs';
 import { NotificationsService } from '../services/notifications.service';
+import { DesignVersionService } from '../services/design-version.service';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
@@ -428,6 +429,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public notificationsService = inject(NotificationsService);
   private navigationService = inject(EmployeePortalNavigationService);
   public device = inject(DeviceService);
+  public designVersion = inject(DesignVersionService);
 
   public isNaz = computed(() => this.organizationService.isNaz());
 
@@ -450,6 +452,24 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       if (employeeId) {
         this.notificationsService.setCurrentEmployeeId(employeeId);
       }
+    });
+
+    // Reconstruir menú cuando cambia la versión de diseño
+    effect(() => {
+      const isClassic = this.designVersion.isClassic();
+      this.items = [
+        {
+          label: isClassic ? 'Diseño Nuevo' : 'Diseño Clásico',
+          icon: 'pi pi-palette',
+          command: () => this.designVersion.toggle(),
+        },
+        { separator: true },
+        {
+          label: 'Cerrar sesion',
+          icon: 'pi pi-sign-out',
+          command: () => this.auth.logout(),
+        },
+      ];
     });
   }
 

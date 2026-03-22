@@ -21,7 +21,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { format } from 'date-fns';
+import { differenceInMinutes, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -31,7 +31,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
-import { catchError, EMPTY, Observable, of } from 'rxjs';
+import { catchError, EMPTY, forkJoin, Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
   Branch,
@@ -52,6 +52,22 @@ import {
   playSuccessSound,
   playBirthdaySound,
 } from '../timeclock/timeclock-audio.utils';
+
+interface TimeclockInfoData {
+  entryTime: string | null;
+  lunchStartTime: string | null;
+  lunchEndTime: string | null;
+  isInLunch: boolean;
+  lunchMinutesRemaining: number | null;
+  lunchMinutesUsed: number | null;
+  lunchAllowedMinutes: number;
+  scheduledExitTime: string | null;
+  minutesToExit: number | null;
+  branchMismatch: boolean;
+  employeeName: string;
+  branchAssigned: string;
+  branchSelected: string;
+}
 
 @Component({
   selector: 'pt-naz-timeclock',
@@ -182,6 +198,102 @@ import {
         </div>
       </div>
     }
+
+    <!-- Info Modal -->
+    @if (infoModalVisible()) {
+      <div class="info-modal-overlay" (click)="closeInfoModal()">
+        <div class="info-modal-card" (click)="$event.stopPropagation()">
+          <div class="info-modal-header">
+            <div class="info-modal-title"><i class="pi pi-clock"></i> Estado del día</div>
+            <button type="button" class="info-modal-close-btn" (click)="closeInfoModal()"><i class="pi pi-times"></i></button>
+          </div>
+          @if (isLoadingInfo()) {
+            <div class="info-modal-loading">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Cargando...</span>
+            </div>
+          } @else if (infoModalData(); as info) {
+            <div class="info-employee-name">{{ info.employeeName }}</div>
+            @if (info.branchMismatch) {
+              <div class="info-branch-warning">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div>
+                  <div class="font-semibold">Sucursal no coincide</div>
+                  <div class="text-xs mt-0.5">Asignada: <strong>{{ info.branchAssigned }}</strong></div>
+                  <div class="text-xs">Seleccionada: <strong>{{ info.branchSelected }}</strong></div>
+                </div>
+              </div>
+            }
+            <div class="info-rows">
+              <!-- Entrada -->
+              <div class="info-row">
+                <div class="info-row-icon entry-icon"><i class="pi pi-sign-in"></i></div>
+                <div>
+                  <div class="info-row-label">Entrada</div>
+                  @if (info.entryTime) {
+                    <div class="info-row-val">{{ info.entryTime }}</div>
+                  } @else {
+                    <div class="info-row-val muted-val">Sin marcar</div>
+                  }
+                </div>
+              </div>
+              <!-- Almuerzo -->
+              <div class="info-row">
+                <div class="info-row-icon lunch-icon" [ngClass]="{'lunch-active': info.isInLunch}"><i class="pi pi-sun"></i></div>
+                <div style="flex:1">
+                  <div class="info-row-label">Almuerzo</div>
+                  @if (!info.lunchStartTime) {
+                    <div class="info-row-val muted-val">No iniciado</div>
+                  } @else if (info.isInLunch) {
+                    <div class="info-row-val">Desde {{ info.lunchStartTime }}</div>
+                    @if (info.lunchMinutesRemaining !== null) {
+                      <div class="info-row-sub" [ngClass]="info.lunchMinutesRemaining > 0 ? 'ok-text' : 'warn-text'">
+                        @if (info.lunchMinutesRemaining > 0) {
+                          {{ info.lunchMinutesRemaining }} min restantes
+                        } @else {
+                          Tiempo de almuerzo agotado
+                        }
+                      </div>
+                    }
+                  } @else {
+                    <div class="info-row-val">{{ info.lunchStartTime }} → {{ info.lunchEndTime }}</div>
+                    @if (info.lunchMinutesUsed !== null) {
+                      <div class="info-row-sub" [ngClass]="info.lunchMinutesUsed > info.lunchAllowedMinutes ? 'warn-text' : 'muted-text'">
+                        {{ info.lunchMinutesUsed }} / {{ info.lunchAllowedMinutes }} min
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+              <!-- Salida -->
+              <div class="info-row">
+                <div class="info-row-icon exit-icon"><i class="pi pi-sign-out"></i></div>
+                <div>
+                  <div class="info-row-label">Salida programada</div>
+                  @if (info.scheduledExitTime) {
+                    <div class="info-row-val">{{ info.scheduledExitTime }}</div>
+                    @if (info.minutesToExit !== null) {
+                      <div class="info-row-sub" [ngClass]="info.minutesToExit >= 0 ? 'ok-text' : 'warn-text'">
+                        @if (info.minutesToExit > 0) {
+                          Faltan {{ info.minutesToExit }} min
+                        } @else if (info.minutesToExit === 0) {
+                          Es hora de salir
+                        } @else {
+                          {{ absMinutes(info.minutesToExit) }} min de sobretiempo
+                        }
+                      </div>
+                    }
+                  } @else {
+                    <div class="info-row-val muted-val">Sin horario asignado</div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
       style="width: 100%; position: relative;"
@@ -285,6 +397,21 @@ import {
                 </ng-template>
               </p-select>
             </div>
+            <!-- Info button + branch mismatch warning -->
+            @if (showInfoButton()) {
+              <div class="w-full flex items-center gap-2">
+                @if (branchMismatch()) {
+                  <div class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <span>La sucursal no coincide con la del empleado</span>
+                  </div>
+                }
+                <button type="button" class="info-btn" [class.ml-auto]="!branchMismatch()" (click)="openInfoModal()" title="Ver estado del día">
+                  <i class="pi pi-info-circle"></i>
+                </button>
+              </div>
+            }
+
             <div class="input-container w-full">
               <p-select
                 formControlName="type"
@@ -1517,6 +1644,190 @@ import {
       }
     }
 
+    /* ============================================
+       INFO BUTTON
+       ============================================ */
+    .info-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.08);
+      color: rgba(251, 191, 36, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+    .info-btn:hover {
+      background: rgba(251, 191, 36, 0.18);
+      border-color: rgba(251, 191, 36, 0.6);
+      color: #fbbf24;
+      transform: scale(1.08);
+    }
+    .info-btn:active { transform: scale(0.95); }
+
+    /* ============================================
+       INFO MODAL
+       ============================================ */
+    .info-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(10px);
+      padding: 1rem;
+      animation: confirmOverlayIn 0.25s ease-out;
+    }
+    .info-modal-card {
+      background: linear-gradient(165deg, rgba(28, 28, 35, 0.97) 0%, rgba(18, 18, 22, 0.99) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 20px;
+      padding: 1.25rem 1.25rem 1.5rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(251, 191, 36, 0.05);
+      animation: confirmCardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .info-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .info-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fbbf24;
+    }
+    .info-modal-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 0.72rem;
+    }
+    .info-modal-close-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+    }
+    .info-employee-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e5e7eb;
+      text-align: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .info-branch-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      border-radius: 10px;
+      color: #fb923c;
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+    .info-branch-warning i { margin-top: 1px; flex-shrink: 0; }
+    .info-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+    }
+    .info-row-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .entry-icon {
+      background: rgba(52, 211, 153, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+    .lunch-icon {
+      background: rgba(251, 191, 36, 0.08);
+      color: rgba(251, 191, 36, 0.6);
+      border: 1px solid rgba(251, 191, 36, 0.15);
+    }
+    .lunch-active {
+      background: rgba(251, 191, 36, 0.2) !important;
+      color: #fbbf24 !important;
+      border-color: rgba(251, 191, 36, 0.4) !important;
+      animation: lunchPulse 2s ease-in-out infinite;
+    }
+    @keyframes lunchPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.3); }
+      50% { box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1); }
+    }
+    .exit-icon {
+      background: rgba(96, 165, 250, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+    .info-row-label {
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.38);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+      margin-bottom: 0.15rem;
+    }
+    .info-row-val {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+    .muted-val { color: rgba(255, 255, 255, 0.28); font-weight: 400; }
+    .info-row-sub { font-size: 0.73rem; margin-top: 0.15rem; }
+    .ok-text { color: #34d399; }
+    .warn-text { color: #f87171; }
+    .muted-text { color: rgba(255, 255, 255, 0.32); }
+    .info-modal-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 2rem 1rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 0.85rem;
+    }
+    .info-modal-loading i { font-size: 1.5rem; color: #fbbf24; }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1564,6 +1875,22 @@ export class NazTimeclockComponent implements OnDestroy {
     lunchExceededMinutes: number;
   } | null>(null);
   private confirmModalTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // Info modal signals
+  public infoModalVisible = signal(false);
+  public infoModalData = signal<TimeclockInfoData | null>(null);
+  public isLoadingInfo = signal(false);
+  public selectedEmployee = signal<Partial<Employee> | undefined>(undefined);
+  public selectedBranchId = signal<string>('');
+
+  public branchMismatch = computed(() => {
+    const employee = this.selectedEmployee();
+    const branchId = this.selectedBranchId() || this.form.get('branch_id')?.value || '';
+    if (!employee?.branch_id || !branchId) return false;
+    return employee.branch_id !== branchId;
+  });
+
+  public showInfoButton = computed(() => !!this.selectedEmployee());
 
   private injector = inject(Injector);
   private timeInterval: any;
@@ -1652,6 +1979,11 @@ export class NazTimeclockComponent implements OnDestroy {
     // Auto-detect timelog type when employee is selected
     this.form.get('employee')?.valueChanges.subscribe((employee) => {
       this.onEmployeeSelected(employee);
+    });
+
+    // Track selected branch for info modal / branch mismatch
+    this.form.get('branch_id')?.valueChanges.subscribe((branchId) => {
+      this.selectedBranchId.set(branchId || '');
     });
   }
 
@@ -2007,7 +2339,7 @@ export class NazTimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri,birth_date',
+      select: 'id,first_name,father_name,code_uri,birth_date,branch_id',
       order: 'father_name',
       is_active: 'eq.true',
     };
@@ -2116,6 +2448,7 @@ export class NazTimeclockComponent implements OnDestroy {
   }
 
   onEmployeeSelected(employee: Employee | undefined) {
+    this.selectedEmployee.set(employee);
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
@@ -2156,6 +2489,122 @@ export class NazTimeclockComponent implements OnDestroy {
         firstInput.focus();
       }
     }, 100);
+  }
+
+  absMinutes(n: number): number {
+    return Math.abs(n);
+  }
+
+  closeInfoModal(): void {
+    this.infoModalVisible.set(false);
+    this.infoModalData.set(null);
+  }
+
+  openInfoModal(): void {
+    const employee = this.selectedEmployee();
+    if (!employee?.id) return;
+
+    this.isLoadingInfo.set(true);
+    this.infoModalVisible.set(true);
+    this.infoModalData.set(null);
+
+    forkJoin({
+      timelogs: this.getTodayTimelogs(employee.id),
+      schedule: this.getEmployeeScheduleForToday(employee.id),
+    }).subscribe(({ timelogs, schedule }) => {
+      this.isLoadingInfo.set(false);
+
+      const now = new Date();
+      const entryLog = timelogs.find(t => t.type === 'entry');
+      const lunchStartLog = timelogs.find(t => t.type === 'lunch_start');
+      const lunchEndLog = timelogs.find(t => t.type === 'lunch_end');
+
+      const entryTime = entryLog ? format(new Date(entryLog.created_at), 'h:mm aaa') : null;
+      const lunchStartTime = lunchStartLog ? format(new Date(lunchStartLog.created_at), 'h:mm aaa') : null;
+      const lunchEndTime = lunchEndLog ? format(new Date(lunchEndLog.created_at), 'h:mm aaa') : null;
+
+      const isInLunch = !!lunchStartLog && !lunchEndLog;
+      const lunchAllowedMinutes = 60;
+      let lunchMinutesRemaining: number | null = null;
+      let lunchMinutesUsed: number | null = null;
+
+      if (lunchStartLog) {
+        const lunchStart = new Date(lunchStartLog.created_at);
+        if (isInLunch) {
+          const elapsed = differenceInMinutes(now, lunchStart);
+          lunchMinutesRemaining = Math.max(0, lunchAllowedMinutes - elapsed);
+        } else if (lunchEndLog) {
+          lunchMinutesUsed = differenceInMinutes(new Date(lunchEndLog.created_at), lunchStart);
+        }
+      }
+
+      let scheduledExitTime: string | null = null;
+      let minutesToExit: number | null = null;
+
+      if (schedule?.exit_time) {
+        const [h, m] = schedule.exit_time.split(':').map(Number);
+        const scheduledExit = new Date();
+        scheduledExit.setHours(h, m, 0, 0);
+        scheduledExitTime = format(scheduledExit, 'h:mm aaa');
+        minutesToExit = differenceInMinutes(scheduledExit, now);
+      }
+
+      const branches = this.currentBranchesResource();
+      const assignedBranch = branches?.find(b => b.id === employee.branch_id);
+      const currentBranchId = this.selectedBranchId() || this.form.get('branch_id')?.value || '';
+      const selectedBranch = branches?.find(b => b.id === currentBranchId);
+
+      this.infoModalData.set({
+        entryTime,
+        lunchStartTime,
+        lunchEndTime,
+        isInLunch,
+        lunchMinutesRemaining,
+        lunchMinutesUsed,
+        lunchAllowedMinutes,
+        scheduledExitTime,
+        minutesToExit,
+        branchMismatch: this.branchMismatch(),
+        employeeName: `${employee.first_name} ${employee.father_name}`.trim(),
+        branchAssigned: assignedBranch?.name || 'No asignada',
+        branchSelected: selectedBranch?.name || 'Desconocida',
+      });
+    });
+  }
+
+  private getTodayTimelogs(employeeId: string): Observable<TimeLog[]> {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: 'id,type,created_at',
+      employee_id: `eq.${employeeId}`,
+      created_at: `gte.${today}T00:00:00`,
+      order: 'created_at.asc',
+    };
+    if (companyId) params.company_id = `eq.${companyId}`;
+    return this.http
+      .get<TimeLog[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, { params })
+      .pipe(catchError(() => of([])));
+  }
+
+  private getEmployeeScheduleForToday(employeeId: string): Observable<any> {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: 'schedule:schedules(id,name,entry_time,exit_time,day_off)',
+      employee_id: `eq.${employeeId}`,
+      start_date: `lte.${today}`,
+      approved: 'eq.true',
+      order: 'start_date.desc',
+      limit: '1',
+    };
+    if (companyId) params.company_id = `eq.${companyId}`;
+    return this.http
+      .get<any[]>(`${this.apiUrl.baseUrl}/rest/v1/employee_schedules`, { params })
+      .pipe(
+        map(results => results?.[0]?.schedule || null),
+        catchError(() => of(null))
+      );
   }
 
   validateOtp() {

@@ -10,6 +10,8 @@ interface PhraseContext {
   isExitPunctual?: boolean;
 }
 
+type PhraseGen = (name: string, gender?: 'M' | 'F') => string;
+
 @Injectable({ providedIn: 'root' })
 export class TimeclockPhrasesService {
   /** ===================== CUMPLEAÑOS ===================== */
@@ -1338,11 +1340,45 @@ export class TimeclockPhrasesService {
     'Con la dulzura de un pesao de nance',
   ];
 
+  /** ===================== GENERALES PERSONALIZADAS ===================== */
+  private readonly GENERAL_PERSONALIZED: PhraseGen[] = [
+    (n, g) => `¡${n}! Hoy va a ser un día épico`,
+    (n, g) => `${n}, el equipo brilla más cuando estás aquí`,
+    (n, g) => `¡Bienvenid${g === 'F' ? 'a' : 'o'}, ${n}! El día está esperando`,
+    (n, g) => `${n}, tu puntualidad es un ejemplo para tod${g === 'F' ? 'as' : 'os'}`,
+    (n, g) => `¡Arranca con todo el día, ${n}!`,
+    (n, g) => `${n}, qué bueno verte por aquí`,
+    (n, g) => `¡${n}, hoy eres imparable!`,
+    (n, g) => `${n}, tu presencia hace la diferencia`,
+    (n, g) => `Gracias por tu compromiso, ${n}`,
+    (n, g) => `¡${n}, campeón${g === 'F' ? 'a' : ''}! El día es tuyo`,
+    (n, g) => `${n}, otro día de demostrar de qué estás hech${g === 'F' ? 'a' : 'o'}`,
+    (n, g) => `¡${n}! Con esa actitud no hay quien te pare`,
+    (n, g) => `${n}, eres de l${g === 'F' ? 'a' : 'o'}s que hacen grande este equipo`,
+    (n, g) => `¡Buenos días, ${n}! Hoy todo va a salir bien`,
+    (n, g) => `${n}, tu energía hoy contagia a todo el equipo`,
+    (n, g) => `¡${n}, hoy el protagonista eres tú!`,
+    (n, g) => `La jornada de hoy tiene tu nombre, ${n}`,
+    (n, g) => `¡${n}! Llegaste a dominar el día`,
+    (n, g) => `${n}, eres pieza clave de este equipo`,
+    (n, g) => `¡Llegó ${g === 'F' ? 'la campeona' : 'el campeón'}! Bienvenid${g === 'F' ? 'a' : 'o'}, ${n}`,
+    (n, g) => `${n}, hoy es el día perfecto para brillar`,
+    (n, g) => `¡${n}, el equipo te necesitaba!`,
+    (n, g) => `Cada día que llegas, ${n}, el equipo es más fuerte`,
+    (n, g) => `${n}, tu compromiso no tiene precio`,
+    (n, g) => `¡${n}! Con vos el equipo es invencible`,
+    (n, g) => `${n}, eres de l${g === 'F' ? 'a' : 'o'}s mejores que hay aquí`,
+    (n, g) => `Hoy ${n} llegó y el día mejoró al instante`,
+    (n, g) => `¡Qué bueno que estás aquí, ${n}!`,
+    (n, g) => `${n}, tu constancia habla más que mil palabras`,
+    (n, g) => `¡${n}, a darle que hoy se puede todo!`,
+  ];
+
   /**
    * Main method - context-aware phrase selection.
    * Priority: birthday > type-specific > late > payday > day > time > themed > general
    */
-  public getPhrase(isLate = false, isBirthday = false, type = 'entry', exitDiffMinutes?: number, isLunchOvertime = false): string {
+  public getPhrase(isLate = false, isBirthday = false, type = 'entry', exitDiffMinutes?: number, isLunchOvertime = false, name?: string, gender?: 'M' | 'F'): string {
     if (isBirthday) return this.pick(this.BIRTHDAY);
 
     // Type-specific phrases for non-entry types
@@ -1396,6 +1432,10 @@ export class TimeclockPhrasesService {
     if (roll < 0.42) return this.pick(this.COMIDA_PTY);
     if (roll < 0.52) return Math.random() < 0.5 ? this.pick(this.PANAMANIAN) : this.pick(this.FAMOUS_PANAMA);
 
+    if (name && Math.random() < 0.45) {
+      const fn = this.GENERAL_PERSONALIZED[Math.floor(Math.random() * this.GENERAL_PERSONALIZED.length)];
+      return fn(name, gender);
+    }
     return this.pick(this.GENERAL);
   }
 
