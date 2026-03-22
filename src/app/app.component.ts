@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { MessageService } from 'primeng/api';
 import { filter, take } from 'rxjs';
@@ -22,77 +22,139 @@ import { DesignVersionService } from './services/design-version.service';
   template: `
     @if (showSkeleton()) {
       @if (isPortal) {
+        <!-- Portal skeleton -->
         <div class="sk-overlay portal-sk">
           <div class="portal-sk-inner">
             <div class="portal-sk-logo"></div>
             <div class="portal-sk-spinner"></div>
           </div>
         </div>
-      } @else {
-      <div class="sk-overlay">
-        <div class="sk-dash">
-          <!-- Top Navbar -->
-          <div class="sk-nav">
-            <div class="sk-nav-logo"></div>
-            <div class="sk-nav-links">
-              <div class="sk-nav-link" style="width:70px"></div>
-              <div class="sk-nav-link" style="width:110px"></div>
-              <div class="sk-nav-link" style="width:80px"></div>
-              <div class="sk-nav-link" style="width:120px"></div>
-              <div class="sk-nav-link" style="width:80px"></div>
-            </div>
-            <div class="sk-nav-user">
-              <div class="sk-nav-uname"><div></div><div></div></div>
-              <div class="sk-nav-avatar"></div>
-            </div>
-          </div>
-          <div class="sk-body">
-            <!-- Sidebar -->
-            <div class="sk-side">
-              <div class="sk-si active"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              <div class="sk-sep"></div>
-              <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-            </div>
-            <!-- Main Content -->
-            <div class="sk-main">
-              <!-- Hero Row -->
-              <div class="sk-hero">
-                <div class="sk-hc"><div class="sk-hc-top"><div class="sk-hc-title"></div><div class="sk-hc-badge"></div></div><div class="sk-hc-num"></div><div class="sk-hc-chart"></div></div>
-                <div class="sk-hc"><div class="sk-hc-top"><div class="sk-hc-title"></div></div><div class="sk-hc-circle"></div><div class="sk-hc-title" style="width:60%;margin:0 auto"></div></div>
-                <div class="sk-hc"><div class="sk-hc-top"><div class="sk-hc-title"></div></div><div class="sk-hc-num"></div><div class="sk-hc-chart"></div></div>
+      } @else if (skeletonType() === 'launcher') {
+        <!-- Launcher skeleton: greeting + icon grid -->
+        <div class="sk-overlay">
+          <div class="sk-dash sk-dash--launcher">
+            <div class="sk-nav">
+              <div class="sk-nav-logo"></div>
+              <div class="sk-nav-links">
+                <div class="sk-nav-link" style="width:80px"></div>
+                <div class="sk-nav-link" style="width:100px"></div>
+                <div class="sk-nav-link" style="width:80px"></div>
+                <div class="sk-nav-link" style="width:110px"></div>
               </div>
-              <!-- KPI Grid 3x3 -->
-              <div class="sk-kpi">
-                <div class="sk-kc"><div class="sk-kc-ic ic-or"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-rd"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-gn"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-tl"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-pk"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-em"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-pr"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-bl"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
-                <div class="sk-kc"><div class="sk-kc-ic ic-cy"></div><div class="sk-kc-b"><div class="sk-kc-l"></div><div class="sk-kc-v"></div><div class="sk-kc-s"></div></div></div>
+              <div class="sk-nav-user">
+                <div class="sk-nav-uname"><div></div><div></div></div>
+                <div class="sk-nav-avatar"></div>
               </div>
-              <!-- Bottom Row -->
-              <div class="sk-bot">
-                <div class="sk-bc"><div class="sk-bc-ic ic-pr"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-bl"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-gn"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-pk"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-rd"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-or"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-yw"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
-                <div class="sk-bc"><div class="sk-bc-ic ic-rs"></div><div class="sk-bc-b"><div class="sk-bc-l"></div><div class="sk-bc-v"></div></div></div>
+            </div>
+            <div class="sk-launcher-content">
+              <div class="sk-launcher-greet">
+                <div class="sk-launcher-title"></div>
+                <div class="sk-launcher-subtitle"></div>
+              </div>
+              <div class="sk-sec-hdr"><div class="sk-sec-label"></div><div class="sk-sec-line"></div></div>
+              <div class="sk-mod-grid">
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-blue"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-violet"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-emerald"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-amber"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-rose"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-orange"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod"><div class="sk-mod-ic sk-ic-fuchsia"></div><div class="sk-mod-lbl"></div></div>
+              </div>
+              <div class="sk-sec-hdr" style="margin-top:1.5rem"><div class="sk-sec-label"></div><div class="sk-sec-line"></div></div>
+              <div class="sk-mod-grid sk-mod-grid--ext">
+                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-teal"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-indigo"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-slate"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-pink"></div><div class="sk-mod-lbl"></div></div>
+                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-purple"></div><div class="sk-mod-lbl"></div></div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      } @else if (skeletonType() === 'table') {
+        <!-- Table section skeleton: nav + sidebar + table rows -->
+        <div class="sk-overlay">
+          <div class="sk-dash">
+            <div class="sk-nav">
+              <div class="sk-nav-logo"></div>
+              <div class="sk-nav-links">
+                <div class="sk-nav-link" style="width:80px"></div>
+                <div class="sk-nav-link" style="width:100px"></div>
+                <div class="sk-nav-link" style="width:90px"></div>
+                <div class="sk-nav-link" style="width:110px"></div>
+              </div>
+              <div class="sk-nav-user">
+                <div class="sk-nav-uname"><div></div><div></div></div>
+                <div class="sk-nav-avatar"></div>
+              </div>
+            </div>
+            <div class="sk-body">
+              <div class="sk-side">
+                <div class="sk-si active"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
+                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
+                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
+                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
+                <div class="sk-sep"></div>
+                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
+                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
+              </div>
+              <div class="sk-main sk-main--tbl">
+                <div class="sk-page-hdr">
+                  <div class="sk-page-title"></div>
+                  <div class="sk-page-actions">
+                    <div class="sk-page-btn"></div>
+                    <div class="sk-page-btn"></div>
+                  </div>
+                </div>
+                <div class="sk-filter-bar">
+                  <div class="sk-filter-chip" style="width:140px"></div>
+                  <div class="sk-filter-chip" style="width:110px"></div>
+                  <div class="sk-filter-chip" style="width:90px"></div>
+                </div>
+                <div class="sk-table">
+                  <div class="sk-table-hdr"></div>
+                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
+                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
+                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
+                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
+                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
+                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @else if (skeletonType() === 'timeclock') {
+        <!-- Timeclock skeleton: fullscreen clock -->
+        <div class="sk-overlay sk-overlay--tc">
+          <div class="sk-tc-inner">
+            <div class="sk-tc-logo"></div>
+            <div class="sk-tc-clock"></div>
+            <div class="sk-tc-date"></div>
+            <div class="sk-tc-name"></div>
+            <div class="sk-tc-btn"></div>
+          </div>
+        </div>
+      } @else if (skeletonType() === 'login') {
+        <!-- Login skeleton: centered form -->
+        <div class="sk-overlay sk-overlay--login">
+          <div class="sk-login-inner">
+            <div class="sk-login-logo"></div>
+            <div class="sk-login-title"></div>
+            <div class="sk-login-sub"></div>
+            <div class="sk-login-card"></div>
+            <div class="sk-login-card"></div>
+          </div>
+        </div>
+      } @else {
+        <!-- Fallback: spinner -->
+        <div class="sk-overlay portal-sk">
+          <div class="portal-sk-inner">
+            <div class="portal-sk-logo"></div>
+            <div class="portal-sk-spinner"></div>
+          </div>
+        </div>
       }
     }
     <router-outlet />
@@ -163,57 +225,90 @@ import { DesignVersionService } from './services/design-version.service';
     }
   `,
   styles: `
-    .sk-overlay{position:fixed;inset:0;z-index:9999;background:#0a0a0a}
-    .sk-dash{display:flex;flex-direction:column;height:100vh;font-family:Inter,system-ui,sans-serif;overflow:hidden;animation:sk-p 1.8s ease-in-out infinite}
-    @keyframes sk-p{0%,100%{opacity:1}50%{opacity:.35}}
-    .sk-nav{height:80px;background:linear-gradient(90deg,#171717,#1f1f1f,#171717);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 1.5rem;gap:1rem;flex-shrink:0}
-    .sk-nav-logo{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c);flex-shrink:0}
+    /* ── Base ── */
+    .sk-overlay{position:fixed;inset:0;z-index:9999;background:#0a0a0a;animation:sk-p 1.8s ease-in-out infinite}
+    @keyframes sk-p{0%,100%{opacity:1}50%{opacity:.4}}
+    /* ── Shared nav ── */
+    .sk-dash{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+    .sk-nav{height:64px;background:linear-gradient(90deg,#171717,#1f1f1f,#171717);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 1.5rem;gap:1rem;flex-shrink:0}
+    .sk-nav-logo{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c);flex-shrink:0}
     .sk-nav-links{display:flex;gap:.75rem;margin-left:2rem;flex:1}
-    .sk-nav-link{height:32px;border-radius:.5rem;background:rgba(255,255,255,.04)}
+    .sk-nav-link{height:30px;border-radius:.5rem;background:rgba(255,255,255,.04)}
     .sk-nav-user{display:flex;align-items:center;gap:.75rem;margin-left:auto}
-    .sk-nav-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c)}
+    .sk-nav-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c)}
     .sk-nav-uname{display:flex;flex-direction:column;gap:4px}
     .sk-nav-uname div:first-child{width:90px;height:12px;border-radius:4px;background:rgba(255,255,255,.08)}
     .sk-nav-uname div:last-child{width:60px;height:10px;border-radius:4px;background:rgba(255,255,255,.04)}
+    /* ── Launcher skeleton ── */
+    .sk-dash--launcher{background:#0a0a0a}
+    .sk-launcher-content{flex:1;overflow-y:auto;padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;max-width:900px;margin:0 auto;width:100%}
+    .sk-launcher-greet{text-align:center;margin-bottom:2.25rem;display:flex;flex-direction:column;align-items:center;gap:.6rem}
+    .sk-launcher-title{height:28px;width:200px;border-radius:8px;background:rgba(255,255,255,.08)}
+    .sk-launcher-subtitle{height:14px;width:130px;border-radius:4px;background:rgba(255,255,255,.04)}
+    .sk-sec-hdr{display:flex;align-items:center;gap:.75rem;width:100%;margin-bottom:.875rem}
+    .sk-sec-label{height:10px;width:52px;border-radius:3px;background:rgba(255,255,255,.06);flex-shrink:0}
+    .sk-sec-line{flex:1;height:1px;background:rgba(255,255,255,.06)}
+    .sk-mod-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.75rem;width:100%}
+    .sk-mod-grid--ext{grid-template-columns:repeat(5,1fr)}
+    .sk-mod{border-radius:.75rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:1rem .75rem;display:flex;flex-direction:column;align-items:center;gap:.625rem}
+    .sk-mod--ext{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.045)}
+    .sk-mod-ic{width:40px;height:40px;border-radius:.75rem;flex-shrink:0}
+    .sk-mod-lbl{height:10px;width:65%;border-radius:3px;background:rgba(255,255,255,.06)}
+    .sk-ic-blue{background:rgba(96,165,250,.15)}.sk-ic-violet{background:rgba(167,139,250,.15)}
+    .sk-ic-emerald{background:rgba(52,211,153,.15)}.sk-ic-amber{background:rgba(251,191,36,.15)}
+    .sk-ic-rose{background:rgba(251,113,133,.15)}.sk-ic-orange{background:rgba(251,146,60,.15)}
+    .sk-ic-fuchsia{background:rgba(232,121,249,.15)}.sk-ic-teal{background:rgba(45,212,191,.15)}
+    .sk-ic-indigo{background:rgba(129,140,248,.15)}.sk-ic-slate{background:rgba(148,163,184,.1)}
+    .sk-ic-pink{background:rgba(244,114,182,.15)}.sk-ic-purple{background:rgba(192,132,252,.15)}
+    /* ── Table section skeleton ── */
     .sk-body{display:flex;flex:1;overflow:hidden}
-    .sk-side{width:260px;background:linear-gradient(180deg,#18181b,#0f0f10);border-right:1px solid rgba(255,255,255,.06);padding:1.25rem .75rem;display:flex;flex-direction:column;gap:.25rem;flex-shrink:0}
-    .sk-si{display:flex;align-items:center;gap:.875rem;padding:.75rem 1rem;border-radius:10px}
-    .sk-si.active{background:linear-gradient(90deg,rgba(251,191,36,.15),rgba(251,191,36,.05))}
-    .sk-si-ic{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.08);flex-shrink:0}
+    .sk-side{width:240px;background:linear-gradient(180deg,#18181b,#0f0f10);border-right:1px solid rgba(255,255,255,.06);padding:1rem .75rem;display:flex;flex-direction:column;gap:.25rem;flex-shrink:0}
+    .sk-si{display:flex;align-items:center;gap:.875rem;padding:.625rem 1rem;border-radius:10px}
+    .sk-si.active{background:linear-gradient(90deg,rgba(251,191,36,.12),rgba(251,191,36,.04))}
+    .sk-si-ic{width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,.08);flex-shrink:0}
     .sk-si.active .sk-si-ic{background:rgba(251,191,36,.3)}
-    .sk-si-lb{height:12px;border-radius:4px;background:rgba(255,255,255,.06);flex:1}
-    .sk-si.active .sk-si-lb{background:rgba(251,191,36,.2);max-width:70%}
-    .sk-sep{height:1px;background:rgba(255,255,255,.04);margin:.75rem .5rem}
-    .sk-main{flex:1;padding:1.5rem;overflow-y:auto;background:linear-gradient(180deg,#0a0a0a,#111)}
-    .sk-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
-    .sk-hc{border-radius:1rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:1.25rem;min-height:180px;display:flex;flex-direction:column;justify-content:space-between}
-    .sk-hc-top{display:flex;justify-content:space-between;align-items:flex-start}
-    .sk-hc-title{height:12px;width:45%;border-radius:4px;background:rgba(255,255,255,.06)}
-    .sk-hc-badge{height:20px;width:70px;border-radius:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15)}
-    .sk-hc-num{height:36px;width:30%;border-radius:8px;background:rgba(255,255,255,.05);margin:1rem 0 .5rem}
-    .sk-hc-chart{height:50px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03)}
-    .sk-hc-circle{height:80px;width:80px;border-radius:50%;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03);margin:.5rem auto}
-    .sk-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
-    .sk-kc{border-radius:.75rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:1rem;display:flex;align-items:flex-start;gap:.75rem;min-height:90px}
-    .sk-kc-ic{width:40px;height:40px;border-radius:10px;flex-shrink:0}
-    .sk-kc-b{flex:1;display:flex;flex-direction:column;gap:6px}
-    .sk-kc-l{height:10px;width:60%;border-radius:3px;background:rgba(255,255,255,.05)}
-    .sk-kc-v{height:22px;width:35%;border-radius:6px;background:rgba(255,255,255,.07)}
-    .sk-kc-s{height:8px;width:50%;border-radius:3px;background:rgba(255,255,255,.03)}
-    .sk-bot{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem}
-    .sk-bc{border-radius:.75rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);padding:.875rem;display:flex;align-items:center;gap:.625rem;min-height:60px}
-    .sk-bc-ic{width:32px;height:32px;border-radius:8px;flex-shrink:0}
-    .sk-bc-b{flex:1;display:flex;flex-direction:column;gap:4px}
-    .sk-bc-l{height:9px;width:65%;border-radius:3px;background:rgba(255,255,255,.05)}
-    .sk-bc-v{height:16px;width:30%;border-radius:4px;background:rgba(255,255,255,.06)}
-    .ic-or{background:rgba(249,115,22,.15)}.ic-rd{background:rgba(239,68,68,.15)}
-    .ic-gn{background:rgba(34,197,94,.15)}.ic-tl{background:rgba(20,184,166,.15)}
-    .ic-pk{background:rgba(236,72,153,.15)}.ic-em{background:rgba(16,185,129,.15)}
-    .ic-pr{background:rgba(168,85,247,.15)}.ic-bl{background:rgba(59,130,246,.15)}
-    .ic-cy{background:rgba(6,182,212,.15)}.ic-rs{background:rgba(244,63,94,.15)}
-    .ic-yw{background:rgba(234,179,8,.15)}
-    @media(max-width:1023px){.sk-side{display:none}.sk-nav{height:56px}.sk-nav-links,.sk-nav-uname{display:none}.sk-hero{grid-template-columns:1fr}.sk-kpi{grid-template-columns:repeat(2,1fr)}.sk-bot{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:640px){.sk-kpi{grid-template-columns:1fr}.sk-bot{grid-template-columns:1fr}}
+    .sk-si-lb{height:11px;border-radius:3px;background:rgba(255,255,255,.06);flex:1}
+    .sk-si.active .sk-si-lb{background:rgba(251,191,36,.18);max-width:70%}
+    .sk-sep{height:1px;background:rgba(255,255,255,.04);margin:.5rem .5rem}
+    .sk-main--tbl{flex:1;padding:1.5rem;overflow-y:auto;background:#0a0a0a;display:flex;flex-direction:column;gap:1rem}
+    .sk-page-hdr{display:flex;align-items:center;justify-content:space-between}
+    .sk-page-title{height:22px;width:160px;border-radius:6px;background:rgba(255,255,255,.08)}
+    .sk-page-actions{display:flex;gap:.5rem}
+    .sk-page-btn{height:34px;width:90px;border-radius:8px;background:rgba(255,255,255,.05)}
+    .sk-filter-bar{display:flex;gap:.5rem}
+    .sk-filter-chip{height:32px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+    .sk-table{border-radius:.75rem;overflow:hidden;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.01)}
+    .sk-table-hdr{height:44px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06)}
+    .sk-row{display:flex;align-items:center;gap:1rem;padding:.875rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.04)}
+    .sk-row-avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.06);flex-shrink:0}
+    .sk-row-body{flex:1;display:flex;flex-direction:column;gap:5px}
+    .sk-row-line{height:12px;width:45%;border-radius:3px;background:rgba(255,255,255,.07)}
+    .sk-row-sub{height:10px;width:30%;border-radius:3px;background:rgba(255,255,255,.04)}
+    .sk-row-badge{height:20px;width:60px;border-radius:20px;background:rgba(255,255,255,.04)}
+    /* ── Timeclock skeleton ── */
+    .sk-overlay--tc{display:flex;align-items:center;justify-content:center}
+    .sk-tc-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem}
+    .sk-tc-logo{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c)}
+    .sk-tc-clock{height:64px;width:260px;border-radius:12px;background:rgba(255,255,255,.07)}
+    .sk-tc-date{height:16px;width:180px;border-radius:5px;background:rgba(255,255,255,.04)}
+    .sk-tc-name{height:20px;width:140px;border-radius:6px;background:rgba(255,255,255,.06)}
+    .sk-tc-btn{height:48px;width:180px;border-radius:24px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.2)}
+    /* ── Login skeleton ── */
+    .sk-overlay--login{display:flex;align-items:center;justify-content:center}
+    .sk-login-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem;width:100%;max-width:360px;padding:0 1rem}
+    .sk-login-logo{width:160px;height:52px;border-radius:8px;background:rgba(255,255,255,.06)}
+    .sk-login-title{height:24px;width:140px;border-radius:6px;background:rgba(255,255,255,.08)}
+    .sk-login-sub{height:14px;width:200px;border-radius:4px;background:rgba(255,255,255,.04)}
+    .sk-login-card{height:68px;width:100%;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+    /* ── Portal skeleton ── */
+    .portal-sk{display:flex;align-items:center;justify-content:center}
+    .portal-sk-inner{display:flex;flex-direction:column;align-items:center;gap:2rem}
+    .portal-sk-logo{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c)}
+    .portal-sk-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:rgba(251,191,36,.6);border-radius:50%;animation:portal-spin 0.8s linear infinite}
+    @keyframes portal-spin{to{transform:rotate(360deg)}}
+    /* ── Responsive ── */
+    @media(max-width:1023px){.sk-side{display:none}.sk-nav{height:52px}.sk-nav-links,.sk-nav-uname{display:none}.sk-mod-grid{grid-template-columns:repeat(4,1fr)}.sk-mod-grid--ext{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:640px){.sk-mod-grid{grid-template-columns:repeat(3,1fr)}.sk-mod-grid--ext{grid-template-columns:repeat(2,1fr)}.sk-launcher-content{padding:1.5rem 1rem}}
     /* Portal skeleton */
     .portal-sk{display:flex;align-items:center;justify-content:center}
     .portal-sk-inner{display:flex;flex-direction:column;align-items:center;gap:2rem}
@@ -277,11 +372,23 @@ export class AppComponent implements OnInit {
   /** Detecta si estamos en el dominio del portal */
   readonly isPortal = isPortalDomain();
 
-  /** Skeleton overlay visible durante carga post-login */
+  /** Skeleton overlay visible durante carga */
   readonly showSkeleton = signal(false);
 
+  /** Tipo de skeleton según la sección destino */
+  readonly skeletonType = signal<'launcher' | 'table' | 'timeclock' | 'login'>('launcher');
+
+  private skeletonTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private getSkeletonType(url: string): 'launcher' | 'table' | 'timeclock' | 'login' {
+    if (url.includes('/timeclock') || url.includes('/naz-timeclock')) return 'timeclock';
+    if (url === '/login' || url.startsWith('/login')) return 'login';
+    if (url.includes('/launcher') || url === '/' || url === '') return 'launcher';
+    // admin, payroll, time-management, branch-manager, live, etc.
+    return 'table';
+  }
+
   reloadApp(): void {
-    // Limpiar caches y service workers antes de recargar
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         registrations.forEach((r) => r.unregister());
@@ -292,12 +399,10 @@ export class AppComponent implements OnInit {
         names.forEach((name) => caches.delete(name));
       });
     }
-    // Forzar recarga sin cache
     window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
   }
 
   ngOnInit() {
-    // Portal: ajustar título y manifest dinámicamente
     if (this.isPortal) {
       document.title = 'Portal | Black Dog Panama';
       const manifestLink = document.querySelector('link[rel="manifest"]');
@@ -306,18 +411,14 @@ export class AppComponent implements OnInit {
       }
     }
 
-    // Iniciar polling de versión para detectar actualizaciones
     this.versionCheck.startPolling();
 
-    // Inicializar company_ids temprano si estamos en login o página principal
     const currentUrl = this.router.url;
     if (currentUrl === '/login' || currentUrl === '/') {
-      this.organizationService
-        .waitForCompanyIds()
-        .catch(() => {});
+      this.organizationService.waitForCompanyIds().catch(() => {});
     }
 
-    // Check if we're handling a callback from Auth0
+    // Auth0 callback: mostrar skeleton inmediatamente con tipo correcto
     const isCallback =
       window.location.search.includes('code=') ||
       window.location.search.includes('state=') ||
@@ -325,22 +426,15 @@ export class AppComponent implements OnInit {
       window.location.hash.includes('state=');
 
     if (isCallback) {
-      // Mostrar skeleton del dashboard mientras Auth0 procesa
+      this.skeletonType.set('launcher');
       this.showSkeleton.set(true);
 
-      // Wait for Auth0 to process callback, then clean up URL after navigation
       this.auth.isAuthenticated$
-        .pipe(
-          filter((isAuth) => isAuth !== undefined),
-          take(1)
-        )
+        .pipe(filter((isAuth) => isAuth !== undefined), take(1))
         .subscribe(() => {
           setTimeout(() => {
             this.router.events
-              .pipe(
-                filter((event) => event instanceof NavigationEnd),
-                take(1)
-              )
+              .pipe(filter((event) => event instanceof NavigationEnd), take(1))
               .subscribe(() => {
                 const cleanPath = window.location.pathname || '/';
                 if (window.location.search || window.location.hash) {
@@ -352,11 +446,23 @@ export class AppComponent implements OnInit {
         });
     }
 
-    // Ocultar skeleton cuando la navegación completa
-    this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => {
+    // Skeleton en navegación entre secciones (solo si tarda > 250ms)
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        const type = this.getSkeletonType(event.url);
+        this.skeletonType.set(type);
+        // Solo mostrar skeleton si la navegación tarda más de 250ms
+        this.skeletonTimer = setTimeout(() => {
+          this.showSkeleton.set(true);
+        }, 250);
+      }
+      if (event instanceof NavigationEnd) {
+        if (this.skeletonTimer) {
+          clearTimeout(this.skeletonTimer);
+          this.skeletonTimer = null;
+        }
         this.showSkeleton.set(false);
-      });
+      }
+    });
   }
 }

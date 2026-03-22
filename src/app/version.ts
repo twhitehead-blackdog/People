@@ -4,4 +4,4 @@
  * Ejecuta: npm run update-version
  * Última actualización: 2026-03-22T00:24:54.102Z
  */
-export const APP_VERSION = '6.2.9';
+export const APP_VERSION = '6.2.10';
