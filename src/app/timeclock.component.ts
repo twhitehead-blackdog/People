@@ -483,6 +483,15 @@ interface TimeclockInfoData {
             <div class="clock-subtitle">
               Seleccione sucursal y empleado
             </div>
+            @if (ipOverrideActive() && ipOverrideManager()) {
+              <div class="ip-override-badge">
+                <i class="pi pi-shield"></i>
+                IP habilitada · {{ ipOverrideManager()!.name }} · {{ ipOverrideMinutesLeft() }} min
+                <button class="ip-override-badge-close" (click)="clearIpOverride()" title="Cancelar habilitación">
+                  <i class="pi pi-times"></i>
+                </button>
+              </div>
+            }
           </ng-template>
           <form
             [formGroup]="form"
@@ -691,8 +700,112 @@ interface TimeclockInfoData {
             </div>
             <p>Conéctate al WiFi de tu sucursal para acceder al modo kiosko. El sistema detectará automáticamente cuando tu IP sea autorizada.</p>
           </div>
+
+          <!-- Manager override button -->
+          <button class="ip-override-btn" (click)="openIpOverrideModal()">
+            <i class="pi pi-shield"></i>
+            Habilitar con Gerente
+          </button>
         </div>
       </div>
+
+      <!-- Manager Override Modal -->
+      @if (showIpOverrideModal()) {
+        <div class="confirm-modal-overlay" (click)="closeIpOverrideModal()">
+          <div class="ip-override-modal" [class.ip-override-modal-exit]="ipOverrideModalExiting()" (click)="$event.stopPropagation()">
+
+            @if (ipOverrideStep() === 'search') {
+              <!-- Step 1: Select manager -->
+              <div class="ip-override-modal-header">
+                <div class="ip-override-modal-icon">
+                  <i class="pi pi-shield"></i>
+                </div>
+                <div class="ip-override-modal-title">Habilitar con Gerente</div>
+                <div class="ip-override-modal-desc">Selecciona el gerente que autoriza las marcaciones por 1 hora</div>
+              </div>
+
+              <div class="ip-override-search-wrap">
+                <input
+                  class="ip-override-search-input"
+                  type="text"
+                  placeholder="Buscar gerente..."
+                  [value]="ipOverrideEmployeeSearch()"
+                  (input)="ipOverrideEmployeeSearch.set($any($event.target).value)"
+                  autocomplete="off"
+                />
+                <i class="pi pi-search ip-override-search-icon"></i>
+              </div>
+
+              <div class="ip-override-list">
+                @for (emp of ipOverrideFilteredEmployees(); track emp.id) {
+                  <button class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
+                    <div class="ip-override-list-avatar">
+                      {{ (emp.first_name ?? '?')[0].toUpperCase() }}
+                    </div>
+                    <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+                    <i class="pi pi-chevron-right ip-override-list-arrow"></i>
+                  </button>
+                }
+                @if (ipOverrideFilteredEmployees().length === 0) {
+                  <div class="ip-override-empty">No se encontraron empleados</div>
+                }
+              </div>
+
+              <button class="ip-override-cancel-btn" (click)="closeIpOverrideModal()">Cancelar</button>
+            }
+
+            @if (ipOverrideStep() === 'otp') {
+              <!-- Step 2: OTP -->
+              <div class="ip-override-modal-header">
+                <div class="ip-override-modal-icon ip-override-modal-icon--otp">
+                  <i class="pi pi-key"></i>
+                </div>
+                <div class="ip-override-modal-title">Código Autenticador</div>
+                <div class="ip-override-modal-desc">
+                  {{ ipOverrideSelectedEmployee()?.first_name }} {{ ipOverrideSelectedEmployee()?.father_name }}
+                </div>
+              </div>
+
+              <!-- OTP dots -->
+              <div class="ip-override-dots">
+                @for (i of [0,1,2,3,4,5]; track i) {
+                  <div class="ip-override-dot"
+                    [class.filled]="ipOverrideOtp().length > i"
+                    [class.error]="!!ipOverrideError()">
+                  </div>
+                }
+              </div>
+
+              @if (ipOverrideError()) {
+                <div class="ip-override-error">{{ ipOverrideError() }}</div>
+              }
+
+              <!-- OTP Keypad -->
+              <div class="ip-override-keypad">
+                <div class="grid grid-cols-3 gap-2">
+                  @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+                    <button class="ip-override-key" (click)="appendOverrideDigit(num)" [disabled]="ipOverrideProcessing()">{{ num }}</button>
+                  }
+                  <button class="ip-override-key ip-override-key--back" (click)="ipOverrideStep.set('search')" [disabled]="ipOverrideProcessing()">
+                    <i class="pi pi-arrow-left"></i>
+                  </button>
+                  <button class="ip-override-key" (click)="appendOverrideDigit('0')" [disabled]="ipOverrideProcessing()">0</button>
+                  <button class="ip-override-key ip-override-key--del" (click)="deleteOverrideDigit()" [disabled]="ipOverrideProcessing()">
+                    <i class="pi pi-delete-left"></i>
+                  </button>
+                </div>
+              </div>
+
+              @if (ipOverrideProcessing()) {
+                <div class="ip-override-processing">
+                  <i class="pi pi-spin pi-spinner"></i> Verificando...
+                </div>
+              }
+            }
+
+          </div>
+        </div>
+      }
       }
 
       <!-- Walking dog at the bottom -->
@@ -2781,6 +2894,194 @@ interface TimeclockInfoData {
     .info-keypad-clear:hover { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.3) !important; color: #f87171 !important; }
     .info-keypad-del { color: rgba(255,255,255,0.5); }
 
+
+    /* ============================================
+       MANAGER IP OVERRIDE
+       ============================================ */
+
+    /* Badge shown inside clock card when override is active */
+    .ip-override-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.08) 100%);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      animation: slideDown 0.3s ease-out;
+    }
+    .ip-override-badge i { font-size: 0.75rem; }
+    .ip-override-badge-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: rgba(74, 222, 128, 0.6);
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      font-size: 0.7rem;
+      transition: color 0.15s;
+    }
+    .ip-override-badge-close:hover { color: #f87171; }
+
+    /* "Habilitar con Gerente" button on restricted screen */
+    .ip-override-btn {
+      margin-top: 1.25rem;
+      width: 100%;
+      max-width: 280px;
+      padding: 0.75rem 1rem;
+      border-radius: 16px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%);
+      color: #fbbf24;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+    }
+    .ip-override-btn:hover {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.12) 100%);
+      border-color: rgba(251, 191, 36, 0.5);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(251, 191, 36, 0.15);
+    }
+    .ip-override-btn:active { transform: translateY(0); }
+
+    /* Override Modal */
+    .ip-override-modal {
+      background: linear-gradient(145deg, #111118 0%, #0e0e14 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      padding: 1.75rem 1.5rem;
+      width: min(420px, 92vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      animation: confirmCardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .ip-override-modal-exit {
+      animation: confirmCardOut 0.28s ease-in forwards !important;
+    }
+    .ip-override-modal-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      text-align: center;
+      width: 100%;
+    }
+    .ip-override-modal-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+      border: 1.5px solid rgba(251, 191, 36, 0.35);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.15);
+    }
+    .ip-override-modal-icon i { font-size: 1.75rem; color: #fbbf24; }
+    .ip-override-modal-icon--otp {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.1) 100%);
+      border-color: rgba(99, 102, 241, 0.35);
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
+    }
+    .ip-override-modal-icon--otp i { color: #818cf8; }
+    .ip-override-modal-title {
+      font-size: 1.1rem; font-weight: 700;
+      color: rgba(243, 244, 246, 0.9); letter-spacing: 0.01em;
+    }
+    .ip-override-modal-desc { font-size: 0.82rem; color: rgba(255, 255, 255, 0.45); line-height: 1.4; }
+
+    /* Search input */
+    .ip-override-search-wrap { position: relative; width: 100%; }
+    .ip-override-search-input {
+      width: 100%;
+      padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.875rem; outline: none;
+      transition: border-color 0.15s; box-sizing: border-box;
+    }
+    .ip-override-search-input::placeholder { color: rgba(255,255,255,0.3); }
+    .ip-override-search-input:focus { border-color: rgba(251, 191, 36, 0.4); }
+    .ip-override-search-icon {
+      position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+      color: rgba(255,255,255,0.3); font-size: 0.8rem; pointer-events: none;
+    }
+
+    /* Employee list */
+    .ip-override-list {
+      width: 100%; max-height: 240px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .ip-override-list-item {
+      width: 100%; display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.6rem 0.75rem; border-radius: 12px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.875rem; cursor: pointer; text-align: left; transition: all 0.15s;
+    }
+    .ip-override-list-item:hover {
+      background: rgba(251, 191, 36, 0.08);
+      border-color: rgba(251, 191, 36, 0.2);
+      color: rgba(255, 255, 255, 0.95);
+    }
+    .ip-override-list-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.25);
+      color: #fbbf24; font-size: 0.8rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .ip-override-list-arrow { margin-left: auto; color: rgba(255,255,255,0.25); font-size: 0.7rem; }
+    .ip-override-empty { text-align: center; color: rgba(255,255,255,0.3); font-size: 0.82rem; padding: 1rem; }
+
+    /* OTP dots */
+    .ip-override-dots { display: flex; gap: 0.65rem; justify-content: center; }
+    .ip-override-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2); background: transparent; transition: all 0.15s ease;
+    }
+    .ip-override-dot.filled { background: #818cf8; border-color: #818cf8; box-shadow: 0 0 8px rgba(129, 140, 248, 0.5); }
+    .ip-override-dot.error { border-color: #f87171; background: rgba(248, 113, 113, 0.2); }
+    .ip-override-error { font-size: 0.8rem; color: #f87171; text-align: center; min-height: 1.1em; animation: slideDown 0.2s ease-out; }
+
+    /* OTP Keypad */
+    .ip-override-keypad { width: 100%; max-width: 240px; }
+    .ip-override-key {
+      width: 100%; height: 50px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.85); font-size: 1.15rem; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+    }
+    .ip-override-key:hover:not(:disabled) { background: rgba(129, 140, 248, 0.12); border-color: rgba(129, 140, 248, 0.3); color: #818cf8; }
+    .ip-override-key:active:not(:disabled) { transform: scale(0.92); }
+    .ip-override-key:disabled { opacity: 0.4; cursor: not-allowed; }
+    .ip-override-key--del { color: rgba(255,255,255,0.45); }
+    .ip-override-key--del:hover:not(:disabled) { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.3) !important; color: #f87171 !important; }
+    .ip-override-key--back { color: rgba(255,255,255,0.45); }
+    .ip-override-key--back:hover:not(:disabled) { background: rgba(251,191,36,0.1) !important; border-color: rgba(251,191,36,0.3) !important; color: #fbbf24 !important; }
+
+    .ip-override-cancel-btn {
+      width: 100%; padding: 0.65rem; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08); background: transparent;
+      color: rgba(255,255,255,0.4); font-size: 0.875rem; cursor: pointer; transition: all 0.15s;
+    }
+    .ip-override-cancel-btn:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); }
+    .ip-override-processing { font-size: 0.85rem; color: #818cf8; display: flex; align-items: center; gap: 0.5rem; }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -2812,6 +3113,37 @@ export class TimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
+
+  // ── Manager IP Override ────────────────────────────────────────────
+  public ipOverrideActive   = signal<boolean>(false);
+  public ipOverrideManager  = signal<{id: string; name: string} | null>(null);
+  public ipOverrideExpiry   = signal<Date | null>(null);
+  public ipOverrideMinutesLeft = computed(() => {
+    const expiry = this.ipOverrideExpiry();
+    if (!expiry) return 0;
+    return Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 60000));
+  });
+  public showIpOverrideModal          = signal<boolean>(false);
+  public ipOverrideModalExiting       = signal<boolean>(false);
+  public ipOverrideStep               = signal<'search' | 'otp'>('search');
+  public ipOverrideSelectedEmployee   = signal<Partial<Employee> | null>(null);
+  public ipOverrideOtp                = signal<string>('');
+  public ipOverrideError              = signal<string>('');
+  public ipOverrideProcessing         = signal<boolean>(false);
+  public ipOverrideEmployeeSearch     = signal<string>('');
+  public ipOverrideFilteredEmployees  = computed(() => {
+    const query = this.ipOverrideEmployeeSearch().toLowerCase().trim();
+    const employees = this.currentEmployeesResource() ?? [];
+    if (!query) return employees.slice(0, 10);
+    return employees.filter(e =>
+      `${e.first_name ?? ''} ${e.father_name ?? ''}`.toLowerCase().includes(query)
+    ).slice(0, 10);
+  });
+  private ipOverrideCountdownTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly IP_OVERRIDE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+  private readonly LS_OVERRIDE_KEY = 'bd_kiosk_ip_override';
+  // ──────────────────────────────────────────────────────────────────
+
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
   public isBlackDogCompany = computed(() =>
@@ -3108,12 +3440,170 @@ export class TimeclockComponent implements OnDestroy {
     if (this.confirmModalTimer) {
       clearTimeout(this.confirmModalTimer);
     }
+    if (this.ipOverrideCountdownTimer) {
+      clearInterval(this.ipOverrideCountdownTimer);
+    }
     // Detener monitoreo de IP si está activo
     if (this.isKioskMode()) {
       this.ipMonitor.stopMonitoring();
     }
   }
 
+  // ── Manager IP Override Methods ──────────────────────────────────
+
+  openIpOverrideModal(): void {
+    this.ipOverrideStep.set('search');
+    this.ipOverrideSelectedEmployee.set(null);
+    this.ipOverrideOtp.set('');
+    this.ipOverrideError.set('');
+    this.ipOverrideEmployeeSearch.set('');
+    this.ipOverrideModalExiting.set(false);
+    this.showIpOverrideModal.set(true);
+  }
+
+  closeIpOverrideModal(): void {
+    this.ipOverrideModalExiting.set(true);
+    setTimeout(() => {
+      this.showIpOverrideModal.set(false);
+      this.ipOverrideModalExiting.set(false);
+    }, 280);
+  }
+
+  selectManagerEmployee(emp: Partial<Employee>): void {
+    this.ipOverrideSelectedEmployee.set(emp);
+    this.ipOverrideOtp.set('');
+    this.ipOverrideError.set('');
+    this.ipOverrideStep.set('otp');
+  }
+
+  appendOverrideDigit(digit: string): void {
+    const current = this.ipOverrideOtp();
+    if (current.length >= 6) return;
+    this.ipOverrideOtp.set(current + digit);
+    if (current.length + 1 === 6) {
+      setTimeout(() => this.validateManagerOverrideOtp(), 120);
+    }
+  }
+
+  deleteOverrideDigit(): void {
+    const current = this.ipOverrideOtp();
+    if (current.length > 0) this.ipOverrideOtp.set(current.slice(0, -1));
+  }
+
+  validateManagerOverrideOtp(): void {
+    if (this.ipOverrideProcessing()) return;
+    const emp = this.ipOverrideSelectedEmployee();
+    const otp  = this.ipOverrideOtp();
+    if (!emp || otp.length < 6) return;
+
+    if (!emp.code_uri) {
+      this.ipOverrideError.set('Este empleado no tiene PIN configurado');
+      return;
+    }
+
+    // Validate TOTP
+    const totp = OTPAuth.URI.parse(emp.code_uri);
+    if (totp.validate({ token: otp }) === null) {
+      this.ipOverrideError.set('Código incorrecto');
+      this.ipOverrideOtp.set('');
+      return;
+    }
+
+    // TOTP valid — check manager permissions
+    this.ipOverrideProcessing.set(true);
+    this.ipOverrideError.set('');
+
+    this.http.get<Array<{id: string; positions: {schedule_admin: boolean; admin: boolean} | null}>>(
+      this.apiUrl.build('rest/v1/employees'),
+      { params: { id: `eq.${emp.id}`, select: 'id,positions(schedule_admin,admin)' } }
+    ).subscribe({
+      next: (result) => {
+        this.ipOverrideProcessing.set(false);
+        const pos = result?.[0]?.positions;
+        const isManager = pos && (pos.schedule_admin || pos.admin);
+
+        if (!isManager) {
+          this.ipOverrideError.set('Este empleado no tiene permisos de gerente');
+          return;
+        }
+
+        const name    = `${emp.first_name ?? ''} ${emp.father_name ?? ''}`.trim();
+        const expiry  = new Date(Date.now() + this.IP_OVERRIDE_DURATION_MS);
+
+        this.ipOverrideManager.set({ id: emp.id!, name });
+        this.ipOverrideExpiry.set(expiry);
+        this.ipOverrideActive.set(true);
+
+        localStorage.setItem(this.LS_OVERRIDE_KEY, JSON.stringify({
+          managerId:   emp.id,
+          managerName: name,
+          expiresAt:   expiry.toISOString(),
+        }));
+
+        this.startIpOverrideCountdown();
+        this.closeIpOverrideModal();
+
+        this.message.add({
+          severity: 'success',
+          summary:  'IP Habilitada',
+          detail:   `${name} habilitó las marcaciones por 1 hora`,
+          life:     5000,
+        });
+      },
+      error: () => {
+        this.ipOverrideProcessing.set(false);
+        this.ipOverrideError.set('Error verificando permisos. Intenta de nuevo.');
+      }
+    });
+  }
+
+  checkStoredIpOverride(): void {
+    try {
+      const stored = localStorage.getItem(this.LS_OVERRIDE_KEY);
+      if (!stored) return;
+      const data = JSON.parse(stored) as { managerId: string; managerName: string; expiresAt: string };
+      const expiry = new Date(data.expiresAt);
+      if (expiry <= new Date()) {
+        localStorage.removeItem(this.LS_OVERRIDE_KEY);
+        return;
+      }
+      this.ipOverrideManager.set({ id: data.managerId, name: data.managerName });
+      this.ipOverrideExpiry.set(expiry);
+      this.ipOverrideActive.set(true);
+      this.startIpOverrideCountdown();
+    } catch {
+      localStorage.removeItem(this.LS_OVERRIDE_KEY);
+    }
+  }
+
+  private startIpOverrideCountdown(): void {
+    if (this.ipOverrideCountdownTimer) clearInterval(this.ipOverrideCountdownTimer);
+    this.ipOverrideCountdownTimer = setInterval(() => {
+      const expiry = this.ipOverrideExpiry();
+      if (!expiry || expiry <= new Date()) {
+        this.clearIpOverride();
+        this.message.add({
+          severity: 'warn',
+          summary:  'Override expirado',
+          detail:   'La habilitación temporal de IP ha expirado',
+          life:     6000,
+        });
+      }
+    }, 30000);
+  }
+
+  clearIpOverride(): void {
+    if (this.ipOverrideCountdownTimer) {
+      clearInterval(this.ipOverrideCountdownTimer);
+      this.ipOverrideCountdownTimer = null;
+    }
+    this.ipOverrideActive.set(false);
+    this.ipOverrideManager.set(null);
+    this.ipOverrideExpiry.set(null);
+    localStorage.removeItem(this.LS_OVERRIDE_KEY);
+  }
+
+  // ────────────────────────────────────────────────────────────────
   // Detect IP address using multiple methods
   private detectIP() {
     // Method 1: Try WebRTC (works even from localhost)
@@ -4166,6 +4656,9 @@ export class TimeclockComponent implements OnDestroy {
           p_type: type,
           p_ip: this.getIP(),
           p_invalid_ip: invalidValue,
+          ...(this.ipOverrideActive() && this.ipOverrideManager()
+            ? { p_ip_override_by: this.ipOverrideManager()!.id }
+            : {}),
         },
         { observe: 'response' }
       )
