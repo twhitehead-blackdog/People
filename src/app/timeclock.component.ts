@@ -2915,6 +2915,7 @@ interface TimeclockInfoData {
     .ip-override-badge {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.4rem;
       margin-top: 0.5rem;
       padding: 0.35rem 0.75rem;
@@ -2926,6 +2927,8 @@ interface TimeclockInfoData {
       font-weight: 600;
       letter-spacing: 0.01em;
       animation: slideDown 0.3s ease-out;
+      text-align: center;
+      width: 100%;
     }
     .ip-override-badge i { font-size: 0.75rem; }
     .ip-override-badge-close {
