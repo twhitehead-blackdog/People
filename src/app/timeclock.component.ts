@@ -3562,6 +3562,7 @@ export class TimeclockComponent implements OnDestroy {
         const isManager = pos && (pos.schedule_admin || pos.admin);
 
         if (!isManager) {
+          this.ipOverrideProcessing.set(false);
           this.ipOverrideError.set('Este empleado no tiene permisos de gerente');
           return;
         }
@@ -3572,6 +3573,7 @@ export class TimeclockComponent implements OnDestroy {
         this.ipOverrideManager.set({ id: emp.id!, name });
         this.ipOverrideExpiry.set(expiry);
         this.ipOverrideActive.set(true);
+        this.isIPValid.set(true);
 
         localStorage.setItem(this.LS_OVERRIDE_KEY, JSON.stringify({
           managerId:   emp.id,
@@ -3609,6 +3611,7 @@ export class TimeclockComponent implements OnDestroy {
       this.ipOverrideManager.set({ id: data.managerId, name: data.managerName });
       this.ipOverrideExpiry.set(expiry);
       this.ipOverrideActive.set(true);
+      this.isIPValid.set(true);
       this.startIpOverrideCountdown();
     } catch {
       localStorage.removeItem(this.LS_OVERRIDE_KEY);
