@@ -487,7 +487,7 @@ interface TimeclockInfoData {
               <div class="ip-override-badge">
                 <i class="pi pi-shield"></i>
                 IP habilitada · {{ ipOverrideManager()!.name }} · {{ ipOverrideMinutesLeft() }} min
-                <button class="ip-override-badge-close" (click)="clearIpOverride()" title="Cancelar habilitación">
+                <button type="button" class="ip-override-badge-close" (click)="clearIpOverride()" title="Cancelar habilitación">
                   <i class="pi pi-times"></i>
                 </button>
               </div>
@@ -702,7 +702,7 @@ interface TimeclockInfoData {
           </div>
 
           <!-- Manager override button -->
-          <button class="ip-override-btn" (click)="openIpOverrideModal()">
+          <button type="button" class="ip-override-btn" (click)="openIpOverrideModal()">
             <i class="pi pi-shield"></i>
             Habilitar con Gerente
           </button>
@@ -743,7 +743,7 @@ interface TimeclockInfoData {
                   </div>
                 } @else {
                   @for (emp of ipOverrideFilteredEmployees(); track emp.id) {
-                    <button class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
+                    <button type="button" class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
                       <div class="ip-override-list-avatar">
                         {{ (emp.first_name ?? '?')[0].toUpperCase() }}
                       </div>
@@ -766,7 +766,7 @@ interface TimeclockInfoData {
                 }
               </div>
 
-              <button class="ip-override-cancel-btn" (click)="closeIpOverrideModal()">Cancelar</button>
+              <button type="button" class="ip-override-cancel-btn" (click)="closeIpOverrideModal()">Cancelar</button>
             }
 
             @if (ipOverrideStep() === 'otp') {
@@ -799,13 +799,13 @@ interface TimeclockInfoData {
               <div class="ip-override-keypad">
                 <div class="grid grid-cols-3 gap-2">
                   @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
-                    <button class="ip-override-key" (click)="appendOverrideDigit(num)" [disabled]="ipOverrideProcessing()">{{ num }}</button>
+                    <button type="button" class="ip-override-key" (click)="appendOverrideDigit(num)" [disabled]="ipOverrideProcessing()">{{ num }}</button>
                   }
-                  <button class="ip-override-key ip-override-key--back" (click)="ipOverrideStep.set('search')" [disabled]="ipOverrideProcessing()">
+                  <button type="button" class="ip-override-key ip-override-key--back" (click)="ipOverrideStep.set('search')" [disabled]="ipOverrideProcessing()">
                     <i class="pi pi-arrow-left"></i>
                   </button>
-                  <button class="ip-override-key" (click)="appendOverrideDigit('0')" [disabled]="ipOverrideProcessing()">0</button>
-                  <button class="ip-override-key ip-override-key--del" (click)="deleteOverrideDigit()" [disabled]="ipOverrideProcessing()">
+                  <button type="button" class="ip-override-key" (click)="appendOverrideDigit('0')" [disabled]="ipOverrideProcessing()">0</button>
+                  <button type="button" class="ip-override-key ip-override-key--del" (click)="deleteOverrideDigit()" [disabled]="ipOverrideProcessing()">
                     <i class="pi pi-delete-left"></i>
                   </button>
                 </div>
@@ -3494,6 +3494,7 @@ export class TimeclockComponent implements OnDestroy {
     this.ipOverrideError.set('');
     this.ipOverrideEmployeeSearch.set('');
     this.ipOverrideModalExiting.set(false);
+    this.ipOverrideProcessing.set(false);
     this.showIpOverrideModal.set(true);
   }
 
@@ -3510,6 +3511,7 @@ export class TimeclockComponent implements OnDestroy {
     this.ipOverrideSelectedEmployee.set(emp);
     this.ipOverrideOtp.set('');
     this.ipOverrideError.set('');
+    this.ipOverrideProcessing.set(false);
     this.ipOverrideStep.set('otp');
   }
 
