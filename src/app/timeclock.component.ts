@@ -486,10 +486,7 @@ interface TimeclockInfoData {
             @if (ipOverrideActive() && ipOverrideManager()) {
               <div class="ip-override-badge">
                 <i class="pi pi-shield"></i>
-                IP habilitada · {{ ipOverrideManager()!.name }} · {{ ipOverrideMinutesLeft() }} min
-                <button type="button" class="ip-override-badge-close" (click)="clearIpOverride()" title="Cancelar habilitación">
-                  <i class="pi pi-times"></i>
-                </button>
+                IP habilitada · {{ ipOverrideManager()!.name }} · {{ ipOverrideCountdownDisplay() }}
               </div>
             }
           </ng-template>
@@ -709,123 +706,124 @@ interface TimeclockInfoData {
         </div>
       </div>
 
-      <!-- Manager Override Modal -->
-      @if (showIpOverrideModal()) {
-        <div class="confirm-modal-overlay" (click)="closeIpOverrideModal()">
-          <div class="ip-override-modal" [class.ip-override-modal-exit]="ipOverrideModalExiting()" (click)="$event.stopPropagation()">
-
-            @if (ipOverrideStep() === 'search') {
-              <!-- Step 1: Select manager -->
-              <div class="ip-override-modal-header">
-                <div class="ip-override-modal-icon">
-                  <i class="pi pi-shield"></i>
-                </div>
-                <div class="ip-override-modal-title">Habilitar con Gerente</div>
-                <div class="ip-override-modal-desc">Selecciona el gerente que autoriza las marcaciones por 1 hora</div>
-              </div>
-
-              <div class="ip-override-search-wrap">
-                <input
-                  class="ip-override-search-input"
-                  type="text"
-                  placeholder="Buscar gerente..."
-                  [value]="ipOverrideEmployeeSearch()"
-                  (input)="ipOverrideEmployeeSearch.set($any($event.target).value)"
-                  autocomplete="off"
-                />
-                <i class="pi pi-search ip-override-search-icon"></i>
-              </div>
-
-              <div class="ip-override-list">
-                @if (managersResource.isLoading()) {
-                  <div class="ip-override-empty">
-                    <i class="pi pi-spin pi-spinner"></i> Cargando gerentes...
-                  </div>
-                } @else {
-                  @for (emp of ipOverrideFilteredEmployees(); track emp.id) {
-                    <button type="button" class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
-                      <div class="ip-override-list-avatar">
-                        {{ (emp.first_name ?? '?')[0].toUpperCase() }}
-                      </div>
-                      <div class="ip-override-list-info">
-                        <span>{{ emp.first_name }} {{ emp.father_name }}</span>
-                        @if (!emp.code_uri) {
-                          <span class="ip-override-no-pin">Sin PIN configurado</span>
-                        }
-                      </div>
-                      @if (emp.code_uri) {
-                        <i class="pi pi-chevron-right ip-override-list-arrow"></i>
-                      } @else {
-                        <i class="pi pi-lock ip-override-list-arrow" style="color:rgba(239,68,68,0.5)"></i>
-                      }
-                    </button>
-                  }
-                  @if (ipOverrideFilteredEmployees().length === 0) {
-                    <div class="ip-override-empty">No se encontraron gerentes</div>
-                  }
-                }
-              </div>
-
-              <button type="button" class="ip-override-cancel-btn" (click)="closeIpOverrideModal()">Cancelar</button>
-            }
-
-            @if (ipOverrideStep() === 'otp') {
-              <!-- Step 2: OTP -->
-              <div class="ip-override-modal-header">
-                <div class="ip-override-modal-icon ip-override-modal-icon--otp">
-                  <i class="pi pi-key"></i>
-                </div>
-                <div class="ip-override-modal-title">Código Autenticador</div>
-                <div class="ip-override-modal-desc">
-                  {{ ipOverrideSelectedEmployee()?.first_name }} {{ ipOverrideSelectedEmployee()?.father_name }}
-                </div>
-              </div>
-
-              <!-- OTP dots -->
-              <div class="ip-override-dots">
-                @for (i of [0,1,2,3,4,5]; track i) {
-                  <div class="ip-override-dot"
-                    [class.filled]="ipOverrideOtp().length > i"
-                    [class.error]="!!ipOverrideError()">
-                  </div>
-                }
-              </div>
-
-              @if (ipOverrideError()) {
-                <div class="ip-override-error">{{ ipOverrideError() }}</div>
-              }
-
-              <!-- OTP Keypad -->
-              <div class="ip-override-keypad">
-                <div class="grid grid-cols-3 gap-2">
-                  @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
-                    <button type="button" class="ip-override-key" (click)="appendOverrideDigit(num)" [disabled]="ipOverrideProcessing()">{{ num }}</button>
-                  }
-                  <button type="button" class="ip-override-key ip-override-key--back" (click)="ipOverrideStep.set('search')" [disabled]="ipOverrideProcessing()">
-                    <i class="pi pi-arrow-left"></i>
-                  </button>
-                  <button type="button" class="ip-override-key" (click)="appendOverrideDigit('0')" [disabled]="ipOverrideProcessing()">0</button>
-                  <button type="button" class="ip-override-key ip-override-key--del" (click)="deleteOverrideDigit()" [disabled]="ipOverrideProcessing()">
-                    <i class="pi pi-delete-left"></i>
-                  </button>
-                </div>
-              </div>
-
-              @if (ipOverrideProcessing()) {
-                <div class="ip-override-processing">
-                  <i class="pi pi-spin pi-spinner"></i> Verificando...
-                </div>
-              }
-            }
-
-          </div>
-        </div>
-      }
       }
 
       <!-- Walking dog at the bottom -->
       <pt-dog-animation></pt-dog-animation>
-    </div>`,
+    </div>
+
+    <!-- Manager Override Modal - outside scroll container so position:fixed works correctly -->
+    @if (showIpOverrideModal()) {
+      <div class="confirm-modal-overlay" (click)="closeIpOverrideModal()">
+        <div class="ip-override-modal" [class.ip-override-modal-exit]="ipOverrideModalExiting()" (click)="$event.stopPropagation()">
+
+          @if (ipOverrideStep() === 'search') {
+            <!-- Step 1: Select manager -->
+            <div class="ip-override-modal-header">
+              <div class="ip-override-modal-icon">
+                <i class="pi pi-shield"></i>
+              </div>
+              <div class="ip-override-modal-title">Habilitar con Gerente</div>
+              <div class="ip-override-modal-desc">Selecciona el gerente que autoriza las marcaciones por 1 hora</div>
+            </div>
+
+            <div class="ip-override-search-wrap">
+              <input
+                class="ip-override-search-input"
+                type="text"
+                placeholder="Buscar gerente..."
+                [value]="ipOverrideEmployeeSearch()"
+                (input)="ipOverrideEmployeeSearch.set($any($event.target).value)"
+                autocomplete="off"
+              />
+              <i class="pi pi-search ip-override-search-icon"></i>
+            </div>
+
+            <div class="ip-override-list">
+              @if (managersResource.isLoading()) {
+                <div class="ip-override-empty">
+                  <i class="pi pi-spin pi-spinner"></i> Cargando gerentes...
+                </div>
+              } @else {
+                @for (emp of ipOverrideFilteredEmployees(); track emp.id) {
+                  <button type="button" class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
+                    <div class="ip-override-list-avatar">
+                      {{ (emp.first_name ?? '?')[0].toUpperCase() }}
+                    </div>
+                    <div class="ip-override-list-info">
+                      <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+                      @if (!emp.code_uri) {
+                        <span class="ip-override-no-pin">Sin PIN configurado</span>
+                      }
+                    </div>
+                    @if (emp.code_uri) {
+                      <i class="pi pi-chevron-right ip-override-list-arrow"></i>
+                    } @else {
+                      <i class="pi pi-lock ip-override-list-arrow" style="color:rgba(239,68,68,0.5)"></i>
+                    }
+                  </button>
+                }
+                @if (ipOverrideFilteredEmployees().length === 0) {
+                  <div class="ip-override-empty">No se encontraron gerentes</div>
+                }
+              }
+            </div>
+
+            <button type="button" class="ip-override-cancel-btn" (click)="closeIpOverrideModal()">Cancelar</button>
+          }
+
+          @if (ipOverrideStep() === 'otp') {
+            <!-- Step 2: OTP -->
+            <div class="ip-override-modal-header">
+              <div class="ip-override-modal-icon ip-override-modal-icon--otp">
+                <i class="pi pi-key"></i>
+              </div>
+              <div class="ip-override-modal-title">Código Autenticador</div>
+              <div class="ip-override-modal-desc">
+                {{ ipOverrideSelectedEmployee()?.first_name }} {{ ipOverrideSelectedEmployee()?.father_name }}
+              </div>
+            </div>
+
+            <!-- OTP dots -->
+            <div class="ip-override-dots">
+              @for (i of [0,1,2,3,4,5]; track i) {
+                <div class="ip-override-dot"
+                  [class.filled]="ipOverrideOtp().length > i"
+                  [class.error]="!!ipOverrideError()">
+                </div>
+              }
+            </div>
+
+            @if (ipOverrideError()) {
+              <div class="ip-override-error">{{ ipOverrideError() }}</div>
+            }
+
+            <!-- OTP Keypad -->
+            <div class="ip-override-keypad">
+              <div class="grid grid-cols-3 gap-2">
+                @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+                  <button type="button" class="ip-override-key" (click)="appendOverrideDigit(num)" [disabled]="ipOverrideProcessing()">{{ num }}</button>
+                }
+                <button type="button" class="ip-override-key ip-override-key--back" (click)="ipOverrideStep.set('search')" [disabled]="ipOverrideProcessing()">
+                  <i class="pi pi-arrow-left"></i>
+                </button>
+                <button type="button" class="ip-override-key" (click)="appendOverrideDigit('0')" [disabled]="ipOverrideProcessing()">0</button>
+                <button type="button" class="ip-override-key ip-override-key--del" (click)="deleteOverrideDigit()" [disabled]="ipOverrideProcessing()">
+                  <i class="pi pi-delete-left"></i>
+                </button>
+              </div>
+            </div>
+
+            @if (ipOverrideProcessing()) {
+              <div class="ip-override-processing">
+                <i class="pi pi-spin pi-spinner"></i> Verificando...
+              </div>
+            }
+          }
+
+        </div>
+      </div>
+    }`,
   styles: `
     :host {
       display: block;
@@ -3141,6 +3139,18 @@ export class TimeclockComponent implements OnDestroy {
     if (!expiry) return 0;
     return Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 60000));
   });
+  public ipOverrideCountdownDisplay = computed(() => {
+    const expiry = this.ipOverrideExpiry();
+    if (!expiry) return '';
+    const ms = Math.max(0, expiry.getTime() - this.currentTime().getTime());
+    const totalSecs = Math.floor(ms / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  });
   public showIpOverrideModal          = signal<boolean>(false);
   public ipOverrideModalExiting       = signal<boolean>(false);
   public ipOverrideStep               = signal<'search' | 'otp'>('search');
@@ -3269,6 +3279,7 @@ export class TimeclockComponent implements OnDestroy {
     // Si está en modo kiosko y NO es Naz, monitorear la IP continuamente
     if (isKioskRoute && !this.isNazCompany()) {
       this.setupKioskModeMonitoring();
+      this.checkStoredIpOverride();
     } else if (isKioskRoute && this.isNazCompany()) {
       // Para Naz, siempre considerar la IP como válida
       this.isIPValid.set(true);
