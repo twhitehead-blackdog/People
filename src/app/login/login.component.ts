@@ -772,8 +772,8 @@ import { logger } from '../utils/logger';
     }
     .mob__logo-wrap {
       position: relative;
-      height: 4.75rem;
-      width: 155px;
+      height: 6.5rem;
+      width: 220px;
     }
     .mob__logo {
       position: absolute;
