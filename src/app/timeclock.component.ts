@@ -3113,6 +3113,37 @@ export class TimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
+
+  // ── Manager IP Override ────────────────────────────────────────────
+  public ipOverrideActive   = signal<boolean>(false);
+  public ipOverrideManager  = signal<{id: string; name: string} | null>(null);
+  public ipOverrideExpiry   = signal<Date | null>(null);
+  public ipOverrideMinutesLeft = computed(() => {
+    const expiry = this.ipOverrideExpiry();
+    if (!expiry) return 0;
+    return Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 60000));
+  });
+  public showIpOverrideModal          = signal<boolean>(false);
+  public ipOverrideModalExiting       = signal<boolean>(false);
+  public ipOverrideStep               = signal<'search' | 'otp'>('search');
+  public ipOverrideSelectedEmployee   = signal<Partial<Employee> | null>(null);
+  public ipOverrideOtp                = signal<string>('');
+  public ipOverrideError              = signal<string>('');
+  public ipOverrideProcessing         = signal<boolean>(false);
+  public ipOverrideEmployeeSearch     = signal<string>('');
+  public ipOverrideFilteredEmployees  = computed(() => {
+    const query = this.ipOverrideEmployeeSearch().toLowerCase().trim();
+    const employees = this.currentEmployeesResource() ?? [];
+    if (!query) return employees.slice(0, 10);
+    return employees.filter(e =>
+      `${e.first_name ?? ''} ${e.father_name ?? ''}`.toLowerCase().includes(query)
+    ).slice(0, 10);
+  });
+  private ipOverrideCountdownTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly IP_OVERRIDE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+  private readonly LS_OVERRIDE_KEY = 'bd_kiosk_ip_override';
+  // ──────────────────────────────────────────────────────────────────
+
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
   public isBlackDogCompany = computed(() =>
