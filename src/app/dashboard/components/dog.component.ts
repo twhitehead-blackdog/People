@@ -113,7 +113,7 @@ const BREEDS: Record<DogBreed, DogConfig> = {
     >
       <div
         #dogWrapper
-        class="absolute bottom-[-19px] cursor-pointer pointer-events-auto"
+        class="absolute bottom-[-30px] cursor-pointer pointer-events-auto"
         [class.opacity-0]="!isReady()"
         [class.opacity-100]="isReady()"
         (click)="onDogClick()"
@@ -134,7 +134,7 @@ const BREEDS: Record<DogBreed, DogConfig> = {
 
         <!-- EXACT same approach as screen-lock -->
         <div
-          class="dog-sprite w-[50px] h-[50px]"
+          class="dog-sprite w-[100px] h-[100px]"
           [ngStyle]="dogStyle()"
           [style.transform]="currentDirection() === 'left' ? 'scaleX(-1)' : 'scaleX(1)'"
         ></div>
@@ -200,18 +200,15 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
 
     const url = `assets_dog/Pet Dogs Pack/${breed.folder}/${breed.prefix}${fileName}.png`;
 
-    // EXACT same calculation as screen-lock
-    // Screen-lock uses 150px size and multiplies width by 1.5
-    // We use 50px size, so multiply by 0.5 (which is 50/100)
-    const displaySize = 50;
-    const scale = displaySize / 100; // 0.5
+    const displaySize = 100;
+    const scale = displaySize / 100; // 1.0
     const endPos = -(action.width * scale);
 
     return {
       'background-image': `url('${url}')`,
-      'background-size': 'auto 50px',
-      width: '50px',
-      height: '50px',
+      'background-size': 'auto 100px',
+      width: '100px',
+      height: '100px',
       '--sprite-width': `${endPos}px`,
       animation:
         action.frames > 1
@@ -381,7 +378,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
   }
 
   private clampPosition() {
-    const max = this.containerWidth - 60;
+    const max = this.containerWidth - 110;
     const pos = this.currentPixelPosition();
     if (pos > max) {
       this.currentPixelPosition.set(max);
@@ -454,7 +451,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     if (this.containerWidth === 0) this.updateContainerMetrics();
 
     const margin = 30;
-    const maxPos = Math.max(0, this.containerWidth - margin - 50);
+    const maxPos = Math.max(0, this.containerWidth - margin - 100);
     const minPos = margin;
 
     const isCornerRun = Math.random() < 0.25;
