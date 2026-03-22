@@ -75,7 +75,7 @@ const MSGS: Record<string, string[]> = {
     <div #dogContainer class="absolute bottom-0 left-0 w-full h-2 pointer-events-none z-[30]">
       <div
         #dogWrapper
-        class="absolute bottom-[-30px] cursor-pointer pointer-events-auto dog-wrapper"
+        class="absolute bottom-[8px] cursor-pointer pointer-events-auto dog-wrapper"
         [class.opacity-0]="!isReady()"
         [class.opacity-100]="isReady()"
         [class.dog-zoomies]="isZoomies()"
@@ -512,8 +512,8 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     const tired    = this.energyWalkCount > 5;
     const roll     = Math.random();
 
-    // Rare zoomies (3% normal, 6% morning)
-    if (!tired && roll < (isMorn ? 0.06 : 0.03)) { this.triggerZoomies(); return; }
+    // Rare zoomies (1% normal, 2% morning)
+    if (!tired && roll < (isMorn ? 0.02 : 0.01)) { this.triggerZoomies(); return; }
 
     // Rare poop (1%)
     if (roll < 0.01) { this.doPoop(); return; }
@@ -572,8 +572,9 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     }
 
     const dist     = Math.abs(target - this.currentPixelPosition());
-    const speed    = 50 + Math.random() * 25;
-    const duration = dist / speed;
+    const speed    = 55 + Math.random() * 20;
+    // Cap duration so dog never takes more than 5s to walk anywhere
+    const duration = Math.min(dist / speed, 5);
 
     this.currentDirection.set(target > this.currentPixelPosition() ? 'right' : 'left');
     this.moveDuration.set(duration);
@@ -583,15 +584,17 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
 
     const id = setTimeout(() => {
       if (this.isDestroyed) return;
+      // After corner: do a fun action, then long rest OR normal next cycle
       if (corner && Math.random() < 0.55) {
         const act = Math.random() < 0.5 ? 'itching' : 'barking';
+        // doAction schedules its own next — do NOT call scheduleNext again
         this.doAction(act as DogState, 1800);
-        this.scheduleNext(corner ? 60_000 + Math.random() * 60_000 : 100);
       } else {
         this.currentState.set('idle');
-        this.scheduleNext(corner ? 60_000 + Math.random() * 60_000 : 100);
+        // Short pause before next decision
+        this.scheduleNext(800 + Math.random() * 1200);
       }
-    }, duration * 1000);
+    }, duration * 1000 + 50);
     this.timeoutIds.push(id);
   }
 
