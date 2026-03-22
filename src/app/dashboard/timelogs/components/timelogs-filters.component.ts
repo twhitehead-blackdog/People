@@ -33,7 +33,7 @@ import { Employee } from '../../../models';
     TooltipModule,
   ],
   template: `
-    <div class="flex flex-col md:flex-row gap-3 items-center mb-4">
+    <div class="flex flex-col md:flex-row gap-2 md:gap-3 items-center mb-2 md:mb-4">
       <div class="flex-1 w-full md:w-auto flex gap-2">
         <input
           pInputText
@@ -42,7 +42,7 @@ import { Employee } from '../../../models';
           (ngModelChange)="employeeSearchInput.set($event)"
           (keyup.enter)="handleSearch()"
           placeholder="Buscar empleado por nombre..."
-          class="flex-1 text-sm"
+          class="flex-1 text-xs md:text-sm"
         />
         <p-button
           icon="pi pi-search"
@@ -78,7 +78,7 @@ import { Employee } from '../../../models';
       >
         <div class="flex items-center gap-2">
           <i class="pi pi-filter text-yellow-400 text-sm"></i>
-          <span class="text-base font-semibold text-white">Filtros</span>
+          <span class="text-sm md:text-base font-semibold text-white">Filtros</span>
           <span
             *ngIf="hasActiveFilters()"
             class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full"
@@ -98,7 +98,7 @@ import { Employee } from '../../../models';
         *ngIf="filtersExpanded()"
         class="px-3 pb-3 border-t border-neutral-700/50 pt-3"
       >
-        <div class="flex flex-wrap items-end gap-3">
+        <div class="flex flex-wrap items-end gap-2 md:gap-3">
           <div class="flex-1 min-w-[140px] flex flex-col gap-4">
             <div>
               <label

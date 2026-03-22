@@ -72,11 +72,11 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
     <p-card>
       <ng-template #title>
         <div
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3"
+          class="flex items-center justify-between w-full gap-3"
         >
           <div>
-            <h2 class="m-0 text-lg sm:text-xl">Marcaciones</h2>
-            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
+            <h2 class="m-0 text-xl">Marcaciones</h2>
+            <p class="text-sm text-gray-400 m-0 mt-1">
               Listado de marcaciones de empleados
             </p>
           </div>

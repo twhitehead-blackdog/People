@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
@@ -28,26 +27,26 @@ type CorrectionTypeOption = {
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     DatePicker,
     InputTextarea,
     FileUpload,
     Button,
     Select,
-    TooltipModule,
-  ],
+    TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-exclamation-triangle text-orange-400"></i>
-          <span>Omisión de Marcación</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Omisión de Marcación</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Solicita corrección de una marcación</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>Solicita corrección de una marcación de asistencia</ng-template>
+      </div>
 
       <div
         class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
@@ -188,7 +187,7 @@ type CorrectionTypeOption = {
           class="ml-auto"
         />
       </div>
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">
@@ -326,8 +325,7 @@ export class EmployeePortalTimelogCorrectionComponent {
     { label: 'Olvidé marcar fin de almuerzo', value: 'missing_lunch_end' },
     { label: 'Marcación incorrecta', value: 'incorrect_mark' },
     { label: 'Falla del dispositivo', value: 'device_failure' },
-    { label: 'Otro', value: 'other' },
-  ];
+    { label: 'Otro', value: 'other' }];
 
   public handleFileSelect(event: any): void {
     const file = event?.files?.[0] ?? null;

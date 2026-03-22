@@ -60,17 +60,24 @@ const ADMIN_SECTIONS: Section[] = [
       { id: 'settings',        label: 'Configuración',      description: 'Ajustes del sistema',       icon: 'pi-cog',       route: '/admin/settings',         moduleId: 'admin', subModuleId: 'settings',         tw: 'slate' },
       { id: 'user-management', label: 'Usuarios',           description: 'Gestión de usuarios',       icon: 'pi-user-edit', route: '/admin/user-management',  moduleId: 'admin', subModuleId: 'user_management',  tw: 'orange' },
       { id: 'permissions',     label: 'Permisos',           description: 'Control de accesos',        icon: 'pi-shield',    route: '/admin/permissions',      moduleId: 'admin', subModuleId: 'permissions',      tw: 'rose' },
-      { id: 'complaints',      label: 'Buzón de Quejas',    description: 'Gestión de quejas',         icon: 'pi-inbox',     route: '/admin/complaints-inbox', moduleId: 'admin', subModuleId: 'complaints',       tw: 'amber' },
-      { id: 'job-apps',        label: 'Solicitudes Empleo', description: 'Feria de empleo',           icon: 'pi-file',      route: '/admin/job-applications', moduleId: 'admin', subModuleId: 'job_applications', tw: 'lime' },
-      { id: 'news',            label: 'Noticias',           description: 'Anuncios y noticias',       icon: 'pi-megaphone', route: '/admin/news',             moduleId: 'admin', subModuleId: 'device_inventory', tw: 'purple' },
+      { id: 'news',            label: 'Noticias',           description: 'Anuncios y noticias',        icon: 'pi-megaphone', route: '/admin/news',             moduleId: 'admin',                                  tw: 'purple' },
+      { id: 'device-inventory',label: 'Dispositivos',       description: 'Inventario de equipos',      icon: 'pi-mobile',    route: '/admin/device-inventory', moduleId: 'admin', subModuleId: 'device_inventory', tw: 'slate' },
     ],
   },
   {
     label: 'RRHH',
     items: [
-      { id: 'hr-time',         label: 'Tiempo RRHH',      description: 'Dashboard de tiempo',    icon: 'pi-calendar', route: '/admin/hr/time-dashboard', moduleId: 'hr', subModuleId: 'hr_time_dashboard', tw: 'fuchsia' },
-      { id: 'hr-disabilities', label: 'Solicitudes RRHH', description: 'Gestión de solicitudes', icon: 'pi-heart',    route: '/admin/hr/disabilities',   moduleId: 'hr', subModuleId: 'hr_disabilities',   tw: 'pink' },
-      { id: 'surveys',         label: 'Encuestas',        description: 'Encuestas y sondeos',    icon: 'pi-comment',  route: '/admin/surveys',           moduleId: 'hr', subModuleId: 'hr_surveys',        tw: 'teal' },
+      { id: 'hr-time',         label: 'Tiempo RRHH',       description: 'Dashboard de tiempo',         icon: 'pi-calendar',  route: '/admin/hr/time-dashboard', moduleId: 'hr', subModuleId: 'hr_time_dashboard', tw: 'fuchsia' },
+      { id: 'hr-disabilities', label: 'Gestiones de Empleados', description: 'Vacaciones, incapacidades y permisos', icon: 'pi-heart', route: '/admin/hr/disabilities', moduleId: 'hr', subModuleId: 'hr_disabilities', tw: 'pink' },
+      { id: 'surveys',         label: 'Encuestas',          description: 'Encuestas y sondeos',        icon: 'pi-comment',   route: '/admin/surveys',           moduleId: 'hr', subModuleId: 'hr_surveys',        tw: 'teal' },
+      { id: 'complaints',      label: 'Quejas',             description: 'Buzón de quejas y sugerencias', icon: 'pi-inbox',  route: '/admin/complaints-inbox',  moduleId: 'admin', subModuleId: 'complaints',      tw: 'amber' },
+      { id: 'job-apps',        label: 'Feria de Empleo',    description: 'Solicitudes y postulaciones', icon: 'pi-file-edit', route: '/admin/job-applications', moduleId: 'admin', subModuleId: 'job_applications', tw: 'lime' },
+    ],
+  },
+  {
+    label: 'Compras',
+    items: [
+      { id: 'compras',         label: 'Compras',            description: 'Aprobación de compras',      icon: 'pi-shopping-cart', route: '/admin/compras',     moduleId: 'compras', subModuleId: 'compras_dashboard', tw: 'orange' },
     ],
   },
   {
@@ -97,7 +104,8 @@ const PAYROLL_SECTIONS: Section[] = [
     items: [
       { id: 'creditors', label: 'Acreedores', description: 'Gestión de acreedores',      icon: 'pi-building-columns', route: '/payroll/creditors', moduleId: 'payroll', subModuleId: 'creditors', tw: 'violet' },
       { id: 'banks',     label: 'Bancos',     description: 'Cuentas bancarias',          icon: 'pi-credit-card',      route: '/payroll/banks',     moduleId: 'payroll', subModuleId: 'banks',     tw: 'blue' },
-      { id: 'import',    label: 'Importar',   description: 'Importar datos de planilla', icon: 'pi-upload',           route: '/payroll/import',    moduleId: 'payroll',                           tw: 'slate' },
+      { id: 'import',    label: 'Importar',       description: 'Importar datos de planilla', icon: 'pi-upload',      route: '/payroll/import',    moduleId: 'payroll', subModuleId: 'payroll_import', tw: 'slate' },
+      { id: 'admin',     label: 'Administración', description: 'Configuración de nómina',   icon: 'pi-sliders-h',  route: '/payroll/admin',     moduleId: 'payroll', subModuleId: 'payroll_admin',  tw: 'rose' },
     ],
   },
 ];
@@ -116,7 +124,7 @@ const TIME_SECTIONS: Section[] = [
       { id: 'schedules',    label: 'General',          description: 'Programación general',      icon: 'pi-calendar-clock', route: '/time-management/schedules',     moduleId: 'time_management', subModuleId: 'schedules',     tw: 'cyan' },
 
       { id: 'vet-schedule', label: 'Horario Vet',      description: 'Programación veterinaria',  icon: 'pi-heart-fill',     route: '/time-management/vet-schedule',  moduleId: 'time_management', subModuleId: 'vet_schedule',  tw: 'rose' },
-      { id: 'salon',        label: 'Peluquería',       description: 'Programación de peluquería', icon: 'pi-scissors',       route: '/time-management/salon-schedule',moduleId: 'time_management', subModuleId: 'salon_schedule',tw: 'pink' },
+      { id: 'salon',        label: 'Peluquería',       description: 'Programación de peluquería', icon: 'pi-sparkles',       route: '/time-management/salon-schedule',moduleId: 'time_management', subModuleId: 'salon_schedule',tw: 'pink' },
     ],
   },
 ];
@@ -162,7 +170,7 @@ const MODULE_CONFIGS: Record<string, { title: string; icon: string; sections: Se
           <div class="flex flex-wrap justify-center gap-3 max-w-5xl mx-auto">
             @for (item of section.items; track item.id) {
               @let c = colors(item.tw);
-              <button (click)="navigate(item.route)"
+              <button (click)="navigate(item.route)" [title]="item.description"
                  class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10
                         p-5 flex flex-col items-center gap-3 text-center w-36
                         transition-all duration-300 active:scale-95 cursor-pointer outline-none"

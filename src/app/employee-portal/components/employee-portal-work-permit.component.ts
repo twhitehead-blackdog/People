@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
@@ -21,8 +20,7 @@ export const PORTAL_PERMIT_TYPE_OPTIONS = [
   { label: 'Defunción', value: 'family_death' },
   { label: 'Personal', value: 'personal' },
   { label: 'Tema Médico', value: 'medical' },
-  { label: 'Otros', value: 'other' },
-];
+  { label: 'Otros', value: 'other' }];
 
 @Component({
   selector: 'pt-employee-portal-work-permit',
@@ -30,26 +28,26 @@ export const PORTAL_PERMIT_TYPE_OPTIONS = [
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     DatePicker,
     FileUpload,
     InputTextarea,
     Select,
     Button,
-    TooltipModule,
-  ],
+    TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-id-card text-amber-400"></i>
-          <span>Solicitud de Permiso</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Solicitud de Permiso</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Solicita un permiso laboral</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>Solicita un permiso laboral</ng-template>
+      </div>
 
       <!-- Paso 1: Tipo de Permiso -->
       <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
@@ -227,7 +225,7 @@ export const PORTAL_PERMIT_TYPE_OPTIONS = [
           severity="success"
         />
       </div>
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">

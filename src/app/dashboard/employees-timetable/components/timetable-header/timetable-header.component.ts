@@ -23,7 +23,8 @@ import { Menu } from 'primeng/menu';
         severity="secondary"
         outlined
         size="small"
-        class="w-full lg:w-auto whitespace-nowrap text-sm"
+        styleClass="text-[9px] md:text-sm py-1 px-2 md:py-2 md:px-3"
+        class="w-full lg:w-auto whitespace-nowrap"
       />
     </div>
   `,

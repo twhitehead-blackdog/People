@@ -74,7 +74,7 @@ const PEOPLE_MODULES: Module[] = [
     label: 'Mi Portal',
     description: 'Mi perfil y solicitudes',
     icon: 'pi-user',
-    target: 'my-portal',
+    target: 'employee-portal',
     tw: 'fuchsia',
   },
 ];
@@ -169,7 +169,7 @@ const COLOR_MAP: Record<string, { hex: string; bgCls: string; iconCls: string; h
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 max-w-5xl mx-auto">
           @for (mod of visiblePeopleModules(); track mod.id) {
             @let c = colors(mod.tw);
-            <button (click)="open(mod)"
+            <button (click)="open(mod)" [title]="mod.description"
                class="group relative overflow-hidden rounded-xl bg-white/5 border border-white/10
                       p-4 md:p-5 flex flex-col items-center gap-2.5 text-center
                       transition-all duration-300 hover:bg-white/10 hover:shadow-lg cursor-pointer outline-none"
@@ -198,7 +198,7 @@ const COLOR_MAP: Record<string, { hex: string; bgCls: string; iconCls: string; h
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
           @for (mod of EXTERNAL_MODULES; track mod.id) {
             @let c = colors(mod.tw);
-            <button (click)="open(mod)"
+            <button (click)="open(mod)" [title]="mod.description"
                class="group relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/[0.07]
                       p-4 md:p-5 flex flex-col items-center gap-2.5 text-center
                       transition-all duration-300 hover:bg-white/[0.07] hover:shadow-lg cursor-pointer outline-none"

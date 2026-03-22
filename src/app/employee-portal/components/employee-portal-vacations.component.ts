@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -23,34 +22,26 @@ import { DeviceService } from '../../services/device.service';
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     DatePicker,
     Textarea,
     FileUpload,
     Button,
     TooltipModule,
-    ProgressSpinner,
-  ],
+    ProgressSpinner],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-calendar-plus text-purple-400"></i>
-          <span>{{
-            (vacationRequests?.length ?? 0) > 0
-              ? 'Mis Solicitudes de Vacaciones'
-              : 'Solicitar Vacaciones'
-          }}</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Solicitar Vacaciones</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Solicita tus días de vacaciones</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>{{
-        (vacationRequests?.length ?? 0) > 0
-          ? 'Visualiza todas tus solicitudes de vacaciones'
-          : 'Solicita tus días de vacaciones'
-      }}</ng-template>
+      </div>
 
       <!-- Loading State -->
       @if (requestsLoading) {
@@ -382,7 +373,7 @@ import { DeviceService } from '../../services/device.service';
         </div>
       </div>
       }
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">

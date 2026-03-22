@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { InputText } from 'primeng/inputtext';
 import { ProgressSpinner } from 'primeng/progressspinner';
@@ -24,35 +23,27 @@ import { DeviceService } from '../../services/device.service';
   imports: [
     CommonModule,
     FormsModule,
-    Card,
     Select,
     InputText,
     Textarea,
     DatePicker,
     Button,
     TooltipModule,
-    ProgressSpinner,
-  ],
+    ProgressSpinner],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-file-edit text-green-400"></i>
-          <span>{{
-            (documentRequests?.length ?? 0) > 0
-              ? 'Mis Solicitudes de Documentos'
-              : 'Solicitar Documentos'
-          }}</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center gap-3 mb-5">
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0 tracking-tight">Solicitar Documentos</h2>
+          <p class="text-xs text-gray-500 m-0 mt-0.5">Cartas de trabajo y otros documentos</p>
         </div>
-      </ng-template>
-      <ng-template #subtitle>{{
-        (documentRequests?.length ?? 0) > 0
-          ? 'Visualiza todas tus solicitudes de documentos'
-          : 'Solicita cartas de trabajo u otros documentos'
-      }}</ng-template>
+      </div>
 
       <!-- Loading State -->
       @if (requestsLoading) {
@@ -325,7 +316,7 @@ import { DeviceService } from '../../services/device.service';
         </div>
       </div>
       }
-    </p-card>
+    </div>
     } @else {
     <!-- ========== MOBILE ========== -->
     <div class="px-4 py-4">

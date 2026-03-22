@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
@@ -36,33 +35,29 @@ type UnifiedRequest = {
   selector: 'pt-employee-portal-my-requests',
   standalone: true,
   imports: [
-    Card,
     Button,
     DatePicker,
     InputText,
     Select,
     FormsModule,
     DatePipe,
-    NgClass,
-  ],
+    NgClass],
   template: `
     @if (device.isDesktop()) {
     <!-- ========== DESKTOP ========== -->
-    <p-card>
-      <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-list text-cyan-400"></i>
-            <span>Mis Solicitudes</span>
+    <div class="portal-form-panel rounded-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer" (click)="onSetActiveSection('management')">
+            <i class="pi pi-arrow-left text-sm"></i>
+          </button>
+          <div>
+            <h2 class="text-lg font-bold text-white m-0 tracking-tight">Mis Solicitudes</h2>
+            <p class="text-xs text-gray-500 m-0 mt-0.5">Visualiza todas tus solicitudes</p>
           </div>
-          <p-button
-            label="Nueva Solicitud"
-            icon="pi pi-plus"
-            (click)="onSetActiveSection('management')"
-          />
         </div>
-      </ng-template>
-      <ng-template #subtitle>Visualiza todas tus solicitudes</ng-template>
+        <p-button label="Nueva Solicitud" icon="pi pi-plus" (click)="onSetActiveSection('management')" size="small" />
+      </div>
 
       <!-- Filtros y Ordenamiento (Desplegable) -->
       <div
@@ -660,7 +655,7 @@ type UnifiedRequest = {
         }
       </div>
       }
-    </p-card>
+    </div>
 
     } @else {
     <!-- ========== MOBILE ========== -->

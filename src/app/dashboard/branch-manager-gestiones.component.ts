@@ -47,6 +47,7 @@ import {
   getSeverityColor,
 } from './request.helpers';
 import { SupplyGestionFormComponent } from './gestiones-forms/supply-gestion-form.component';
+import { UniformTypesService } from './modules/uniform-requests/data/uniform-types.service';
 
 type ManagementCard = {
   id: string;
@@ -1012,7 +1013,7 @@ type ManagementCard = {
                 <p-select
                   [ngModel]="uniformItemType()"
                   (ngModelChange)="uniformItemType.set($event)"
-                  [options]="uniformItemTypeOptions"
+                  [options]="uniformItemTypeOptions()"
                   optionLabel="label"
                   optionValue="value"
                   placeholder="Selecciona el tipo de prenda"
@@ -1037,7 +1038,7 @@ type ManagementCard = {
                   Paso 2: Talla y Cantidad
                 </h3>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-2">
                   <label class="text-sm font-medium text-gray-300">Talla</label>
                   <p-select
@@ -1051,8 +1052,19 @@ type ManagementCard = {
                   />
                 </div>
                 <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">Cantidad que posee actualmente</label>
+                  <input
+                    pInputText
+                    type="number"
+                    [ngModel]="uniformCurrentQuantity()"
+                    (ngModelChange)="uniformCurrentQuantity.set($event)"
+                    min="0"
+                    class="w-full"
+                  />
+                </div>
+                <div class="flex flex-col gap-2">
                   <label class="text-sm font-medium text-gray-300"
-                    >Cantidad</label
+                    >Cantidad que necesita</label
                   >
                   <input
                     pInputText
@@ -1065,7 +1077,7 @@ type ManagementCard = {
                     ptTutorialStep="uniform-quantity"
                   />
                   <small class="text-gray-500 text-xs"
-                    >Máximo 5 unidades por solicitud</small
+                    >Máximo 5 unidades</small
                   >
                 </div>
               </div>
@@ -1343,6 +1355,7 @@ export class BranchManagerGestionesComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private uniformTypesService = inject(UniformTypesService);
 
   private tutorialService = inject(TutorialGuideService);
   private getEnv = getEnv; // Make getEnv available if needed, or implement valid logic using injected services
@@ -1421,6 +1434,7 @@ export class BranchManagerGestionesComponent {
   // Signals para Solicitud de Uniforme
   public uniformItemType = signal<string>('');
   public uniformSize = signal<string>('M');
+  public uniformCurrentQuantity = signal<number>(0);
   public uniformQuantity = signal<number>(1);
   public uniformNotes = signal<string>('');
   public submittingUniform = signal<boolean>(false);
@@ -1451,15 +1465,10 @@ export class BranchManagerGestionesComponent {
   // Opciones para tipo de permiso
   public workPermitTypeOptions = PORTAL_PERMIT_TYPE_OPTIONS;
 
-  // Opciones para tipos de prenda (preparado para añadir más en el futuro)
-  public uniformItemTypeOptions = [
-    { label: 'Camisa', value: 'camisa' },
-    { label: 'Suéter', value: 'sueter' },
-    // Añadir más opciones aquí cuando sea necesario:
-    // { label: 'Pantalón', value: 'pantalon' },
-    // { label: 'Gorra', value: 'gorra' },
-    // { label: 'Delantal', value: 'delantal' },
-  ];
+  public uniformItemTypeOptions = computed(() => {
+    const employee = this.selectedEmployee();
+    return this.uniformTypesService.getOptionsForBranch(employee?.branch?.name);
+  });
 
   // Computed: Calcular el total de horas/días automáticamente
   public compensatoryAmount = computed(() => {
@@ -1703,7 +1712,7 @@ export class BranchManagerGestionesComponent {
   // Obtener el label del tipo de prenda seleccionado
   public getUniformItemTypeLabel(): string {
     const value = this.uniformItemType();
-    const option = this.uniformItemTypeOptions.find((o) => o.value === value);
+    const option = this.uniformItemTypeOptions().find((o) => o.value === value);
     return option?.label || value || 'Prenda';
   }
 
@@ -2342,6 +2351,7 @@ export class BranchManagerGestionesComponent {
   private resetUniformForm(): void {
     this.uniformItemType.set('');
     this.uniformSize.set('M');
+    this.uniformCurrentQuantity.set(0);
     this.uniformQuantity.set(1);
     this.uniformNotes.set('');
   }
@@ -2491,6 +2501,7 @@ export class BranchManagerGestionesComponent {
       const employee = this.selectedEmployee()!;
       const itemType = this.uniformItemType();
       const size = this.uniformSize();
+      const currentQuantity = this.uniformCurrentQuantity();
       const quantity = this.uniformQuantity();
       const notes = this.uniformNotes();
 
@@ -2508,6 +2519,7 @@ export class BranchManagerGestionesComponent {
           item_type: itemType,
           size: size,
           quantity: quantity,
+          current_quantity: currentQuantity,
           branch_id: employee.branch?.id || this.currentBranch?.id || null,
         },
       };

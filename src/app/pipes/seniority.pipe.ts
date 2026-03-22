@@ -6,9 +6,10 @@ import { addYears, differenceInMonths, differenceInYears } from 'date-fns';
   standalone: true,
 })
 export class SeniorityPipe implements PipeTransform {
-  transform(date: Date): string {
-    const years = differenceInYears(new Date(), date);
-    const months = differenceInMonths(new Date(), addYears(date, years));
+  transform(date: Date | string): string {
+    const parsed = typeof date === 'string' ? new Date(date) : date;
+    const years = differenceInYears(new Date(), parsed);
+    const months = differenceInMonths(new Date(), addYears(parsed, years));
     if (years > 0) {
       return `${years} año(s) y ${months} mes(es)`;
     }

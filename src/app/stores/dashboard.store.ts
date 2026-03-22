@@ -25,7 +25,7 @@ import {
 import { checkSalaryAccess } from '../dashboard/pt-permissions/permissions.types';
 import { Branch, Department, Employee, Position } from '../models';
 import { TestModeService } from '../services/test-mode.service';
-import { getEmployeePermission } from '../utils/permission.utils';
+import { getEmployeePermission, isStoreManagerRole } from '../utils/permission.utils';
 import { AuthStore } from './auth.store';
 import { BanksStore } from './banks.store';
 import { BranchesStore } from './branches.store';
@@ -254,7 +254,14 @@ export const DashboardStore = signalStore(
           deptName.includes('administracion') ||
           deptName.includes('administrac');
 
-        return isAdministration;
+        if (isAdministration) return true;
+
+        // Gerentes/Sub Gerentes de tienda pueden asignar horarios
+        if (isStoreManagerRole(isScheduleAdmin(), isAdmin(), employee?.position?.name ?? '')) {
+          return true;
+        }
+
+        return false;
       });
 
       const currentBranch = computed(() => currentEmployee()?.branch);

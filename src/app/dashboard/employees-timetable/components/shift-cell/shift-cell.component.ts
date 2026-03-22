@@ -57,25 +57,23 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         }
         @if (shiftValue?.approved) {
           <span class="font-bold">Aprobado por {{ shiftValue?.approved_by_employee?.first_name ? (shiftValue.approved_by_employee!.first_name + ' ' + shiftValue.approved_by_employee!.father_name) : 'RRHH' }}</span>
-        } @else if (!isStoreManager()) {
+        } @else {
           <span class="italic">Pendiente por aprobacion</span>
         }
       </div>
     </ng-template>
     <p-popover #options>
       <div class="relative">
-        <!-- Icono de auditoría en esquina superior derecha (oculto para gerentes de tienda) -->
-        @if (!isStoreManager()) {
+        <!-- Icono de auditoría en esquina superior derecha -->
         <i
           class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
           pTooltip="Ver historial de auditoría de este día"
           tooltipPosition="left"
           (click)="onViewAudit(); options.hide()"
         ></i>
-        }
         <span class="font-medium block mb-2 pr-6">Opciones</span>
         <ul class="list-non flex flex-col">
-          @if (canManageSchedules() && !isStoreManager()) {
+          @if (canManageSchedules()) {
           <li
             class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
             (click)="onEdit(); options.hide()"
@@ -102,7 +100,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         </ul>
       </div>
     </p-popover>
-    } @else { @if (canManageSchedules() && !isStoreManager()) {
+    } @else { @if (canManageSchedules()) {
     <p-button
       icon="pi pi-plus"
       outlined
@@ -152,11 +150,6 @@ export class ShiftCellComponent {
 
   public handleClick(event: Event): void {
     const shiftValue = this.shift();
-
-    // Gerentes de tienda solo pueden visualizar horarios (sin acciones)
-    if (this.isStoreManager()) {
-      return;
-    }
 
     // Normal mode: toggle popover
     if (this.optionsPopover && shiftValue) {

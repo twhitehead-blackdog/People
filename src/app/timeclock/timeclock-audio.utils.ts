@@ -6,6 +6,41 @@ const PERSONALIZED_SUCCESS_SOUNDS = [
 ];
 const GENERAL_SUCCESS_SOUNDS = ['/sounds/meow.mp3', '/sounds/bark.mp3'];
 
+const _VIP_TRACK = 'https://cdn.pixabay.com/download/audio/2024/11/26/audio_2133d71af7.mp3?filename=benkirb-shine-11-268907.mp3';
+
+export function playMatrixConfirmSound(): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    // Short digital glitch: descending beeps
+    [880, 660, 440, 330].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, now + i * 0.07);
+      g.gain.linearRampToValueAtTime(0.12, now + i * 0.07 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.06);
+      const f = ctx.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = freq;
+      f.Q.value = 3;
+      o.connect(f); f.connect(g); g.connect(ctx.destination);
+      o.start(now + i * 0.07);
+      o.stop(now + i * 0.07 + 0.08);
+    });
+  } catch { /* noop */ }
+}
+
+export function playVipSound(): void {
+  try {
+    const a = new Audio(_VIP_TRACK);
+    a.volume = 0.8;
+    a.play().catch(() => {});
+  } catch { /* noop */ }
+}
+
 let sharedAudioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {

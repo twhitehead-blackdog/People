@@ -21,7 +21,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { format, getHours, getMinutes, getSeconds } from 'date-fns';
+import { differenceInMinutes, format, getHours, getMinutes, getSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import * as OTPAuth from 'otpauth';
@@ -32,7 +32,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
-import { catchError, EMPTY, firstValueFrom, Observable, of } from 'rxjs';
+import { catchError, EMPTY, firstValueFrom, forkJoin, Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
   Branch,
@@ -53,12 +53,16 @@ import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
+import { DogAnimationComponent } from './dashboard/components/dog.component';
+import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import {
   initAudioContext,
   playFailureSound,
   playLateSound,
   playSuccessSound,
   playBirthdaySound,
+  playVipSound,
+  playMatrixConfirmSound,
 } from './timeclock/timeclock-audio.utils';
 import {
   calculateEntryDelay,
@@ -69,6 +73,24 @@ import {
   getAvailableTypes,
   getNextTimelogType,
 } from './timeclock/timeclock-calculations.utils';
+
+interface TimeclockInfoData {
+  entryTime: string | null;
+  scheduledEntryTime: string | null;
+  entryDelayMinutes: number | null;      // >0 = tarde, <0 = temprano, null = sin horario o sin marcación
+  lunchStartTime: string | null;
+  lunchEndTime: string | null;
+  isInLunch: boolean;
+  lunchMinutesRemaining: number | null;
+  lunchMinutesUsed: number | null;
+  lunchAllowedMinutes: number;
+  scheduledExitTime: string | null;
+  minutesToExit: number | null;
+  branchMismatch: boolean;
+  employeeName: string;
+  branchAssigned: string;
+  branchSelected: string;
+}
 
 @Component({
   selector: 'pt-timeclock',
@@ -82,6 +104,8 @@ import {
     ConfirmDialogModule,
     TrimPipe,
     NgClass,
+    NewsTickerComponent,
+    DogAnimationComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
@@ -116,7 +140,8 @@ import {
         <div class="confirm-modal-card"
           [class.confirm-modal-exit]="confirmModalExiting()"
           [class.is-late]="confirmModalData()?.isLate"
-          [class.is-birthday]="confirmModalData()?.isBirthday">
+          [class.is-birthday]="confirmModalData()?.isBirthday"
+          [class.is-matrix]="confirmModalData()?.isMatrix">
 
           <!-- Birthday confetti particles -->
           @if (confirmModalData()?.isBirthday) {
@@ -132,6 +157,14 @@ import {
             @if (confirmModalData()?.isBirthday) {
               <div class="confirm-modal-icon confirm-modal-icon--birthday">
                 <span class="birthday-icon-emoji">🎂</span>
+              </div>
+            } @else if (confirmModalData()?.isMatrix) {
+              <div class="confirm-modal-icon confirm-modal-icon--matrix">
+                <span class="matrix-icon-char">></span>
+              </div>
+            } @else if (confirmModalData()?.isVip) {
+              <div class="confirm-modal-icon confirm-modal-icon--vip">
+                <span class="vip-icon-emoji">{{ getVipFace() }}</span>
               </div>
             } @else if (confirmModalData()?.isLate) {
               <div class="confirm-modal-icon confirm-modal-icon--late">
@@ -201,11 +234,20 @@ import {
           }
 
           <!-- Motivational phrase -->
-          <div class="confirm-modal-phrase-box" [class.birthday-phrase]="confirmModalData()?.isBirthday">
+          <div class="confirm-modal-phrase-box"
+            [class.birthday-phrase]="confirmModalData()?.isBirthday"
+            [class.vip-phrase]="confirmModalData()?.isVip"
+            [class.is-matrix-phrase]="confirmModalData()?.isMatrix">
             @if (confirmModalData()?.isBirthday) {
               <span class="birthday-phrase-icon">🎉</span>
             }
+            @if (confirmModalData()?.isVip) {
+              <span class="vip-phrase-icon">✨</span>
+            }
             "{{ confirmModalData()?.phrase }}"
+            @if (confirmModalData()?.isVip) {
+              <span class="vip-phrase-icon">✨</span>
+            }
             @if (confirmModalData()?.isBirthday) {
               <span class="birthday-phrase-icon">🎉</span>
             }
@@ -220,15 +262,197 @@ import {
         </div>
       </div>
     }
+
+    <!-- Info Modal -->
+    @if (infoModalVisible()) {
+      <div class="info-modal-overlay" (click)="closeInfoModal()">
+        <div class="info-modal-card" (click)="$event.stopPropagation()">
+          <div class="info-modal-header">
+            @if (infoModalStep() === 'pin' || infoModalStep() === 'loading') {
+              <div class="info-modal-title"><i class="pi pi-lock"></i> Verificar identidad</div>
+            } @else if (infoModalData(); as info) {
+              <div class="info-modal-title-name">
+                <div class="info-modal-avatar"><i class="pi pi-user"></i></div>
+                <div>
+                  <div class="info-modal-name">{{ info.employeeName }}</div>
+                  <div class="info-modal-name-sub">Jornada de hoy</div>
+                </div>
+              </div>
+            }
+            <button type="button" class="info-modal-close-btn" (click)="closeInfoModal()"><i class="pi pi-times"></i></button>
+          </div>
+          @if (infoModalStep() === 'pin') {
+            <div class="info-pin-section">
+              <!-- Hidden input captures physical keyboard -->
+              <input #infoPinInput type="tel" inputmode="numeric"
+                     class="info-pin-hidden-input"
+                     [value]="infoOtp()"
+                     maxlength="6"
+                     autocomplete="one-time-code"
+                     (keydown)="onInfoPinKeydown($event)"
+                     (click)="$event.stopPropagation()" />
+              <div class="info-pin-title">
+                Ingrese su PIN
+                <button type="button" class="info-pin-help" (click)="togglePinHelp()">?</button>
+              </div>
+              @if (showPinHelp()) {
+                <div class="info-pin-help-text">
+                  <i class="pi pi-info-circle"></i>
+                  El PIN es el código de 6 dígitos de su app de autenticación (Google Authenticator). Si no tiene uno, contacte a Recursos Humanos.
+                </div>
+              }
+              <div class="info-pin-dots">
+                @for (i of [0,1,2,3,4,5]; track i) {
+                  <div class="info-pin-dot" [class.filled]="infoOtp().length > i" [class.error]="!!infoOtpError()"></div>
+                }
+              </div>
+              @if (infoOtpError()) {
+                <div class="info-pin-error">{{ infoOtpError() }}</div>
+              }
+              <div class="info-keypad">
+                <div class="grid grid-cols-3 gap-2">
+                  @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+                    <button type="button" class="info-keypad-btn" (click)="addDigitToInfoOtp(num)">{{ num }}</button>
+                  }
+                  <button type="button" class="info-keypad-btn info-keypad-clear" (click)="clearInfoOtp()">
+                    <i class="pi pi-ban text-sm"></i>
+                  </button>
+                  <button type="button" class="info-keypad-btn" (click)="addDigitToInfoOtp('0')">0</button>
+                  <button type="button" class="info-keypad-btn info-keypad-del" (click)="deleteFromInfoOtp()">
+                    <i class="pi pi-delete-left text-sm"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          } @else if (infoModalStep() === 'loading') {
+            <div class="info-modal-loading">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Cargando...</span>
+            </div>
+          } @else if (infoModalStep() === 'info' && infoModalData(); as info) {
+            @if (info.branchMismatch) {
+              <div class="info-branch-warning">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div>
+                  <div class="font-semibold">Sucursal no coincide</div>
+                  <div class="text-xs mt-0.5">Asignada: <strong>{{ info.branchAssigned }}</strong></div>
+                  <div class="text-xs">Seleccionada: <strong>{{ info.branchSelected }}</strong></div>
+                </div>
+              </div>
+            }
+            <div class="info-rows">
+              <!-- Entrada -->
+              <div class="info-row">
+                <div class="info-row-icon entry-icon" [ngClass]="info.entryDelayMinutes !== null && info.entryDelayMinutes > 0 ? 'entry-late' : ''">
+                  <i class="pi pi-sign-in"></i>
+                </div>
+                <div style="flex:1">
+                  <div class="info-row-label">Entrada</div>
+                  <div class="info-row-val-row">
+                    @if (info.entryTime) {
+                      <span class="info-row-val">{{ info.entryTime }}</span>
+                    } @else {
+                      <span class="info-row-val muted-val">Sin marcar</span>
+                    }
+                    @if (info.scheduledEntryTime) {
+                      <span class="info-scheduled">· prog. {{ info.scheduledEntryTime }}</span>
+                    }
+                  </div>
+                  @if (info.entryDelayMinutes !== null) {
+                    @if (info.entryDelayMinutes > 0) {
+                      <div class="info-row-sub warn-text">
+                        <i class="pi pi-clock" style="font-size:0.65rem"></i>
+                        Tarde {{ info.entryDelayMinutes }} min
+                      </div>
+                    } @else if (info.entryDelayMinutes < 0) {
+                      <div class="info-row-sub ok-text">
+                        <i class="pi pi-check" style="font-size:0.65rem"></i>
+                        A tiempo ({{ absMinutes(info.entryDelayMinutes) }} min antes)
+                      </div>
+                    } @else {
+                      <div class="info-row-sub ok-text">A tiempo</div>
+                    }
+                  }
+                </div>
+              </div>
+              <!-- Almuerzo -->
+              <div class="info-row">
+                <div class="info-row-icon lunch-icon" [ngClass]="{'lunch-active': info.isInLunch}"><i class="pi pi-sun"></i></div>
+                <div style="flex:1">
+                  <div class="info-row-label">Almuerzo</div>
+                  @if (!info.lunchStartTime) {
+                    <div class="info-row-val muted-val">No iniciado</div>
+                  } @else if (info.isInLunch) {
+                    <div class="info-row-val">Desde {{ info.lunchStartTime }}</div>
+                    @if (info.lunchMinutesRemaining !== null) {
+                      <div class="info-row-sub" [ngClass]="info.lunchMinutesRemaining > 0 ? 'ok-text' : 'warn-text'">
+                        @if (info.lunchMinutesRemaining > 0) {
+                          {{ info.lunchMinutesRemaining }} min restantes
+                        } @else {
+                          Tiempo de almuerzo agotado
+                        }
+                      </div>
+                    }
+                  } @else {
+                    <div class="info-row-val">{{ info.lunchStartTime }} → {{ info.lunchEndTime }}</div>
+                    @if (info.lunchMinutesUsed !== null) {
+                      <div class="info-row-sub" [ngClass]="info.lunchMinutesUsed > info.lunchAllowedMinutes ? 'warn-text' : 'muted-text'">
+                        {{ info.lunchMinutesUsed }} / {{ info.lunchAllowedMinutes }} min
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+              <!-- Salida -->
+              <div class="info-row">
+                <div class="info-row-icon exit-icon"><i class="pi pi-sign-out"></i></div>
+                <div>
+                  <div class="info-row-label">Salida programada</div>
+                  @if (info.scheduledExitTime) {
+                    <div class="info-row-val">{{ info.scheduledExitTime }}</div>
+                    @if (info.minutesToExit !== null) {
+                      <div class="info-row-sub" [ngClass]="info.minutesToExit >= 0 ? 'ok-text' : 'warn-text'">
+                        @if (info.minutesToExit > 0) {
+                          Faltan {{ info.minutesToExit }} min
+                        } @else if (info.minutesToExit === 0) {
+                          Es hora de salir
+                        } @else {
+                          {{ absMinutes(info.minutesToExit) }} min de sobretiempo
+                        }
+                      </div>
+                    }
+                  } @else {
+                    <div class="info-row-val muted-val">Sin horario asignado</div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
       [ngClass]="{
         'naz-theme': isNazCompany(),
         'blackdog-theme': isBlackDogCompany(),
-        'timeclock-mobile-kiosk': isMobileKiosk()
+        'timeclock-mobile-kiosk': isMobileKiosk(),
+        'matrix-mode': matrixMode()
       }"
       style="width: 100%; position: relative;"
     >
+      <!-- Matrix rain canvas -->
+      <canvas #matrixCanvas class="matrix-canvas" [class.matrix-canvas--active]="matrixMode()" aria-hidden="true"></canvas>
+
+      <!-- Animated background orbs -->
+      <div class="bg-orbs" aria-hidden="true">
+        <div class="bg-orb bg-orb--1"></div>
+        <div class="bg-orb bg-orb--2"></div>
+        <div class="bg-orb bg-orb--3"></div>
+        <div class="bg-orb bg-orb--4"></div>
+      </div>
+
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
       <div
         class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
@@ -240,10 +464,14 @@ import {
           style="max-width: 90%; height: auto;"
         />
         }
-        <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
+        <pt-news-ticker class="w-full max-w-lg" [variant]="isKioskMode() ? 'kiosk' : 'default'" />
+        <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10" [class.special-mode]="specialMode()" [class.matrix-card]="matrixMode()">
           <ng-template #title>
-            <div class="flex flex-col items-center py-1">
-              <div class="clock-hero-time" [class.blackdog-accent]="isBlackDogCompany()">
+            <div class="flex flex-col items-center py-1 gap-1">
+              <div class="greeting-msg" [class.greeting-special]="greetingMessage().text.startsWith('¡')">
+                {{ greetingMessage().text }}
+              </div>
+              <div class="clock-hero-time" [class.blackdog-accent]="isBlackDogCompany()" [class.special-pulse]="specialMode()" [class.matrix-time]="matrixMode()">
                 {{ formattedTime() }}
               </div>
               <div class="clock-hero-date">
@@ -321,6 +549,15 @@ import {
                 </ng-template>
               </p-select>
             </div>
+
+            <!-- Branch mismatch warning (standalone, no button here) -->
+            @if (showInfoButton() && branchMismatch()) {
+              <div class="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>La sucursal no coincide con la del empleado</span>
+              </div>
+            }
+
             <div class="input-container w-full">
               <p-select
                 formControlName="type"
@@ -359,23 +596,19 @@ import {
                 >
                   <i class="pi pi-clipboard"></i>
                 </button>
-                <!-- Desktop: on-screen keyboard toggle -->
-                <button
-                  type="button"
-                  class="paste-btn hidden md:flex"
-                  (click)="toggleKeypad()"
-                  [title]="showKeypadPanel() ? 'Ocultar teclado' : 'Teclado en pantalla'"
-                >
-                  <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-times' : 'pi-th-large'"></i>
-                </button>
               </div>
 
-              <!-- Mobile only: Keypad toggle -->
-              <div class="w-full flex gap-2 mt-1 md:hidden">
+              <!-- Keypad toggle + Info button (all sizes) -->
+              <div class="w-full flex items-center gap-2 mt-1">
                 <button type="button" class="keypad-toggle-btn flex-1" (click)="toggleKeypad()">
                   <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-chevron-up' : 'pi-th-large'"></i>
-                  {{ showKeypadPanel() ? 'Ocultar' : 'Teclado' }}
+                  {{ showKeypadPanel() ? 'Ocultar teclado' : 'Teclado numérico' }}
                 </button>
+                @if (showInfoButton()) {
+                  <button type="button" class="info-btn" (click)="openInfoModal()" title="Ver estado del día">
+                    <i class="pi pi-info-circle"></i>
+                  </button>
+                }
               </div>
               @if (showKeypadPanel()) {
               <div class="keypad-grid w-full max-w-[280px] mx-auto" style="animation: slideDown 0.25s ease-out;">
@@ -461,6 +694,9 @@ import {
         </div>
       </div>
       }
+
+      <!-- Walking dog at the bottom -->
+      <pt-dog-animation></pt-dog-animation>
     </div>`,
   styles: `
     :host {
@@ -502,29 +738,83 @@ import {
       background: #08080c;
     }
 
-    /* Subtle ambient glow blobs */
-    .animated-gradient-container::before,
-    .animated-gradient-container::after {
-      content: '';
+    /* ============================================
+       ANIMATED BACKGROUND ORBS
+       ============================================ */
+    .bg-orbs {
       position: fixed;
-      border-radius: 50%;
-      filter: blur(120px);
-      pointer-events: none;
+      inset: 0;
       z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
     }
-    .animated-gradient-container::before {
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 1;
+      will-change: transform;
+    }
+    .bg-orb--1 {
       width: 500px;
       height: 500px;
-      background: radial-gradient(circle, rgba(107, 114, 128, 0.06), transparent 70%);
-      top: -150px;
-      left: -150px;
+      background: radial-gradient(circle, rgba(247, 177, 4, 0.30), transparent 70%);
+      top: -10%;
+      left: -8%;
+      animation: orb-drift-1 18s ease-in-out infinite alternate;
     }
-    .animated-gradient-container::after {
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(107, 114, 128, 0.04), transparent 70%);
-      bottom: -100px;
-      right: -100px;
+    .bg-orb--2 {
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.22), transparent 70%);
+      bottom: -5%;
+      right: -6%;
+      animation: orb-drift-2 22s ease-in-out infinite alternate;
+    }
+    .bg-orb--3 {
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.20), transparent 70%);
+      top: 40%;
+      left: 50%;
+      animation: orb-drift-3 25s ease-in-out infinite alternate;
+    }
+    .bg-orb--4 {
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(247, 177, 4, 0.16), transparent 70%);
+      top: 60%;
+      right: 30%;
+      animation: orb-drift-4 20s ease-in-out infinite alternate;
+    }
+    @keyframes orb-drift-1 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(12vw, 18vh) scale(1.15); }
+      100% { transform: translate(-5vw, 10vh) scale(0.9); }
+    }
+    @keyframes orb-drift-2 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(-15vw, -12vh) scale(1.1); }
+      100% { transform: translate(8vw, -18vh) scale(0.95); }
+    }
+    @keyframes orb-drift-3 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(-10vw, 8vh) scale(1.2); }
+      100% { transform: translate(6vw, -6vh) scale(0.85); }
+    }
+    @keyframes orb-drift-4 {
+      0%   { transform: translate(0, 0) scale(1); }
+      50%  { transform: translate(10vw, -10vh) scale(1.1); }
+      100% { transform: translate(-8vw, 5vh) scale(1.05); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bg-orb { animation: none !important; }
+    }
+    @media (max-width: 640px) {
+      .bg-orb--1 { width: 250px; height: 250px; }
+      .bg-orb--2 { width: 200px; height: 200px; }
+      .bg-orb--3 { width: 180px; height: 180px; }
+      .bg-orb--4 { width: 150px; height: 150px; }
     }
 
     /* Thin scrollbar */
@@ -1646,12 +1936,13 @@ import {
     }
 
     .confirm-modal-time {
-      font-size: 2.25rem;
+      font-size: clamp(1.25rem, 5vw, 2rem);
       font-weight: 800;
       text-align: center;
       margin-top: -0.1rem;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.01em;
+      white-space: nowrap;
       animation: timeReveal 0.5s ease-out 0.2s both;
     }
 
@@ -1941,6 +2232,214 @@ import {
       100% { background-position: 300% 0%; }
     }
 
+    /* ====== SPECIAL ENTRY ====== */
+    .confirm-modal-icon--vip {
+      background: linear-gradient(135deg, rgba(251,191,36,0.25) 0%, rgba(234,179,8,0.15) 50%, rgba(252,211,77,0.2) 100%);
+      border: 1.5px solid rgba(251,191,36,0.5);
+      box-shadow: 0 0 40px rgba(251,191,36,0.4), 0 0 80px rgba(250,204,21,0.15);
+      backdrop-filter: blur(8px);
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22, 1, 0.36, 1), vipGlow 2s ease-in-out infinite;
+    }
+    .vip-icon-emoji {
+      font-size: 2.75rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 12px rgba(251,191,36,0.7));
+      animation: vipBounce 0.8s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes vipGlow {
+      0%, 100% { box-shadow: 0 0 40px rgba(251,191,36,0.4), 0 0 80px rgba(250,204,21,0.15); }
+      50%       { box-shadow: 0 0 60px rgba(251,191,36,0.6), 0 0 120px rgba(250,204,21,0.25); }
+    }
+    @keyframes vipBounce {
+      0%   { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+      60%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); }
+    }
+    .confirm-modal-phrase-box.vip-phrase {
+      background: linear-gradient(135deg, rgba(251,191,36,0.12) 0%, rgba(234,179,8,0.06) 100%);
+      border-color: rgba(251,191,36,0.3);
+      color: rgba(253,224,71,0.95);
+      font-style: italic;
+    }
+    .vip-phrase-icon { font-style: normal; }
+
+    /* ── Matrix confirmation modal ── */
+    .confirm-modal-card.is-matrix {
+      background: rgba(0, 10, 0, 0.97) !important;
+      border: 1px solid #00cc44 !important;
+      box-shadow: 0 0 40px rgba(0,204,68,0.35), inset 0 0 30px rgba(0,204,68,0.05) !important;
+      font-family: 'Courier New', monospace !important;
+    }
+    .confirm-modal-card.is-matrix .confirm-modal-title,
+    .confirm-modal-card.is-matrix .confirm-modal-time {
+      color: #00ff55 !important;
+      font-family: 'Courier New', monospace !important;
+      letter-spacing: 0.05em;
+    }
+    .confirm-modal-icon--matrix {
+      background: rgba(0,30,0,0.8);
+      border: 1.5px solid #00cc44;
+      box-shadow: 0 0 30px rgba(0,204,68,0.4);
+      animation: confirmIconPulse 0.7s cubic-bezier(0.22,1,0.36,1), matrixIconGlow 1.5s ease-in-out infinite;
+    }
+    @keyframes matrixIconGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0,204,68,0.4); }
+      50%       { box-shadow: 0 0 40px rgba(0,255,85,0.7); }
+    }
+    .matrix-icon-char {
+      font-size: 2.5rem;
+      font-family: 'Courier New', monospace;
+      color: #00ff55;
+      font-weight: bold;
+      text-shadow: 0 0 12px rgba(0,255,85,0.8);
+      animation: matrixCursorBlink 0.8s step-end infinite;
+    }
+    @keyframes matrixCursorBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+    .confirm-modal-phrase-box.is-matrix-phrase {
+      background: rgba(0,30,0,0.6);
+      border-color: rgba(0,204,68,0.3);
+      color: #00cc44;
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.03em;
+    }
+    .confirm-modal-card.is-matrix .confirm-modal-progress-bar {
+      background: linear-gradient(90deg, #003300, #00cc44, #00ff55) !important;
+      box-shadow: 0 0 8px rgba(0,255,85,0.5);
+    }
+
+    /* ====== SMOOTH TRANSITIONS ====== */
+    .timeclock-card {
+      transition: background 0.7s ease, border-color 0.7s ease, box-shadow 0.7s ease !important;
+    }
+    .clock-hero-time {
+      transition: color 0.6s ease, text-shadow 0.6s ease, font-family 0.4s ease;
+    }
+    .greeting-msg, .clock-hero-date, .clock-subtitle {
+      transition: color 0.6s ease, font-family 0.4s ease;
+    }
+    .animated-gradient-container {
+      transition: background 0.9s ease;
+    }
+
+    /* ====== MATRIX MODE ====== */
+    .matrix-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+    .matrix-canvas--active {
+      opacity: 0.6;
+    }
+    .matrix-mode .bg-orbs { display: none; }
+    .matrix-mode.animated-gradient-container {
+      background: #000 !important;
+      transition: background 0.8s ease;
+    }
+    .matrix-card {
+      background: rgba(0,15,0,0.82) !important;
+      border-color: #00cc44 !important;
+      box-shadow: 0 0 40px rgba(0,204,68,0.3), inset 0 0 30px rgba(0,204,68,0.07) !important;
+    }
+    .matrix-card ::ng-deep .p-card {
+      background: transparent !important;
+    }
+    .matrix-card.special-mode::after { display: none; }
+    .matrix-card.special-mode::before { display: none; }
+    .matrix-time {
+      color: #00ff55 !important;
+      font-family: 'Courier New', monospace !important;
+      letter-spacing: 0.05em !important;
+      text-shadow: 0 0 10px rgba(0,255,85,0.7) !important;
+      animation: matrixTimePulse 1.8s ease-in-out infinite !important;
+    }
+    @keyframes matrixTimePulse {
+      0%, 100% { text-shadow: 0 0 10px rgba(0,255,85,0.7); }
+      50%       { text-shadow: 0 0 28px rgba(0,255,85,1), 0 0 50px rgba(0,255,85,0.4); }
+    }
+    .matrix-mode .greeting-msg,
+    .matrix-mode .clock-hero-date,
+    .matrix-mode .clock-subtitle {
+      color: #00cc44 !important;
+      font-family: 'Courier New', monospace !important;
+    }
+    .matrix-mode ::ng-deep .p-select,
+    .matrix-mode ::ng-deep .p-select .p-select-label,
+    .matrix-mode ::ng-deep .p-inputotp-input {
+      border-color: #00cc44 !important;
+      color: #00ff55 !important;
+      background: rgba(0,15,0,0.7) !important;
+    }
+    .matrix-mode pt-news-ticker ::ng-deep * {
+      color: #00cc44 !important;
+      font-family: 'Courier New', monospace !important;
+      border-color: rgba(0,204,68,0.3) !important;
+      background: rgba(0,15,0,0.8) !important;
+    }
+    .matrix-card ::ng-deep .p-button {
+      background: rgba(0,180,60,0.15) !important;
+      border: 1px solid #00cc44 !important;
+      color: #00ff55 !important;
+      box-shadow: 0 0 14px rgba(0,204,68,0.3) !important;
+      font-family: 'Courier New', monospace !important;
+    }
+    .matrix-card ::ng-deep .p-button:not(:disabled):hover {
+      background: rgba(0,204,68,0.28) !important;
+      box-shadow: 0 0 24px rgba(0,255,85,0.55) !important;
+    }
+
+    /* ====== SPECIAL SELECTION MODE ====== */
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+    .timeclock-card.special-mode {
+      border-color: transparent !important;
+      position: relative;
+      isolation: isolate;
+    }
+    .timeclock-card.special-mode::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 30px;
+      background: conic-gradient(
+        from var(--angle, 0deg),
+        transparent 0%,
+        rgba(251,191,36,0.4) 3%,
+        rgba(251,191,36,1) 6%,
+        rgba(251,191,36,0.4) 9%,
+        transparent 12%
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      padding: 2px;
+      z-index: 1;
+      animation: specialBorderSpin 5s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes specialBorderSpin {
+      to { --angle: 360deg; }
+    }
+
+    .clock-hero-time.special-pulse {
+      animation: specialTimePulse 2.5s ease-in-out infinite !important;
+    }
+    @keyframes specialTimePulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.75; }
+    }
+
     /* ====== CONFETTI ====== */
     .confetti-container {
       position: absolute;
@@ -2041,6 +2540,247 @@ import {
       }
     }
 
+    /* ============================================
+       INFO BUTTON
+       ============================================ */
+    .info-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.08);
+      color: rgba(251, 191, 36, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+    .info-btn:hover {
+      background: rgba(251, 191, 36, 0.18);
+      border-color: rgba(251, 191, 36, 0.6);
+      color: #fbbf24;
+      transform: scale(1.08);
+    }
+    .info-btn:active { transform: scale(0.95); }
+
+    /* ============================================
+       INFO MODAL
+       ============================================ */
+    .info-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(10px);
+      padding: 1rem;
+      animation: confirmOverlayIn 0.25s ease-out;
+    }
+    .info-modal-card {
+      background: linear-gradient(165deg, rgba(28, 28, 35, 0.97) 0%, rgba(18, 18, 22, 0.99) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 20px;
+      padding: 1.25rem 1.25rem 1.5rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(251, 191, 36, 0.05);
+      animation: confirmCardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .info-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .info-modal-title {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5);
+    }
+    .info-modal-title-name {
+      display: flex; align-items: center; gap: 0.65rem;
+    }
+    .info-modal-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(251,191,36,0.12);
+      border: 1px solid rgba(251,191,36,0.25);
+      display: flex; align-items: center; justify-content: center;
+      color: #fbbf24; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .info-modal-name {
+      font-size: 0.9rem; font-weight: 700; color: #f3f4f6; line-height: 1.2;
+    }
+    .info-modal-name-sub {
+      font-size: 0.68rem; color: rgba(255,255,255,0.38); font-weight: 400;
+    }
+    .info-modal-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 0.72rem;
+    }
+    .info-modal-close-btn:hover { background: rgba(255, 255, 255, 0.12); color: white; }
+    .info-employee-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e5e7eb;
+      text-align: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .info-branch-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      border-radius: 10px;
+      color: #fb923c;
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+    .info-branch-warning i { margin-top: 1px; flex-shrink: 0; }
+    .info-rows { display: flex; flex-direction: column; gap: 0.6rem; }
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+    }
+    .info-row-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .info-row-val-row { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; }
+    .info-scheduled { font-size: 0.72rem; color: rgba(255,255,255,0.35); font-weight: 400; }
+    .entry-icon { background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.2); }
+    .entry-late { background: rgba(248, 113, 113, 0.12) !important; color: #f87171 !important; border-color: rgba(248, 113, 113, 0.25) !important; }
+    .lunch-icon { background: rgba(251, 191, 36, 0.08); color: rgba(251, 191, 36, 0.6); border: 1px solid rgba(251, 191, 36, 0.15); }
+    .lunch-active { background: rgba(251, 191, 36, 0.2) !important; color: #fbbf24 !important; border-color: rgba(251, 191, 36, 0.4) !important; animation: lunchPulse 2s ease-in-out infinite; }
+    @keyframes lunchPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.3); }
+      50% { box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1); }
+    }
+    .exit-icon { background: rgba(96, 165, 250, 0.1); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.2); }
+    .info-row-label { font-size: 0.68rem; color: rgba(255, 255, 255, 0.38); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; margin-bottom: 0.15rem; }
+    .info-row-val { font-size: 0.88rem; font-weight: 600; color: #e5e7eb; }
+    .muted-val { color: rgba(255, 255, 255, 0.28); font-weight: 400; }
+    .info-row-sub { font-size: 0.73rem; margin-top: 0.15rem; }
+    .ok-text { color: #34d399; }
+    .warn-text { color: #f87171; }
+    .muted-text { color: rgba(255, 255, 255, 0.32); }
+    .info-modal-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 2rem 1rem; color: rgba(255, 255, 255, 0.45); font-size: 0.85rem; }
+    .info-modal-loading i { font-size: 1.5rem; color: #fbbf24; }
+
+    /* PIN step */
+    /* Greeting */
+    .greeting-msg {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.45);
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
+    .greeting-special {
+      color: #fbbf24;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+    }
+
+    .info-pin-hidden-input {
+      position: absolute; opacity: 0; pointer-events: none;
+      width: 1px; height: 1px; overflow: hidden;
+    }
+    .info-pin-section { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding-top: 0.25rem; }
+    .info-pin-title {
+      font-size: 0.85rem; color: rgba(255,255,255,0.5); font-weight: 500;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .info-pin-help {
+      width: 17px; height: 17px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.45);
+      font-size: 0.68rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .info-pin-help:hover, .info-pin-help:active {
+      border-color: rgba(251,191,36,0.5);
+      background: rgba(251,191,36,0.1);
+      color: #fbbf24;
+    }
+    .info-pin-help-text {
+      display: flex; gap: 0.5rem; align-items: flex-start;
+      background: rgba(251,191,36,0.07);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 10px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.45;
+      max-width: 260px;
+      text-align: left;
+      animation: slideDown 0.2s ease-out;
+    }
+    .info-pin-help-text i { color: #fbbf24; flex-shrink: 0; margin-top: 1px; }
+    .info-pin-dots { display: flex; gap: 0.6rem; }
+    .info-pin-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+    .info-pin-dot.filled {
+      background: #fbbf24;
+      border-color: #fbbf24;
+      box-shadow: 0 0 8px rgba(251,191,36,0.5);
+    }
+    .info-pin-dot.error {
+      border-color: #f87171;
+    }
+    .info-pin-error { font-size: 0.78rem; color: #f87171; text-align: center; min-height: 1.1em; }
+    .info-keypad { width: 100%; max-width: 260px; }
+    .info-keypad-btn {
+      width: 100%; height: 46px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.85);
+      font-size: 1.1rem; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .info-keypad-btn:hover { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.3); color: #fbbf24; }
+    .info-keypad-btn:active { transform: scale(0.93); }
+    .info-keypad-clear { color: rgba(255,255,255,0.4); }
+    .info-keypad-clear:hover { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.3) !important; color: #f87171 !important; }
+    .info-keypad-del { color: rgba(255,255,255,0.5); }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -2093,11 +2833,39 @@ export class TimeclockComponent implements OnDestroy {
     typeLabel: string;
     time: string;
     isBirthday: boolean;
+    isVip: boolean;
+    isMatrix: boolean;
     employeeName: string;
     isLunchOvertime: boolean;
     lunchExceededMinutes: number;
   } | null>(null);
   private confirmModalTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // Info modal signals
+  public infoModalVisible = signal(false);
+  public infoModalStep = signal<'pin' | 'loading' | 'info'>('pin');
+  public infoModalData = signal<TimeclockInfoData | null>(null);
+  public infoOtp = signal<string>('');
+  public infoOtpError = signal<string>('');
+  public showPinHelp = signal(false);
+  public isLoadingInfo = signal(false);
+  public selectedEmployee = signal<Partial<Employee> | undefined>(undefined);
+  public specialMode = signal(false);
+  public matrixMode = signal(false);
+  @ViewChild('matrixCanvas') private matrixCanvas?: ElementRef<HTMLCanvasElement>;
+  private matrixRaf?: number;
+  private matrixCols: number[] = [];
+  private matrixAudio?: HTMLAudioElement;
+  public selectedBranchId = signal<string>('');
+
+  public branchMismatch = computed(() => {
+    const employee = this.selectedEmployee();
+    const branchId = this.selectedBranchId() || this.form.get('branch_id')?.value || '';
+    if (!employee?.branch_id || !branchId) return false;
+    return employee.branch_id !== branchId;
+  });
+
+  public showInfoButton = computed(() => !!this.selectedEmployee());
 
   private injector = inject(Injector);
   private timeInterval: any;
@@ -2267,6 +3035,11 @@ export class TimeclockComponent implements OnDestroy {
     // Auto-detect timelog type when employee is selected
     this.form.get('employee')?.valueChanges.subscribe((employee) => {
       this.onEmployeeSelected(employee);
+    });
+
+    // Track selected branch for info modal / branch mismatch
+    this.form.get('branch_id')?.valueChanges.subscribe((branchId) => {
+      this.selectedBranchId.set(branchId || '');
     });
 
     // Clear employee selection when company changes
@@ -2566,6 +3339,30 @@ export class TimeclockComponent implements OnDestroy {
     return format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   });
 
+  // Greeting message above the clock
+  greetingMessage = computed(() => {
+    const now = toZonedTime(this.currentTime(), this.DISPLAY_TIMEZONE);
+    const hour = now.getHours();
+    const day = now.getDay();       // 0=dom, 1=lun, ..., 5=vie, 6=sáb
+    const date = now.getDate();
+    const month = now.getMonth();   // 0-based
+    // Last day of month
+    const lastDay = new Date(now.getFullYear(), month + 1, 0).getDate();
+
+    // Quincena: 15 or last day of month
+    if (date === 15 || date === lastDay) {
+      return { text: '¡Feliz día de quincena! 💰', sub: null };
+    }
+    // Time of day greeting
+    if (hour >= 5 && hour < 12) {
+      return { text: '☀️ ¡Buenos días!', sub: null };
+    } else if (hour >= 12 && hour < 19) {
+      return { text: '🌤️ ¡Buenas tardes!', sub: null };
+    } else {
+      return { text: '🌙 ¡Buenas noches!', sub: null };
+    }
+  });
+
   // Get IP - always returns a valid IP (localhost in dev)
   public getIP = computed(() => {
     return this.currentIP() || '127.0.0.1';
@@ -2659,7 +3456,7 @@ export class TimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri,birth_date',
+      select: 'id,first_name,father_name,code_uri,birth_date,branch_id,gender',
       order: 'father_name',
       is_active: 'eq.true',
     };
@@ -2854,6 +3651,7 @@ export class TimeclockComponent implements OnDestroy {
   });
 
   @ViewChild('otpInput') otpInput?: ElementRef;
+  @ViewChild('infoPinInput') infoPinInput?: ElementRef<HTMLInputElement>;
 
   onEnterKey(event: KeyboardEvent) {
     event.preventDefault();
@@ -2864,27 +3662,42 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   onEmployeeSelected(employee: Employee | undefined) {
-    // Inicializar audio con interacción del usuario
+    this.selectedEmployee.set(employee);
     initAudioContext();
-    
+
     if (employee?.id) {
+      const fxId = employee.id;
+      firstValueFrom(this.http.post<{ v: boolean; m: boolean }>('/api/fx', { id: fxId }))
+        .then(r => {
+          // Ignore if a different employee was selected (or deselected) while request was in flight
+          if (this.form.get('employee')?.value?.id !== fxId) return;
+          this.specialMode.set(r?.v === true);
+          const mx = r?.m === true;
+          this.matrixMode.set(mx);
+          document.body.classList.toggle('matrix-active', mx);
+          if (mx) setTimeout(() => this.startMatrix(), 50);
+          else this.stopMatrix();
+        })
+        .catch(() => { this.specialMode.set(false); this.stopMatrix(); });
+
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
           const nextType = this.getNextTimelogType(lastTimelog?.type || null);
           this.updateAvailableTypes(lastTimelog?.type || null);
           this.form.get('type')?.setValue(nextType);
-          // Focus OTP input when employee is selected
           this.focusOtpInput();
         },
         error: () => {
-          // Default to entry if error
           this.updateAvailableTypes(null);
           this.form.get('type')?.setValue('entry');
-          // Focus OTP input when employee is selected
           this.focusOtpInput();
         },
       });
     } else {
+      this.specialMode.set(false);
+      this.matrixMode.set(false);
+      document.body.classList.remove('matrix-active');
+      this.stopMatrix();
       this.updateAvailableTypes(null);
     }
   }
@@ -2907,6 +3720,210 @@ export class TimeclockComponent implements OnDestroy {
         firstInput.focus();
       }
     }, 100);
+  }
+
+  absMinutes(n: number): number {
+    return Math.abs(n);
+  }
+
+  closeInfoModal(): void {
+    this.infoModalVisible.set(false);
+    this.infoModalData.set(null);
+    this.infoOtp.set('');
+    this.infoOtpError.set('');
+    this.infoModalStep.set('pin');
+    this.showPinHelp.set(false);
+  }
+
+  openInfoModal(): void {
+    const employee = this.selectedEmployee();
+    if (!employee?.id) return;
+    this.infoOtp.set('');
+    this.infoOtpError.set('');
+    this.infoModalData.set(null);
+    this.infoModalStep.set('pin');
+    this.infoModalVisible.set(true);
+    setTimeout(() => this.infoPinInput?.nativeElement?.focus(), 80);
+  }
+
+  onInfoPinKeydown(event: KeyboardEvent): void {
+    if (this.infoModalStep() !== 'pin') return;
+    if (event.key >= '0' && event.key <= '9') {
+      event.preventDefault();
+      this.addDigitToInfoOtp(event.key);
+    } else if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      this.deleteFromInfoOtp();
+    } else if (event.key === 'Escape') {
+      this.closeInfoModal();
+    }
+  }
+
+  addDigitToInfoOtp(digit: string): void {
+    if (this.infoOtp().length < 6) {
+      this.infoOtp.update(v => v + digit);
+      this.infoOtpError.set('');
+      if (this.infoOtp().length === 6) {
+        this.validateInfoOtp();
+      }
+    }
+    this.infoPinInput?.nativeElement?.focus();
+  }
+
+  deleteFromInfoOtp(): void {
+    this.infoOtp.update(v => v.slice(0, -1));
+    this.infoOtpError.set('');
+    this.infoPinInput?.nativeElement?.focus();
+  }
+
+  clearInfoOtp(): void {
+    this.infoOtp.set('');
+    this.infoOtpError.set('');
+    this.infoPinInput?.nativeElement?.focus();
+  }
+
+  togglePinHelp(): void {
+    this.showPinHelp.update(v => !v);
+  }
+
+  validateInfoOtp(): void {
+    const employee = this.selectedEmployee();
+    if (!employee?.code_uri) {
+      this.infoOtpError.set('Empleado sin PIN configurado');
+      return;
+    }
+    const otp = this.infoOtp();
+    if (otp.length !== 6) return;
+
+    const totp = OTPAuth.URI.parse(employee.code_uri);
+    const validation = totp.validate({ token: otp });
+    if (validation === null) {
+      playFailureSound();
+      this.infoOtpError.set('Código incorrecto');
+      this.infoOtp.set('');
+      return;
+    }
+    this.infoModalStep.set('loading');
+    this.loadTimeclockInfo();
+  }
+
+  private loadTimeclockInfo(): void {
+    const employee = this.selectedEmployee();
+    if (!employee?.id) return;
+
+    forkJoin({
+      timelogs: this.getTodayTimelogsForInfo(employee.id),
+      schedule: this.getEmployeeScheduleForInfo(employee.id),
+    }).subscribe(({ timelogs, schedule }) => {
+
+      const now = new Date();
+      const entryLog = timelogs.find(t => t.type === 'entry');
+      const lunchStartLog = timelogs.find(t => t.type === 'lunch_start');
+      const lunchEndLog = timelogs.find(t => t.type === 'lunch_end');
+
+      const entryTime = entryLog ? format(new Date(entryLog.created_at), 'h:mm aaa') : null;
+      const lunchStartTime = lunchStartLog ? format(new Date(lunchStartLog.created_at), 'h:mm aaa') : null;
+      const lunchEndTime = lunchEndLog ? format(new Date(lunchEndLog.created_at), 'h:mm aaa') : null;
+
+      const isInLunch = !!lunchStartLog && !lunchEndLog;
+      const lunchAllowedMinutes = 60;
+      let lunchMinutesRemaining: number | null = null;
+      let lunchMinutesUsed: number | null = null;
+
+      if (lunchStartLog) {
+        const lunchStart = new Date(lunchStartLog.created_at);
+        if (isInLunch) {
+          const elapsed = differenceInMinutes(now, lunchStart);
+          lunchMinutesRemaining = Math.max(0, lunchAllowedMinutes - elapsed);
+        } else if (lunchEndLog) {
+          lunchMinutesUsed = differenceInMinutes(new Date(lunchEndLog.created_at), lunchStart);
+        }
+      }
+
+      // Scheduled entry comparison
+      let scheduledEntryTime: string | null = null;
+      let entryDelayMinutes: number | null = null;
+
+      if (schedule?.entry_time) {
+        const [eh, em] = schedule.entry_time.split(':').map(Number);
+        const scheduledEntry = new Date();
+        scheduledEntry.setHours(eh, em, 0, 0);
+        scheduledEntryTime = format(scheduledEntry, 'h:mm aaa');
+        if (entryLog) {
+          entryDelayMinutes = differenceInMinutes(new Date(entryLog.created_at), scheduledEntry);
+        }
+      }
+
+      let scheduledExitTime: string | null = null;
+      let minutesToExit: number | null = null;
+
+      if (schedule?.exit_time) {
+        const [h, m] = schedule.exit_time.split(':').map(Number);
+        const scheduledExit = new Date();
+        scheduledExit.setHours(h, m, 0, 0);
+        scheduledExitTime = format(scheduledExit, 'h:mm aaa');
+        minutesToExit = differenceInMinutes(scheduledExit, now);
+      }
+
+      const branches = this.currentBranchesResource();
+      const assignedBranch = branches?.find(b => b.id === employee.branch_id);
+      const currentBranchId = this.selectedBranchId() || this.form.get('branch_id')?.value || '';
+      const selectedBranch = branches?.find(b => b.id === currentBranchId);
+
+      this.infoModalData.set({
+        entryTime,
+        scheduledEntryTime,
+        entryDelayMinutes,
+        lunchStartTime,
+        lunchEndTime,
+        isInLunch,
+        lunchMinutesRemaining,
+        lunchMinutesUsed,
+        lunchAllowedMinutes,
+        scheduledExitTime,
+        minutesToExit,
+        branchMismatch: this.branchMismatch(),
+        employeeName: `${employee.first_name} ${employee.father_name}`.trim(),
+        branchAssigned: assignedBranch?.name || 'No asignada',
+        branchSelected: selectedBranch?.name || 'Desconocida',
+      });
+      this.infoModalStep.set('info');
+    });
+  }
+
+  private getTodayTimelogsForInfo(employeeId: string): Observable<TimeLog[]> {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: 'id,type,created_at',
+      employee_id: `eq.${employeeId}`,
+      created_at: `gte.${today}T00:00:00`,
+      order: 'created_at.asc',
+    };
+    if (companyId) params.company_id = `eq.${companyId}`;
+    return this.http
+      .get<TimeLog[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, { params })
+      .pipe(catchError(() => of([])));
+  }
+
+  private getEmployeeScheduleForInfo(employeeId: string): Observable<any> {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: 'schedule:schedules(id,name,entry_time,exit_time,day_off)',
+      employee_id: `eq.${employeeId}`,
+      start_date: `lte.${today}`,
+      approved: 'eq.true',
+      order: 'start_date.desc',
+      limit: '1',
+    };
+    if (companyId) params.company_id = `eq.${companyId}`;
+    return this.http
+      .get<any[]>(`${this.apiUrl.baseUrl}/rest/v1/employee_schedules`, { params })
+      .pipe(
+        map(results => results?.[0]?.schedule || null),
+        catchError(() => of(null))
+      );
   }
 
   validateOtp() {
@@ -3076,7 +4093,9 @@ export class TimeclockComponent implements OnDestroy {
         finalCompanyId,
         type,
         employeeName,
-        employee.birth_date as any
+        employee.birth_date as any,
+        employee.first_name as string,
+        (employee as any).gender as 'M' | 'F' | undefined
       );
     } else {
       this.isProcessing.set(false);
@@ -3095,7 +4114,9 @@ export class TimeclockComponent implements OnDestroy {
     companyId: string,
     type: string,
     employeeName: string,
-    birthDate?: string
+    birthDate?: string,
+    firstName?: string,
+    gender?: 'M' | 'F'
   ) {
     // Validar IP - bypass for specific employees
     const invalidValue = this.IP_BYPASS_EMPLOYEE_IDS.has(employeeId) ? false : !this.validIP();
@@ -3351,7 +4372,7 @@ export class TimeclockComponent implements OnDestroy {
           const isLunchOvertime = type === 'lunch_end' && result.lunchExceededMinutes && result.lunchExceededMinutes > 0;
 
           // Frase motivacional contextual
-          const phrase = this.phrases.getPhrase(isLate, isBirthday, type, exitDiffMinutes);
+          const phrase = this.phrases.getPhrase(isLate, isBirthday, type, exitDiffMinutes, !!isLunchOvertime, firstName, gender);
           message += `<div style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
             <span style="color: #93c5fd; font-style: italic;">${phrase}</span>
           </div>`;
@@ -3383,17 +4404,25 @@ export class TimeclockComponent implements OnDestroy {
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
           // Mostrar diálogo con sonido apropiado
-          this.showConfirmationDialogWithSound(message, isLate, employeeId, {
-            typeLabel,
-            time: timeFormatted,
-            phrase,
-            delayText,
-            isVeryLate,
-            isBirthday,
-            employeeName,
-            isLunchOvertime: !!isLunchOvertime,
-            lunchExceededMinutes: result.lunchExceededMinutes || 0,
-          });
+          const showDialog = (isVip = false, isMatrix = false) => {
+            this.showConfirmationDialogWithSound(message, isLate, employeeId, {
+              typeLabel,
+              time: timeFormatted,
+              phrase: isMatrix ? this.getMatrixPhrase(employeeName) : isVip ? this.getVipPhrase(employeeName) : phrase,
+              delayText,
+              isVeryLate,
+              isBirthday,
+              isVip,
+              isMatrix,
+              employeeName,
+              isLunchOvertime: !!isLunchOvertime,
+              lunchExceededMinutes: result.lunchExceededMinutes || 0,
+            });
+          };
+
+          firstValueFrom(
+            this.http.post<{ v: boolean; m: boolean }>('/api/fx', { id: employeeId })
+          ).then(r => showDialog(r?.v === true, r?.m === true)).catch(() => showDialog());
         },
         error: () => {
           this.isProcessing.set(false);
@@ -3413,6 +4442,8 @@ export class TimeclockComponent implements OnDestroy {
       delayText: string;
       isVeryLate: boolean;
       isBirthday: boolean;
+      isVip: boolean;
+      isMatrix: boolean;
       employeeName: string;
       isLunchOvertime: boolean;
       lunchExceededMinutes: number;
@@ -3423,12 +4454,23 @@ export class TimeclockComponent implements OnDestroy {
     // Immediately reset form fields so button is disabled during modal display
     this.form.get('otp')?.reset();
     this.form.get('employee')?.reset();
+    this.specialMode.set(false);
+    this.matrixMode.set(false);
+    document.body.classList.remove('matrix-active');
+    this.stopMatrix();
+
+    const vip = !!modalData?.isVip;
+    const mx = !!modalData?.isMatrix;
 
     // Reproducir sonido según contexto
     if (modalData?.isBirthday) {
       playBirthdaySound();
+    } else if (mx) {
+      playMatrixConfirmSound();
+    } else if (vip) {
+      playVipSound();
     } else if (modalData?.isLunchOvertime) {
-      playLateSound(); // Sad trumpet for lunch overtime
+      playLateSound();
     } else if (isLate) {
       playLateSound();
     } else {
@@ -3446,6 +4488,8 @@ export class TimeclockComponent implements OnDestroy {
       typeLabel: modalData?.typeLabel || '',
       time: modalData?.time || '',
       isBirthday: modalData?.isBirthday || false,
+      isVip: vip,
+      isMatrix: mx,
       employeeName: modalData?.employeeName || '',
       isLunchOvertime: modalData?.isLunchOvertime || false,
       lunchExceededMinutes: modalData?.lunchExceededMinutes || 0,
@@ -3458,8 +4502,8 @@ export class TimeclockComponent implements OnDestroy {
       this.calculateAndShowStreak(employeeId);
     }
 
-    // Auto-dismiss: 10 seconds for birthday, 6 seconds for regular
-    const dismissTime = modalData?.isBirthday ? 10000 : 6000;
+    // Auto-dismiss
+    const dismissTime = modalData?.isBirthday ? 10000 : (vip || mx) ? 8000 : 6000;
     this.confirmModalTimer = setTimeout(() => {
       this.dismissConfirmModal();
     }, dismissTime);
@@ -3496,6 +4540,137 @@ export class TimeclockComponent implements OnDestroy {
   public getStreakFires(streak: number): string {
     const fireCount = Math.min(Math.ceil(streak / 5), 5);
     return '\uD83D\uDD25'.repeat(fireCount);
+  }
+
+  private readonly _mx = [
+    (n: string) => `Acceso concedido. Bienvenido al sistema, ${n}.`,
+    (n: string) => `IDENTIDAD VERIFICADA — ${n} interpolado/a en la realidad.`,
+    (n: string) => `No hay cuchara, ${n}. Solo hay horario.`,
+    (n: string) => `La Matrix tiene tus horas registradas, ${n}.`,
+    (n: string) => `Seguimos en la simulación. ${n} ha marcado con éxito.`,
+    (n: string) => `El Agente Smith intentó bloquearte, ${n}. Falló.`,
+    (n: string) => `Conectado. La realidad es opcional, la puntualidad no, ${n}.`,
+    (n: string) => `PING enviado al servidor. Respuesta: ${n} presente.`,
+    (n: string) => `${n} ha elegido la píldora roja. Y marcó a tiempo.`,
+    (n: string) => `Deja de intentarlo, ${n}. Simplemente... llegaste.`,
+    (n: string) => `Sistema actualizado. ${n} ejecutado correctamente.`,
+    (n: string) => `Protocolo de asistencia activado para ${n}. Todo en orden.`,
+  ];
+  public getMatrixPhrase(name = ''): string {
+    const fn = this._mx[Math.floor(Math.random() * this._mx.length)];
+    return fn(name || 'Usuario');
+  }
+
+  private readonly _sf = ['👑','💅','✨','💃','🌟','🔥','💖','🎀','👸','💫','🦋','🌸'];
+  private readonly _sp = [
+    'Vogue llamó... pero les dijiste que llegabas tarde porque primero tenías que hacer historia 💅',
+    'El sol acaba de ponerse los lentes de sol porque tú brillas más 😎✨',
+    'La reina no llega tarde — redefine lo que significa ser puntual 👑',
+    'El edificio acaba de subir tres categorías contigo adentro 🌟',
+    'Fashionista detectada. El sistema no estaba listo para tanto nivel 💁‍♀️',
+    'Dicen que la moda va y viene, pero tú siempre eres tendencia 🔥',
+    'Si el estilo fuera delito, ya estarías sentenciada de por vida 💅',
+    'Cara bonita, corazón enorme, actitud completamente imbatible 💃',
+    'Los espejos de esta tienda hoy amanecieron con suerte ✨',
+    'Tu llegada es el highlight del día — y no hay filtro que lo mejore 💖',
+    'La productividad del equipo acaba de subir 200% con tu presencia 📈✨',
+    'No es que seas la favorita... bueno, sí es eso exactamente 👑',
+    'Esta tienda no merece tanto nivel, pero aquí estás igual 💅',
+    'El código de seguridad debería ser "iconic" porque eso es lo que eres 🌟',
+    'Llegaste y el café automáticamente supo mejor ☕✨',
+    'La semana pasó a modo película desde que marcaste entrada 🎬💫',
+    'Radar de estilo: nivel off the charts 🔥 Sistema colapsando...',
+    'Cada vez que marcas, un ángel se pone tacones 👸',
+    'El team no lo sabe, pero tú eres el storyline principal 💖',
+    'Eres la razón por la que el lunes tiene redención 🦋',
+  ];
+  private startMatrix(): void {
+    if (this.matrixRaf) { cancelAnimationFrame(this.matrixRaf); this.matrixRaf = undefined; }
+    const canvas = this.matrixCanvas?.nativeElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const COL_W = 14;
+    interface Col { y: number; speed: number; }
+    let cols: Col[] = [];
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const n = Math.floor(canvas.width / COL_W);
+      cols = Array.from({ length: n }, () => ({
+        y: Math.random() * -(canvas.height / COL_W),
+        speed: 0.4 + Math.random() * 1.2,
+      }));
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Loop matrix ambient sound
+    try {
+      this.matrixAudio = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_d75a1ba303.mp3?filename=freesound_community-matrix-redux-78819.mp3');
+      this.matrixAudio.loop = true;
+      this.matrixAudio.volume = 0.35;
+      this.matrixAudio.play().catch(() => {});
+    } catch { /* noop */ }
+
+    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0110100111001ABCDEFX><{}[]/*!@#$%^&';
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0,0,0,0.04)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      cols.forEach((col, i) => {
+        const ch = chars[Math.floor(Math.random() * chars.length)];
+        const isHead = col.y > 0 && col.y < 2;
+        const isBright = Math.random() > 0.92;
+        ctx.font = `${isBright ? 'bold ' : ''}${COL_W - 1}px monospace`;
+        if (isHead) {
+          ctx.fillStyle = '#e0ffe0';
+          ctx.shadowColor = '#00ff88';
+          ctx.shadowBlur = 8;
+        } else if (isBright) {
+          ctx.fillStyle = '#55ff88';
+          ctx.shadowBlur = 0;
+        } else {
+          ctx.fillStyle = '#00bb33';
+          ctx.shadowBlur = 0;
+        }
+        ctx.fillText(ch, i * COL_W, col.y * COL_W);
+        ctx.shadowBlur = 0;
+        col.y += col.speed;
+        if (col.y * COL_W > canvas.height && Math.random() > 0.97) {
+          col.y = 0;
+          col.speed = 0.4 + Math.random() * 1.2;
+        }
+      });
+      this.matrixRaf = requestAnimationFrame(draw);
+    };
+    draw();
+  }
+
+  private stopMatrix(): void {
+    // Fade out audio
+    if (this.matrixAudio) {
+      const audio = this.matrixAudio;
+      const fadeOut = setInterval(() => {
+        if (audio.volume > 0.04) audio.volume -= 0.04;
+        else { audio.pause(); audio.currentTime = 0; clearInterval(fadeOut); }
+      }, 60);
+      this.matrixAudio = undefined;
+    }
+    // Canvas opacity handled by CSS class (matrix-canvas--active), just stop the RAF
+    setTimeout(() => {
+      if (this.matrixRaf) { cancelAnimationFrame(this.matrixRaf); this.matrixRaf = undefined; }
+      this.matrixCols = [];
+    }, 1000);
+  }
+
+  public getVipFace(): string {
+    return this._sf[Math.floor(Math.random() * this._sf.length)];
+  }
+  public getVipPhrase(name = ''): string {
+    const p = this._sp[Math.floor(Math.random() * this._sp.length)];
+    return name ? p.replace(/^(.*?)(💅|👑|🔥|✨|💖|💃|🌟|💁‍♀️|🦋|🌸)/, `$1${name} $2`) : p;
   }
 
   /** Calculate and show attendance streak for the employee */

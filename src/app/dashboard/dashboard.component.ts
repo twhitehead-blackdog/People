@@ -51,8 +51,10 @@ import { DogAnimationComponent } from './components/dog.component';
 import { PermissionsService } from '../services/permissions.service';
 import { DeviceService } from '../services/device.service';
 import { NotificationsService } from '../services/notifications.service';
+import { DesignVersionService } from '../services/design-version.service';
 import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
 import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mobile-bottom-nav.component';
+import { ChatWidgetComponent } from '../shared/components/chat-widget.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -89,6 +91,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
     DogAnimationComponent,
     MobileBottomNavComponent,
     NotificationsDropdownComponent,
+    ChatWidgetComponent,
   ],
   template: `
     <p-toast />
@@ -112,11 +115,171 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full shadow-lg relative z-[1000]"
         [ngClass]="{ 'naz-nav': isNaz() }"
       >
-        <!-- Dog animation zone -->
+        <!-- Dog animation zone (shared) -->
         <div class="absolute bottom-0 left-2 sm:left-4 lg:left-6 w-[280px] h-0 z-[30]">
           <pt-dog-animation></pt-dog-animation>
         </div>
 
+        @if (designVersion.isClassic()) {
+        <!-- ===== CLASSIC NAV (v6.0.0 style) ===== -->
+        <div class="px-3 sm:px-4 lg:px-6">
+          <div class="header-container h-14 md:h-20">
+            <div class="header-logo relative">
+              <a (click)="navigateToDefault()" class="flex items-center gap-2 group cursor-pointer">
+                <img [src]="logoPath()" class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
+              </a>
+            </div>
+            <div class="header-menu hidden lg:flex">
+              <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
+                @if(canAccessAdmin()) {
+                <a (click)="navigateTo('admin')" [class.selected]="isAdminActive()"
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap">
+                  <i class="pi pi-building text-base flex-shrink-0"></i><span>Administración</span>
+                </a>
+                }
+                @if(canAccessPayroll()) {
+                <a (click)="navigateTo('payroll')" [class.selected]="isPayrollActive()"
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap">
+                  <i class="pi pi-money-bill text-base flex-shrink-0"></i><span>Planilla</span>
+                </a>
+                }
+                @if(canAccessTimeManagement()) {
+                <a (click)="navigateTo('time-management')" [class.selected]="isTimeManagementActive()"
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap">
+                  <i class="pi pi-calendar text-base flex-shrink-0"></i><span>Gestión de tiempo</span>
+                </a>
+                }
+                @if(canAccessTimeclock()) {
+                <a (click)="navigateTo('timeclock')" [class.selected]="isTimeclockActive()"
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap">
+                  <i class="pi pi-clock text-base flex-shrink-0"></i><span>Reloj de marcación</span>
+                </a>
+                }
+                <div class="relative" (mouseenter)="openDropdown('services')" (mouseleave)="closeDropdown()">
+                  <a class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
+                    [class.selected]="isLiveActive()">
+                    <i class="pi pi-server text-base flex-shrink-0"></i><span>Servicios</span>
+                    <i class="pi pi-chevron-down text-[9px] opacity-50"></i>
+                  </a>
+                  @if(activeDropdown() === 'services') {
+                  <div class="dd-panel">
+                    <a (click)="navigateTo('live'); closeDropdown()" class="dd-item" [class.dd-active]="isLiveActive()">
+                      <i class="pi pi-objects-column text-xs opacity-60"></i>Asistencia en vivo
+                    </a>
+                    <a (click)="navigateTo('analytics'); closeDropdown()" class="dd-item">
+                      <i class="pi pi-chart-line text-xs opacity-60"></i>Analytics
+                    </a>
+                  </div>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="header-user hidden md:flex items-center gap-2">
+              @if(user) {
+              <div class="relative">
+                <button type="button" (click)="toggleNotificationsDropdown()"
+                  class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
+                  title="Notificaciones">
+                  <i class="pi pi-bell text-lg"></i>
+                  @if (unreadNotificationsCount() > 0) {
+                  <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
+                    {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
+                  </span>
+                  }
+                </button>
+                <pt-notifications-dropdown [isVisible]="showNotificationsDropdown()" [onClose]="closeNotificationsDropdown.bind(this)" />
+              </div>
+              <p-menu #menuClassic [model]="getMenuItems()" popup [autoZIndex]="true" />
+              <div class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200" (click)="menuClassic.toggle($event)">
+                <div class="relative flex-shrink-0">
+                  <div class="avatar-container">
+                    <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+                  </div>
+                  <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                </div>
+                <div class="flex flex-col min-w-0 flex-1">
+                  <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">{{ currentEmployeeName() }}</div>
+                  <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">{{ currentEmployeePosition() }}</div>
+                </div>
+                <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
+              </div>
+              }
+            </div>
+            <div class="-mr-2 flex lg:hidden">
+              <p-button rounded text [icon]="isCollapsed() ? 'pi pi-bars' : 'pi pi-times'" severity="secondary" (onClick)="toggleMenu()" class="text-white hover:bg-gray-700/50 min-w-[44px] min-h-[44px]" />
+            </div>
+          </div>
+        </div>
+        <!-- Classic hamburger panel -->
+        <div class="lg:hidden border-t border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm absolute top-full left-0 right-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto z-[1001] shadow-2xl"
+          [class.hidden]="isCollapsed()">
+          <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+            @if(canAccessAdmin()) {
+            <a (click)="navigateTo('admin'); toggleMenu()" [class.bg-gray-700]="isAdminActive()" [class.text-white]="isAdminActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-building text-lg"></i><span>Administración</span>
+            </a>
+            }
+            @if(canAccessPayroll()) {
+            <a (click)="navigateTo('payroll'); toggleMenu()" [class.bg-gray-700]="isPayrollActive()" [class.text-white]="isPayrollActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-money-bill text-lg"></i><span>Planilla</span>
+            </a>
+            }
+            @if(canAccessTimeManagement()) {
+            <a (click)="navigateTo('time-management'); toggleMenu()" [class.bg-gray-700]="isTimeManagementActive()" [class.text-white]="isTimeManagementActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-calendar text-lg"></i><span>Gestión de tiempo</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock'); toggleMenu()" [class.bg-gray-700]="isTimeclockActive()" [class.text-white]="isTimeclockActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-clock text-lg"></i><span>Reloj de marcación</span>
+            </a>
+            }
+            <a (click)="navigateTo('live'); toggleMenu()" [class.bg-gray-700]="isLiveActive()" [class.text-white]="isLiveActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-objects-column text-lg"></i><span>Asistencia en vivo</span>
+            </a>
+          </div>
+          @if(user) {
+          <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
+            <div class="relative mb-3 flex items-center gap-3">
+              <button type="button" (click)="toggleNotificationsDropdown()"
+                class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50"
+                title="Notificaciones">
+                <i class="pi pi-bell text-lg"></i>
+                @if (unreadNotificationsCount() > 0) {
+                <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
+                  {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
+                </span>
+                }
+              </button>
+              <span class="text-sm text-gray-300">Notificaciones</span>
+              <pt-notifications-dropdown [isVisible]="showNotificationsDropdown()" [onClose]="closeNotificationsDropdown.bind(this)" />
+            </div>
+            <p-menu #mobileMenuClassic [model]="getMenuItems()" popup [appendTo]="'body'" />
+            <div class="flex items-center gap-3 cursor-pointer group px-2 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 touch-manipulation"
+              (click)="$event.stopPropagation(); mobileMenuClassic.toggle($event)">
+              <div class="relative flex-shrink-0">
+                <div class="avatar-container">
+                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
+                </div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-base font-semibold text-white truncate">{{ currentEmployeeName() }}</div>
+                <div class="text-sm text-gray-400 truncate">{{ currentEmployeePosition() }}</div>
+              </div>
+              <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-sm flex-shrink-0"></i>
+            </div>
+          </div>
+          }
+        </div>
+
+        } @else {
+        <!-- ===== CURRENT NAV (dropdown style) ===== -->
         <!-- Single-row header -->
         <div class="flex items-center h-14 px-3 sm:px-4 lg:px-6 gap-2 min-w-0">
           <!-- Logo -->
@@ -126,8 +289,47 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
             </a>
           </div>
 
-          <!-- Nav items - single row, all dropdowns -->
+          <!-- Nav items -->
           <div class="header-menu hidden lg:flex items-center gap-0.5 flex-1 min-w-0">
+            @if(isManagerView()) {
+            <!-- Manager: direct links, no dropdowns -->
+            @if(tmSubs().timetables) {
+            <a (click)="navigateAbsolute('time-management/timetables')" [class.nav-active]="currentUrl().includes('/timetables')" class="nav-item">
+              <i class="pi pi-calendar"></i><span>Turnos</span>
+            </a>
+            }
+            @if(tmSubs().timelogs) {
+            <a (click)="navigateAbsolute('time-management/timelogs')" [class.nav-active]="currentUrl().includes('/timelogs')" class="nav-item">
+              <i class="pi pi-clock"></i><span>Registros</span>
+            </a>
+            }
+            @if(tmSubs().schedules) {
+            <a (click)="navigateAbsolute('time-management/schedules')" [class.nav-active]="currentUrl().includes('time-management/schedules')" class="nav-item">
+              <i class="pi pi-calendar-plus"></i><span>Schedules</span>
+            </a>
+            }
+            @if(tmSubs().vet_schedule) {
+            <a (click)="navigateAbsolute('time-management/vet-schedule')" [class.nav-active]="currentUrl().includes('/vet-schedule')" class="nav-item">
+              <i class="pi pi-heart"></i><span>Veterinaria</span>
+            </a>
+            }
+            @if(tmSubs().salon_schedule) {
+            <a (click)="navigateAbsolute('time-management/salon-schedule')" [class.nav-active]="currentUrl().includes('/salon-schedule')" class="nav-item">
+              <i class="pi pi-star"></i><span>Peluquería</span>
+            </a>
+            }
+            @if(canAccessBranchManager()) {
+            <a (click)="navigateAbsolute('branch-manager')" [class.nav-active]="isBranchManagerActive()" class="nav-item">
+              <i class="pi pi-shop"></i><span>Mi Sucursal</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock')" [class.nav-active]="isTimeclockActive()" class="nav-item">
+              <i class="pi pi-stopwatch"></i><span>Marcar Asistencia</span>
+            </a>
+            }
+            } @else {
+            <!-- Admin/full nav with dropdowns -->
             <a (click)="navigateTo('launcher')" [class.nav-active]="isLauncherActive()" class="nav-item">
               <i class="pi pi-th-large"></i><span>Inicio</span>
             </a>
@@ -158,9 +360,8 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('admin/settings'); closeDropdown()" class="dd-item"><i class="pi pi-cog"></i>Ajustes</a>
                     <a (click)="navigateAbsolute('admin/user-management'); closeDropdown()" class="dd-item"><i class="pi pi-user-edit"></i>Usuarios</a>
                     <a (click)="navigateAbsolute('admin/permissions'); closeDropdown()" class="dd-item"><i class="pi pi-shield"></i>Permisos</a>
-                    <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
-                    <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file"></i>Solicitudes</a>
                     <a (click)="navigateAbsolute('admin/news'); closeDropdown()" class="dd-item"><i class="pi pi-megaphone"></i>Noticias</a>
+                    <a (click)="navigateAbsolute('admin/device-inventory'); closeDropdown()" class="dd-item"><i class="pi pi-mobile"></i>Dispositivos</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
@@ -169,8 +370,10 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                     <a (click)="navigateAbsolute('admin/home'); closeDropdown()" class="dd-item"><i class="pi pi-chart-bar"></i>Dashboard RRHH</a>
                     }
                     <a (click)="navigateAbsolute('admin/hr/time-dashboard'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Tiempo</a>
-                    <a (click)="navigateAbsolute('admin/hr/disabilities'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Solicitudes RRHH</a>
+                    <a (click)="navigateAbsolute('admin/hr/disabilities'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Gestiones de Empleados</a>
                     <a (click)="navigateAbsolute('admin/surveys'); closeDropdown()" class="dd-item"><i class="pi pi-comment"></i>Encuestas</a>
+                    <a (click)="navigateAbsolute('admin/complaints-inbox'); closeDropdown()" class="dd-item"><i class="pi pi-inbox"></i>Quejas</a>
+                    <a (click)="navigateAbsolute('admin/job-applications'); closeDropdown()" class="dd-item"><i class="pi pi-file-edit"></i>Feria de Empleo</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
@@ -229,12 +432,12 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
                   <div class="dd-col-group">
                     <span class="dd-col-label">Seguimiento</span>
                     <a (click)="navigateAbsolute('time-management/timelogs'); closeDropdown()" class="dd-item"><i class="pi pi-clock"></i>Registros</a>
-                    <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Horarios</a>
+                    <a (click)="navigateAbsolute('time-management/timetables'); closeDropdown()" class="dd-item"><i class="pi pi-calendar"></i>Turnos</a>
                   </div>
                   <div class="dd-col-sep"></div>
                   <div class="dd-col-group">
                     <span class="dd-col-label">Calendarios</span>
-                    <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>General</a>
+                    <a (click)="navigateAbsolute('time-management/schedules'); closeDropdown()" class="dd-item"><i class="pi pi-th-large"></i>Schedules</a>
                     <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Veterinaria</a>
                     <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Peluquería</a>
                   </div>
@@ -263,6 +466,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               <i class="pi pi-clock"></i><span>Reloj de marcación</span>
             </a>
             }
+            }
           </div>
 
           <!-- Right: notifications + user -->
@@ -285,7 +489,9 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
             <div class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200" (click)="menu.toggle($event)">
               <div class="relative flex-shrink-0">
                 <div class="avatar-container">
-                  <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+                  <div class="w-8 h-8 rounded-full overflow-hidden border border-gray-600/40">
+                    <img [src]="user?.picture" class="w-full h-full object-cover rounded-full" alt="" referrerpolicy="no-referrer" />
+                  </div>
                 </div>
                 <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
               </div>
@@ -308,6 +514,39 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
+            @if(isManagerView()) {
+            <!-- Manager: direct links -->
+            @if(tmSubs().timetables) {
+            <a (click)="navigateAbsolute('time-management/timetables'); toggleMenu()" [class.bg-gray-700]="currentUrl().includes('/timetables')" [class.text-white]="currentUrl().includes('/timetables')"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-calendar text-lg"></i><span>Turnos</span>
+            </a>
+            }
+            @if(tmSubs().timelogs) {
+            <a (click)="navigateAbsolute('time-management/timelogs'); toggleMenu()" [class.bg-gray-700]="currentUrl().includes('/timelogs')" [class.text-white]="currentUrl().includes('/timelogs')"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-clock text-lg"></i><span>Registros</span>
+            </a>
+            }
+            @if(tmSubs().schedules) {
+            <a (click)="navigateAbsolute('time-management/schedules'); toggleMenu()" [class.bg-gray-700]="currentUrl().includes('time-management/schedules')" [class.text-white]="currentUrl().includes('time-management/schedules')"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-calendar-plus text-lg"></i><span>Schedules</span>
+            </a>
+            }
+            @if(canAccessBranchManager()) {
+            <a (click)="navigateAbsolute('branch-manager'); toggleMenu()" [class.bg-gray-700]="isBranchManagerActive()" [class.text-white]="isBranchManagerActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-shop text-lg"></i><span>Mi Sucursal</span>
+            </a>
+            }
+            @if(canAccessTimeclock()) {
+            <a (click)="navigateTo('timeclock'); toggleMenu()" [class.bg-gray-700]="isTimeclockActive()" [class.text-white]="isTimeclockActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-stopwatch text-lg"></i><span>Marcar Asistencia</span>
+            </a>
+            }
+            } @else {
             <a (click)="navigateTo('launcher'); toggleMenu()" [class.bg-gray-700]="isLauncherActive()" [class.text-white]="isLauncherActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
               <i class="pi pi-th-large text-lg"></i><span>Inicio</span>
@@ -342,6 +581,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               <i class="pi pi-clock text-lg"></i><span>Reloj de marcación</span>
             </a>
             }
+            }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
@@ -364,7 +604,9 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
               (click)="$event.stopPropagation(); mobileMenu.toggle($event)">
               <div class="relative flex-shrink-0">
                 <div class="avatar-container">
-                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
+                  <div class="w-8 h-8 rounded-full overflow-hidden border border-gray-600/40">
+                    <img [src]="user.picture" class="w-full h-full object-cover rounded-full" alt="" referrerpolicy="no-referrer" />
+                  </div>
                 </div>
                 <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
               </div>
@@ -377,6 +619,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
           </div>
           }
         </div>
+        } <!-- end @if isClassic / @else -->
       </nav>
       <!-- Banner de modo de prueba (solo visible cuando no está en modo admin) -->
       @if(isSupportUser() && isTestModeActive() && !isAdminMode()) {
@@ -406,6 +649,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
         }
       </div>
       <pt-screen-lock></pt-screen-lock>
+      <pt-chat-widget [hidden]="!store.isAdmin() || !device.isDesktop() || isTimeclockActive()" [employeeName]="store.currentEmployee()?.first_name" />
     </div>
 
     } @else {
@@ -419,7 +663,7 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
       <nav class="bg-neutral-900 w-full z-[1000] flex-shrink-0">
         <div class="flex items-center justify-between h-[52px] px-3">
           <div class="flex items-center gap-1">
-            @if (mobileBackTarget()) {
+            @if (mobileBackTarget() && designVersion.isCurrent()) {
             <button
               (click)="router.navigateByUrl(mobileBackTarget()!)"
               class="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-neutral-800 transition-colors"
@@ -491,12 +735,44 @@ import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mob
         (tabChange)="onMobileAdminTabChange($event)"
       />
       <pt-screen-lock></pt-screen-lock>
+      <pt-chat-widget [hidden]="!store.isAdmin() || !device.isDesktop() || isTimeclockActive()" [employeeName]="store.currentEmployee()?.first_name" />
     </div>
     }
   `,
   styles: `
       .mobile-content-padded {
         padding-bottom: 72px;
+      }
+
+      /* ── Classic nav (v6.0.0 style) ── */
+      .selected {
+        background: linear-gradient(to right, rgba(55,65,81,0.8), rgba(75,85,99,0.8));
+        color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        border-left: 3px solid #FBBF24;
+      }
+      .dd-panel {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        min-width: 180px;
+        background: #1f2937;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+        padding: 0.25rem;
+        z-index: 1002;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      }
+      :host-context(.naz-theme) .selected {
+        background: #0D0D0D !important;
+        border-left-color: #FFFFFF !important;
+      }
+      :host-context(.naz-theme) .header-menu a {
+        color: #C6C2BF !important;
+      }
+      :host-context(.naz-theme) .header-menu a:hover {
+        color: #FFFFFF !important;
+        background: rgba(255,255,255,0.10) !important;
       }
 
       /* ── Desktop nav items ── */
@@ -850,6 +1126,7 @@ export class DashboardComponent {
   private permissionsService = inject(PermissionsService);
   private injector = inject(Injector);
   public notificationsService = inject(NotificationsService);
+  public designVersion = inject(DesignVersionService);
   public showNotificationsDropdown = signal(false);
   public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
 
@@ -884,6 +1161,11 @@ export class DashboardComponent {
   public canAccessAnalytics = computed(() =>
     this.permissionsService.canAccessSubModule('services', 'analytics_access')
   );
+
+  // Manager view: not admin, but has time_management or branch_manager access
+  public isManagerView = computed(() => {
+    return !this.store.isAdmin() && (this.canAccessTimeManagement() || this.canAccessBranchManager());
+  });
 
   // Sub-module access computeds (used by dropdown items)
   public adminSubs = computed(() => ({
@@ -926,9 +1208,29 @@ export class DashboardComponent {
 
   // Mobile admin bottom nav tabs (computed based on permissions)
   public adminMobileTabs = computed<MobileNavTab[]>(() => {
-    const tabs: MobileNavTab[] = [
-      { id: 'launcher', label: 'Inicio', icon: 'pi pi-th-large' },
-    ];
+    // Manager view: direct sub-module tabs
+    if (this.isManagerView()) {
+      const tabs: MobileNavTab[] = [];
+      if (this.tmSubs().timetables) {
+        tabs.push({ id: 'time-management/timetables', label: 'Turnos', icon: 'pi pi-calendar' });
+      }
+      if (this.tmSubs().timelogs) {
+        tabs.push({ id: 'time-management/timelogs', label: 'Registros', icon: 'pi pi-clock' });
+      }
+      if (this.canAccessBranchManager()) {
+        tabs.push({ id: 'branch-manager', label: 'Sucursal', icon: 'pi pi-shop' });
+      }
+      if (this.canAccessTimeclock()) {
+        tabs.push({ id: 'timeclock', label: 'Reloj', icon: 'pi pi-stopwatch' });
+      }
+      return tabs;
+    }
+
+    // Admin/full view
+    const tabs: MobileNavTab[] = [];
+    if (this.designVersion.isCurrent()) {
+      tabs.push({ id: 'launcher', label: 'Inicio', icon: 'pi pi-th-large' });
+    }
     if (this.canAccessAdmin()) {
       tabs.push({ id: 'admin', label: 'Admin', icon: 'pi pi-building' });
     }
@@ -1050,6 +1352,17 @@ export class DashboardComponent {
   private previousOrganization: Organization | null = null;
 
   constructor() {
+    // En diseño clásico, redirigir desde /launcher al primer módulo accesible
+    effect(() => {
+      if (this.designVersion.isClassic() && this.isLauncherActive()) {
+        if (this.canAccessAdmin()) {
+          this.navigateTo('admin');
+        } else if (this.canAccessTimeManagement()) {
+          this.navigateTo('time-management');
+        }
+      }
+    });
+
     // Inicializar notificaciones cuando cambia el empleado actual
     effect(() => {
       const employeeId = this.store.currentEmployee()?.id;
@@ -1189,6 +1502,26 @@ export class DashboardComponent {
   }
 
   navigateToDefault() {
+    if (this.isManagerView()) {
+      if (this.tmSubs().timetables) {
+        this.navigateAbsolute('time-management/timetables');
+      } else if (this.canAccessBranchManager()) {
+        this.navigateAbsolute('branch-manager');
+      } else {
+        this.navigateTo('launcher');
+      }
+      return;
+    }
+    if (this.designVersion.isClassic()) {
+      if (this.canAccessAdmin()) {
+        this.navigateTo('admin');
+      } else if (this.canAccessTimeManagement()) {
+        this.navigateTo('time-management');
+      } else {
+        this.navigateTo('launcher');
+      }
+      return;
+    }
     this.navigateTo('launcher');
   }
 
@@ -1414,6 +1747,14 @@ export class DashboardComponent {
     }
 
     items.push(
+      {
+        separator: true,
+      },
+      {
+        label: this.designVersion.isClassic() ? 'Diseño Nuevo' : 'Diseño Clásico',
+        icon: 'pi pi-palette',
+        command: () => this.designVersion.toggle(),
+      },
       {
         separator: true,
       },

@@ -246,15 +246,25 @@ import { EmployeeFormComponent } from './employee-form.component';
     } @else {
     <!-- Vista móvil: lista de empleados en cards -->
     <div class="mobile-employee-list flex flex-col min-h-[60vh]">
-      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
-        <div class="flex items-center justify-between gap-2 mb-3">
-          <h2 class="m-0 text-lg font-bold text-white truncate">Empleados</h2>
-          <div class="flex gap-1 flex-shrink-0">
-            <p-button icon="pi pi-plus" [label]="''" routerLink="new" rounded size="small" pTooltip="Nuevo" tooltipPosition="bottom" />
-            <p-button icon="pi pi-file-excel" [label]="''" severity="success" (onClick)="generateReport()" rounded size="small" pTooltip="Exportar" tooltipPosition="bottom" />
-          </div>
+      <div class="mobile-section-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="mobile-section-header__title">Empleados</span>
+          <span class="mobile-section-header__count">{{ filtered().length }}</span>
         </div>
-        <input pInputText type="text" [(ngModel)]="searchTerm" placeholder="Buscar por nombre, número o cédula..." class="w-full text-sm rounded-lg border-neutral-600 bg-neutral-900/80 px-3 py-2.5 text-white placeholder-gray-500" />
+        <div class="flex gap-1">
+          <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.25rem;height:2.25rem;font-size:0.8rem;" (click)="generateReport()" aria-label="Exportar">
+            <i class="pi pi-file-excel"></i>
+          </button>
+          <button class="mobile-fab" style="position:relative;bottom:auto;right:auto;width:2.25rem;height:2.25rem;font-size:0.8rem;" routerLink="new" aria-label="Nuevo">
+            <i class="pi pi-plus"></i>
+          </button>
+        </div>
+      </div>
+      <header class="px-3 pt-2 pb-1 bg-neutral-900">
+        <div class="mobile-search">
+          <i class="pi pi-search"></i>
+          <input type="text" [(ngModel)]="searchTerm" placeholder="Buscar por nombre, número o cédula..." />
+        </div>
         <button type="button" (click)="filtersExpanded.set(!filtersExpanded())" class="w-full mt-2 flex items-center justify-between py-2 px-3 rounded-lg bg-neutral-700/50 border border-neutral-600 text-left text-sm text-gray-300">
           <span><i class="pi pi-filter text-amber-400 mr-2"></i>Filtros @if (hasActiveFilters()) { <span class="text-amber-400 text-xs">({{ getActiveFiltersCount() }})</span> }</span>
           <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
@@ -298,31 +308,23 @@ import { EmployeeFormComponent } from './employee-form.component';
             <p class="text-xs mt-1">Ajusta filtros o búsqueda</p>
           </div>
         } @else {
-          <div class="flex flex-col gap-1.5 pb-4">
+          <div class="mobile-card-list pb-4">
             @for (item of filtered(); track item.id) {
-              <div (click)="navigateToEmployee(item.id)" class="block rounded-lg border border-neutral-700/50 bg-neutral-800/80 p-2.5 active:bg-neutral-700/50 transition-colors cursor-pointer">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-[11px] font-mono text-gray-500">{{ getEmployeeDisplayNumber(item) }}</span>
-                      @if (inactiveValue() && !item.is_active) {
-                        <p-tag value="INACTIVO" severity="danger" [rounded]="true" styleClass="text-[10px] py-0" />
-                      }
-                    </div>
-                    <p class="font-semibold text-white text-sm leading-tight m-0 mt-0.5 truncate">{{ item.short_name }}</p>
-                    <p class="text-[11px] text-gray-400 leading-tight m-0 mt-0.5 truncate">{{ item.branch?.name || 'Sin sucursal' }} · {{ item.position?.name || 'Sin cargo' }}@if (item.department?.name) { · {{ item.department?.name }} }</p>
+              <div class="mobile-card-item" (click)="navigateToEmployee(item.id)">
+                <div class="mobile-card-item__body">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-mono text-gray-500">{{ getEmployeeDisplayNumber(item) }}</span>
+                    @if (inactiveValue() && !item.is_active) {
+                      <p-tag value="INACTIVO" severity="danger" [rounded]="true" styleClass="text-[10px] py-0" />
+                    }
+                    @if (item.has_portal_access) {
+                      <p-tag value="Portal" severity="success" icon="pi pi-check" styleClass="text-[10px] py-0" />
+                    }
                   </div>
-                  <i class="pi pi-chevron-right text-gray-500 flex-shrink-0 text-sm"></i>
+                  <div class="mobile-card-item__title" style="margin-top:2px">{{ item.short_name }}</div>
+                  <div class="mobile-card-item__subtitle">{{ item.branch?.name || 'Sin sucursal' }} · {{ item.position?.name || 'Sin cargo' }}</div>
                 </div>
-                <div class="flex gap-1.5 mt-1.5 flex-wrap" (click)="$event.stopPropagation()">
-                  <p-button icon="pi pi-eye" [label]="''" [routerLink]="item.id" rounded text size="small" class="min-w-[32px] min-h-[32px]" pTooltip="Ver" tooltipPosition="top" />
-                  <p-button icon="pi pi-pen" [label]="''" [routerLink]="[item.id, 'edit']" rounded text severity="success" size="small" class="min-w-[32px] min-h-[32px]" pTooltip="Editar" tooltipPosition="top" />
-                  @if (!item.has_portal_access) {
-                    <p-button icon="pi pi-user-plus" [label]="''" (click)="inviteToPortal(item)" rounded text severity="info" size="small" [loading]="invitingEmployeeId() === item.id" class="min-w-[32px] min-h-[32px]" pTooltip="Invitar al portal" tooltipPosition="top" />
-                  } @else {
-                    <p-tag value="Portal" severity="success" icon="pi pi-check" styleClass="text-[10px] py-0" />
-                  }
-                </div>
+                <i class="pi pi-chevron-right text-gray-600 flex-shrink-0 text-xs"></i>
               </div>
             }
           </div>

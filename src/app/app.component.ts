@@ -13,6 +13,7 @@ import { ThemeService } from './services/theme.service';
 import { VersionCheckService } from './services/version-check.service';
 import { isPortalDomain } from './utils/domain.utils';
 import { PwaService } from './services/pwa.service';
+import { DesignVersionService } from './services/design-version.service';
 
 @Component({
   imports: [RouterOutlet, DiagnosticPanelComponent, DialogModule, Button],
@@ -105,15 +106,15 @@ import { PwaService } from './services/pwa.service';
           <span class="version-update-text">Nueva versión disponible — actualizando en</span>
           <button
             class="version-update-countdown"
-            [class.fast]="versionCheck.speedMultiplier() === 5"
+            [class.fast]="versionCheck.speedMultiplier() >= 5"
             [class.urgent]="versionCheck.countdown() <= 10"
             (click)="versionCheck.activateFastMode()"
-            title="Clic para acelerar 5x"
+            title="Clic para acelerar"
           >
             <span class="countdown-number">{{ versionCheck.countdown() }}</span>
             <span class="countdown-unit">s</span>
-            @if (versionCheck.speedMultiplier() === 5) {
-              <span class="speed-badge">5×</span>
+            @if (versionCheck.speedMultiplier() > 1) {
+              <span class="speed-badge">{{ versionCheck.speedMultiplier() }}×</span>
             }
           </button>
           <button class="version-update-now" (click)="reloadApp()">
@@ -271,6 +272,7 @@ export class AppComponent implements OnInit {
   private themeService = inject(ThemeService);
   readonly versionCheck = inject(VersionCheckService);
   readonly pwa = inject(PwaService);
+  readonly designVersion = inject(DesignVersionService);
 
   /** Detecta si estamos en el dominio del portal */
   readonly isPortal = isPortalDomain();

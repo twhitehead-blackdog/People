@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DocumentRequestsService } from './modules/document-requests/data/document-requests.service';
 import { SupplyRequestsComponent } from './modules/supply-requests/ui/supply-requests.component';
 import { UniformRequestsComponent } from './modules/uniform-requests/ui/uniform-requests.component';
+import { UniformTypesManagerComponent } from './modules/uniform-requests/ui/uniform-types-manager.component';
 import { DeviceService } from '../services/device.service';
 
 @Component({
@@ -23,6 +24,7 @@ import { DeviceService } from '../services/device.service';
     TooltipModule,
     SupplyRequestsComponent,
     UniformRequestsComponent,
+    UniformTypesManagerComponent,
   ],
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -109,6 +111,18 @@ import { DeviceService } from '../services/device.service';
               </span>
               }
             </button>
+            <button
+              (click)="activeTab.set('uniform_catalog')"
+              [class]="
+                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
+                (activeTab() === 'uniform_catalog'
+                  ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 text-purple-300 shadow-md border border-purple-400/30'
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
+              "
+            >
+              <i class="pi pi-list mr-1.5 text-xs"></i>
+              Catálogo
+            </button>
           </div>
         </div>
 
@@ -116,6 +130,8 @@ import { DeviceService } from '../services/device.service';
         <pt-supply-requests />
         } @if (activeTab() === 'uniform_request') {
         <pt-uniform-requests />
+        } @if (activeTab() === 'uniform_catalog') {
+        <pt-uniform-types-manager />
         }
       </div>
     </div>
@@ -125,7 +141,7 @@ export class ComprasDashboardComponent {
   private docService = inject(DocumentRequestsService);
   protected device = inject(DeviceService);
 
-  public activeTab = signal<'supply_request' | 'uniform_request'>('supply_request');
+  public activeTab = signal<'supply_request' | 'uniform_request' | 'uniform_catalog'>('supply_request');
 
   public supplyPendingCount = computed(() =>
     this.docService.value().filter(

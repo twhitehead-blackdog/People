@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angular/core';
 import { addDays, addYears, differenceInMilliseconds, endOfYear, format, getYear } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
@@ -18,6 +18,7 @@ import { EmployeePortalVacationsComponent } from '../../../employee-portal/compo
 import { ApiUrlService } from '../../../services/api-url.service';
 import { OrganizationService } from '../../../services/organization.service';
 import { EmployeePortalDataService } from '../services/employee-portal-data.service';
+import { UniformTypesService } from '../../modules/uniform-requests/data/uniform-types.service';
 
 @Component({
   selector: 'pt-employee-portal-gestiones-tab',
@@ -323,6 +324,7 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
 
           <pt-employee-portal-uniform-request
             *ngSwitchCase="'uniform'"
+            [itemTypes]="uniformItemTypeOptions()"
             [itemType]="uniformItemType()"
             (itemTypeChange)="uniformItemType.set($event)"
             [size]="uniformSize()"
@@ -472,6 +474,10 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
   public uniformQuantity = signal(1);
   public uniformNotes = signal('');
   public submittingUniform = signal(false);
+  private uniformTypesService = inject(UniformTypesService);
+  public uniformItemTypeOptions = computed(() =>
+    this.uniformTypesService.getOptionsForBranch((this.currentEmployee() as any)?.branch?.name)
+  );
 
   public minVacationDate = new Date();
   public maxVacationDate = new Date(getYear(new Date()) + 1, 11, 31);
