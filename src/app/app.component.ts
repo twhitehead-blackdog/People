@@ -449,6 +449,16 @@ export class AppComponent implements OnInit {
     // Skeleton en navegación entre secciones (solo si tarda > 250ms)
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
+        // No mostrar skeleton para /login: Auth0 redirige el browser completo
+        // y NavigationEnd nunca llega, dejando el skeleton colgado.
+        if (event.url === '/login' || event.url.startsWith('/login')) {
+          if (this.skeletonTimer) {
+            clearTimeout(this.skeletonTimer);
+            this.skeletonTimer = null;
+          }
+          this.showSkeleton.set(false);
+          return;
+        }
         const type = this.getSkeletonType(event.url);
         this.skeletonType.set(type);
         // Solo mostrar skeleton si la navegación tarda más de 250ms

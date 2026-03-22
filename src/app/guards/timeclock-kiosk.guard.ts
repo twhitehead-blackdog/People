@@ -80,16 +80,16 @@ export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boo
             return clientIP === trimmedAllowed;
           });
 
-          // BLOQUEAR ACCESO si la IP no está en la lista O si result.allowed es false
+          // Si la IP no está permitida: dejar pasar al componente timeclock.
+          // El componente detectará la IP inválida y mostrará la pantalla restringida
+          // con el botón "Habilitar con Gerente" para el override de gerente.
           if (!isIPInList || (!result.allowed && !BYPASS_IPS.has(clientIP))) {
-            return of(router.createUrlTree(['/sin-acceso'], {
-              queryParams: { reason: 'ip_not_allowed', ip: clientIP }
-            }));
+            return of(true);
           }
 
           // Iniciar monitoreo continuo de IP
           ipMonitor.startMonitoring(allowedIPs);
-          
+
           return of(true);
         }),
         catchError((error) => {
