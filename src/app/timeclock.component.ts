@@ -737,17 +737,32 @@ interface TimeclockInfoData {
               </div>
 
               <div class="ip-override-list">
-                @for (emp of ipOverrideFilteredEmployees(); track emp.id) {
-                  <button class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
-                    <div class="ip-override-list-avatar">
-                      {{ (emp.first_name ?? '?')[0].toUpperCase() }}
-                    </div>
-                    <span>{{ emp.first_name }} {{ emp.father_name }}</span>
-                    <i class="pi pi-chevron-right ip-override-list-arrow"></i>
-                  </button>
-                }
-                @if (ipOverrideFilteredEmployees().length === 0) {
-                  <div class="ip-override-empty">No se encontraron empleados</div>
+                @if (managersResource.isLoading()) {
+                  <div class="ip-override-empty">
+                    <i class="pi pi-spin pi-spinner"></i> Cargando gerentes...
+                  </div>
+                } @else {
+                  @for (emp of ipOverrideFilteredEmployees(); track emp.id) {
+                    <button class="ip-override-list-item" (click)="selectManagerEmployee(emp)">
+                      <div class="ip-override-list-avatar">
+                        {{ (emp.first_name ?? '?')[0].toUpperCase() }}
+                      </div>
+                      <div class="ip-override-list-info">
+                        <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+                        @if (!emp.code_uri) {
+                          <span class="ip-override-no-pin">Sin PIN configurado</span>
+                        }
+                      </div>
+                      @if (emp.code_uri) {
+                        <i class="pi pi-chevron-right ip-override-list-arrow"></i>
+                      } @else {
+                        <i class="pi pi-lock ip-override-list-arrow" style="color:rgba(239,68,68,0.5)"></i>
+                      }
+                    </button>
+                  }
+                  @if (ipOverrideFilteredEmployees().length === 0) {
+                    <div class="ip-override-empty">No se encontraron gerentes</div>
+                  }
                 }
               </div>
 
@@ -3045,8 +3060,10 @@ interface TimeclockInfoData {
       color: #fbbf24; font-size: 0.8rem; font-weight: 700;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .ip-override-list-arrow { margin-left: auto; color: rgba(255,255,255,0.25); font-size: 0.7rem; }
-    .ip-override-empty { text-align: center; color: rgba(255,255,255,0.3); font-size: 0.82rem; padding: 1rem; }
+    .ip-override-list-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; }
+    .ip-override-no-pin { font-size: 0.7rem; color: rgba(239,68,68,0.7); }
+    .ip-override-list-arrow { margin-left: auto; color: rgba(255,255,255,0.25); font-size: 0.7rem; flex-shrink: 0; }
+    .ip-override-empty { text-align: center; color: rgba(255,255,255,0.3); font-size: 0.82rem; padding: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
 
     /* OTP dots */
     .ip-override-dots { display: flex; gap: 0.65rem; justify-content: center; }
@@ -3056,7 +3073,8 @@ interface TimeclockInfoData {
     }
     .ip-override-dot.filled { background: #818cf8; border-color: #818cf8; box-shadow: 0 0 8px rgba(129, 140, 248, 0.5); }
     .ip-override-dot.error { border-color: #f87171; background: rgba(248, 113, 113, 0.2); }
-    .ip-override-error { font-size: 0.8rem; color: #f87171; text-align: center; min-height: 1.1em; animation: slideDown 0.2s ease-out; }
+    .ip-override-error { font-size: 0.85rem; font-weight: 600; color: #f87171; text-align: center; min-height: 1.1em; animation: shakeError 0.4s ease-out; padding: 0.4rem 0.75rem; background: rgba(248,113,113,0.1); border-radius: 10px; border: 1px solid rgba(248,113,113,0.25); }
+    @keyframes shakeError { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
 
     /* OTP Keypad */
     .ip-override-keypad { width: 100%; max-width: 240px; }
@@ -3131,13 +3149,31 @@ export class TimeclockComponent implements OnDestroy {
   public ipOverrideError              = signal<string>('');
   public ipOverrideProcessing         = signal<boolean>(false);
   public ipOverrideEmployeeSearch     = signal<string>('');
-  public ipOverrideFilteredEmployees  = computed(() => {
+  /** Carga solo empleados con permisos de gerente (schedule_admin o admin) */
+  public managersResource = httpResource<Array<Partial<Employee> & { positions: { schedule_admin: boolean; admin: boolean } | null }>>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId || !this.showIpOverrideModal()) return undefined;
+    return {
+      url: this.apiUrl.build('rest/v1/employees'),
+      method: 'GET',
+      params: {
+        select: 'id,first_name,father_name,code_uri,positions(schedule_admin,admin)',
+        is_active: 'eq.true',
+        company_id: `eq.${companyId}`,
+        order: 'first_name',
+      },
+    };
+  });
+
+  public ipOverrideFilteredEmployees = computed(() => {
     const query = this.ipOverrideEmployeeSearch().toLowerCase().trim();
-    const employees = this.currentEmployeesResource() ?? [];
-    if (!query) return employees.slice(0, 10);
-    return employees.filter(e =>
+    const all = this.managersResource.value() ?? [];
+    // Solo empleados con permisos de gerente
+    const managers = all.filter(e => e.positions?.schedule_admin || e.positions?.admin);
+    if (!query) return managers.slice(0, 15);
+    return managers.filter(e =>
       `${e.first_name ?? ''} ${e.father_name ?? ''}`.toLowerCase().includes(query)
-    ).slice(0, 10);
+    ).slice(0, 15);
   });
   private ipOverrideCountdownTimer: ReturnType<typeof setInterval> | null = null;
   private readonly IP_OVERRIDE_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -3470,6 +3506,7 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   selectManagerEmployee(emp: Partial<Employee>): void {
+    if (!emp.code_uri) return; // No tiene TOTP — botón deshabilitado visualmente
     this.ipOverrideSelectedEmployee.set(emp);
     this.ipOverrideOtp.set('');
     this.ipOverrideError.set('');
