@@ -1750,7 +1750,7 @@ export function app(): express.Express {
   server.post('/api/fx', (req, res) => {
     const { id } = req.body as { id?: string };
     const v = id === '30e3cd7d-3ba0-4fb0-a0cb-0b4286c04c9d';
-    const m = id === 'd6619dd7-265e-4d05-942d-f36fb09b631b' || id === '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8';
+    const m = id === 'd6619dd7-265e-4d05-942d-f36fb09b631b' || id === '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8' || id === '29a3ee6c-1b3e-4a4b-84dd-f14e2b2de8cd';
     res.json({ v, m });
   });
 

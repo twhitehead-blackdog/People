@@ -400,13 +400,7 @@ interface TimeclockInfoData {
             <!-- Info button + branch mismatch warning -->
             @if (showInfoButton()) {
               <div class="w-full flex items-center gap-2">
-                @if (branchMismatch()) {
-                  <div class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs">
-                    <i class="pi pi-exclamation-triangle"></i>
-                    <span>La sucursal no coincide con la del empleado</span>
-                  </div>
-                }
-                <button type="button" class="info-btn" [class.ml-auto]="!branchMismatch()" (click)="openInfoModal()" title="Ver estado del día">
+                <button type="button" class="info-btn ml-auto" (click)="openInfoModal()" title="Ver estado del día">
                   <i class="pi pi-info-circle"></i>
                 </button>
               </div>

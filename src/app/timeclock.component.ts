@@ -37,6 +37,7 @@ import { map } from 'rxjs/operators';
 import {
   Branch,
   Company,
+  EmergencyTimelog,
   Employee,
   EmployeeSchedule,
   NazBranch,
@@ -556,14 +557,6 @@ interface TimeclockInfoData {
               </p-select>
             </div>
 
-            <!-- Branch mismatch warning (standalone, no button here) -->
-            @if (showInfoButton() && branchMismatch()) {
-              <div class="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs">
-                <i class="pi pi-exclamation-triangle"></i>
-                <span>La sucursal no coincide con la del empleado</span>
-              </div>
-            }
-
             <div class="input-container w-full">
               <p-select
                 formControlName="type"
@@ -818,6 +811,92 @@ interface TimeclockInfoData {
                 <i class="pi pi-spin pi-spinner"></i> Verificando...
               </div>
             }
+          }
+
+        </div>
+      </div>
+    }
+
+    <!-- Emergency Timelog Modal -->
+    @if (showEmergencyModal()) {
+      <div class="confirm-modal-overlay">
+        <div class="emergency-modal" [class.emergency-modal-exit]="emergencyModalExiting()" (click)="$event.stopPropagation()">
+
+          @if (emergencyState() === 'processing') {
+            <div class="emergency-header">
+              <div class="emergency-icon emergency-icon--processing">
+                <i class="pi pi-spin pi-spinner"></i>
+              </div>
+              <div class="emergency-title">Guardando marcación...</div>
+              <div class="emergency-desc">Intentando guardar de forma segura</div>
+            </div>
+          }
+
+          @if (emergencyState() === 'saved_server') {
+            <div class="emergency-header">
+              <div class="emergency-icon emergency-icon--success">
+                <i class="pi pi-check-circle"></i>
+              </div>
+              <div class="emergency-title">Marcación de emergencia guardada</div>
+              <div class="emergency-desc">Se guardó correctamente en el servidor</div>
+            </div>
+            <div class="emergency-receipt">
+              <div class="emergency-receipt-row">
+                <span class="emergency-receipt-label">Empleado</span>
+                <span class="emergency-receipt-value">{{ emergencyData()?.employeeName }}</span>
+              </div>
+              <div class="emergency-receipt-row">
+                <span class="emergency-receipt-label">Tipo</span>
+                <span class="emergency-receipt-value emergency-receipt-type">{{ emergencyData()?.typeLabel }}</span>
+              </div>
+              <div class="emergency-receipt-row">
+                <span class="emergency-receipt-label">Hora</span>
+                <span class="emergency-receipt-value">{{ emergencyData()?.timeDisplay }}</span>
+              </div>
+              <div class="emergency-receipt-source">
+                <i class="pi pi-database"></i> Guardado en servidor
+              </div>
+            </div>
+            <button type="button" class="emergency-close-btn" (click)="closeEmergencyModal()">Cerrar</button>
+          }
+
+          @if (emergencyState() === 'saved_local') {
+            <div class="emergency-header">
+              <div class="emergency-icon emergency-icon--local">
+                <i class="pi pi-exclamation-triangle"></i>
+              </div>
+              <div class="emergency-title">Marcación guardada localmente</div>
+              <div class="emergency-desc">El servidor no responde. Se guardó en este dispositivo y el administrador la verá cuando haya conexión.</div>
+            </div>
+            <div class="emergency-receipt">
+              <div class="emergency-receipt-row">
+                <span class="emergency-receipt-label">Empleado</span>
+                <span class="emergency-receipt-value">{{ emergencyData()?.employeeName }}</span>
+              </div>
+              <div class="emergency-receipt-row">
+                <span class="emergency-receipt-label">Tipo</span>
+                <span class="emergency-receipt-value emergency-receipt-type">{{ emergencyData()?.typeLabel }}</span>
+              </div>
+              <div class="emergency-receipt-row">
+                <span class="emergency-receipt-label">Hora</span>
+                <span class="emergency-receipt-value">{{ emergencyData()?.timeDisplay }}</span>
+              </div>
+              <div class="emergency-receipt-source emergency-receipt-source--local">
+                <i class="pi pi-desktop"></i> Guardado local — pendiente de sincronización
+              </div>
+            </div>
+            <button type="button" class="emergency-close-btn" (click)="closeEmergencyModal()">Entendido</button>
+          }
+
+          @if (emergencyState() === 'error') {
+            <div class="emergency-header">
+              <div class="emergency-icon emergency-icon--error">
+                <i class="pi pi-times-circle"></i>
+              </div>
+              <div class="emergency-title">No se pudo guardar</div>
+              <div class="emergency-desc">{{ emergencyErrorMessage() }}</div>
+            </div>
+            <button type="button" class="emergency-close-btn" (click)="closeEmergencyModal()">Cerrar</button>
           }
 
         </div>
@@ -3100,6 +3179,53 @@ interface TimeclockInfoData {
     .ip-override-cancel-btn:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); }
     .ip-override-processing { font-size: 0.85rem; color: #818cf8; display: flex; align-items: center; gap: 0.5rem; }
 
+    /* ── Emergency Modal ──────────────────────────────────────────── */
+    .emergency-modal {
+      background: #12121a;
+      border: 1px solid rgba(255, 107, 53, 0.25);
+      border-radius: 24px;
+      padding: 2rem 1.75rem 1.5rem;
+      width: min(360px, 92vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      box-shadow: 0 0 60px rgba(255, 107, 53, 0.12), 0 24px 48px rgba(0,0,0,0.6);
+      animation: emergencyIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .emergency-modal-exit { animation: emergencyOut 0.25s ease-in forwards; }
+    @keyframes emergencyIn { from { opacity: 0; transform: scale(0.85) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes emergencyOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.9) translateY(10px); } }
+    .emergency-header { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; text-align: center; width: 100%; }
+    .emergency-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.75rem;
+    }
+    .emergency-icon--processing { background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 2px solid rgba(129,140,248,0.3); }
+    .emergency-icon--success { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 2px solid rgba(52,211,153,0.3); }
+    .emergency-icon--local { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 2px solid rgba(251,191,36,0.3); }
+    .emergency-icon--error { background: rgba(248, 113, 113, 0.15); color: #f87171; border: 2px solid rgba(248,113,113,0.3); }
+    .emergency-title { font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,0.92); }
+    .emergency-desc { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.5; }
+    .emergency-receipt {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+      padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .emergency-receipt-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+    .emergency-receipt-label { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; }
+    .emergency-receipt-value { font-size: 0.875rem; color: rgba(255,255,255,0.85); font-weight: 600; text-align: right; }
+    .emergency-receipt-type { color: #fbbf24; }
+    .emergency-receipt-source { font-size: 0.75rem; color: #34d399; display: flex; align-items: center; gap: 0.4rem; margin-top: 0.25rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.06); }
+    .emergency-receipt-source--local { color: #fbbf24; }
+    .emergency-close-btn {
+      width: 100%; padding: 0.75rem; border-radius: 14px;
+      background: rgba(255, 107, 53, 0.12); border: 1px solid rgba(255, 107, 53, 0.3);
+      color: #ff6b35; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .emergency-close-btn:hover { background: rgba(255, 107, 53, 0.2); }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -3191,6 +3317,20 @@ export class TimeclockComponent implements OnDestroy {
   private readonly IP_OVERRIDE_DURATION_MS = 60 * 60 * 1000; // 1 hour
   private readonly LS_OVERRIDE_KEY = 'bd_kiosk_ip_override';
   // ──────────────────────────────────────────────────────────────────
+
+  // ── Emergency Timelog ───────────────────────────────────────────────
+  private readonly LS_EMERGENCY_KEY = 'bd_kiosk_emergency_timelogs';
+  public showEmergencyModal = signal<boolean>(false);
+  public emergencyModalExiting = signal<boolean>(false);
+  public emergencyState = signal<'processing' | 'saved_server' | 'saved_local' | 'error'>('processing');
+  public emergencyErrorMessage = signal<string>('');
+  public emergencyData = signal<{
+    employeeName: string;
+    typeLabel: string;
+    timeDisplay: string;
+  } | null>(null);
+  public emergencyPendingCount = signal<number>(0);
+  // ───────────────────────────────────────────────────────────────────
 
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
@@ -4725,6 +4865,34 @@ export class TimeclockComponent implements OnDestroy {
           const isNaz = this.isNazCompany();
           console.error('Error al procesar timelog:', error);
 
+          // Errores de red o servidor (0, 500, 502, 503, 504) → ofrecer marcación de emergencia
+          const isNetworkOrServerError =
+            error?.status === 0 ||
+            error?.status === 500 ||
+            error?.status === 502 ||
+            error?.status === 503 ||
+            error?.status === 504 ||
+            error?.status === null ||
+            error?.status === undefined;
+
+          if (isNetworkOrServerError) {
+            const typeLabels: Record<string, string> = {
+              entry: 'Entrada',
+              lunch_start: 'Inicio Almuerzo',
+              lunch_end: 'Fin Almuerzo',
+              exit: 'Salida',
+            };
+            this.triggerEmergencyTimelog(
+              employeeId,
+              branchId,
+              finalCompanyId,
+              type,
+              employeeName,
+              typeLabels[type] ?? type
+            );
+            return EMPTY;
+          }
+
           let errorMessage = 'Algo salió mal, intente nuevamente';
 
           // Manejar errores específicos
@@ -5308,5 +5476,132 @@ export class TimeclockComponent implements OnDestroy {
       this.ipWarningVisible.set(false);
       this.ipWarningExiting.set(false);
     }, 300);
+  }
+
+  // ── Emergency Timelog Methods ───────────────────────────────────────
+
+  /** Carga el conteo de timelogs de emergencia pendientes desde localStorage */
+  public loadEmergencyPendingCount(): void {
+    try {
+      const raw = localStorage.getItem(this.LS_EMERGENCY_KEY);
+      if (!raw) { this.emergencyPendingCount.set(0); return; }
+      const list: EmergencyTimelog[] = JSON.parse(raw);
+      const pending = list.filter(t => !t.synced).length;
+      this.emergencyPendingCount.set(pending);
+    } catch {
+      this.emergencyPendingCount.set(0);
+    }
+  }
+
+  /** Guarda un timelog de emergencia en localStorage */
+  private saveEmergencyToLocalStorage(entry: EmergencyTimelog): void {
+    try {
+      const raw = localStorage.getItem(this.LS_EMERGENCY_KEY);
+      const list: EmergencyTimelog[] = raw ? JSON.parse(raw) : [];
+      list.push(entry);
+      localStorage.setItem(this.LS_EMERGENCY_KEY, JSON.stringify(list));
+      this.loadEmergencyPendingCount();
+    } catch {
+      console.error('[Emergency] No se pudo guardar en localStorage');
+    }
+  }
+
+  /** Lee todos los timelogs de emergencia pendientes */
+  public getEmergencyPendingTimelogs(): EmergencyTimelog[] {
+    try {
+      const raw = localStorage.getItem(this.LS_EMERGENCY_KEY);
+      if (!raw) return [];
+      const list: EmergencyTimelog[] = JSON.parse(raw);
+      return list.filter(t => !t.synced);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Marca un timelog de emergencia como sincronizado */
+  public markEmergencySynced(id: string): void {
+    try {
+      const raw = localStorage.getItem(this.LS_EMERGENCY_KEY);
+      if (!raw) return;
+      const list: EmergencyTimelog[] = JSON.parse(raw);
+      const updated = list.map(t => t.id === id ? { ...t, synced: true } : t);
+      localStorage.setItem(this.LS_EMERGENCY_KEY, JSON.stringify(updated));
+      this.loadEmergencyPendingCount();
+    } catch {
+      console.error('[Emergency] No se pudo marcar como sincronizado');
+    }
+  }
+
+  /** Cierra el modal de emergencia con animación */
+  public closeEmergencyModal(): void {
+    this.emergencyModalExiting.set(true);
+    setTimeout(() => {
+      this.showEmergencyModal.set(false);
+      this.emergencyModalExiting.set(false);
+      this.emergencyData.set(null);
+      // Resetear formulario
+      this.form.get('otp')?.reset();
+    }, 250);
+  }
+
+  /**
+   * Intenta guardar una marcación de emergencia cuando el RPC principal falla.
+   * 1. Intenta INSERT directo a timelogs con source='EMERGENCY'
+   * 2. Si falla, guarda en localStorage para sincronización posterior
+   */
+  public triggerEmergencyTimelog(
+    employeeId: string,
+    branchId: string,
+    companyId: string,
+    type: string,
+    employeeName: string,
+    typeLabel: string
+  ): void {
+    const now = new Date();
+    const timeDisplay = formatInTimeZone(now, 'America/Panama', 'hh:mm a');
+    const timestamp = now.toISOString();
+
+    this.emergencyData.set({ employeeName, typeLabel, timeDisplay });
+    this.emergencyState.set('processing');
+    this.showEmergencyModal.set(true);
+    this.emergencyModalExiting.set(false);
+
+    const payload = {
+      employee_id: employeeId,
+      company_id: companyId,
+      branch_id: branchId,
+      type,
+      source: 'EMERGENCY',
+      punched_at: timestamp,
+      ip: this.getIP(),
+      invalid_ip: !this.validIP(),
+    };
+
+    // Intento 1: INSERT directo a timelogs (bypassea el RPC complejo)
+    this.http.post(
+      this.apiUrl.build('rest/v1/timelogs'),
+      payload,
+      { observe: 'response' }
+    ).subscribe({
+      next: () => {
+        this.emergencyState.set('saved_server');
+      },
+      error: () => {
+        // Intento 2: guardar en localStorage
+        const localEntry: EmergencyTimelog = {
+          id: crypto.randomUUID(),
+          employee_id: employeeId,
+          employee_name: employeeName,
+          company_id: companyId,
+          branch_id: branchId,
+          type,
+          type_label: typeLabel,
+          timestamp,
+          synced: false,
+        };
+        this.saveEmergencyToLocalStorage(localEntry);
+        this.emergencyState.set('saved_local');
+      },
+    });
   }
 }
