@@ -419,8 +419,8 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle -->
-            @if (selectedEmployee()) {
+            <!-- Auth Method Toggle: only when employee has NO fingerprint -->
+            @if (selectedEmployee() && !employeeHasFingerprint()) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> Autenticador
@@ -528,7 +528,7 @@ interface TimeclockInfoData {
                     (click)="validateFingerprint()"
                   >
                     <i class="pi pi-fingerprint fingerprint-icon"></i>
-                    <span class="fingerprint-label">{{ isProcessing() ? 'Verificando...' : 'Poner dedo en el lector' }}</span>
+                    <span class="fingerprint-label">{{ isProcessing() ? 'Verificando...' : 'Iniciar verificación de huella' }}</span>
                   </button>
                 } @else {
                   <!-- No credential on this device — offer self-registration -->
@@ -2603,7 +2603,10 @@ export class NazTimeclockComponent implements OnDestroy {
     if (employee?.id) {
       // Check fingerprint registration in background
       this.webAuthn.getCredentialStatus(employee.id)
-        .then(s => this.employeeHasFingerprint.set(s.hasCredential))
+        .then(s => {
+          this.employeeHasFingerprint.set(s.hasCredential);
+          if (s.hasCredential) this.authMethod.set('fingerprint');
+        })
         .catch(() => this.employeeHasFingerprint.set(false));
 
       this.getLastTimelog(employee.id).subscribe({

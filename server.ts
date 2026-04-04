@@ -523,7 +523,9 @@ export function app(): express.Express {
             userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
             attestationType: 'none',
             authenticatorSelection: {
-              authenticatorAttachment: 'platform',
+              // cross-platform = roaming authenticators (USB like Kensington VeriMark)
+              // Credential is stored ON the USB device, works on any PC with the reader
+              authenticatorAttachment: 'cross-platform',
               userVerification: 'required',
               residentKey: 'preferred',
             },
