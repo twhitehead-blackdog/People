@@ -420,7 +420,7 @@ interface TimeclockInfoData {
             </div>
 
             <!-- Auth Method Toggle -->
-            @if (form.get('employee')?.value) {
+            @if (selectedEmployee()) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> Autenticador
