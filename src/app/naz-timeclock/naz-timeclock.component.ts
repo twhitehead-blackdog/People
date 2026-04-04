@@ -45,6 +45,7 @@ import { IpMonitorService } from '../services/ip-monitor.service';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { TimeclockPhrasesService } from '../services/timeclock-phrases.service';
+import { WebAuthnService } from '../services/webauthn.service';
 import {
   initAudioContext,
   playFailureSound,
@@ -418,7 +419,20 @@ interface TimeclockInfoData {
               />
             </div>
 
+            <!-- Auth Method Toggle (only shown when employee has fingerprint registered) -->
+            @if (employeeHasFingerprint() && form.get('employee')?.value) {
+              <div class="auth-method-toggle w-full">
+                <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
+                  <i class="pi pi-shield"></i> Autenticador
+                </button>
+                <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'fingerprint'" (click)="authMethod.set('fingerprint')">
+                  <i class="pi pi-fingerprint"></i> Huella
+                </button>
+              </div>
+            }
+
             <!-- PIN Input Section -->
+            @if (authMethod() === 'pin') {
             <div
               class="w-full flex flex-col gap-0.5 items-center justify-center"
             >
@@ -470,7 +484,7 @@ interface TimeclockInfoData {
               }
             </div>
 
-            <!-- Submit Button -->
+            <!-- PIN Submit Button -->
             <div class="w-full flex justify-center items-center">
               <p-button
                 [disabled]="
@@ -500,6 +514,23 @@ interface TimeclockInfoData {
                 }"
               />
             </div>
+            }
+
+            <!-- Fingerprint Section -->
+            @if (authMethod() === 'fingerprint') {
+              <div class="w-full flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  class="fingerprint-scan-btn"
+                  [class.fingerprint-scan-btn--processing]="isProcessing()"
+                  [disabled]="isProcessing() || !form.get('employee')?.value || !form.get('type')?.value"
+                  (click)="validateFingerprint()"
+                >
+                  <i class="pi pi-fingerprint fingerprint-icon"></i>
+                  <span class="fingerprint-label">{{ isProcessing() ? 'Verificando...' : 'Poner dedo en el lector' }}</span>
+                </button>
+              </div>
+            }
 
             <!-- Validation Messages -->
             @if (form.get('employee')?.invalid && form.get('employee')?.touched)
@@ -1113,6 +1144,85 @@ interface TimeclockInfoData {
         height: 30px !important;
         font-size: 0.9rem !important;
       }
+    }
+
+    /* Auth method toggle */
+    .auth-method-toggle {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 0.25rem;
+    }
+    .auth-method-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .auth-method-btn--active {
+      background: linear-gradient(135deg, rgba(251,191,36,0.2) 0%, rgba(245,158,11,0.1) 100%);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,0.3);
+    }
+    .auth-method-btn:not(.auth-method-btn--active):hover {
+      color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Fingerprint scan button */
+    .fingerprint-scan-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+      min-height: 140px;
+      border-radius: 20px;
+      border: 2px dashed rgba(251,191,36,0.4);
+      background: linear-gradient(135deg, rgba(251,191,36,0.07) 0%, rgba(245,158,11,0.03) 100%);
+      color: #fbbf24;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .fingerprint-scan-btn:hover:not(:disabled) {
+      border-color: rgba(251,191,36,0.7);
+      background: linear-gradient(135deg, rgba(251,191,36,0.12) 0%, rgba(245,158,11,0.06) 100%);
+      transform: scale(1.01);
+    }
+    .fingerprint-scan-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .fingerprint-scan-btn--processing {
+      border-color: rgba(251,191,36,0.6);
+      animation: pulse-border 1.2s ease-in-out infinite;
+    }
+    .fingerprint-icon {
+      font-size: 3rem;
+    }
+    .fingerprint-scan-btn--processing .fingerprint-icon {
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .fingerprint-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(251,191,36,0.4); }
+      50% { border-color: rgba(251,191,36,0.8); }
     }
 
     .keypad-toggle-btn {
@@ -1835,6 +1945,7 @@ export class NazTimeclockComponent implements OnDestroy {
   private organizationService = inject(OrganizationService);
   private apiUrl = inject(ApiUrlService);
   private phrases = inject(TimeclockPhrasesService);
+  private webAuthn = inject(WebAuthnService);
 
   /** Employees that can mark from any IP address */
   private readonly IP_BYPASS_EMPLOYEE_IDS = new Set([
@@ -1845,6 +1956,8 @@ export class NazTimeclockComponent implements OnDestroy {
   public isProcessing = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
   public showKeypadPanel = signal<boolean>(false);
+  public authMethod = signal<'pin' | 'fingerprint'>('pin');
+  public employeeHasFingerprint = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
@@ -2443,7 +2556,14 @@ export class NazTimeclockComponent implements OnDestroy {
 
   onEmployeeSelected(employee: Employee | undefined) {
     this.selectedEmployee.set(employee);
+    this.authMethod.set('pin');
+    this.employeeHasFingerprint.set(false);
     if (employee?.id) {
+      // Check fingerprint registration in background
+      this.webAuthn.getCredentialStatus(employee.id)
+        .then(s => this.employeeHasFingerprint.set(s.hasCredential))
+        .catch(() => this.employeeHasFingerprint.set(false));
+
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
           const nextType = this.getNextTimelogType(lastTimelog?.type || null);
@@ -2640,6 +2760,33 @@ export class NazTimeclockComponent implements OnDestroy {
         detail: 'Este empleado no tiene PIN configurado. Contacte a Recursos Humanos.',
         life: 8000,
       });
+    }
+  }
+
+  async validateFingerprint() {
+    if (this.isProcessing()) return;
+    const { employee, branch_id, company_id, type } = this.form.getRawValue();
+    if (!employee) return;
+
+    this.isProcessing.set(true);
+    try {
+      const verified = await this.webAuthn.authenticateFingerprint(employee.id);
+      if (!verified) {
+        playFailureSound();
+        this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudo verificar la huella.' });
+        return;
+      }
+      const employeeName = `${employee.first_name} ${employee.father_name}`.trim();
+      this.processTimelog(employee.id, branch_id, company_id, type, employeeName, employee.birth_date as any);
+    } catch (err: any) {
+      this.isProcessing.set(false);
+      playFailureSound();
+      const detail = err?.name === 'NotAllowedError'
+        ? 'Verificación cancelada. Intente de nuevo.'
+        : err?.status === 404
+          ? 'No hay huella registrada para este empleado.'
+          : 'Error al leer la huella. Intente con PIN.';
+      this.message.add({ severity: 'error', summary: 'Huella', detail, life: 6000 });
     }
   }
 

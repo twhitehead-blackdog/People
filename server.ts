@@ -353,6 +353,282 @@ export function app(): express.Express {
   server.use('/api/email', requireAuth);
   server.use('/api/notifications', requireAuth);
 
+  // ============================================================
+  // WebAuthn / Fingerprint biometric authentication
+  // Registration endpoints require admin auth (requireAuth).
+  // Authentication endpoints are public (timeclock kiosk has no Auth0 session).
+  // ============================================================
+  {
+    import('@simplewebauthn/server').then(({
+      generateRegistrationOptions,
+      verifyRegistrationResponse,
+      generateAuthenticationOptions,
+      verifyAuthenticationResponse,
+    }) => {
+      const rpID = (() => {
+        try { return new URL(process.env['ENV_APP_URL'] || 'http://localhost:4200').hostname; }
+        catch { return 'localhost'; }
+      })();
+      const rpName = 'BlackDog People';
+      const expectedOrigin = process.env['ENV_APP_URL'] || 'http://localhost:4200';
+
+      // In-memory challenge store: key → { challenge, expires }
+      const challenges = new Map<string, { challenge: string; expires: number }>();
+      const cleanChallenges = () => {
+        const now = Date.now();
+        for (const [k, v] of challenges) if (v.expires < now) challenges.delete(k);
+      };
+
+      const SUPABASE_URL = process.env['ENV_SUPABASE_URL']!;
+      const SUPABASE_KEY =
+        process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+        process.env['ENV_SUPABASE_TOKEN'] ||
+        process.env['ENV_SUPABASE_ANON_KEY'] || '';
+      const sbHeaders = {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Prefer: 'return=representation',
+      };
+
+      async function fetchEmployee(id: string) {
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/employees?id=eq.${id}&select=id,first_name,father_name,email,document_id&limit=1`,
+          { headers: sbHeaders }
+        );
+        const rows = (await r.json()) as any[];
+        return rows[0] ?? null;
+      }
+
+      async function fetchCredentials(employeeId: string) {
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/webauthn_credentials?employee_id=eq.${employeeId}&select=*`,
+          { headers: sbHeaders }
+        );
+        return (await r.json()) as any[];
+      }
+
+      async function upsertCredential(data: {
+        employee_id: string;
+        credential_id: string;
+        public_key: string;
+        sign_count: number;
+        device_name: string;
+        registered_by: string;
+      }) {
+        // Delete any existing credential for this employee first (1 per employee)
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/webauthn_credentials?employee_id=eq.${data.employee_id}`,
+          { method: 'DELETE', headers: sbHeaders }
+        );
+        await fetch(`${SUPABASE_URL}/rest/v1/webauthn_credentials`, {
+          method: 'POST',
+          headers: sbHeaders,
+          body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }),
+        });
+      }
+
+      async function updateSignCount(credentialId: string, newCount: number) {
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/webauthn_credentials?credential_id=eq.${encodeURIComponent(credentialId)}`,
+          {
+            method: 'PATCH',
+            headers: sbHeaders,
+            body: JSON.stringify({ sign_count: newCount, updated_at: new Date().toISOString() }),
+          }
+        );
+      }
+
+      // GET /api/webauthn/credential-status/:employeeId  (public)
+      server.get('/api/webauthn/credential-status/:employeeId', async (req, res) => {
+        try {
+          const creds = await fetchCredentials(req.params['employeeId']);
+          res.json({ hasCredential: creds.length > 0, deviceName: creds[0]?.device_name });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // POST /api/webauthn/registration-options  (admin auth required)
+      server.post('/api/webauthn/registration-options', requireAuth, async (req, res) => {
+        try {
+          cleanChallenges();
+          const { employeeId } = req.body as { employeeId: string };
+          if (!employeeId) { res.status(400).json({ error: 'employeeId required' }); return; }
+
+          const employee = await fetchEmployee(employeeId);
+          if (!employee) { res.status(404).json({ error: 'Employee not found' }); return; }
+
+          const existing = await fetchCredentials(employeeId);
+
+          const options = await generateRegistrationOptions({
+            rpName,
+            rpID,
+            userID: new TextEncoder().encode(employeeId) as unknown as Uint8Array,
+            userName: employee.email || employee.document_id || employeeId,
+            userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
+            attestationType: 'none',
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              userVerification: 'required',
+              residentKey: 'preferred',
+            },
+            excludeCredentials: existing.map((c: any) => ({ id: c.credential_id })),
+          });
+
+          challenges.set(`reg-${employeeId}`, {
+            challenge: options.challenge,
+            expires: Date.now() + 5 * 60 * 1000,
+          });
+
+          res.json(options);
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // POST /api/webauthn/registration-verify  (admin auth required)
+      server.post('/api/webauthn/registration-verify', requireAuth, async (req, res) => {
+        try {
+          const { employeeId, deviceName, response } = req.body as {
+            employeeId: string;
+            deviceName?: string;
+            response: any;
+          };
+          if (!employeeId || !response) { res.status(400).json({ error: 'employeeId and response required' }); return; }
+
+          const stored = challenges.get(`reg-${employeeId}`);
+          if (!stored || stored.expires < Date.now()) {
+            res.status(400).json({ error: 'Challenge expired or not found' });
+            return;
+          }
+
+          const verification = await verifyRegistrationResponse({
+            response,
+            expectedChallenge: stored.challenge,
+            expectedOrigin,
+            expectedRPID: rpID,
+            requireUserVerification: true,
+          });
+
+          if (!verification.verified) {
+            res.status(400).json({ error: 'Verification failed' });
+            return;
+          }
+
+          challenges.delete(`reg-${employeeId}`);
+
+          const { credential } = verification.registrationInfo!;
+          const registeredBy = (req as any).user?.sub || (req as any).user?.email || 'admin';
+
+          await upsertCredential({
+            employee_id: employeeId,
+            credential_id: credential.id,
+            public_key: Buffer.from(credential.publicKey).toString('base64url'),
+            sign_count: credential.counter,
+            device_name: deviceName || 'Kensington VeriMark',
+            registered_by: registeredBy,
+          });
+
+          res.json({ success: true });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // DELETE /api/webauthn/credential/:employeeId  (admin auth required)
+      server.delete('/api/webauthn/credential/:employeeId', requireAuth, async (req, res) => {
+        try {
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/webauthn_credentials?employee_id=eq.${req.params['employeeId']}`,
+            { method: 'DELETE', headers: sbHeaders }
+          );
+          res.json({ success: true });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // POST /api/webauthn/authentication-options  (public — timeclock kiosk)
+      server.post('/api/webauthn/authentication-options', async (req, res) => {
+        try {
+          cleanChallenges();
+          const { employeeId } = req.body as { employeeId: string };
+          if (!employeeId) { res.status(400).json({ error: 'employeeId required' }); return; }
+
+          const creds = await fetchCredentials(employeeId);
+          if (!creds.length) {
+            res.status(404).json({ error: 'No fingerprint registered for this employee' });
+            return;
+          }
+
+          const options = await generateAuthenticationOptions({
+            rpID,
+            allowCredentials: creds.map((c: any) => ({ id: c.credential_id })),
+            userVerification: 'required',
+          });
+
+          challenges.set(`auth-${employeeId}`, {
+            challenge: options.challenge,
+            expires: Date.now() + 2 * 60 * 1000,
+          });
+
+          res.json(options);
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // POST /api/webauthn/authentication-verify  (public — timeclock kiosk)
+      server.post('/api/webauthn/authentication-verify', async (req, res) => {
+        try {
+          const { employeeId, response } = req.body as { employeeId: string; response: any };
+          if (!employeeId || !response) { res.status(400).json({ error: 'employeeId and response required' }); return; }
+
+          const stored = challenges.get(`auth-${employeeId}`);
+          if (!stored || stored.expires < Date.now()) {
+            res.status(400).json({ error: 'Challenge expired' });
+            return;
+          }
+
+          const creds = await fetchCredentials(employeeId);
+          const credential = creds.find((c: any) => c.credential_id === response.id);
+          if (!credential) {
+            res.status(400).json({ error: 'Credential not found' });
+            return;
+          }
+
+          const verification = await verifyAuthenticationResponse({
+            response,
+            expectedChallenge: stored.challenge,
+            expectedOrigin,
+            expectedRPID: rpID,
+            credential: {
+              id: credential.credential_id,
+              publicKey: Buffer.from(credential.public_key, 'base64url') as unknown as Uint8Array,
+              counter: credential.sign_count,
+            },
+            requireUserVerification: true,
+          });
+
+          if (!verification.verified) {
+            res.status(400).json({ error: 'Authentication failed' });
+            return;
+          }
+
+          challenges.delete(`auth-${employeeId}`);
+          await updateSignCount(credential.credential_id, verification.authenticationInfo.newCounter);
+
+          res.json({ success: true });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+    }).catch((err) => {
+      console.error('[WebAuthn] Failed to load @simplewebauthn/server:', err);
+    });
+  }
+
   /**
    * Integración Odoo 18 (Odoo.sh) - JSON-RPC
    * Lee sale.order del módulo de peluquería.

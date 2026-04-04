@@ -220,7 +220,10 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   if (
     req.url.includes('/api/client-ip') ||
     req.url.includes('/health') ||
-    req.url.includes('/api/email/send')
+    req.url.includes('/api/email/send') ||
+    req.url.includes('/api/webauthn/authentication-options') ||
+    req.url.includes('/api/webauthn/authentication-verify') ||
+    req.url.includes('/api/webauthn/credential-status/')
   ) {
     return next(req);
   }
