@@ -223,7 +223,9 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.includes('/api/email/send') ||
     req.url.includes('/api/webauthn/authentication-options') ||
     req.url.includes('/api/webauthn/authentication-verify') ||
-    req.url.includes('/api/webauthn/credential-status/')
+    req.url.includes('/api/webauthn/credential-status/') ||
+    req.url.includes('/api/webauthn/registration-options-self') ||
+    req.url.includes('/api/webauthn/registration-verify-self')
   ) {
     return next(req);
   }

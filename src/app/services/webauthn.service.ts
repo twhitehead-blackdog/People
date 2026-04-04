@@ -57,6 +57,20 @@ export class WebAuthnService {
     );
   }
 
+  /** Self-service registration from any device (public endpoint, no admin auth needed). */
+  async registerFingerprintSelf(employeeId: string, deviceName?: string): Promise<void> {
+    const options = await firstValueFrom(
+      this.http.post<any>(this.url('api/webauthn/registration-options-self'), { employeeId })
+    );
+    const registrationResponse = await startRegistration({ optionsJSON: options });
+    await firstValueFrom(
+      this.http.post<{ success: boolean }>(
+        this.url('api/webauthn/registration-verify-self'),
+        { employeeId, deviceName, response: registrationResponse }
+      )
+    );
+  }
+
   /** Called from the timeclock kiosk. Returns true if authentication succeeded. */
   async authenticateFingerprint(employeeId: string): Promise<boolean> {
     const options = await firstValueFrom(

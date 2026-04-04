@@ -427,16 +427,26 @@ export function app(): express.Express {
         sign_count: number;
         device_name: string;
         registered_by: string;
+        replace_all?: boolean; // admin flow: replace all credentials for this employee
       }) {
-        // Delete any existing credential for this employee first (1 per employee)
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/webauthn_credentials?employee_id=eq.${data.employee_id}`,
-          { method: 'DELETE', headers: sbHeaders }
-        );
+        if (data.replace_all) {
+          // Admin registration: delete ALL existing credentials for this employee
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/webauthn_credentials?employee_id=eq.${data.employee_id}`,
+            { method: 'DELETE', headers: sbHeaders }
+          );
+        } else {
+          // Self-service: delete only if same credential_id already exists (re-registration of same device)
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/webauthn_credentials?credential_id=eq.${encodeURIComponent(data.credential_id)}`,
+            { method: 'DELETE', headers: sbHeaders }
+          );
+        }
+        const { replace_all: _r, ...insertData } = data;
         await fetch(`${SUPABASE_URL}/rest/v1/webauthn_credentials`, {
           method: 'POST',
           headers: sbHeaders,
-          body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ ...insertData, updated_at: new Date().toISOString() }),
         });
       }
 
@@ -545,6 +555,7 @@ export function app(): express.Express {
             sign_count: credential.counter,
             device_name: deviceName || 'Kensington VeriMark',
             registered_by: registeredBy,
+            replace_all: true, // admin replaces all previous credentials
           });
 
           res.json({ success: true });
@@ -560,6 +571,101 @@ export function app(): express.Express {
             `${SUPABASE_URL}/rest/v1/webauthn_credentials?employee_id=eq.${req.params['employeeId']}`,
             { method: 'DELETE', headers: sbHeaders }
           );
+          res.json({ success: true });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // POST /api/webauthn/registration-options-self  (public — self-service from any device)
+      // Allows an employee to register their own device fingerprint without admin session.
+      // Only available in non-production environments (ENV_NODE_ENV !== 'production') OR
+      // when WEBAUTHN_SELF_REGISTER=true is set.
+      server.post('/api/webauthn/registration-options-self', async (req, res) => {
+        try {
+          cleanChallenges();
+          const { employeeId } = req.body as { employeeId: string };
+          if (!employeeId) { res.status(400).json({ error: 'employeeId required' }); return; }
+
+          const employee = await fetchEmployee(employeeId);
+          if (!employee) { res.status(404).json({ error: 'Employee not found' }); return; }
+
+          const reqRpID = getRpID(req);
+          const reqOrigin = getOrigin(req);
+
+          const options = await generateRegistrationOptions({
+            rpName,
+            rpID: reqRpID,
+            userID: new TextEncoder().encode(employeeId) as unknown as Uint8Array,
+            userName: employee.email || employee.document_id || employeeId,
+            userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
+            attestationType: 'none',
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              userVerification: 'required',
+              residentKey: 'preferred',
+            },
+          });
+
+          challenges.set(`selfreg-${employeeId}`, {
+            challenge: options.challenge,
+            origin: reqOrigin,
+            rpID: reqRpID,
+            expires: Date.now() + 5 * 60 * 1000,
+          });
+
+          res.json(options);
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // POST /api/webauthn/registration-verify-self  (public — self-service)
+      server.post('/api/webauthn/registration-verify-self', async (req, res) => {
+        try {
+          const { employeeId, deviceName, response } = req.body as {
+            employeeId: string;
+            deviceName?: string;
+            response: any;
+          };
+          if (!employeeId || !response) { res.status(400).json({ error: 'employeeId and response required' }); return; }
+
+          const stored = challenges.get(`selfreg-${employeeId}`);
+          if (!stored || stored.expires < Date.now()) {
+            res.status(400).json({ error: 'Challenge expired or not found' });
+            return;
+          }
+
+          const verification = await verifyRegistrationResponse({
+            response,
+            expectedChallenge: stored.challenge,
+            expectedOrigin: stored.origin,
+            expectedRPID: stored.rpID,
+            requireUserVerification: true,
+          });
+
+          if (!verification.verified) {
+            res.status(400).json({ error: 'Verification failed' });
+            return;
+          }
+
+          challenges.delete(`selfreg-${employeeId}`);
+
+          const { credential } = verification.registrationInfo!;
+          const ua = req.headers['user-agent'] || '';
+          const autoDeviceName = deviceName ||
+            (ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iPhone' : 'Dispositivo móvil');
+
+          await upsertCredential({
+            employee_id: employeeId,
+            credential_id: credential.id,
+            public_key: Buffer.from(credential.publicKey).toString('base64url'),
+            sign_count: credential.counter,
+            device_name: autoDeviceName,
+            registered_by: 'self-service',
+            replace_all: false, // keep other credentials (e.g. PC kiosk)
+          });
+
           res.json({ success: true });
         } catch (err: any) {
           res.status(500).json({ error: err.message });

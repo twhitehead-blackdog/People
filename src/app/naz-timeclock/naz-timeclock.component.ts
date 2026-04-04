@@ -419,8 +419,8 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle (only shown when employee has fingerprint registered) -->
-            @if (employeeHasFingerprint() && form.get('employee')?.value) {
+            <!-- Auth Method Toggle -->
+            @if (form.get('employee')?.value) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> Autenticador
@@ -519,16 +519,35 @@ interface TimeclockInfoData {
             <!-- Fingerprint Section -->
             @if (authMethod() === 'fingerprint') {
               <div class="w-full flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  class="fingerprint-scan-btn"
-                  [class.fingerprint-scan-btn--processing]="isProcessing()"
-                  [disabled]="isProcessing() || !form.get('employee')?.value || !form.get('type')?.value"
-                  (click)="validateFingerprint()"
-                >
-                  <i class="pi pi-fingerprint fingerprint-icon"></i>
-                  <span class="fingerprint-label">{{ isProcessing() ? 'Verificando...' : 'Poner dedo en el lector' }}</span>
-                </button>
+                @if (employeeHasFingerprint()) {
+                  <button
+                    type="button"
+                    class="fingerprint-scan-btn"
+                    [class.fingerprint-scan-btn--processing]="isProcessing()"
+                    [disabled]="isProcessing() || !form.get('employee')?.value || !form.get('type')?.value"
+                    (click)="validateFingerprint()"
+                  >
+                    <i class="pi pi-fingerprint fingerprint-icon"></i>
+                    <span class="fingerprint-label">{{ isProcessing() ? 'Verificando...' : 'Poner dedo en el lector' }}</span>
+                  </button>
+                } @else {
+                  <!-- No credential on this device — offer self-registration -->
+                  <div class="fingerprint-noreg-box">
+                    <i class="pi pi-fingerprint" style="font-size:2rem;color:rgba(251,191,36,0.5)"></i>
+                    <p style="font-size:0.85rem;color:rgba(255,255,255,0.55);text-align:center;margin:0">
+                      No hay huella registrada para este empleado en este dispositivo.
+                    </p>
+                    <button
+                      type="button"
+                      class="fingerprint-register-here-btn"
+                      [disabled]="isProcessing()"
+                      (click)="selfRegisterFingerprint()"
+                    >
+                      <i class="pi" [ngClass]="isProcessing() ? 'pi-spin pi-spinner' : 'pi-plus-circle'"></i>
+                      {{ isProcessing() ? 'Registrando...' : 'Registrar huella en este dispositivo' }}
+                    </button>
+                  </div>
+                }
               </div>
             }
 
@@ -1224,6 +1243,29 @@ interface TimeclockInfoData {
       0%, 100% { border-color: rgba(251,191,36,0.4); }
       50% { border-color: rgba(251,191,36,0.8); }
     }
+    .fingerprint-noreg-box {
+      display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+      width: 100%; padding: 1.25rem 1rem;
+      border-radius: 16px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+    }
+    .fingerprint-register-here-btn {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 10px;
+      border: 1px solid rgba(251,191,36,0.35);
+      background: rgba(251,191,36,0.08);
+      color: #fbbf24;
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .fingerprint-register-here-btn:hover:not(:disabled) {
+      background: rgba(251,191,36,0.16);
+      border-color: rgba(251,191,36,0.6);
+    }
+    .fingerprint-register-here-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .keypad-toggle-btn {
       display: flex;
@@ -2760,6 +2802,31 @@ export class NazTimeclockComponent implements OnDestroy {
         detail: 'Este empleado no tiene PIN configurado. Contacte a Recursos Humanos.',
         life: 8000,
       });
+    }
+  }
+
+  async selfRegisterFingerprint() {
+    const employee = this.form.getRawValue().employee;
+    if (!employee) return;
+    this.isProcessing.set(true);
+    try {
+      await this.webAuthn.registerFingerprintSelf(employee.id);
+      this.employeeHasFingerprint.set(true);
+      playSuccessSound();
+      this.message.add({
+        severity: 'success',
+        summary: 'Huella registrada',
+        detail: `Huella de ${employee.first_name} registrada en este dispositivo. Ya puede marcar.`,
+        life: 6000,
+      });
+    } catch (err: any) {
+      playFailureSound();
+      const detail = err?.name === 'NotAllowedError'
+        ? 'Registro cancelado.'
+        : (err?.message || 'No se pudo registrar la huella.');
+      this.message.add({ severity: 'error', summary: 'Error', detail, life: 6000 });
+    } finally {
+      this.isProcessing.set(false);
     }
   }
 
