@@ -365,15 +365,27 @@ export function app(): express.Express {
       generateAuthenticationOptions,
       verifyAuthenticationResponse,
     }) => {
-      const rpID = (() => {
-        try { return new URL(process.env['ENV_APP_URL'] || 'http://localhost:4200').hostname; }
-        catch { return 'localhost'; }
-      })();
       const rpName = 'BlackDog People';
-      const expectedOrigin = process.env['ENV_APP_URL'] || 'http://localhost:4200';
 
-      // In-memory challenge store: key → { challenge, expires }
-      const challenges = new Map<string, { challenge: string; expires: number }>();
+      // Derive rpID from the request's Origin header (works for any deployment URL)
+      function getRpID(req: express.Request): string {
+        const origin = req.headers.origin || req.headers.referer || process.env['ENV_APP_URL'] || '';
+        try { return new URL(origin).hostname || 'localhost'; }
+        catch { return 'localhost'; }
+      }
+      function getOrigin(req: express.Request): string {
+        const origin = req.headers.origin || '';
+        if (origin) return origin.replace(/\/$/, '');
+        const referer = req.headers.referer || '';
+        if (referer) {
+          try { const u = new URL(referer); return `${u.protocol}//${u.host}`; }
+          catch { /* fall through */ }
+        }
+        return (process.env['ENV_APP_URL'] || 'http://localhost:4200').replace(/\/$/, '');
+      }
+
+      // In-memory challenge store: key → { challenge, origin, rpID, expires }
+      const challenges = new Map<string, { challenge: string; origin: string; rpID: string; expires: number }>();
       const cleanChallenges = () => {
         const now = Date.now();
         for (const [k, v] of challenges) if (v.expires < now) challenges.delete(k);
@@ -461,9 +473,12 @@ export function app(): express.Express {
 
           const existing = await fetchCredentials(employeeId);
 
+          const reqRpID = getRpID(req);
+          const reqOrigin = getOrigin(req);
+
           const options = await generateRegistrationOptions({
             rpName,
-            rpID,
+            rpID: reqRpID,
             userID: new TextEncoder().encode(employeeId) as unknown as Uint8Array,
             userName: employee.email || employee.document_id || employeeId,
             userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
@@ -478,6 +493,8 @@ export function app(): express.Express {
 
           challenges.set(`reg-${employeeId}`, {
             challenge: options.challenge,
+            origin: reqOrigin,
+            rpID: reqRpID,
             expires: Date.now() + 5 * 60 * 1000,
           });
 
@@ -506,8 +523,8 @@ export function app(): express.Express {
           const verification = await verifyRegistrationResponse({
             response,
             expectedChallenge: stored.challenge,
-            expectedOrigin,
-            expectedRPID: rpID,
+            expectedOrigin: stored.origin,
+            expectedRPID: stored.rpID,
             requireUserVerification: true,
           });
 
@@ -562,14 +579,19 @@ export function app(): express.Express {
             return;
           }
 
+          const reqRpID = getRpID(req);
+          const reqOrigin = getOrigin(req);
+
           const options = await generateAuthenticationOptions({
-            rpID,
+            rpID: reqRpID,
             allowCredentials: creds.map((c: any) => ({ id: c.credential_id })),
             userVerification: 'required',
           });
 
           challenges.set(`auth-${employeeId}`, {
             challenge: options.challenge,
+            origin: reqOrigin,
+            rpID: reqRpID,
             expires: Date.now() + 2 * 60 * 1000,
           });
 
@@ -601,8 +623,8 @@ export function app(): express.Express {
           const verification = await verifyAuthenticationResponse({
             response,
             expectedChallenge: stored.challenge,
-            expectedOrigin,
-            expectedRPID: rpID,
+            expectedOrigin: stored.origin,
+            expectedRPID: stored.rpID,
             credential: {
               id: credential.credential_id,
               publicKey: Buffer.from(credential.public_key, 'base64url') as unknown as Uint8Array,
