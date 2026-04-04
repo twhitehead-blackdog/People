@@ -9,6 +9,13 @@ export const appRoutes: Route[] = [
       import('./qr-generator.component').then((x) => x.QrGeneratorComponent),
   },
   {
+    path: 'card/:employee_id',
+    loadComponent: () =>
+      import('./business-card/business-card.component').then(
+        (x) => x.BusinessCardComponent
+      ),
+  },
+  {
     path: 'employee-portal',
     canActivateChild: [authGuardFn],
     loadChildren: () =>

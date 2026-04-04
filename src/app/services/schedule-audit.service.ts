@@ -80,8 +80,8 @@ export class ScheduleAuditService {
       action: params.action,
       old_status: params.oldStatus !== undefined ? params.oldStatus : null,
       new_status: params.newStatus !== undefined ? params.newStatus : null,
-      old_value: params.oldValue ? JSON.stringify(params.oldValue) : null,
-      new_value: params.newValue ? JSON.stringify(params.newValue) : null,
+      old_value: params.oldValue ?? null,
+      new_value: params.newValue ?? null,
       comment: params.comment || null,
       ip_address: await this.getClientIP(),
       user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
@@ -147,7 +147,7 @@ export class ScheduleAuditService {
       this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
-          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees!employee_schedule_employee_id_fkey(id,first_name,father_name))`,
           'employee_schedule.employee_id': `eq.${employeeId}`,
           order: 'changed_at.desc',
         },
@@ -167,7 +167,7 @@ export class ScheduleAuditService {
       this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
-          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees!employee_schedule_employee_id_fkey(id,first_name,father_name))`,
           'employee_schedule.employee_id': `eq.${employeeId}`,
           'employee_schedule.start_date': `lte.${dateStr}`,
           'employee_schedule.end_date': `gte.${dateStr}`,
@@ -190,7 +190,7 @@ export class ScheduleAuditService {
     pageSize?: number;
   }): Observable<ScheduleAuditLog[]> {
     const queryParams: Record<string, string> = {
-      select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+      select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees!employee_schedule_employee_id_fkey(id,first_name,father_name))`,
       order: 'changed_at.desc',
     };
 

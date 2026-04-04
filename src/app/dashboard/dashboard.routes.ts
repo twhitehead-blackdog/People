@@ -184,9 +184,9 @@ export const DASHBOARD_ROUTES: Routes = [
           {
             path: 'performance',
             canActivate: [modulePermissionGuard('performance')],
-            loadChildren: () =>
-              import('./performance-360/performance-360.routes').then(
-                (m) => m.PERFORMANCE_360_ROUTES
+            loadComponent: () =>
+              import('./performance-360/scorecard-redirect.component').then(
+                (m) => m.ScorecardRedirectComponent
               ),
           },
           {

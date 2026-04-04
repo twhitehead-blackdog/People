@@ -7,18 +7,18 @@ import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { firstValueFrom } from 'rxjs';
 
-import { EmployeePortalDisabilitiesComponent } from '../../../employee-portal/components/employee-portal-disabilities.component';
+import { DisabilityGestionFormComponent } from '../../gestiones-forms/disability-gestion-form.component';
 import { EmployeePortalDocumentsComponent } from '../../../employee-portal/components/employee-portal-documents.component';
 import { EmployeePortalLicenseComponent } from '../../../employee-portal/components/employee-portal-license.component';
 import { EmployeePortalMaternityComponent } from '../../../employee-portal/components/employee-portal-maternity.component';
 import { EmployeePortalPersonalComponent } from '../../../employee-portal/components/employee-portal-personal.component';
-import { EmployeePortalTimelogCorrectionComponent } from '../../../employee-portal/components/employee-portal-timelog-correction.component';
 import { EmployeePortalUniformRequestComponent } from '../../../employee-portal/components/employee-portal-uniform-request.component';
 import { EmployeePortalVacationsComponent } from '../../../employee-portal/components/employee-portal-vacations.component';
 import { ApiUrlService } from '../../../services/api-url.service';
 import { OrganizationService } from '../../../services/organization.service';
 import { EmployeePortalDataService } from '../services/employee-portal-data.service';
 import { UniformTypesService } from '../../modules/uniform-requests/data/uniform-types.service';
+import { notifyBranchManagers } from '../../../utils/manager-notification.utils';
 
 @Component({
   selector: 'pt-employee-portal-gestiones-tab',
@@ -27,16 +27,15 @@ import { UniformTypesService } from '../../modules/uniform-requests/data/uniform
     CommonModule,
     CardModule,
     DialogModule,
-    EmployeePortalDisabilitiesComponent,
+    DisabilityGestionFormComponent,
     EmployeePortalDocumentsComponent,
     EmployeePortalVacationsComponent,
     EmployeePortalLicenseComponent,
     EmployeePortalPersonalComponent,
     EmployeePortalMaternityComponent,
-    EmployeePortalTimelogCorrectionComponent,
     EmployeePortalUniformRequestComponent,
   ],
-  providers: [MessageService],
+  providers: [],
   styles: [
     `
       :host {
@@ -147,27 +146,6 @@ import { UniformTypesService } from '../../modules/uniform-requests/data/uniform
             </div>
           </p-card>
 
-          <!-- Omisión de Marcación -->
-          <p-card
-            class="gestion-card"
-            (click)="openGestionForm('timelog_correction')"
-          >
-            <div class="flex flex-col items-center text-center gap-3">
-              <div
-                class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center"
-              >
-                <i
-                  class="pi pi-exclamation-triangle text-orange-400 text-xl"
-                ></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">
-                Omisión de Marcación
-              </h3>
-              <p class="text-sm text-gray-400 m-0">
-                Corrige errores en tus marcaciones
-              </p>
-            </div>
-          </p-card>
 
           <!-- Solicitud de Uniforme -->
           <p-card class="gestion-card" (click)="openGestionForm('uniform')">
@@ -252,11 +230,16 @@ import { UniformTypesService } from '../../modules/uniform-requests/data/uniform
         (onHide)="closeGestionForm()"
       >
         <ng-container [ngSwitch]="activeGestionForm()">
-          <pt-employee-portal-disabilities
-            *ngSwitchCase="'disabilities'"
-            (closeManagement)="closeGestionForm()"
-            (reloadList)="dataService.disabilitiesApi.reload()"
-          />
+          <ng-container *ngSwitchCase="'disabilities'">
+            @if (currentEmployee()) {
+              <pt-disability-gestion-form
+                [selectedEmployee]="currentEmployee()"
+                [currentEmployee]="currentEmployee()"
+                (requestCreated)="onDisabilityCreated()"
+                (close)="closeGestionForm()"
+              />
+            }
+          </ng-container>
 
           <pt-employee-portal-documents
             *ngSwitchCase="'documents'"
@@ -305,22 +288,6 @@ import { UniformTypesService } from '../../modules/uniform-requests/data/uniform
             (closeSection)="closeGestionForm()"
           />
 
-          <pt-employee-portal-timelog-correction
-            *ngSwitchCase="'timelog_correction'"
-            [correctionDate]="correctionDate()"
-            (correctionDateChange)="correctionDate.set($event)"
-            [correctionType]="correctionType()"
-            (correctionTypeChange)="correctionType.set($event)"
-            [correctionReason]="correctionReason()"
-            (correctionReasonChange)="correctionReason.set($event)"
-            [correctionFile]="correctionFile()"
-            (correctionFileChange)="correctionFile.set($event)"
-            [canSubmit]="canSubmitCorrection()"
-            [submitting]="submittingCorrection()"
-            [today]="today"
-            (submitRequest)="submitTimelogCorrection()"
-            (closeSection)="closeGestionForm()"
-          />
 
           <pt-employee-portal-uniform-request
             *ngSwitchCase="'uniform'"
@@ -461,12 +428,6 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
   public timeoffRequests = signal<any[]>([]);
   public loadingTimeoffRequests = signal(false);
 
-  // -- Timelog Correction --
-  public correctionDate = signal<Date | null>(null);
-  public correctionType = signal('');
-  public correctionReason = signal('');
-  public correctionFile = signal<File | null>(null);
-  public submittingCorrection = signal(false);
 
   // -- Uniform Request --
   public uniformItemType = signal('');
@@ -519,7 +480,6 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
     this.activeGestionForm.set(null);
     this.resetDocumentForm();
     this.resetTimeoffForm();
-    this.resetCorrectionForm();
     this.resetUniformForm();
   }
 
@@ -533,7 +493,6 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
       license: 'Solicitar Licencia',
       personal: 'Solicitar Permiso Personal',
       maternity: 'Solicitar Licencia de Maternidad',
-      timelog_correction: 'Omisión de Marcación',
       uniform: 'Solicitud de Uniforme',
     };
     return titles[form || ''] || 'Formulario';
@@ -567,13 +526,6 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
     return !!(this.selectedTimeoffType() && start && end && start <= end);
   }
 
-  public canSubmitCorrection(): boolean {
-    return !!(
-      this.correctionDate() &&
-      this.correctionType() &&
-      this.correctionReason()
-    );
-  }
 
   public canSubmitUniform(): boolean {
     return !!(
@@ -778,57 +730,6 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
     }
   }
 
-  public async submitTimelogCorrection() {
-    if (!this.canSubmitCorrection()) return;
-    const employee = this.currentEmployee() as any;
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!employee || !companyId) return;
-
-    this.submittingCorrection.set(true);
-    try {
-      const payload = {
-        employee_id: employee.id,
-        company_id: companyId,
-        document_type: 'timelog_correction',
-        reason: this.correctionReason(),
-        status: 'pending',
-        metadata: {
-          timelog_date: format(this.correctionDate()!, 'yyyy-MM-dd'),
-          timelog_type: this.correctionType(),
-        },
-      };
-
-      await firstValueFrom(
-        this.http.post(
-          this.apiUrl.build('rest/v1/document_requests'),
-          payload,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
-      );
-
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Solicitud Enviada',
-        detail: 'Tu corrección de marcación ha sido enviada.',
-      });
-      this.closeGestionForm();
-      this.loadDocumentRequests();
-    } catch (error) {
-      console.error(error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo enviar la corrección.',
-      });
-    } finally {
-      this.submittingCorrection.set(false);
-    }
-  }
 
   public async submitUniformRequest() {
     if (!this.canSubmitUniform()) return;
@@ -863,6 +764,18 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
           }
         )
       );
+
+      // Notificar a gerentes de la sucursal
+      const empName = `${employee.first_name} ${employee.father_name}`.trim();
+      notifyBranchManagers({
+        http: this.http,
+        apiUrl: this.apiUrl,
+        employee,
+        title: 'Nueva Solicitud de Uniforme',
+        message: `${empName} envió una solicitud de uniforme.`,
+        relatedType: 'uniform',
+        messageType: 'uniform_request_manager',
+      });
 
       this.messageService.add({
         severity: 'success',
@@ -928,17 +841,16 @@ export class EmployeePortalGestionesTabComponent implements OnInit {
     this.selectedTimeoffType.set(null);
   }
 
-  public resetCorrectionForm() {
-    this.correctionDate.set(null);
-    this.correctionType.set('');
-    this.correctionReason.set('');
-    this.correctionFile.set(null);
-  }
 
   public resetUniformForm() {
     this.uniformItemType.set('');
     this.uniformSize.set('');
     this.uniformQuantity.set(1);
     this.uniformNotes.set('');
+  }
+
+  public onDisabilityCreated(): void {
+    this.dataService.disabilitiesApi.reload();
+    this.closeGestionForm();
   }
 }

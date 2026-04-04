@@ -18,8 +18,9 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmailConfigComponent } from './settings/email-config.component';
+import { EmergencyTimelogReviewComponent } from './settings/emergency-timelog-review.component';
 import { ManualTimelogComponent } from './settings/manual-timelog.component';
-import { ShopifySyncComponent } from './settings/shopify-sync.component';
+
 
 interface Setting {
   id: string;
@@ -30,15 +31,6 @@ interface Setting {
   is_encrypted: boolean;
 }
 
-interface EmailConfig {
-  provider: 'smtp' | 'resend' | 'postmark';
-  host: string;
-  port: number;
-  user: string;
-  senderEmail: string;
-  senderName: string;
-  configured: boolean;
-}
 
 @Component({
   selector: 'pt-settings',
@@ -52,8 +44,8 @@ interface EmailConfig {
     ToastModule,
     TabsModule,
     EmailConfigComponent,
+    EmergencyTimelogReviewComponent,
     ManualTimelogComponent,
-    ShopifySyncComponent,
   ],
   providers: [MessageService],
   template: `
@@ -89,6 +81,12 @@ interface EmailConfig {
             <i class="pi pi-sync mr-2"></i>
             Shopify Sync
           </p-tab>
+          @if (canManageSchedules()) {
+          <p-tab value="5">
+            <i class="pi pi-exclamation-triangle mr-2 text-yellow-400"></i>
+            Emergencias
+          </p-tab>
+          }
         </p-tablist>
 
         <!-- Tab: Correo -->
@@ -96,7 +94,7 @@ interface EmailConfig {
           <p-card styleClass="[&_.p-card-body]:py-2">
             <ng-template #title>Configuración de Correo</ng-template>
             <ng-template #subtitle>
-              Configuración del servidor SMTP para envío de correos
+              Configuración de correo electrónico del sistema
             </ng-template>
 
             <div class="flex flex-col gap-6">
@@ -142,147 +140,9 @@ interface EmailConfig {
                 />
               </div>
 
-              <!-- Estado de la configuración SMTP -->
-              @if(emailConfigResource.isLoading()) {
-              <div class="flex items-center gap-2 text-gray-400">
-                <i class="pi pi-spin pi-spinner"></i>
-                Cargando configuración...
-              </div>
-              } @else if (emailConfigResource.error()) {
-              <div
-                class="bg-red-500/10 border border-red-500/30 rounded-lg p-4"
-              >
-                <div class="flex items-start gap-3">
-                  <i class="pi pi-exclamation-circle text-red-400 text-xl"></i>
-                  <div class="flex-1">
-                    <p class="text-red-300 font-semibold mb-1">
-                      Error al cargar configuración
-                    </p>
-                    <p class="text-sm text-gray-300 m-0">
-                      No se pudo obtener la configuración del servidor de
-                      correo. Asegúrate de que el servidor backend esté
-                      ejecutándose.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              } @else {
-              @if (emailConfigResource.value(); as config) {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-                >
-                  <div class="text-sm text-gray-400 mb-1">Proveedor</div>
-                  <div class="text-lg font-semibold text-white">
-                    {{ config.provider === 'smtp' ? 'SMTP (' + config.host + ')' : config.provider === 'resend' ? 'Resend' : 'Postmark' }}
-                  </div>
-                </div>
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-                >
-                  <div class="text-sm text-gray-400 mb-1">Estado</div>
-                  <div
-                    class="text-lg font-semibold"
-                    [class.text-green-400]="config.configured"
-                    [class.text-red-400]="!config.configured"
-                  >
-                    {{ config.configured ? 'Configurado' : 'No configurado' }}
-                  </div>
-                </div>
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-                >
-                  <div class="text-sm text-gray-400 mb-1">Servidor</div>
-                  <div class="text-lg font-semibold text-white">
-                    {{ config.host }}:{{ config.port }}
-                  </div>
-                </div>
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-                >
-                  <div class="text-sm text-gray-400 mb-1">Usuario</div>
-                  <div class="text-lg font-semibold text-white">
-                    {{ config.user }}
-                  </div>
-                </div>
-                <div
-                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700 md:col-span-2"
-                >
-                  <div class="text-sm text-gray-400 mb-1">Correo Remitente</div>
-                  <div class="text-lg font-semibold text-white">
-                    {{ config.senderName }} &lt;{{ config.senderEmail }}&gt;
-                  </div>
-                </div>
-              </div>
-
-              <!-- Configuración SMTP editable -->
+              <!-- Configuración de notificaciones -->
               <pt-email-config />
 
-              <!-- Probar envío -->
-              <div
-                class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-              >
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-semibold text-white">
-                    Probar Envío de Correo
-                  </label>
-                  <p class="text-xs text-gray-400">
-                    Envía un correo de prueba para verificar que la
-                    configuración funciona.
-                  </p>
-                </div>
-                <div class="flex gap-2">
-                  <input
-                    pInputText
-                    type="email"
-                    [(ngModel)]="testEmailRecipient"
-                    placeholder="correo@ejemplo.com"
-                    class="flex-1"
-                    [disabled]="sendingTestEmail() || !emailEnabled()"
-                  />
-                  <p-button
-                    label="Enviar Prueba"
-                    icon="pi pi-send"
-                    [loading]="sendingTestEmail()"
-                    [disabled]="
-                      !testEmailRecipient().trim() || !emailEnabled()
-                    "
-                    (click)="sendTestEmail()"
-                  />
-                </div>
-                @if (!emailEnabled()) {
-                <p class="text-xs text-amber-400 m-0">
-                  <i class="pi pi-exclamation-triangle mr-1"></i>
-                  El envío de correos está deshabilitado. Activa el switch
-                  superior para habilitar.
-                </p>
-                }
-              </div>
-              }
-              }
-
-              <!-- Información -->
-              <div
-                class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
-              >
-                <div class="flex items-start gap-3">
-                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
-                  <div class="flex-1">
-                    <p class="text-blue-300 font-semibold mb-2">
-                      Configuración del Servidor
-                    </p>
-                    <p class="text-sm text-gray-300 m-0">
-                      El servidor, puerto y usuario SMTP se pueden editar
-                      arriba. La contraseña se configura en la variable de
-                      entorno
-                      <code class="bg-neutral-700 px-1 rounded"
-                        >ENV_SMTP_PASSWORD</code
-                      >
-                      del servidor por seguridad.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </p-card>
         </p-tabpanel>
@@ -571,6 +431,80 @@ interface EmailConfig {
                   </div>
                   }
                 </div>
+
+                <!-- Permisos de Trabajo -->
+                <div
+                  class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-1">
+                      <label class="text-sm font-semibold text-white">
+                        <i class="pi pi-briefcase text-rose-400 mr-2"></i>
+                        Permisos de Trabajo
+                      </label>
+                      <p class="text-xs text-gray-400 m-0">
+                        Permisos personales, médicos o por defunción
+                      </p>
+                    </div>
+                    <p-toggleSwitch
+                      [(ngModel)]="hrEmailNotifyWorkPermit"
+                      (ngModelChange)="onHrEmailNotifyWorkPermitChange()"
+                      [disabled]="saving()"
+                    />
+                  </div>
+                  @if (hrEmailNotifyWorkPermit()) {
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-medium text-gray-300"
+                      >Destinatarios (separados por coma)</label
+                    >
+                    <input
+                      pInputText
+                      [(ngModel)]="hrEmailRecipientsWorkPermit"
+                      (ngModelChange)="onHrEmailRecipientsWorkPermitChange()"
+                      [disabled]="saving()"
+                      placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                      class="bg-neutral-700 border-neutral-600 text-white"
+                    />
+                  </div>
+                  }
+                </div>
+
+                <!-- Cambios de Horario -->
+                <div
+                  class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-1">
+                      <label class="text-sm font-semibold text-white">
+                        <i class="pi pi-calendar text-sky-400 mr-2"></i>
+                        Cambios de Horario
+                      </label>
+                      <p class="text-xs text-gray-400 m-0">
+                        Solicitudes de modificación de horario semanal
+                      </p>
+                    </div>
+                    <p-toggleSwitch
+                      [(ngModel)]="hrEmailNotifyScheduleChange"
+                      (ngModelChange)="onHrEmailNotifyScheduleChangeChange()"
+                      [disabled]="saving()"
+                    />
+                  </div>
+                  @if (hrEmailNotifyScheduleChange()) {
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-medium text-gray-300"
+                      >Destinatarios (separados por coma)</label
+                    >
+                    <input
+                      pInputText
+                      [(ngModel)]="hrEmailRecipientsScheduleChange"
+                      (ngModelChange)="onHrEmailRecipientsScheduleChangeChange()"
+                      [disabled]="saving()"
+                      placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                      class="bg-neutral-700 border-neutral-600 text-white"
+                    />
+                  </div>
+                  }
+                </div>
               </div>
 
               <!-- SECCIÓN: Respuestas a Empleados -->
@@ -714,10 +648,36 @@ interface EmailConfig {
 
         <!-- Tab: Shopify Sync -->
         <p-tabpanel value="4">
+          <div class="flex flex-col items-center justify-center gap-6 py-12">
+            <div class="w-16 h-16 rounded-2xl bg-green-500/15 border border-green-500/25 flex items-center justify-center">
+              <i class="pi pi-sync text-green-400 text-3xl"></i>
+            </div>
+            <div class="text-center">
+              <h3 class="text-white font-semibold text-lg mb-1">Shopify Sync</h3>
+              <p class="text-gray-400 text-sm max-w-sm">
+                La sincronización de inventario y precios con Shopify se gestiona desde su aplicación dedicada.
+              </p>
+            </div>
+            <a
+              href="https://prueba.blackdogpanama.com/shopify-sync/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white font-medium text-sm transition-colors"
+            >
+              <i class="pi pi-external-link"></i>
+              Abrir Shopify Sync
+            </a>
+          </div>
+        </p-tabpanel>
+
+        <!-- Tab: Emergencias -->
+        @if (canManageSchedules()) {
+        <p-tabpanel value="5">
           <p-card styleClass="[&_.p-card-body]:py-2">
-            <pt-shopify-sync />
+            <pt-emergency-timelog-review />
           </p-card>
         </p-tabpanel>
+        }
       </p-tabs>
     </div>
 
@@ -765,22 +725,16 @@ export class SettingsComponent {
   public hrEmailRecipientsVacations = signal('');
   public hrEmailRecipientsUniform = signal('');
   public hrEmailRecipientsTimelogCorrection = signal('');
-
-  // Email config
-  public testEmailRecipient = signal('');
-  public sendingTestEmail = signal(false);
-
-  // Email config resource
-  public emailConfigResource = httpResource<EmailConfig>(() => ({
-    url: '/api/email/config',
-    method: 'GET',
-  }));
+  public hrEmailNotifyWorkPermit = signal(true);
+  public hrEmailNotifyScheduleChange = signal(true);
+  public hrEmailRecipientsWorkPermit = signal('');
+  public hrEmailRecipientsScheduleChange = signal('');
 
   // Cargar configuraciones
   public settingsApi = httpResource<Setting[]>(() => {
     const url = this.apiUrl.build('rest/v1/settings', {
       select: 'id,key,value',
-      key: `in.(email_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory,hr_email_notify_vacations,hr_email_notify_uniform,hr_email_notify_timelog_correction,hr_email_recipients_compensatory,hr_email_recipients_documents,hr_email_recipients_disabilities,hr_email_recipients_vacations,hr_email_recipients_uniform,hr_email_recipients_timelog_correction,employee_email_notify_approvals,employee_email_notify_rejections)`,
+      key: `in.(email_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory,hr_email_notify_vacations,hr_email_notify_uniform,hr_email_notify_timelog_correction,hr_email_notify_work_permit,hr_email_notify_schedule_change,hr_email_recipients_compensatory,hr_email_recipients_documents,hr_email_recipients_disabilities,hr_email_recipients_vacations,hr_email_recipients_uniform,hr_email_recipients_timelog_correction,hr_email_recipients_work_permit,hr_email_recipients_schedule_change,employee_email_notify_approvals,employee_email_notify_rejections)`,
       order: 'key.asc',
     });
     return {
@@ -819,6 +773,8 @@ export class SettingsComponent {
         const hrEmailNotifyTimelogCorrectionSetting = getSetting(
           'hr_email_notify_timelog_correction'
         );
+        const hrEmailNotifyWorkPermitSetting = getSetting('hr_email_notify_work_permit');
+        const hrEmailNotifyScheduleChangeSetting = getSetting('hr_email_notify_schedule_change');
 
         // Employee notifications (respuestas)
         const employeeEmailNotifyApprovalsSetting = getSetting(
@@ -847,6 +803,8 @@ export class SettingsComponent {
         const hrEmailRecipientsTimelogCorrectionSetting = getSetting(
           'hr_email_recipients_timelog_correction'
         );
+        const hrEmailRecipientsWorkPermitSetting = getSetting('hr_email_recipients_work_permit');
+        const hrEmailRecipientsScheduleChangeSetting = getSetting('hr_email_recipients_schedule_change');
 
         // Set email enabled (master switch)
         this.emailEnabled.set(
@@ -918,6 +876,15 @@ export class SettingsComponent {
         this.hrEmailRecipientsTimelogCorrection.set(
           hrEmailRecipientsTimelogCorrectionSetting?.value || defaultEmail
         );
+
+        this.hrEmailNotifyWorkPermit.set(
+          hrEmailNotifyWorkPermitSetting ? hrEmailNotifyWorkPermitSetting.value === 'true' : true
+        );
+        this.hrEmailNotifyScheduleChange.set(
+          hrEmailNotifyScheduleChangeSetting ? hrEmailNotifyScheduleChangeSetting.value === 'true' : true
+        );
+        this.hrEmailRecipientsWorkPermit.set(hrEmailRecipientsWorkPermitSetting?.value || defaultEmail);
+        this.hrEmailRecipientsScheduleChange.set(hrEmailRecipientsScheduleChangeSetting?.value || defaultEmail);
       }
     });
   }
@@ -1042,107 +1009,46 @@ export class SettingsComponent {
     );
   }
 
-  private saveSetting(
-    key: string,
-    value: string,
-    opts?: { category?: string; isEncrypted?: boolean }
-  ): void {
+  public onHrEmailNotifyWorkPermitChange(): void {
+    this.saveSetting('hr_email_notify_work_permit', this.hrEmailNotifyWorkPermit() ? 'true' : 'false', { category: 'notifications' });
+  }
+
+  public onHrEmailRecipientsWorkPermitChange(): void {
+    this.saveSetting('hr_email_recipients_work_permit', this.hrEmailRecipientsWorkPermit(), { category: 'notifications' });
+  }
+
+  public onHrEmailNotifyScheduleChangeChange(): void {
+    this.saveSetting('hr_email_notify_schedule_change', this.hrEmailNotifyScheduleChange() ? 'true' : 'false', { category: 'notifications' });
+  }
+
+  public onHrEmailRecipientsScheduleChangeChange(): void {
+    this.saveSetting('hr_email_recipients_schedule_change', this.hrEmailRecipientsScheduleChange(), { category: 'notifications' });
+  }
+
+  private saveSetting(key: string, value: string, opts?: { category?: string }): void {
     this.saving.set(true);
     const category = opts?.category ?? 'general';
-    const isEncrypted =
-      opts?.isEncrypted ??
-      (key.includes('api_key') || key.includes('password'));
 
-    // Primero intentar actualizar
-    const url = this.apiUrl.build('rest/v1/settings', {
-      key: `eq.${key}`,
-    });
-    this.http.patch(url, { value }).subscribe({
+    // Determinar si la key ya existe en los datos cargados
+    const loaded = this.settingsApi.value() || [];
+    const exists = loaded.some((s) => s.key === key);
+
+    const request$ = exists
+      ? this.http.patch(this.apiUrl.build('rest/v1/settings', { key: `eq.${key}` }), { value })
+      : this.http.post(this.apiUrl.build('rest/v1/settings'), { key, value, category });
+
+    request$.subscribe({
       next: () => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Éxito',
-          detail: 'Configuración guardada correctamente',
-        });
-
+        this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Configuración guardada' });
         this.settingsApi.reload();
         this.saving.set(false);
       },
-      error: (error) => {
-        console.error('Error saving setting:', error);
-
-        // Si no existe, crear
-        this.http
-          .post(this.apiUrl.build('rest/v1/settings'), {
-            key,
-            value,
-            category,
-            is_encrypted: isEncrypted,
-          })
-          .subscribe({
-            next: () => {
-              this.messageService.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Configuración guardada correctamente',
-              });
-
-              this.settingsApi.reload();
-              this.saving.set(false);
-            },
-            error: (err) => {
-              console.error('Error creating setting:', err);
-              this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail:
-                  err.error?.message || 'No se pudo guardar la configuración',
-              });
-              this.saving.set(false);
-            },
-          });
+      error: (err) => {
+        console.error('Error saving setting:', err);
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'No se pudo guardar la configuración' });
+        this.saving.set(false);
       },
     });
-  }
-
-  public sendTestEmail(): void {
-    const to = this.testEmailRecipient().trim();
-    if (!to) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Campo Requerido',
-        detail: 'Por favor ingresa un correo destinatario',
-      });
-      return;
-    }
-
-    this.sendingTestEmail.set(true);
-
-    this.http
-      .post<{ success: boolean; message?: string; error?: string }>(
-        '/api/email/test',
-        { to }
-      )
-      .subscribe({
-        next: (res) => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Correo Enviado',
-            detail: res.message || `Correo de prueba enviado a ${to}`,
-          });
-          this.sendingTestEmail.set(false);
-        },
-        error: (err) => {
-          console.error('Error sending test email:', err);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail:
-              err.error?.message || 'No se pudo enviar el correo de prueba',
-          });
-          this.sendingTestEmail.set(false);
-        },
-      });
   }
 
   // Abrir página de M-Pets Comparación en nueva ventana

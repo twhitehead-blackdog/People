@@ -30,6 +30,8 @@ import { httpInterceptor } from './interceptors/http.interceptor';
 import { EmployeePortalStore } from './stores/employee-portal.store';
 import { JobApplicationsStore } from './stores/job-applications.store';
 import { PositionsStore } from './stores/positions.store';
+import { RecruitmentRulesStore } from './stores/recruitment-rules.store';
+import { RecruitmentClassificationsStore } from './stores/recruitment-classifications.store';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -103,9 +105,11 @@ export const appConfig: ApplicationConfig = {
     // Servicios de PrimeNG deben estar antes de los stores
     MessageService,
     ConfirmationService,
-    // Stores para el módulo de Feria de Empleo
+    // Stores para el módulo de Feria de Empleo y Reclutamiento
     PositionsStore,
     JobApplicationsStore,
+    RecruitmentRulesStore,
+    RecruitmentClassificationsStore,
     // Store para el Portal de Empleados
     EmployeePortalStore,
   ],

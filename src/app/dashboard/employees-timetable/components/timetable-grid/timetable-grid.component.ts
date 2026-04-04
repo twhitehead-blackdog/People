@@ -25,15 +25,34 @@ type EmployeeWithDays = {
     <!-- Mobile View: horizontal scroll per employee -->
     <div class="md:hidden space-y-2">
       @for(employee of paginatedEmployees(); track employee.id){
-      <div class="bg-neutral-800/60 rounded-xl border border-neutral-700/40 overflow-hidden">
+      <div
+        class="bg-neutral-800/60 rounded-xl border overflow-hidden"
+        [ngClass]="
+          lockedPositions().has(employee.position.name || '')
+            ? 'border-amber-500/40 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
+            : 'border-neutral-700/40'
+        "
+      >
         <!-- Employee header -->
-        <div class="px-3 py-2 bg-neutral-700/20 border-b border-neutral-700/30 flex items-center gap-2">
+        <div
+          class="px-3 py-2 border-b flex items-center gap-2"
+          [ngClass]="
+            lockedPositions().has(employee.position.name || '')
+              ? 'bg-amber-500/10 border-amber-500/30'
+              : 'bg-neutral-700/20 border-neutral-700/30'
+          "
+        >
           <div class="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <span class="text-[10px] font-bold text-amber-400">{{ employee.first_name?.charAt(0) }}{{ employee.father_name?.charAt(0) }}</span>
+            <span class="text-[10px] font-bold text-amber-400">{{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}</span>
           </div>
           <div class="min-w-0">
             <p class="text-[13px] font-semibold text-white m-0 truncate">{{ employee.first_name }} {{ employee.father_name }}</p>
-            <p class="text-[10px] text-gray-500 m-0 truncate">{{ employee.position?.name || 'Sin cargo' }}</p>
+            <p class="text-[10px] m-0 truncate" [ngClass]="lockedPositions().has(employee.position.name || '') ? 'text-amber-300' : 'text-gray-500'">
+              @if (lockedPositions().has(employee.position.name || '')) {
+                <i class="pi pi-lock text-amber-400 text-[9px] mr-1"></i>
+              }
+              {{ employee.position.name || 'Sin cargo' }}
+            </p>
           </div>
         </div>
         <!-- Days scroll -->
@@ -50,12 +69,14 @@ type EmployeeWithDays = {
                 [canManageSchedules]="canManageSchedules()"
                 [canApprove]="canApproveSchedules()"
                 [isStoreManager]="isStoreManager()"
+                [isLocked]="lockedPositions().has(employee.position.name || '')"
                 [scheduleWarning]="day.scheduleWarning ?? null"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
                 (approve)="onApproveShift($event)"
                 (add)="onAddShift($event)"
                 (viewAudit)="onViewAudit($event)"
+                (lockedClick)="lockedShift.emit()"
               />
             </div>
           </div>
@@ -115,7 +136,22 @@ type EmployeeWithDays = {
         </ng-template>
         <ng-template #body let-item>
           <tr>
-            <td pFrozenColumn class="whitespace-nowrap">{{ item.position.name }}</td>
+            <td
+              pFrozenColumn
+              class="whitespace-nowrap"
+              [ngClass]="
+                lockedPositions().has(item.position.name || '')
+                  ? 'bg-amber-500/10 text-amber-200 border-r border-amber-500/25'
+                  : ''
+              "
+            >
+              <span class="inline-flex items-center gap-1">
+                @if (lockedPositions().has(item.position.name || '')) {
+                  <i class="pi pi-lock text-amber-400 text-[10px]"></i>
+                }
+                {{ item.position.name }}
+              </span>
+            </td>
             <td class="whitespace-nowrap">{{ item.first_name }} {{ item.father_name }}</td>
             @for(day of item.days; track day.date){
             <td class="text-center">
@@ -126,11 +162,14 @@ type EmployeeWithDays = {
                 [canManageSchedules]="canManageSchedules()"
                 [canApprove]="canApproveSchedules()"
                 [isStoreManager]="isStoreManager()"
+                [isLocked]="lockedPositions().has(item.position.name || '')"
+                [scheduleWarning]="day.scheduleWarning ?? null"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
                 (approve)="onApproveShift($event)"
                 (add)="onAddShift($event)"
                 (viewAudit)="onViewAudit($event)"
+                (lockedClick)="lockedShift.emit()"
               />
             </td>
             }
@@ -169,6 +208,9 @@ export class TimetableGridComponent {
   // Indica si el usuario es gerente de tienda (para ocultar estados de aprobación)
   public isStoreManager = input<boolean>(false);
 
+  // Posiciones bloqueadas (calculadas por el padre según ciclo biweekly + posición del empleado)
+  public lockedPositions = input<Set<string>>(new Set());
+
   // Deshabilitar paginación (cuando se filtra por sucursal)
   public disablePagination = input<boolean>(false);
 
@@ -187,6 +229,7 @@ export class TimetableGridComponent {
   public addShift = output<{ employee_id: string; date: Date }>();
   public viewAudit = output<{ employeeId: string; date: Date }>();
   public toggleSelection = output<{ shiftId: string; date: Date }>();
+  public lockedShift = output<void>();
 
   constructor() {
     // Note: Do NOT access required inputs in constructor - they are not yet available

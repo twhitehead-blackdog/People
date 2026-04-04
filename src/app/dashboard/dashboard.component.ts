@@ -52,6 +52,7 @@ import { PermissionsService } from '../services/permissions.service';
 import { DeviceService } from '../services/device.service';
 import { NotificationsService } from '../services/notifications.service';
 import { DesignVersionService } from '../services/design-version.service';
+import { playNotificationSound } from '../utils/notification-audio.utils';
 import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
 import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mobile-bottom-nav.component';
 import { ChatWidgetComponent } from '../shared/components/chat-widget.component';
@@ -115,11 +116,6 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full shadow-lg relative z-[1000]"
         [ngClass]="{ 'naz-nav': isNaz() }"
       >
-        <!-- Dog animation zone (shared) -->
-        <div class="absolute bottom-0 left-2 sm:left-4 lg:left-6 w-[280px] h-0 z-[30]">
-          <pt-dog-animation></pt-dog-animation>
-        </div>
-
         @if (designVersion.isClassic()) {
         <!-- ===== CLASSIC NAV (v6.0.0 style) ===== -->
         <div class="px-3 sm:px-4 lg:px-6">
@@ -180,7 +176,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
                 <button type="button" (click)="toggleNotificationsDropdown()"
                   class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
                   title="Notificaciones">
-                  <i class="pi pi-bell text-lg"></i>
+                  <i class="pi pi-bell text-lg" [class.bell-ringing]="bellAnimating()"></i>
                   @if (unreadNotificationsCount() > 0) {
                   <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
                     {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
@@ -249,7 +245,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
               <button type="button" (click)="toggleNotificationsDropdown()"
                 class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50"
                 title="Notificaciones">
-                <i class="pi pi-bell text-lg"></i>
+                <i class="pi pi-bell text-lg" [class.bell-ringing]="bellAnimating()"></i>
                 @if (unreadNotificationsCount() > 0) {
                 <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
                   {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
@@ -476,7 +472,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
               <button type="button" (click)="toggleNotificationsDropdown()"
                 class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
                 title="Notificaciones">
-                <i class="pi pi-bell text-lg"></i>
+                <i class="pi pi-bell text-lg" [class.bell-ringing]="bellAnimating()"></i>
                 @if (unreadNotificationsCount() > 0) {
                 <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
                   {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
@@ -589,7 +585,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
               <button type="button" (click)="toggleNotificationsDropdown()"
                 class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50"
                 title="Notificaciones">
-                <i class="pi pi-bell text-lg"></i>
+                <i class="pi pi-bell text-lg" [class.bell-ringing]="bellAnimating()"></i>
                 @if (unreadNotificationsCount() > 0) {
                 <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800">
                   {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
@@ -1097,6 +1093,25 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
       .naz-theme ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
         color: #FFFFFF !important;
       }
+
+      @keyframes bellRing {
+        0%   { transform: rotate(0deg); }
+        10%  { transform: rotate(-15deg); }
+        20%  { transform: rotate(15deg); }
+        30%  { transform: rotate(-12deg); }
+        40%  { transform: rotate(12deg); }
+        50%  { transform: rotate(-8deg); }
+        60%  { transform: rotate(8deg); }
+        70%  { transform: rotate(-4deg); }
+        80%  { transform: rotate(4deg); }
+        90%  { transform: rotate(-2deg); }
+        100% { transform: rotate(0deg); }
+      }
+
+      .bell-ringing {
+        animation: bellRing 0.8s ease-in-out;
+        transform-origin: top center;
+      }
       `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1128,7 +1143,9 @@ export class DashboardComponent {
   public notificationsService = inject(NotificationsService);
   public designVersion = inject(DesignVersionService);
   public showNotificationsDropdown = signal(false);
+  public bellAnimating = signal(false);
   public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
+  private _prevUnreadCount = 0;
 
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
@@ -1369,6 +1386,17 @@ export class DashboardComponent {
       if (employeeId) {
         this.notificationsService.setCurrentEmployeeId(employeeId);
       }
+    });
+
+    // Sonido + animacion cuando llegan nuevas notificaciones
+    effect(() => {
+      const count = this.notificationsService.unreadCount();
+      if (count > this._prevUnreadCount && this._prevUnreadCount >= 0) {
+        playNotificationSound();
+        this.bellAnimating.set(true);
+        setTimeout(() => this.bellAnimating.set(false), 2000);
+      }
+      this._prevUnreadCount = count;
     });
 
     // Obtener IP actual al inicializar

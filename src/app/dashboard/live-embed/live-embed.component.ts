@@ -1,12 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { inject } from '@angular/core';
+import { DeviceService } from '../../services/device.service';
 
 @Component({
   selector: 'pt-live-embed',
   standalone: true,
   template: `
-    <div class="flex flex-col" style="height: 100dvh">
+    <div class="flex flex-col" [style.height]="device.isDesktop() ? '100%' : 'calc(100dvh - 120px)'">
       <iframe
         [src]="url"
         class="flex-1 w-full"
@@ -26,6 +26,7 @@ import { inject } from '@angular/core';
 })
 export class LiveEmbedComponent {
   private sanitizer = inject(DomSanitizer);
+  protected device = inject(DeviceService);
   public url: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
     'https://dashboards.blackdogpanama.com'
   );

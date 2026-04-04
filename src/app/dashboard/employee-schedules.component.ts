@@ -21,6 +21,8 @@ import { TimePipe } from '../pipes/time.pipe';
 import { LoggerService } from '../services/logger.service';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { DashboardStore } from '../stores/dashboard.store';
+import { isStoreManagerRole } from '../utils/permission.utils';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 @Component({
   selector: 'pt-employee-schedules',
@@ -33,22 +35,25 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
         [markerTpl]="markerTpl"
       />
     </div>
+    @if (!isStoreManager()) {
     <p-button
       class="schedule-add-btn"
       label="Nuevo"
       icon="pi pi-plus-circle"
       (onClick)="editSchedule({ employee_id: employeeId() })"
     />
+    }
     <ng-template #markerTpl let-data>
       <div class="flex items-center justify-center">
         <ul class="flex flex-col gap-1 w-full">
           @for(marker of data; track marker){
           <li
-            class="flex text-sm font-semibold rounded px-2 py-1 items-center cursor-pointer w-full"
+            class="flex text-sm font-semibold rounded px-2 py-1 items-center w-full"
+            [class.cursor-pointer]="!isStoreManager()"
             [ngClass]="colorVariants[marker.data.schedule.color]"
             [pTooltip]="tooltipContent"
             tooltipPosition="top"
-            (click)="options.toggle($event)"
+            (click)="isStoreManager() ? null : options.toggle($event)"
           >
             {{ marker.data.schedule.name }}
           </li>
@@ -136,6 +141,16 @@ export class EmployeeSchedulesComponent {
   private confirm = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
   private logger = inject(LoggerService);
+  private store = inject(DashboardStore);
+
+  public isStoreManager = computed(() => {
+    const emp = this.store.currentEmployee();
+    return isStoreManagerRole(
+      this.store.isScheduleAdmin(),
+      this.store.isAdmin(),
+      emp?.position?.name ?? ''
+    );
+  });
 
   public employeeSchedules = computed(() =>
     this.resourceSchedules

@@ -23,7 +23,8 @@ type UnifiedRequest = {
     | 'disability'
     | 'document'
     | 'complaint'
-    | 'vacation';
+    | 'vacation'
+    | 'schedule_change';
   created_at: string | Date;
   status: string;
   title: string;
@@ -325,6 +326,8 @@ type UnifiedRequest = {
                 <i class="pi pi-file-edit text-green-400"></i>
                 } @else if (request.request_type === 'complaint') {
                 <i class="pi pi-comments text-yellow-400"></i>
+                } @else if (request.request_type === 'schedule_change') {
+                <i class="pi pi-calendar-clock text-orange-400"></i>
                 } @else {
                 <i class="pi pi-calendar-plus text-purple-400"></i>
                 }
@@ -552,6 +555,35 @@ type UnifiedRequest = {
                   </p>
                 </div>
                 } }
+
+                <!-- Cambio de Horario -->
+                @if (request.request_type === 'schedule_change') {
+                <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-calendar text-orange-400"></i>
+                    <span class="text-xs text-gray-400 font-medium">Fecha del cambio</span>
+                  </div>
+                  <p class="text-white font-semibold">{{ data.schedule_date | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+                </div>
+                @if (data.current_schedule) {
+                <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-arrow-right-arrow-left text-orange-400"></i>
+                    <span class="text-xs text-gray-400 font-medium">Horario actual</span>
+                  </div>
+                  <p class="text-white font-semibold truncate">{{ data.current_schedule.name }}</p>
+                </div>
+                }
+                @if (data.proposed_schedule) {
+                <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-check-circle text-orange-400"></i>
+                    <span class="text-xs text-gray-400 font-medium">Horario propuesto</span>
+                  </div>
+                  <p class="text-white font-semibold truncate">{{ data.proposed_schedule.name }}</p>
+                </div>
+                }
+                }
 
                 <!-- Queja -->
                 @if (request.request_type === 'complaint') {
@@ -879,6 +911,8 @@ type UnifiedRequest = {
               <i class="pi pi-file-edit text-green-400 text-sm"></i>
               } @else if (request.request_type === 'complaint') {
               <i class="pi pi-comments text-yellow-400 text-sm"></i>
+              } @else if (request.request_type === 'schedule_change') {
+              <i class="pi pi-calendar-clock text-orange-400 text-sm"></i>
               } @else {
               <i class="pi pi-calendar-plus text-purple-400 text-sm"></i>
               }

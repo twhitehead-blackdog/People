@@ -29,6 +29,7 @@ import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-p
 import { Branch, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { DashboardStore } from '../stores/dashboard.store';
 import { TutorialGuideService } from '../services/tutorial-guide.service';
 import { TutorialSpotlightComponent } from '../shared/components/tutorial-spotlight.component';
 import { TutorialStepDirective } from '../shared/directives/tutorial-step.directive';
@@ -46,6 +47,7 @@ import {
   getRequestTypeSeverity,
   getSeverityColor,
 } from './request.helpers';
+import { ScheduleChangeGestionFormComponent } from './gestiones-forms/schedule-change-gestion-form.component';
 import { SupplyGestionFormComponent } from './gestiones-forms/supply-gestion-form.component';
 import { UniformTypesService } from './modules/uniform-requests/data/uniform-types.service';
 
@@ -63,7 +65,8 @@ type ManagementCard = {
     | 'timelog_correction'
     | 'uniform_request'
     | 'supply_request'
-    | 'work_permit';
+    | 'work_permit'
+    | 'schedule_change';
 };
 
 @Component({
@@ -84,6 +87,7 @@ type ManagementCard = {
     TutorialStepDirective,
     TutorialSpotlightComponent,
     SupplyGestionFormComponent,
+    ScheduleChangeGestionFormComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -313,8 +317,8 @@ type ManagementCard = {
             />
           </div>
 
-          <!-- Banner del empleado seleccionado (oculto para supply_request que tiene su propio banner) -->
-          @if (selectedGestionType() !== 'supply_request') {
+          <!-- Banner del empleado seleccionado (oculto para supply_request y schedule_change que tienen su propio layout) -->
+          @if (selectedGestionType() !== 'supply_request' && selectedGestionType() !== 'schedule_change') {
           <div
             class="bg-gradient-to-r from-cyan-500/10 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4"
           >
@@ -1326,6 +1330,17 @@ type ManagementCard = {
             </div>
           </div>
           }
+
+          @if (selectedGestionType() === 'schedule_change') {
+            <pt-schedule-change-gestion-form
+              [branchEmployees]="branchEmployees"
+              [currentEmployee]="currentEmployee!"
+              [schedules]="schedulesList()"
+              [branchId]="currentBranch?.id || null"
+              (back)="reset()"
+              (requestCreated)="onScheduleChangeRequestCreated()"
+            />
+          }
         </div>
         }
       </p-card>
@@ -1358,6 +1373,9 @@ export class BranchManagerGestionesComponent {
   private uniformTypesService = inject(UniformTypesService);
 
   private tutorialService = inject(TutorialGuideService);
+  private dashboardStore = inject(DashboardStore);
+
+  public schedulesList = computed(() => this.dashboardStore.schedules.entities() ?? []);
   private getEnv = getEnv; // Make getEnv available if needed, or implement valid logic using injected services
 
   // Fechas para formularios
@@ -1375,6 +1393,7 @@ export class BranchManagerGestionesComponent {
     | 'uniform_request'
     | 'supply_request'
     | 'work_permit'
+    | 'schedule_change'
     | null
   >(null);
   public selectedEmployeeId = signal<string | null>(null);
@@ -1635,6 +1654,14 @@ export class BranchManagerGestionesComponent {
       colorClass: 'bg-amber-500/20 text-amber-400',
       section: 'work_permit',
     },
+    {
+      id: 'schedule_change',
+      label: 'Cambio de Horario',
+      description: 'Solicitar cambios de turno en semanas bloqueadas',
+      icon: 'pi-calendar-clock',
+      colorClass: 'bg-rose-500/20 text-rose-400',
+      section: 'schedule_change',
+    },
   ];
 
   // Computed para obtener la tarjeta actual
@@ -1654,6 +1681,7 @@ export class BranchManagerGestionesComponent {
       | 'uniform_request'
       | 'supply_request'
       | 'work_permit'
+      | 'schedule_change'
   ): void {
     // Check if we're in the intro tutorial before changing state
     const wasInIntroTutorial =
@@ -1662,8 +1690,8 @@ export class BranchManagerGestionesComponent {
 
     this.selectedGestionType.set(type);
 
-    // Supply request: skip employee picker, use branch manager as requester
-    if (type === 'supply_request' && this.currentEmployee) {
+    // Supply request & schedule change: skip employee picker
+    if ((type === 'supply_request' || type === 'schedule_change') && this.currentEmployee) {
       this.selectedEmployee.set(this.currentEmployee as Employee);
     }
 
@@ -1752,8 +1780,8 @@ export class BranchManagerGestionesComponent {
   }
 
   public backToEmployeeSelection(): void {
-    // For supply_request there is no employee picker — go all the way back
-    if (this.selectedGestionType() === 'supply_request') {
+    // For supply_request and schedule_change there is no employee picker — go all the way back
+    if (this.selectedGestionType() === 'supply_request' || this.selectedGestionType() === 'schedule_change') {
       this.reset();
       return;
     }
@@ -2699,6 +2727,11 @@ export class BranchManagerGestionesComponent {
   }
 
   public onSupplyRequestCreated(): void {
+    this.requestCreated.emit();
+    this.reset();
+  }
+
+  public onScheduleChangeRequestCreated(): void {
     this.requestCreated.emit();
     this.reset();
   }

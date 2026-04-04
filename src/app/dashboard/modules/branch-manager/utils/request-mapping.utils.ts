@@ -25,7 +25,8 @@ export function mapBranchEmployeeRequests(
   workPermits: any[],
   branchEmployeeIds: Set<string>,
   branchId: string,
-  employeeMap: Record<string, any>
+  employeeMap: Record<string, any>,
+  scheduleChanges: any[] = []
 ): any[] {
   const enrichedCompensatory = compensatory
     .filter((r) => r.employee?.branch_id === branchId)
@@ -109,12 +110,20 @@ export function mapBranchEmployeeRequests(
       };
     });
 
+  const enrichedScheduleChanges = scheduleChanges
+    .filter((r) => r.employee?.branch_id === branchId || branchEmployeeIds.has(r.employee_id))
+    .map((r) => ({
+      ...r,
+      requestType: 'schedule_change' as const,
+    }));
+
   return [
     ...enrichedCompensatory,
     ...enrichedDisabilities,
     ...enrichedVacations,
     ...enrichedDocuments,
     ...enrichedWorkPermits,
+    ...enrichedScheduleChanges,
   ].sort(
     (a, b) => compareDesc(new Date(a.created_at), new Date(b.created_at))
   );
@@ -308,6 +317,24 @@ export function mapUnifiedRequest(r: any): any {
       details.push({ label: 'Equivalente', value: `${r.equivalent_value} ${unit}` });
     }
     if (r.observations) details.push({ label: 'Observaciones', value: r.observations });
+  } else if (r.requestType === 'schedule_change') {
+    const scheduleDate = parseUTCDateString(r.schedule_date);
+    displayDate = scheduleDate ? format(scheduleDate, 'dd/MM/yyyy') : r.schedule_date || '-';
+    displayDateLabel = 'Fecha del cambio';
+    const changeTypeLabels: Record<string, string> = {
+      create: 'Agregar',
+      update: 'Cambiar',
+      delete: 'Eliminar',
+    };
+    const changeLabel = changeTypeLabels[r.request_type] || r.request_type;
+    const proposed = r.proposed_schedule?.name;
+    const current = r.current_schedule?.name;
+    summary = proposed ? `${changeLabel}: ${current || '—'} → ${proposed}` : `${changeLabel} horario`;
+    details = [{ label: 'Fecha del cambio', value: displayDate }];
+    if (current) details.push({ label: 'Horario actual', value: current });
+    if (proposed) details.push({ label: 'Horario propuesto', value: proposed });
+    if (r.reason) details.push({ label: 'Motivo', value: r.reason });
+    if (r.review_notes) details.push({ label: 'Notas de revisión', value: r.review_notes });
   }
 
   return {

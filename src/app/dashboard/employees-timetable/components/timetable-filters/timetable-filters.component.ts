@@ -18,6 +18,7 @@ import { Branch, Position } from '../../../../models';
         placeholder="Buscar empleado por nombre..."
         class="w-full xl:w-auto flex-1 text-xs md:text-sm"
       />
+      @if (!hideBranch()) {
       <p-select
         fluid
         [ngModel]="currentBranch()()"
@@ -32,6 +33,7 @@ import { Branch, Position } from '../../../../models';
         showClear
         class="w-full xl:w-auto flex-1 text-sm"
       />
+      }
       <p-select
         fluid
         [ngModel]="currentPosition()()"
@@ -54,6 +56,7 @@ export class TimetableFiltersComponent {
   public branches = input.required<Branch[]>();
   public positions = input.required<Position[]>();
   public disableBranch = input.required<boolean>();
+  public hideBranch = input<boolean>(false);
 
   // Signals para two-way binding (ahora son signals del servicio)
   public employeeSearch = input.required<WritableSignal<string>>();

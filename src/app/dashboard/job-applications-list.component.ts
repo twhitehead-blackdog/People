@@ -37,6 +37,9 @@ import { JobApplicationDetailComponent } from './job-application-detail.componen
 import { JobApplicationStatusDialogComponent } from './job-application-status-dialog.component';
 import { JobApplicationStatusesDialogComponent } from './job-application-statuses-dialog.component';
 import { PositionsFormComponent } from './positions-form.component';
+import { RecruitmentClassificationTabComponent } from './recruitment/recruitment-classification-tab.component';
+import { RecruitmentRulesTabComponent } from './recruitment/recruitment-rules-tab.component';
+import { RecruitmentClassificationsStore } from '../stores/recruitment-classifications.store';
 
 @Component({
   selector: 'pt-job-applications-list',
@@ -57,6 +60,8 @@ import { PositionsFormComponent } from './positions-form.component';
     ToastModule,
     ConfirmDialogModule,
     DatePicker,
+    RecruitmentClassificationTabComponent,
+    RecruitmentRulesTabComponent,
   ],
   providers: [
     DynamicDialogRef,
@@ -127,6 +132,14 @@ import { PositionsFormComponent } from './positions-form.component';
           <p-tab value="positions">
             <i class="pi pi-list mr-2"></i>
             Gestión de Vacantes
+          </p-tab>
+          <p-tab value="classification">
+            <i class="pi pi-chart-bar mr-2"></i>
+            Clasificación
+          </p-tab>
+          <p-tab value="rules">
+            <i class="pi pi-sliders-h mr-2"></i>
+            Reglas de Clasificación
           </p-tab>
         </p-tablist>
         <p-tabpanel value="applications">
@@ -232,6 +245,7 @@ import { PositionsFormComponent } from './positions-form.component';
                 <th pSortableColumn="status" class="text-center">
                   Estado <p-sortIcon field="status" />
                 </th>
+                <th class="text-center">Clasificación</th>
                 <th class="text-center">CV</th>
                 <th class="text-center">Acciones</th>
               </tr>
@@ -334,6 +348,21 @@ import { PositionsFormComponent } from './positions-form.component';
                     }"
                   />
                 </td>
+                <td class="text-center">
+                  @if (getClassification(application.id); as cls) {
+                    @if (cls.recommended_role) {
+                      <p-tag
+                        [value]="getRoleLabel(cls.recommended_role)"
+                        [severity]="getRoleSeverity(cls.recommended_role)"
+                        pTooltip="Score: {{ getTopScoreText(cls.scores) }}"
+                      />
+                    } @else {
+                      <span class="text-gray-500 text-xs">Sin clasificar</span>
+                    }
+                  } @else {
+                    <span class="text-gray-600 text-xs">—</span>
+                  }
+                </td>
                 <td>
                   @if (application.resume_url) {
                   <p-button
@@ -366,7 +395,7 @@ import { PositionsFormComponent } from './positions-form.component';
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td [attr.colspan]="12" class="text-center py-8">
+                <td [attr.colspan]="13" class="text-center py-8">
                   <div class="flex flex-col items-center gap-2">
                     <i class="pi pi-inbox text-4xl text-gray-500"></i>
                     <p class="text-gray-400">No hay aplicaciones</p>
@@ -480,6 +509,14 @@ import { PositionsFormComponent } from './positions-form.component';
             </ng-template>
           </p-table>
         </p-tabpanel>
+        <p-tabpanel value="classification">
+          <pt-recruitment-classification-tab
+            [applications]="jobApplicationsStore.entities()"
+          />
+        </p-tabpanel>
+        <p-tabpanel value="rules">
+          <pt-recruitment-rules-tab />
+        </p-tabpanel>
       </p-tabs>
     </p-card>
   `,
@@ -506,6 +543,7 @@ import { PositionsFormComponent } from './positions-form.component';
 export class JobApplicationsListComponent implements OnInit {
   readonly jobApplicationsStore = inject(JobApplicationsStore);
   readonly positionsStore = inject(PositionsStore);
+  readonly classificationsStore = inject(RecruitmentClassificationsStore);
   private dialog = inject(DialogService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
@@ -1587,5 +1625,37 @@ export class JobApplicationsListComponent implements OnInit {
         detail: 'No se pudo actualizar el estado de favorito',
       });
     }
+  }
+
+  // ─── Helpers para columna de clasificación ───────────────────────────────
+
+  getClassification(applicationId: string) {
+    return this.classificationsStore.entities().find(c => c.job_application_id === applicationId);
+  }
+
+  getRoleLabel(role: string): string {
+    const labels: Record<string, string> = {
+      gerente: 'Gerente',
+      subgerente: 'Subgerente',
+      piso_venta: 'Piso de Venta',
+    };
+    return labels[role] ?? role;
+  }
+
+  getRoleSeverity(role: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    const map: Record<string, 'success' | 'info' | 'warn'> = {
+      gerente: 'warn',
+      subgerente: 'info',
+      piso_venta: 'success',
+    };
+    return map[role] ?? 'secondary';
+  }
+
+  getTopScoreText(scores: Record<string, number>): string {
+    return Object.entries(scores)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([role, pts]) => `${this.getRoleLabel(role)}: ${pts}pts`)
+      .join(' | ');
   }
 }

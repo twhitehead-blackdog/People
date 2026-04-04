@@ -23,6 +23,7 @@ import { Branch, Employee } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
+import { notifyBranchManagers } from '../../utils/manager-notification.utils';
 
 @Component({
   selector: 'pt-timelog-correction-gestion-form',
@@ -317,6 +318,17 @@ export class TimelogCorrectionGestionFormComponent {
       };
 
       await firstValueFrom(this.http.post(this.apiUrl.build('rest/v1/document_requests'), data));
+
+      // Notificar a gerentes de la sucursal
+      notifyBranchManagers({
+        http: this.http,
+        apiUrl: this.apiUrl,
+        employee,
+        title: 'Nueva Corrección de Marcación',
+        message: `${employee.first_name} ${employee.father_name} solicitó una corrección de marcación (${typeLabel}).`,
+        relatedType: 'timelog_correction',
+        messageType: 'timelog_correction_manager',
+      });
 
       this.messageService.add({
         severity: 'success',

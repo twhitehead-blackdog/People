@@ -13,6 +13,7 @@ export function getRequestIcon(requestType: string): string {
     supply_request: 'pi-box',
     timelog_correction: 'pi-exclamation-triangle',
     work_permit: 'pi-id-card',
+    schedule_change: 'pi-calendar-clock',
   };
   return icons[requestType] || 'pi-question';
 }
@@ -53,6 +54,10 @@ export function getRequestColorClass(
     work_permit: {
       bg: 'bg-amber-600/20 border-amber-600',
       active: 'text-amber-500',
+    },
+    schedule_change: {
+      bg: 'bg-orange-500/20 border-orange-500',
+      active: 'text-orange-400',
     },
   };
   const color = colors[requestType] || {
@@ -99,6 +104,7 @@ export function getRequestTypeLabel(requestType: string): string {
     supply_request: 'Solicitud de Insumo',
     timelog_correction: 'Omisión de Marcación',
     work_permit: 'Permiso',
+    schedule_change: 'Cambio de Horario',
   };
   return labels[requestType] || 'Solicitud';
 }
@@ -118,6 +124,7 @@ export function getRequestTypeSeverity(
     supply_request: 'warn',
     timelog_correction: 'warn',
     work_permit: 'warn',
+    schedule_change: 'warn',
   };
   return severities[requestType] || 'secondary';
 }

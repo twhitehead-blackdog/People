@@ -132,7 +132,7 @@ import {
         stripedRows
         [loading]="isLoading"
         [scrollable]="true"
-        [scrollHeight]="isMobile() ? 'calc(100vh - 350px)' : 'calc(100vh - 400px)'"
+        [scrollHeight]="isMobile() ? 'calc(100dvh - 350px)' : 'calc(100dvh - 400px)'"
         styleClass="min-w-[1200px] md:min-w-full"
         responsiveLayout="scroll"
       >

@@ -22,6 +22,7 @@ import { Branch, Employee } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
+import { EmployeeNotificationService } from '../../services/employee-notification.service';
 
 @Component({
   selector: 'pt-document-gestion-form',
@@ -163,6 +164,7 @@ export class DocumentGestionFormComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private notificationService = inject(EmployeeNotificationService);
 
   public today = startOfDay(new Date());
 
@@ -221,6 +223,12 @@ export class DocumentGestionFormComponent {
         severity: 'success',
         summary: 'Solicitud Enviada',
         detail: `Solicitud de ${documentTypeLabel} para ${employee.first_name} ${employee.father_name} enviada correctamente`,
+      });
+
+      this.notificationService.notifyNewRequest('document', `${employee.first_name} ${employee.father_name}`, {
+        'Tipo de documento': documentTypeLabel,
+        'Fecha requerida': data.required_date,
+        ...(data.reason ? { Motivo: data.reason } : {}),
       });
 
       this.requestCreated.emit();

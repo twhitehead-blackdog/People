@@ -85,7 +85,7 @@ export function app(): express.Express {
     validate: { trustProxy: false },
     skip: (req) => {
       const p = req.path;
-      return p === '/api/version' || p === '/api/client-ip' || p === '/api/server-time';
+      return p === '/api/version' || p === '/api/client-ip' || p === '/api/server-time' || p === '/api/lock-settings';
     },
   });
   server.use('/api/', apiLimiter);
@@ -136,6 +136,72 @@ export function app(): express.Express {
   // Versión de la app (para detección de actualizaciones en el frontend)
   server.get('/api/version', (_req, res) => {
     res.json({ version: appVersion });
+  });
+
+  // Lock settings proxy — bypasses Supabase RLS (uses service role key)
+  // Needed because schedule_lock_settings has no SELECT/UPDATE policy for authenticated users
+  server.get('/api/lock-settings', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'];
+      if (!supabaseUrl || !serviceKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+      const companyId = req.query['company_id'] as string;
+      if (!companyId) {
+        res.status(400).json({ error: 'company_id required' });
+        return;
+      }
+      const url = `${supabaseUrl}/rest/v1/schedule_lock_settings?company_id=eq.${encodeURIComponent(companyId)}&select=*&limit=1`;
+      const response = await fetch(url, {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+      });
+      const data = await response.json();
+      res.json(data);
+    } catch (err) {
+      safeLogger.error('Error fetching lock settings', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  server.post('/api/lock-settings', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'];
+      if (!supabaseUrl || !serviceKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+      const { company_id, is_active, updated_at } = req.body as { company_id?: string; is_active?: boolean; updated_at?: string };
+      if (!company_id) {
+        res.status(400).json({ error: 'company_id required' });
+        return;
+      }
+      if (typeof is_active !== 'boolean') {
+        res.status(400).json({ error: 'is_active (boolean) required' });
+        return;
+      }
+      const url = `${supabaseUrl}/rest/v1/schedule_lock_settings?company_id=eq.${encodeURIComponent(company_id)}`;
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({ is_active, updated_at: updated_at || new Date().toISOString() }),
+      });
+      const data = await response.json();
+      res.json(data);
+    } catch (err) {
+      safeLogger.error('Error updating lock settings', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // Middleware de autenticación para endpoints protegidos
@@ -285,6 +351,7 @@ export function app(): express.Express {
   // Aplicar auth a endpoints sensibles
   server.use('/api/odoo', requireAuth);
   server.use('/api/email', requireAuth);
+  server.use('/api/notifications', requireAuth);
 
   /**
    * Integración Odoo 18 (Odoo.sh) - JSON-RPC
@@ -868,6 +935,94 @@ export function app(): express.Express {
       logger: !isProduction, // Logs detallados solo en desarrollo
       debug: !isProduction, // Debug SMTP solo en desarrollo
     });
+  }
+
+  // Envío de email via MS365 SMTP + Graph API fallback (patrón probado)
+  async function sendEmailMS365(
+    to: string[],
+    subject: string,
+    html: string,
+    opts?: { user?: string; pass?: string; from?: string }
+  ): Promise<boolean> {
+    const user = opts?.user || process.env['ENV_SMTP_USER'] || '';
+    const pass = opts?.pass || process.env['ENV_SMTP_PASSWORD'] || '';
+    const from = opts?.from || user;
+    const tenantId = process.env['ENV_MS365_TENANT_ID'] || '';
+
+    if (!user || !pass) {
+      console.error('[MS365 Email] ENV_SMTP_USER o ENV_SMTP_PASSWORD no configurados');
+      return false;
+    }
+
+    // Intento 1: SMTP directo Office365
+    try {
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.office365.com',
+        port: 587,
+        requireTLS: true,
+        auth: { user, pass },
+        tls: { minVersion: 'TLSv1.2' },
+        connectionTimeout: 15000,
+        socketTimeout: 30000,
+      });
+      await transporter.sendMail({ from, to: to.join(', '), subject, html });
+      console.error('[MS365 Email] ✅ Enviado via SMTP:', subject);
+      return true;
+    } catch (smtpErr: any) {
+      console.error('[MS365 Email] SMTP falló, intentando Graph API:', smtpErr.message);
+    }
+
+    // Intento 2: Microsoft Graph API (ROPC flow)
+    if (!tenantId) {
+      console.error('[MS365 Email] ENV_MS365_TENANT_ID no configurado, no se puede usar Graph API');
+      return false;
+    }
+    try {
+      const tokenRes = await fetch(
+        `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'password',
+            username: user,
+            password: pass,
+            scope: 'https://graph.microsoft.com/Mail.Send',
+            client_id: 'd3590ed6-52b3-4102-aeff-aad2292ab01c',
+          }),
+          signal: AbortSignal.timeout(15000),
+        }
+      );
+      const token = await tokenRes.json();
+      if (!token.access_token) {
+        console.error('[MS365 Email] Graph token fallido:', token.error_description?.slice(0, 100));
+        return false;
+      }
+      const mailRes = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: {
+            subject,
+            body: { contentType: 'HTML', content: html },
+            toRecipients: to.map(a => ({ emailAddress: { address: a } })),
+          },
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (mailRes.status === 202) {
+        console.error('[MS365 Email] ✅ Enviado via Graph API:', subject);
+        return true;
+      }
+      console.error('[MS365 Email] Graph API respondió:', mailRes.status);
+      return false;
+    } catch (graphErr: any) {
+      console.error('[MS365 Email] Graph API falló:', graphErr.message);
+      return false;
+    }
   }
 
   // Endpoint para enviar emails
@@ -1525,6 +1680,124 @@ export function app(): express.Express {
     }
   });
 
+  // Endpoint: notificar nueva solicitud de gestión de empleado
+  server.post('/api/notifications/employee-request', async (req, res) => {
+    console.error('[Notifications] ▶ Request received:', req.body?.requestType, req.body?.employeeName);
+    try {
+      const { requestType, employeeName, details } = req.body as {
+        requestType: string;
+        employeeName: string;
+        details: Record<string, string>;
+      };
+
+      if (!requestType || !employeeName) {
+        return res.status(400).json({ error: 'requestType y employeeName son requeridos' });
+      }
+
+      // Mapeo requestType → settings key suffix
+      const typeToKey: Record<string, string> = {
+        vacation: 'vacations',
+        disability: 'disabilities',
+        document: 'documents',
+        work_permit: 'work_permit',
+        schedule_change: 'schedule_change',
+        compensatory: 'compensatory',
+        uniform: 'uniform',
+        timelog_correction: 'timelog_correction',
+      };
+      const suffix = typeToKey[requestType] || requestType;
+
+      // Leer configuración de notificaciones desde Supabase settings
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const supabaseKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_API_KEY'];
+
+      let emailMasterEnabled = true;
+      let typeEnabled = true;
+      let recipients = ['soporte2@blackdogpanama.com'];
+
+      if (supabaseUrl && supabaseKey) {
+        try {
+          const keysToFetch = `email_enabled,hr_email_notify_${suffix},hr_email_recipients_${suffix}`;
+          const settingsRes = await fetch(
+            `${supabaseUrl}/rest/v1/settings?key=in.(${keysToFetch})&select=key,value`,
+            {
+              headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+              signal: AbortSignal.timeout(5000),
+            }
+          );
+          if (settingsRes.ok) {
+            const settings: Array<{ key: string; value: string }> = await settingsRes.json();
+            for (const s of settings) {
+              if (s.key === 'email_enabled') emailMasterEnabled = s.value !== 'false';
+              if (s.key === `hr_email_notify_${suffix}`) typeEnabled = s.value !== 'false';
+              if (s.key === `hr_email_recipients_${suffix}` && s.value) {
+                recipients = s.value.split(',').map(r => r.trim()).filter(Boolean);
+              }
+            }
+          }
+        } catch {
+          // Usar defaults si falla la lectura
+        }
+      }
+
+      if (!emailMasterEnabled) {
+        console.error('[Notifications] Email master switch deshabilitado');
+        return res.json({ sent: false, reason: 'email deshabilitado' });
+      }
+
+      if (!typeEnabled) {
+        console.error('[Notifications] Notificaciones deshabilitadas para tipo:', requestType);
+        return res.json({ sent: false, reason: `notificaciones deshabilitadas para ${requestType}` });
+      }
+
+      // Etiquetas legibles por tipo
+      const typeLabels: Record<string, string> = {
+        vacation: 'Solicitud de Vacaciones',
+        disability: 'Incapacidad Médica',
+        document: 'Solicitud de Documento',
+        work_permit: 'Permiso de Trabajo',
+        schedule_change: 'Cambio de Horario',
+        compensatory: 'Tiempo Compensatorio',
+        uniform: 'Solicitud de Uniforme',
+        timelog_correction: 'Corrección de Marcación',
+      };
+      const typeLabel = typeLabels[requestType] || requestType;
+
+      // Armar filas de detalles
+      const detailRows = Object.entries(details || {})
+        .map(([k, v]) => `<tr><td style="padding:4px 12px;color:#a1a1aa;">${k}</td><td style="padding:4px 12px;">${v}</td></tr>`)
+        .join('');
+
+      const now = new Date().toLocaleString('es-PA', { timeZone: 'America/Panama' });
+      const html = `
+        <div style="font-family:system-ui,sans-serif;max-width:600px;background:#0f0f0f;color:#e4e4e7;padding:24px;border-radius:8px;">
+          <h2 style="margin:0 0 4px;color:#fff;">📋 Nueva ${typeLabel}</h2>
+          <p style="margin:0 0 16px;color:#71717a;font-size:14px;">${now}</p>
+          <p style="margin:0 0 16px;"><strong>Empleado:</strong> ${employeeName}</p>
+          ${detailRows ? `<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;">${detailRows}</table>` : ''}
+          <p style="margin-top:20px;color:#52525b;font-size:12px;">— People RRHH</p>
+        </div>`;
+
+      const subject = `📋 Nueva ${typeLabel} — ${employeeName}`;
+
+      // Usar credenciales de notificaciones si están configuradas, si no usar las SMTP principales
+      const notifUser = process.env['ENV_NOTIFICATIONS_SMTP_USER'] || '';
+      const notifPass = process.env['ENV_NOTIFICATIONS_SMTP_PASSWORD'] || '';
+      const smtpOpts = notifUser && notifPass
+        ? { user: notifUser, pass: notifPass, from: notifUser }
+        : undefined;
+
+      console.error('[Notifications] Enviando a:', recipients, '| from:', notifUser || process.env['ENV_SMTP_USER'] || '(no user)');
+      const sent = await sendEmailMS365(recipients, subject, html, smtpOpts);
+      console.error('[Notifications] Resultado:', sent ? '✅ enviado' : '❌ falló');
+
+      return res.json({ sent });
+    } catch (error: any) {
+      console.error('[Notifications] Error:', error.message);
+      return res.status(500).json({ error: 'Error al enviar notificación' });
+    }
+  });
+
   // Root endpoint - información básica del servidor (solo para peticiones API)
   // Para peticiones del navegador, servir index.html directamente
   server.get('/', (req, res) => {
@@ -2101,6 +2374,526 @@ ${context || 'No disponible en este momento.'}`;
   );
 
   // Catch-all route: enviar el index.html para cualquier ruta no API
+  // ============================================================
+  // RECRUITMENT CLASSIFICATION ENDPOINTS
+  // ============================================================
+
+  // Helper: extrae texto de un buffer según tipo de archivo
+  async function extractTextFromBuffer(buffer: Buffer, filename: string): Promise<string> {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'pdf') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse');
+      const result = await pdfParse(buffer);
+      return result.text || '';
+    } else if (ext === 'docx' || ext === 'doc') {
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value || '';
+    }
+    return '';
+  }
+
+  // Helper: parsea el texto crudo del CV en secciones estructuradas
+  function parseResumeText(text: string): Record<string, unknown> {
+    const lower = text.toLowerCase();
+
+    // Detectar secciones comunes por headers
+    const sectionHeaders: Record<string, RegExp> = {
+      experiencia: /\b(experiencia|experience|historial\s+laboral|trayectoria|trabajo)\b/i,
+      educacion: /\b(educaci[oó]n|formaci[oó]n|estudios|academic|university|universidad)\b/i,
+      habilidades: /\b(habilidades|skills|competencias|conocimientos|destrezas)\b/i,
+      idiomas: /\b(idiomas|languages|lenguajes)\b/i,
+    };
+
+    // Dividir en líneas y agrupar por sección
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+    const sections: Record<string, string[]> = {
+      experiencia: [],
+      educacion: [],
+      habilidades: [],
+      idiomas: [],
+    };
+
+    let currentSection = '';
+    for (const line of lines) {
+      let matchedSection = '';
+      for (const [section, regex] of Object.entries(sectionHeaders)) {
+        if (regex.test(line) && line.length < 60) {
+          matchedSection = section;
+          break;
+        }
+      }
+      if (matchedSection) {
+        currentSection = matchedSection;
+      } else if (currentSection && line.length > 3) {
+        sections[currentSection].push(line);
+      }
+    }
+
+    // Extraer keywords del texto completo (diccionario base, expansible vía reglas)
+    const keywordGroups: Record<string, string[]> = {
+      veterinaria: ['veterinaria', 'clínica', 'mascotas', 'perros', 'gatos', 'animales', 'medicina veterinaria'],
+      gerencia: ['gerente', 'gerencia', 'director', 'liderazgo', 'jefe de', 'coordinador', 'administración'],
+      retail: ['ventas', 'retail', 'tienda', 'comercial', 'inventario', 'caja', 'cajero', 'asesor de ventas'],
+      atencion_cliente: ['atención al cliente', 'servicio al cliente', 'atención a clientes', 'servicio a clientes'],
+      peluqueria: ['peluquería', 'grooming', 'estética canina', 'baño y corte', 'baño y estética'],
+      supervision: ['supervisor', 'supervisión', 'asistente de gerencia', 'subgerente', 'encargado'],
+    };
+
+    const keywordsFound: string[] = [];
+    for (const keywords of Object.values(keywordGroups)) {
+      for (const kw of keywords) {
+        if (lower.includes(kw.toLowerCase()) && !keywordsFound.includes(kw)) {
+          keywordsFound.push(kw);
+        }
+      }
+    }
+
+    return {
+      experiencia: sections['experiencia'].slice(0, 20),
+      educacion: sections['educacion'].slice(0, 10),
+      habilidades: sections['habilidades'].slice(0, 20),
+      idiomas: sections['idiomas'].slice(0, 10),
+      keywords_found: keywordsFound,
+    };
+  }
+
+  // Helper: descarga el CV desde Supabase Storage y extrae texto
+  async function extractResumeForApplication(
+    applicationId: string,
+    resumeUrl: string,
+    resumeFilename: string,
+    supabaseUrl: string,
+    serviceKey: string
+  ): Promise<{ success: boolean; text?: string; parsed?: Record<string, unknown>; error?: string }> {
+    try {
+      // Descargar el archivo (URLs públicas de Supabase Storage, no necesitan auth)
+      const fileRes = await fetch(resumeUrl);
+      if (!fileRes.ok) {
+        return { success: false, error: `HTTP ${fileRes.status} al descargar el archivo` };
+      }
+
+      const buffer = Buffer.from(await fileRes.arrayBuffer());
+      const text = await extractTextFromBuffer(buffer, resumeFilename);
+
+      if (!text || text.trim().length < 10) {
+        return { success: false, error: 'No se pudo extraer texto (posiblemente es una imagen o PDF protegido)' };
+      }
+
+      const parsed = parseResumeText(text);
+      return { success: true, text, parsed };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Error desconocido' };
+    }
+  }
+
+  // Helper: evalúa una regla contra los datos de una aplicación
+  function evaluateRule(
+    rule: { field_to_check: string; match_type: string; match_value: string },
+    application: Record<string, unknown>
+  ): boolean {
+    try {
+      // Obtener el valor del campo
+      let fieldValue: unknown;
+      if (rule.field_to_check.startsWith('resume_parsed.')) {
+        const subKey = rule.field_to_check.replace('resume_parsed.', '');
+        const parsed = application['resume_parsed'] as Record<string, unknown> | undefined;
+        const val = parsed?.[subKey];
+        fieldValue = Array.isArray(val) ? val.join(' ') : val;
+      } else {
+        fieldValue = application[rule.field_to_check];
+      }
+
+      switch (rule.match_type) {
+        case 'contains_keyword':
+          return typeof fieldValue === 'string' &&
+            fieldValue.toLowerCase().includes(rule.match_value.toLowerCase());
+
+        case 'contains_any': {
+          if (typeof fieldValue !== 'string') return false;
+          const lower = fieldValue.toLowerCase();
+          return rule.match_value.split('|').some(kw => lower.includes(kw.trim().toLowerCase()));
+        }
+
+        case 'regex': {
+          if (typeof fieldValue !== 'string') return false;
+          const re = new RegExp(rule.match_value, 'i');
+          return re.test(fieldValue);
+        }
+
+        case 'equals':
+          return String(fieldValue ?? '').toLowerCase() === rule.match_value.toLowerCase();
+
+        case 'min_value':
+          return typeof fieldValue === 'number' && fieldValue >= parseFloat(rule.match_value);
+
+        case 'max_value':
+          return typeof fieldValue === 'number' && fieldValue <= parseFloat(rule.match_value);
+
+        case 'is_true':
+          return fieldValue === true;
+
+        case 'is_false':
+          return fieldValue === false;
+
+        default:
+          return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  // POST /api/recruitment/extract — Extrae texto del CV para uno o varios candidatos
+  server.post('/api/recruitment/extract', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'];
+      if (!supabaseUrl || !serviceKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+
+      const { applicationIds } = req.body as { applicationIds?: string[] };
+      if (!applicationIds || applicationIds.length === 0) {
+        res.status(400).json({ error: 'applicationIds[] required' });
+        return;
+      }
+
+      // Obtener las aplicaciones
+      const idsParam = applicationIds.map(id => `"${id}"`).join(',');
+      const appsRes = await fetch(
+        `${supabaseUrl}/rest/v1/job_applications?id=in.(${idsParam})&select=id,resume_url,resume_filename`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+      );
+      const apps = await appsRes.json() as Array<{ id: string; resume_url?: string; resume_filename?: string }>;
+
+      let extracted = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const app of apps) {
+        if (!app.resume_url || !app.resume_filename) {
+          // Sin CV — actualizar extraction_status a no_resume
+          await fetch(
+            `${supabaseUrl}/rest/v1/recruitment_classifications?job_application_id=eq.${app.id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+                'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({ extraction_status: 'no_resume' }),
+            }
+          );
+          failed++;
+          continue;
+        }
+
+        const result = await extractResumeForApplication(
+          app.id, app.resume_url, app.resume_filename, supabaseUrl, serviceKey
+        );
+
+        if (result.success && result.text) {
+          // Actualizar job_application con el texto extraído
+          await fetch(
+            `${supabaseUrl}/rest/v1/job_applications?id=eq.${app.id}`,
+            {
+              method: 'PATCH',
+              headers: {
+                apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+                'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({ resume_text: result.text, resume_parsed: result.parsed }),
+            }
+          );
+          extracted++;
+        } else {
+          failed++;
+          errors.push(`${app.id}: ${result.error}`);
+        }
+      }
+
+      res.json({ extracted, failed, total: apps.length, errors });
+    } catch (err) {
+      safeLogger.error('Error en /api/recruitment/extract', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // POST /api/recruitment/classify — Clasifica candidatos usando las reglas activas
+  server.post('/api/recruitment/classify', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'];
+      if (!supabaseUrl || !serviceKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+
+      const { applicationIds, companyId } = req.body as { applicationIds?: string[]; companyId?: string };
+      if (!applicationIds || applicationIds.length === 0) {
+        res.status(400).json({ error: 'applicationIds[] required' });
+        return;
+      }
+      if (!companyId) {
+        res.status(400).json({ error: 'companyId required' });
+        return;
+      }
+
+      // Obtener las reglas activas de la empresa
+      const rulesRes = await fetch(
+        `${supabaseUrl}/rest/v1/recruitment_rules?company_id=eq.${companyId}&is_active=eq.true&order=priority.desc`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+      );
+      const rules = await rulesRes.json() as Array<{
+        id: string; name: string; target_role: string;
+        field_to_check: string; match_type: string; match_value: string; score_points: number;
+      }>;
+
+      // Obtener las aplicaciones con sus datos completos
+      const idsParam = applicationIds.map(id => `"${id}"`).join(',');
+      const appsRes = await fetch(
+        `${supabaseUrl}/rest/v1/job_applications?id=in.(${idsParam})&select=id,first_name,last_name,position_name,province,currently_working,salary_expectation,additional_info,resume_text,resume_parsed,source`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+      );
+      const apps = await appsRes.json() as Array<Record<string, unknown>>;
+
+      let classified = 0;
+      const results: Array<{ id: string; recommended_role?: string; scores: Record<string, number> }> = [];
+
+      for (const application of apps) {
+        const scores: Record<string, number> = {};
+        const matchedRules: Array<{ rule_id: string; rule_name: string; target_role: string; points: number }> = [];
+
+        for (const rule of rules) {
+          if (evaluateRule(rule, application)) {
+            scores[rule.target_role] = (scores[rule.target_role] || 0) + rule.score_points;
+            matchedRules.push({
+              rule_id: rule.id,
+              rule_name: rule.name,
+              target_role: rule.target_role,
+              points: rule.score_points,
+            });
+          }
+        }
+
+        // Determinar rol recomendado (el de mayor puntaje)
+        const recommendedRole = Object.keys(scores).length > 0
+          ? Object.entries(scores).sort(([, a], [, b]) => b - a)[0][0]
+          : undefined;
+
+        // Guardar o actualizar en recruitment_classifications (upsert)
+        await fetch(
+          `${supabaseUrl}/rest/v1/recruitment_classifications`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates,return=minimal',
+            },
+            body: JSON.stringify({
+              job_application_id: application['id'],
+              company_id: companyId,
+              recommended_role: recommendedRole || null,
+              scores,
+              matched_rules: matchedRules,
+              extraction_status: application['resume_text'] ? 'extracted' : 'pending',
+              classified_at: new Date().toISOString(),
+              classified_by: 'system',
+            }),
+          }
+        );
+
+        results.push({ id: application['id'] as string, recommended_role: recommendedRole, scores });
+        classified++;
+      }
+
+      res.json({ classified, total: apps.length, results });
+    } catch (err) {
+      safeLogger.error('Error en /api/recruitment/classify', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // POST /api/recruitment/extract-and-classify — Clasifica usando datos ya disponibles
+  // (formulario + resume_text existente). NO descarga PDFs — eso es una operación separada.
+  // Procesa en lotes de 100 para no sobrecargar la memoria.
+  server.post('/api/recruitment/extract-and-classify', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'];
+      if (!supabaseUrl || !serviceKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+
+      const { applicationIds, companyId } = req.body as { applicationIds?: string[]; companyId?: string };
+      if (!applicationIds || applicationIds.length === 0) {
+        res.status(400).json({ error: 'applicationIds[] required' });
+        return;
+      }
+      if (!companyId) {
+        res.status(400).json({ error: 'companyId required' });
+        return;
+      }
+
+      // Obtener las reglas activas de la empresa (una sola vez)
+      const rulesRes = await fetch(
+        `${supabaseUrl}/rest/v1/recruitment_rules?company_id=eq.${companyId}&is_active=eq.true&order=priority.desc`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+      );
+      const rules = await rulesRes.json() as Array<{
+        id: string; name: string; target_role: string;
+        field_to_check: string; match_type: string; match_value: string; score_points: number;
+      }>;
+
+      if (!rules || rules.length === 0) {
+        res.status(400).json({ error: 'No hay reglas activas configuradas para esta empresa' });
+        return;
+      }
+
+      // Procesar en lotes de 100 para no sobrecargar
+      const BATCH_SIZE = 100;
+      let classified = 0;
+
+      for (let i = 0; i < applicationIds.length; i += BATCH_SIZE) {
+        const batch = applicationIds.slice(i, i + BATCH_SIZE);
+        const idsParam = batch.map(id => `"${id}"`).join(',');
+
+        const appsRes = await fetch(
+          `${supabaseUrl}/rest/v1/job_applications?id=in.(${idsParam})&select=id,first_name,last_name,position_name,province,currently_working,salary_expectation,additional_info,resume_text,resume_parsed,source`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+        );
+        const apps = await appsRes.json() as Array<Record<string, unknown>>;
+
+        // Preparar todos los upserts del lote de una sola vez
+        const upserts = apps.map(application => {
+          const scores: Record<string, number> = {};
+          const matchedRules: Array<{ rule_id: string; rule_name: string; target_role: string; points: number }> = [];
+
+          for (const rule of rules) {
+            if (evaluateRule(rule, application)) {
+              scores[rule.target_role] = (scores[rule.target_role] || 0) + rule.score_points;
+              matchedRules.push({ rule_id: rule.id, rule_name: rule.name, target_role: rule.target_role, points: rule.score_points });
+            }
+          }
+
+          const recommendedRole = Object.keys(scores).length > 0
+            ? Object.entries(scores).sort(([, a], [, b]) => b - a)[0][0]
+            : null;
+
+          return {
+            job_application_id: application['id'],
+            company_id: companyId,
+            recommended_role: recommendedRole,
+            scores,
+            matched_rules: matchedRules,
+            extraction_status: application['resume_text'] ? 'extracted' : 'pending',
+            classified_at: new Date().toISOString(),
+            classified_by: 'system',
+          };
+        });
+
+        // Upsert del lote completo en una sola llamada
+        await fetch(
+          `${supabaseUrl}/rest/v1/recruitment_classifications`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates,return=minimal',
+            },
+            body: JSON.stringify(upserts),
+          }
+        );
+
+        classified += apps.length;
+      }
+
+      res.json({ classified, total: applicationIds.length });
+    } catch (err) {
+      safeLogger.error('Error en /api/recruitment/extract-and-classify', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // GET /api/recruitment/preview/:applicationId — Preview de clasificación sin guardar
+  server.get('/api/recruitment/preview/:applicationId', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'];
+      if (!supabaseUrl || !serviceKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+
+      const { applicationId } = req.params;
+      const companyId = req.query['companyId'] as string;
+      if (!companyId) {
+        res.status(400).json({ error: 'companyId query param required' });
+        return;
+      }
+
+      // Obtener la aplicación
+      const appRes = await fetch(
+        `${supabaseUrl}/rest/v1/job_applications?id=eq.${applicationId}&select=id,first_name,last_name,position_name,province,currently_working,salary_expectation,additional_info,resume_text,resume_parsed`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+      );
+      const [application] = await appRes.json() as Array<Record<string, unknown>>;
+      if (!application) {
+        res.status(404).json({ error: 'Application not found' });
+        return;
+      }
+
+      // Obtener las reglas activas
+      const rulesRes = await fetch(
+        `${supabaseUrl}/rest/v1/recruitment_rules?company_id=eq.${companyId}&is_active=eq.true&order=priority.desc`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+      );
+      const rules = await rulesRes.json() as Array<{
+        id: string; name: string; target_role: string;
+        field_to_check: string; match_type: string; match_value: string; score_points: number;
+      }>;
+
+      const scores: Record<string, number> = {};
+      const matchedRules: Array<{ rule_id: string; rule_name: string; target_role: string; points: number; matched: boolean }> = [];
+
+      for (const rule of rules) {
+        const matched = evaluateRule(rule, application);
+        if (matched) {
+          scores[rule.target_role] = (scores[rule.target_role] || 0) + rule.score_points;
+        }
+        matchedRules.push({
+          rule_id: rule.id,
+          rule_name: rule.name,
+          target_role: rule.target_role,
+          points: rule.score_points,
+          matched,
+        });
+      }
+
+      const recommendedRole = Object.keys(scores).length > 0
+        ? Object.entries(scores).sort(([, a], [, b]) => b - a)[0][0]
+        : undefined;
+
+      res.json({
+        application_id: applicationId,
+        recommended_role: recommendedRole,
+        scores,
+        matched_rules: matchedRules,
+        has_resume_text: !!application['resume_text'],
+      });
+    } catch (err) {
+      safeLogger.error('Error en /api/recruitment/preview', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ============================================================
   // Esto permite que Angular Router maneje las rutas del frontend
   // IMPORTANTE: Esta ruta debe ir DESPUÉS de express.static para que funcione correctamente
   server.get('*', (req, res) => {

@@ -167,7 +167,7 @@ import { TimeOffsComponent } from './time-offs.component';
             </div>
           }
           <!-- ASISTENCIA -->
-          @case (1) {
+          @case (2) {
             <div class="p-4 md:p-6 space-y-4">
               @if (monthlyLates.isLoading()) {
                 <div class="space-y-2"><p-skeleton height="3rem" /><p-skeleton height="3rem" /><p-skeleton height="3rem" /></div>
@@ -220,10 +220,45 @@ import { TimeOffsComponent } from './time-offs.component';
               }
             </div>
           }
+          <!-- TARJETA DE PRESENTACIÓN -->
+          @case (1) {
+            <div class="ed-card-tab">
+              <div class="ed-card-preview">
+                <div class="ed-card-mini">
+                  <div class="ed-card-mini__accent"></div>
+                  <img src="/images/blackdog.png" alt="Black Dog" class="ed-card-mini__logo" />
+                  <h3 class="ed-card-mini__name">{{ currentEmployee()!.first_name }} {{ currentEmployee()!.father_name }}</h3>
+                  <p class="ed-card-mini__position">{{ currentEmployee()!.position?.name || 'Sin cargo' }}</p>
+                  <div class="ed-card-mini__qr">
+                    @if (cardQrDataUrl()) {
+                      <img [src]="cardQrDataUrl()" alt="QR Tarjeta" />
+                    } @else {
+                      <div class="ed-card-qr-loading">
+                        <i class="pi pi-spin pi-spinner text-amber-400"></i>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="ed-card-actions">
+                <a [href]="getCardUrl()" target="_blank" class="ed-card-btn ed-card-btn--primary">
+                  <i class="pi pi-external-link"></i> Ver Tarjeta
+                </a>
+                <button class="ed-card-btn ed-card-btn--secondary" (click)="downloadCardImage()">
+                  <i class="pi pi-download"></i> Descargar Card
+                </button>
+                <button class="ed-card-btn ed-card-btn--secondary" (click)="copyCardUrl()">
+                  <i class="pi pi-copy"></i> Copiar Link
+                </button>
+              </div>
+            </div>
+          }
           <!-- HORARIOS -->
-          @case (2) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-schedules [employeeId]="employee_id()!" /></div> } }
+          @case (3) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-schedules [employeeId]="employee_id()!" /></div> } }
           <!-- QR -->
-          @case (3) {
+          @case (4) {
             <div class="ed-qr">
               @if(currentEmployee()?.qr_code) { <div class="ed-qr__frame"><img [src]="currentEmployee()?.qr_code" alt="QR" /></div> }
               @else { <div class="ed-qr__empty"><i class="pi pi-qrcode"></i><span>Sin código QR</span></div> }
@@ -231,7 +266,7 @@ import { TimeOffsComponent } from './time-offs.component';
             </div>
           }
           <!-- PORTAL -->
-          @case (4) {
+          @case (5) {
             <div class="p-4 md:p-6 space-y-4">
               <div class="ed-portal-status">
                 <div class="ed-portal-icon" [ngClass]="currentEmployee()!.has_portal_access ? 'ed-portal-icon--active' : ''">
@@ -250,7 +285,7 @@ import { TimeOffsComponent } from './time-offs.component';
             </div>
           }
           <!-- HISTORIAL -->
-          @case (5) {
+          @case (6) {
             <div class="p-4 md:p-6">
               @if (terminationHistory.isLoading()) { <p-skeleton height="4rem" /> }
               @else if (terminationHistory.value()?.length) {
@@ -266,7 +301,7 @@ import { TimeOffsComponent } from './time-offs.component';
             </div>
           }
           <!-- SCORE -->
-          @case (6) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-credit-score [employeeId]="employee_id()!" /></div> } }
+          @case (7) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-credit-score [employeeId]="employee_id()!" /></div> } }
         }
       }
     </div>
@@ -419,6 +454,69 @@ import { TimeOffsComponent } from './time-offs.component';
       color: #52525b; font-size: 1.25rem;
     }
     .ed-portal-icon--active { background: rgba(34,197,94,0.1); color: #4ade80; }
+
+    /* ===== CARD TAB ===== */
+    .ed-card-tab { padding: 1.5rem; }
+    .ed-card-preview {
+      display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+    }
+    @media (min-width: 769px) {
+      .ed-card-preview { flex-direction: row; align-items: flex-start; justify-content: center; gap: 2rem; }
+    }
+    .ed-card-mini {
+      width: 280px; background: linear-gradient(165deg, #1a1a1a, #111); border-radius: 16px;
+      overflow: hidden; border: 1px solid rgba(251,191,36,0.12);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 40px rgba(251,191,36,0.04);
+      flex-shrink: 0;
+    }
+    .ed-card-mini__accent { height: 3px; background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b); }
+    .ed-card-mini__logo { display: block; height: 24px; margin: 1rem auto 0.75rem; opacity: 0.85; }
+    .ed-card-mini__name {
+      text-align: center; font-size: 1rem; font-weight: 700; color: #fff;
+      margin: 0 0 0.2rem; padding: 0 1rem;
+    }
+    .ed-card-mini__position {
+      text-align: center; font-size: 0.75rem; color: #fbbf24; font-weight: 500; margin: 0 0 0.15rem;
+    }
+    .ed-card-mini__company {
+      text-align: center; font-size: 0.65rem; color: rgba(255,255,255,0.4);
+      text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 0.75rem;
+    }
+    .ed-card-mini__contacts { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .ed-card-mini__contact {
+      display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; color: rgba(255,255,255,0.6);
+    }
+    .ed-card-mini__contact i { font-size: 0.65rem; color: #fbbf24; }
+
+    .ed-card-mini__qr {
+      display: flex; justify-content: center; padding: 0.75rem 1rem 1rem;
+    }
+    .ed-card-mini__qr img {
+      width: 120px; height: 120px; border-radius: 8px; background: #fff; padding: 6px;
+    }
+    .ed-card-qr-loading {
+      display: flex; align-items: center; justify-content: center;
+      width: 120px; height: 120px;
+    }
+
+    .ed-card-actions {
+      display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: center; flex-wrap: wrap;
+    }
+    .ed-card-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.625rem 1.25rem;
+      border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      text-decoration: none; border: none; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .ed-card-btn:hover { transform: translateY(-1px); }
+    .ed-card-btn--primary {
+      background: linear-gradient(135deg, #f59e0b, #d97706); color: #0a0a0a;
+      box-shadow: 0 2px 12px rgba(245,158,11,0.25);
+    }
+    .ed-card-btn--secondary {
+      background: rgba(255,255,255,0.06); color: #d4d4d8;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .ed-card-btn--secondary:hover { background: rgba(255,255,255,0.1); color: #fff; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -441,6 +539,7 @@ export class EmployeeDetailComponent implements OnInit {
   public activeTab = signal(0);
   public readonly tabs = [
     { id: 'info', label: 'Info', icon: 'pi pi-id-card' },
+    { id: 'card', label: 'Tarjeta', icon: 'pi pi-credit-card' },
     { id: 'asistencia', label: 'Asistencia', icon: 'pi pi-clock' },
     { id: 'horarios', label: 'Horarios', icon: 'pi pi-calendar' },
     { id: 'qr', label: 'QR', icon: 'pi pi-qrcode' },
@@ -448,6 +547,7 @@ export class EmployeeDetailComponent implements OnInit {
     { id: 'historial', label: 'Historial', icon: 'pi pi-history' },
     { id: 'score', label: 'Score', icon: 'pi pi-chart-bar' },
   ];
+  public cardQrDataUrl = signal<string | null>(null);
   public portalUrl = `${getEnv('ENV_APP_URL') || window.location.origin
     }/my-portal`;
   public employee = httpResource<Employee[]>(() => {
@@ -582,7 +682,127 @@ export class EmployeeDetailComponent implements OnInit {
     if (employeeId) {
       this.employee_id.set(employeeId);
       this.state.selectEntity(employeeId);
+      this.generateCardQr(employeeId);
     }
+  }
+
+  private async generateCardQr(employeeId: string): Promise<void> {
+    try {
+      const QRCode = (await import('qrcode')).default;
+      const cardUrl = `${window.location.origin}/card/${employeeId}`;
+      const dataUrl = await QRCode.toDataURL(cardUrl, {
+        width: 360,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' },
+      });
+      this.cardQrDataUrl.set(dataUrl);
+    } catch {
+      this.cardQrDataUrl.set(null);
+    }
+  }
+
+  getCardUrl(): string {
+    return `${window.location.origin}/card/${this.employee_id()}`;
+  }
+
+  async downloadCardImage(): Promise<void> {
+    const emp = this.currentEmployee();
+    const qrDataUrl = this.cardQrDataUrl();
+    if (!emp || !qrDataUrl) return;
+
+    const scale = 2; // retina
+    const w = 400 * scale;
+    const h = 520 * scale;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(scale, scale);
+
+    const cw = 400; // card width at 1x
+
+    // Background
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, cw, 520, 16);
+    ctx.fill();
+
+    // Accent bar
+    const grad = ctx.createLinearGradient(0, 0, cw, 0);
+    grad.addColorStop(0, '#f59e0b');
+    grad.addColorStop(0.5, '#fbbf24');
+    grad.addColorStop(1, '#f59e0b');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, cw, 4, [16, 16, 0, 0]);
+    ctx.fill();
+
+    // Logo
+    try {
+      const logoImg = await this.loadImage('/images/blackdog.png');
+      const logoH = 30;
+      const logoW = logoImg.width * (logoH / logoImg.height);
+      ctx.drawImage(logoImg, (cw - logoW) / 2, 28, logoW, logoH);
+    } catch { /* skip logo if fails */ }
+
+    // Name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${emp.first_name} ${emp.father_name}`, cw / 2, 100);
+
+    // Position
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '500 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(emp.position?.name || '', cw / 2, 128);
+
+    // QR code
+    try {
+      const qrImg = await this.loadImage(qrDataUrl);
+      const qrSize = 240;
+      const qrX = (cw - qrSize) / 2;
+      const qrY = 160;
+      // White rounded background for QR
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 12);
+      ctx.fill();
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+    } catch { /* skip qr if fails */ }
+
+    // Footer
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('blackdogpanama.com', cw / 2, 500);
+
+    // Download
+    const name = `${emp.first_name}_${emp.father_name}`.replace(/\s+/g, '_');
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `Card_${name}.png`;
+    a.click();
+  }
+
+  private loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  copyCardUrl(): void {
+    const url = this.getCardUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Link copiado',
+        detail: 'El enlace de la tarjeta fue copiado al portapapeles',
+        life: 2000,
+      });
+    });
   }
 
   goToEdit(): void {

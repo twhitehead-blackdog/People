@@ -7,6 +7,7 @@ import { ApiUrlService } from '../../services/api-url.service';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
 import { getEnv } from '../../utils/env.utils';
 import { EmployeePortalApiService } from '../services/employee-portal-api.service';
+import { notifyBranchManagers } from '../../utils/manager-notification.utils';
 
 type VacationFormState = {
   startDate: Date | null;
@@ -195,6 +196,19 @@ export async function submitVacationRequest(
           is_read: false,
         },
       ]);
+
+      // Notificar a gerentes de la sucursal
+      const empName = `${currentEmp.first_name} ${currentEmp.father_name}`.trim();
+      notifyBranchManagers({
+        http,
+        apiUrl,
+        employee: currentEmp,
+        title: 'Nueva Solicitud de Vacaciones',
+        message: `${empName} solicitó vacaciones del ${format(startDate, 'dd/MM/yyyy')} al ${format(endDate, 'dd/MM/yyyy')}.`,
+        relatedType: 'vacation',
+        relatedId: vacationId,
+        messageType: 'vacation_request_manager',
+      });
     }
 
     messageService.add({

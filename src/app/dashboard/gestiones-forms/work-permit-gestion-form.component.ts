@@ -23,6 +23,7 @@ import { Branch, Employee } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { getEnv } from '../../utils/env.utils';
+import { EmployeeNotificationService } from '../../services/employee-notification.service';
 
 const PERMIT_TYPE_OPTIONS = [
   { label: 'Defunción', value: 'family_death' },
@@ -279,6 +280,7 @@ export class WorkPermitGestionFormComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private notificationService = inject(EmployeeNotificationService);
 
   public today = startOfDay(new Date());
   public permitTypeOptions = PERMIT_TYPE_OPTIONS;
@@ -427,6 +429,14 @@ export class WorkPermitGestionFormComponent {
         severity: 'success',
         summary: 'Solicitud Enviada',
         detail: `Solicitud de permiso para ${employee.first_name} ${employee.father_name} registrada correctamente`,
+      });
+
+      this.notificationService.notifyNewRequest('work_permit', `${employee.first_name} ${employee.father_name}`, {
+        'Tipo de permiso': data.permit_type,
+        'Fecha inicio': data.start_date,
+        'Fecha fin': data.end_date,
+        ...(data.equivalent_value ? { 'Valor equivalente': `${data.equivalent_value} ${data.equivalent_unit}` } : {}),
+        ...(data.observations ? { Observaciones: data.observations } : {}),
       });
 
       this.requestCreated.emit();

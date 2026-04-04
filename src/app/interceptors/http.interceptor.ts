@@ -58,6 +58,8 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/employee_late_records',
   '/rest/v1/performance_rules',
   '/rest/v1/audit_forms',
+  '/rest/v1/recruitment_rules',
+  '/rest/v1/recruitment_classifications',
   '/rest/v1/audit_sections',
   '/rest/v1/audit_questions',
   '/rest/v1/audit_evaluations',
@@ -73,6 +75,8 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/survey_responses',
   '/rest/v1/survey_response_answers',
   '/rest/v1/work_permits',
+  '/rest/v1/schedule_change_requests',
+  '/rest/v1/schedule_lock_settings',
 ]);
 // Prefijos que no se pueden resolver con Set (rutas parciales)
 const SERVICE_ROLE_PREFIXES = ['/rest/v1/rpc/', '/storage/v1/object/'];

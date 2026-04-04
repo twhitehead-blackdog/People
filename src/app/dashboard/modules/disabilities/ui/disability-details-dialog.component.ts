@@ -358,35 +358,51 @@ import { Disability } from '../models/disability.model';
         </div>
         }
 
-        <!-- Gestión de Estado -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-cog text-blue-400"></i>
-            Gestión de Estado
-          </h3>
-          <div class="flex gap-2">
-            @for (status of statusOptions; track status.value) {
-            <p-button
-              [label]="status.label"
-              [severity]="
-                status.value === 'approved'
-                  ? 'success'
-                  : status.value === 'rejected'
-                  ? 'danger'
-                  : 'warn'
-              "
-              [outlined]="disability()!.status !== status.value"
-              (onClick)="changeStatus.emit(status.value)"
-              [disabled]="disability()!.status === status.value || updatingStatus()"
-              [loading]="updatingStatus() && disability()!.status !== status.value"
-            />
-            }
-          </div>
-        </div>
       </div>
       }
+      <ng-template pTemplate="footer">
+        @if (disability()) {
+        <div class="flex items-center gap-3">
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+            [class]="disability()!.status === 'pending'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.12)] cursor-default'
+              : 'bg-neutral-800 text-amber-400/70 border border-neutral-600 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-300 cursor-pointer'"
+            [disabled]="disability()!.status === 'pending' || updatingStatus()"
+            (click)="changeStatus.emit('pending')"
+          >
+            <i class="pi pi-clock text-xs"></i>
+            Pendiente
+          </button>
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+            [class]="disability()!.status === 'approved'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.12)] cursor-default'
+              : 'bg-neutral-800 text-emerald-400/70 border border-neutral-600 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-300 cursor-pointer'"
+            [disabled]="disability()!.status === 'approved' || updatingStatus()"
+            (click)="changeStatus.emit('approved')"
+          >
+            @if (updatingStatus() && disability()!.status !== 'approved') {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+            } @else {
+              <i class="pi pi-check-circle text-xs"></i>
+            }
+            Aprobada
+          </button>
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+            [class]="disability()!.status === 'rejected'
+              ? 'bg-red-500/20 text-red-300 border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.12)] cursor-default'
+              : 'bg-neutral-800 text-red-400/70 border border-neutral-600 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-300 cursor-pointer'"
+            [disabled]="disability()!.status === 'rejected' || updatingStatus()"
+            (click)="changeStatus.emit('rejected')"
+          >
+            <i class="pi pi-times-circle text-xs"></i>
+            Rechazada
+          </button>
+        </div>
+        }
+      </ng-template>
     </p-dialog>
   `,
 })

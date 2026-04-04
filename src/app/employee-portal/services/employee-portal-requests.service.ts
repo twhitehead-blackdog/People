@@ -7,7 +7,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
 
 export type UnifiedRequest = {
   id: string;
-  request_type: 'compensatory' | 'disability' | 'document' | 'vacation';
+  request_type: 'compensatory' | 'disability' | 'document' | 'vacation' | 'schedule_change';
   created_at: string | Date;
   status: string;
   title: string;
@@ -108,6 +108,20 @@ export class EmployeePortalRequestsService {
     }
   );
 
+  public scheduleChangeRequestsApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+    const select = [
+      'id,created_at,status,schedule_date,request_type,reason,review_notes',
+      'proposed_schedule:schedules!schedule_change_requests_proposed_schedule_id_fkey(id,name,color)',
+      'current_schedule:schedules!schedule_change_requests_current_schedule_id_fkey(id,name,color)',
+    ].join(',');
+    const baseUrl = this.apiUrl.build('rest/v1/schedule_change_requests');
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&requested_by=eq.${this.currentEmployee()!.id}`;
+    url += `&order=created_at.desc`;
+    return { url, method: 'GET' };
+  }, { defaultValue: [] });
+
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
@@ -153,6 +167,9 @@ export class EmployeePortalRequestsService {
   // Computed: Todas las incapacidades
   public allDisabilities = computed(() => this.disabilitiesApi.value() ?? []);
 
+  // Computed: Todos los cambios de horario
+  public allScheduleChangeRequests = computed(() => this.scheduleChangeRequestsApi.value() ?? []);
+
   // Signals para filtros de todas las solicitudes
   public allRequestsFilterStatus = signal<string | null>(null);
   public allRequestsFilterType = signal<string | null>(null);
@@ -191,6 +208,7 @@ export class EmployeePortalRequestsService {
     { label: 'Incapacidad', value: 'disability' },
     { label: 'Documento', value: 'document' },
     { label: 'Vacaciones', value: 'vacation' },
+    { label: 'Cambio de Horario', value: 'schedule_change' },
   ];
 
   public allRequestsSortOptions = [
@@ -260,6 +278,8 @@ export class EmployeePortalRequestsService {
       if (request.rejection_comment || request.review_status === 'rejected')
         return 'rejected';
       return 'pending';
+    } else if (type === 'schedule_change') {
+      return request.status || 'pending';
     }
     return 'pending';
   }
@@ -286,6 +306,7 @@ export class EmployeePortalRequestsService {
       disability: 'Incapacidad',
       document: 'Documento',
       vacation: 'Vacaciones',
+      schedule_change: 'Cambio de Horario',
     };
     return labels[type] || type;
   }
@@ -377,7 +398,24 @@ export class EmployeePortalRequestsService {
       });
     });
 
-    // Quejas
+    // Cambios de horario
+    const scheduleChanges = this.allScheduleChangeRequests();
+    const scheduleChangeTypeLabels: Record<string, string> = {
+      create: 'Agregar horario',
+      update: 'Cambiar horario',
+      delete: 'Eliminar horario',
+    };
+    scheduleChanges.forEach((req: any) => {
+      requests.push({
+        id: req.id,
+        request_type: 'schedule_change',
+        created_at: req.created_at,
+        status: this.getUnifiedRequestStatus(req, 'schedule_change'),
+        title: `Cambio de Horario — ${scheduleChangeTypeLabels[req.request_type] ?? req.request_type}`,
+        description: req.reason || '',
+        originalData: req,
+      });
+    });
 
     return requests;
   });
@@ -635,6 +673,12 @@ export class EmployeePortalRequestsService {
       typeof this.disabilitiesApi.reload === 'function'
     ) {
       this.disabilitiesApi.reload();
+    }
+    if (
+      this.scheduleChangeRequestsApi &&
+      typeof this.scheduleChangeRequestsApi.reload === 'function'
+    ) {
+      this.scheduleChangeRequestsApi.reload();
     }
   }
 }

@@ -5,6 +5,7 @@ import { Employee } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
 import { getBooleanSetting } from '../../utils/settings-http.utils';
+import { notifyBranchManagers } from '../../utils/manager-notification.utils';
 
 type DocumentFormState = {
   type: string;
@@ -178,6 +179,23 @@ export async function submitDocumentRequest(
             },
           });
         })();
+
+        // Notificar a gerentes de la sucursal
+        const empForNotif = currentEmployee();
+        if (empForNotif) {
+          const empName = `${empForNotif.first_name} ${empForNotif.father_name}`.trim();
+          const createdRow = Array.isArray(created) ? created[0] : created;
+          notifyBranchManagers({
+            http,
+            apiUrl,
+            employee: empForNotif,
+            title: 'Nueva Solicitud de Documento',
+            message: `${empName} solicitó el documento: ${documentType}.`,
+            relatedType: 'document',
+            relatedId: createdRow?.id ?? null,
+            messageType: 'document_request_manager',
+          });
+        }
 
         resetForm();
         reloadRequests();

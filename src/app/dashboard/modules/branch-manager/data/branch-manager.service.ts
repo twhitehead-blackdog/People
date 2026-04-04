@@ -98,6 +98,28 @@ export class BranchManagerService {
     };
   });
 
+  public scheduleChangeRequestsApi = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return undefined;
+
+    const select = [
+      'id,employee_id,branch_id,schedule_date,request_type,reason,status,review_notes,created_at,requested_by',
+      'employee:employees!schedule_change_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,branch_id,position:positions(name),branch:branches(name))',
+      'current_schedule:schedules!schedule_change_requests_current_schedule_id_fkey(id,name,color)',
+      'proposed_schedule:schedules!schedule_change_requests_proposed_schedule_id_fkey(id,name,color)',
+    ].join(',');
+
+    return {
+      url: this.apiUrl.build('rest/v1/schedule_change_requests'),
+      params: {
+        select,
+        company_id: `eq.${companyId}`,
+        order: 'created_at.desc',
+      },
+      method: 'GET',
+    };
+  });
+
   public workPermitsApi = httpResource<any[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) return undefined;
@@ -146,17 +168,17 @@ export class BranchManagerService {
     const endOfDayISO =
       new Date(`${dateStr}T23:59:59-05:00`).toISOString().split('.')[0] + 'Z';
 
-    const select = `*,employee:employees!timelogs_employee_id_fkey!inner(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
+    const select = `*,employee:employees!timelogs_employee_id_fkey!inner(id,first_name,father_name,is_active,branch_id),branch:branches(id, name, short_name)`;
 
     const url =
       this.apiUrl.build('rest/v1/timelogs', {
         select,
         'employee.is_active': 'eq.true',
-        branch_id: branchId ? `eq.${branchId}` : undefined,
+        'employee.branch_id': branchId ? `eq.${branchId}` : undefined,
         company_id: companyId ? `eq.${companyId}` : undefined,
-        order: 'created_at.asc',
+        order: 'punched_at.asc',
       }) +
-      `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
+      `&and=(punched_at.gte.${startOfDayISO},punched_at.lte.${endOfDayISO})`;
 
     return {
       url,
@@ -413,5 +435,6 @@ export class BranchManagerService {
     this.vacationsApi.reload();
     this.documentRequestsApi.reload();
     this.workPermitsApi.reload();
+    this.scheduleChangeRequestsApi.reload();
   }
 }

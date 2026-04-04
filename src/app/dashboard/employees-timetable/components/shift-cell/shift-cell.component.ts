@@ -17,13 +17,17 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       [ngClass]="{
         'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
         'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !isStoreManager(),
-        'cursor-pointer hover:scale-105 hover:shadow-md': !isStoreManager(),
-        'cursor-default': isStoreManager()
+        'cursor-pointer hover:scale-105 hover:shadow-md': !isStoreManager() || isLocked(),
+        'cursor-default': isStoreManager() && !isLocked(),
+        'ring-1 ring-amber-600/70 border-amber-600/70 bg-amber-100/20': isLocked() && isStoreManager()
       }"
-      [pTooltip]="tooltipContent"
+      [pTooltip]="isLocked() && isStoreManager() ? 'Turno bloqueado — solicita el cambio desde Gestiones' : tooltipContent"
       tooltipPosition="top"
       (click)="handleClick($event)"
     >
+      @if (isLocked() && isStoreManager()) {
+        <i class="pi pi-lock text-amber-400 text-[10px] flex-shrink-0"></i>
+      }
       @if (scheduleWarning(); as warn) {
         <i class="pi pi-exclamation-triangle text-amber-400 text-[10px] flex-shrink-0" [pTooltip]="warn" tooltipPosition="top"></i>
       }
@@ -64,6 +68,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
     </ng-template>
     <p-popover #options>
       <div class="relative">
+        @if (!isStoreManager()) {
         <!-- Icono de auditoría en esquina superior derecha -->
         <i
           class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
@@ -71,7 +76,8 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
           tooltipPosition="left"
           (click)="onViewAudit(); options.hide()"
         ></i>
-        <span class="font-medium block mb-2 pr-6">Opciones</span>
+        }
+        <span class="font-medium block mb-2" [class.pr-6]="!isStoreManager()">Opciones</span>
         <ul class="list-non flex flex-col">
           @if (canManageSchedules()) {
           <li
@@ -100,7 +106,16 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         </ul>
       </div>
     </p-popover>
-    } @else { @if (canManageSchedules()) {
+    } @else { @if (isLocked() && isStoreManager()) {
+    <div
+      class="inline-flex py-0.5 px-1.5 rounded-sm items-center justify-center text-[11px] border border-dashed border-amber-800/50 text-amber-700 min-w-[40px] min-h-[24px] cursor-pointer"
+      pTooltip="Turno bloqueado — solicita el cambio desde Gestiones"
+      tooltipPosition="top"
+      (click)="lockedClick.emit()"
+    >
+      <i class="pi pi-lock text-[10px]"></i>
+    </div>
+    } @else if (canManageSchedules()) {
     <p-button
       icon="pi pi-plus"
       outlined
@@ -128,10 +143,12 @@ export class ShiftCellComponent {
   public canManageSchedules = input.required<boolean>();
   public canApprove = input.required<boolean>();
   public isStoreManager = input<boolean>(false);
+  public isLocked = input<boolean>(false);
   /** Advertencia visual: turno no recomendado o Gerente y Subgerente en el mismo turno. */
   public scheduleWarning = input<string | null>(null);
 
   // Outputs
+  public lockedClick = output<void>();
   public edit = output<{ shift: EmployeeSchedule; date: Date }>();
   public delete = output<{ shift: EmployeeSchedule; date?: Date }>();
   public approve = output<string>();
@@ -149,11 +166,13 @@ export class ShiftCellComponent {
   }
 
   public handleClick(event: Event): void {
+    event.stopPropagation();
+    if (this.isLocked() && this.isStoreManager()) {
+      this.lockedClick.emit();
+      return;
+    }
     const shiftValue = this.shift();
-
-    // Normal mode: toggle popover
     if (this.optionsPopover && shiftValue) {
-      event.stopPropagation();
       this.optionsPopover.toggle(event);
     }
   }

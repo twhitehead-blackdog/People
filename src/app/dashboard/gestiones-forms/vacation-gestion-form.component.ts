@@ -23,6 +23,7 @@ import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { getEnv } from '../../utils/env.utils';
 import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
+import { EmployeeNotificationService } from '../../services/employee-notification.service';
 
 @Component({
   selector: 'pt-vacation-gestion-form',
@@ -214,6 +215,7 @@ export class VacationGestionFormComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private notificationService = inject(EmployeeNotificationService);
 
   public today = startOfDay(new Date());
 
@@ -319,6 +321,12 @@ export class VacationGestionFormComponent {
         severity: 'success',
         summary: 'Solicitud Enviada',
         detail: `Vacaciones para ${employee.first_name} ${employee.father_name} solicitadas correctamente`,
+      });
+
+      this.notificationService.notifyNewRequest('vacation', `${employee.first_name} ${employee.father_name}`, {
+        'Fecha inicio': data.start_date,
+        'Fecha fin': data.end_date,
+        ...(data.reason ? { Motivo: data.reason } : {}),
       });
 
       this.requestCreated.emit();

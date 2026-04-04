@@ -15,6 +15,7 @@ import { EmployeeSchedule } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { ScheduleAuditService } from '../../services/schedule-audit.service';
+import { ScheduleLockService } from '../../services/schedule-lock.service';
 
 export interface ScheduleActionContext {
   currentEmployeeId: string | undefined;
@@ -31,6 +32,7 @@ export class TimetableScheduleActionsService {
   private message = inject(MessageService);
   private organizationService = inject(OrganizationService);
   private auditService = inject(ScheduleAuditService);
+  private lockService = inject(ScheduleLockService);
 
   /**
    * Delete a schedule (or a single day from a multi-day range).
@@ -579,6 +581,9 @@ export class TimetableScheduleActionsService {
       toDate(employeeSchedule.end_date, { timeZone: 'America/Panama' })
     );
 
+    const deleteRefDate = date || toDate(employeeSchedule.start_date, { timeZone: 'America/Panama' });
+    const isDeleteLockedOverride = this.lockService.isDateLockedForPosition(deleteRefDate, '');
+
     await this.auditService.logChange({
       employeeScheduleId: employeeSchedule.id,
       changedBy: context.currentEmployeeId!,
@@ -600,9 +605,10 @@ export class TimetableScheduleActionsService {
         end_date_formatted: endDateFormatted,
         is_single_day: isSingleDay,
         approved: employeeSchedule.approved,
+        ...(isDeleteLockedOverride ? { locked_override: true } : {}),
       },
       newValue: null,
-      comment: date
+      comment: (isDeleteLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') + (date
         ? `Día ${format(date, 'dd/MM/yyyy')} eliminado del horario "${
             schedule?.name || 'Desconocido'
           }" para ${
@@ -620,7 +626,7 @@ export class TimetableScheduleActionsService {
             isSingleDay
               ? ` el día ${startDateFormatted}`
               : ` del ${startDateFormatted} al ${endDateFormatted}`
-          }${branch ? ` en sucursal ${branch.name}` : ''}`,
+          }${branch ? ` en sucursal ${branch.name}` : ''}`),
     });
   }
 
@@ -651,6 +657,9 @@ export class TimetableScheduleActionsService {
       toDate(scheduleToApprove.start_date, { timeZone: 'America/Panama' }),
       toDate(scheduleToApprove.end_date, { timeZone: 'America/Panama' })
     );
+
+    const approveRefDate = toDate(scheduleToApprove.start_date, { timeZone: 'America/Panama' });
+    const isApproveLockedOverride = this.lockService.isDateLockedForPosition(approveRefDate, '');
 
     await this.auditService.logChange({
       employeeScheduleId: id,
@@ -689,8 +698,9 @@ export class TimetableScheduleActionsService {
         end_date_formatted: endDateFormatted,
         is_single_day: isSingleDay,
         approved: true,
+        ...(isApproveLockedOverride ? { locked_override: true } : {}),
       },
-      comment: `Horario "${
+      comment: (isApproveLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') + `Horario "${
         schedule?.name || 'Desconocido'
       }" aprobado para ${
         employee
@@ -731,6 +741,8 @@ export class TimetableScheduleActionsService {
       'dd/MM/yyyy'
     );
 
+    const isSplitLockedOverride = this.lockService.isDateLockedForPosition(dateToDelete, '');
+
     await this.auditService.logChange({
       employeeScheduleId: schedule.id,
       changedBy: context.currentEmployeeId!,
@@ -763,8 +775,9 @@ export class TimetableScheduleActionsService {
           start_date_formatted: originalStartFormatted,
           end_date_formatted: originalEndFormatted,
         },
+        ...(isSplitLockedOverride ? { locked_override: true } : {}),
       },
-      comment: `Día ${dayName} ${dateFormatted} eliminado del horario "${
+      comment: (isSplitLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') + `Día ${dayName} ${dateFormatted} eliminado del horario "${
         scheduleType?.name || 'Desconocido'
       }" para ${
         employee

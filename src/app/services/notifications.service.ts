@@ -1,10 +1,11 @@
 import { HttpClient, httpResource } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiUrlService } from './api-url.service';
 import { NotificationFilter } from '../stores/employee-portal.store';
+import { SupabaseRealtimeService } from './supabase-realtime.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +14,7 @@ export class NotificationsService {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private destroyRef = inject(DestroyRef);
+  private realtimeService = inject(SupabaseRealtimeService);
 
   // API para obtener notificaciones
   public notificationsApi = httpResource<any[]>(() => {
@@ -31,6 +33,22 @@ export class NotificationsService {
 
   // Signal para el ID del empleado actual
   private currentEmployeeId = signal<string | null>(null);
+
+  constructor() {
+    // Suscripcion realtime a hr_messages: recarga cuando llega una notificacion nueva
+    const hrMessagesBatch = this.realtimeService.subscribeToTable('hr_messages');
+    effect(() => {
+      const batch = hrMessagesBatch();
+      const employeeId = this.currentEmployeeId();
+      if (!batch || !employeeId) return;
+      const relevant = batch.events.some(
+        (e) => e.type === 'INSERT' && e.record?.['employee_id'] === employeeId
+      );
+      if (relevant) {
+        this.notificationsApi.reload();
+      }
+    });
+  }
 
   // Computed para obtener todas las notificaciones
   public notifications = computed(() => this.notificationsApi.value() ?? []);

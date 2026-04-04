@@ -47,6 +47,8 @@ import {
     extractOvertimeDays as _extractOvertimeDays,
 } from './modules/shared/utils/overtime-calculation.utils';
 import { HrDisabilitiesService } from './modules/disabilities/data/hr-disabilities.service';
+import { ScheduleChangesTabComponent } from './modules/schedule-changes/ui/schedule-changes-tab.component';
+import { ScheduleChangeRequestService } from '../services/schedule-change-request.service';
 import { DisabilitiesTabComponent } from './modules/disabilities/ui/disabilities-tab.component';
 import { CompensatoryTabComponent } from './modules/disabilities/ui/compensatory-tab.component';
 import { RejectionDialogComponent } from './modules/shared/components/rejection-dialog.component';
@@ -75,6 +77,7 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
     VacationsComponent,
     TimelogCorrectionsComponent,
     WorkPermitsComponent,
+    ScheduleChangesTabComponent,
     DisabilitiesTabComponent,
     CompensatoryTabComponent,
     RejectionDialogComponent,
@@ -113,7 +116,7 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
       <div
         class="bg-gradient-to-r from-neutral-800 via-neutral-800/95 to-neutral-800 border-b border-neutral-700/50 shadow-xl sticky top-0 z-40 backdrop-blur-sm"
       >
-        <div class="px-4 py-2">
+        <div class="px-4 sm:px-6 md:px-8 lg:px-12 py-2">
           <div class="flex items-center justify-between mb-2 gap-4">
             <div class="flex-1 min-w-0">
               <h1
@@ -191,7 +194,7 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
         </div>
       </div>
 
-      <div class="px-4 py-2 space-y-2 flex-1 overflow-y-auto">
+      <div class="px-4 sm:px-6 md:px-8 lg:px-12 py-2 space-y-2 flex-1 overflow-y-auto">
         <!-- Pestañas Compactas -->
         <div
           class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-0.5 backdrop-blur-sm"
@@ -305,6 +308,24 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
               </span>
               }
             </button>
+            <button
+              (click)="navigateToTab('schedule_changes')"
+              [class]="
+                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
+                (activeTab() === 'schedule_changes'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-300 shadow-md border border-amber-400/30'
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
+              "
+            >
+              <i class="pi pi-calendar-clock mr-1.5 text-xs"></i>
+              Cambios de Horario @if (scheduleChangesPendingCount() > 0) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
+              >
+                {{ scheduleChangesPendingCount() }}
+              </span>
+              }
+            </button>
           </div>
         </div>
 
@@ -341,6 +362,9 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
         } @if (activeTab() === 'work_permits') {
         <!-- Dashboard de Permisos de Trabajo -->
         <pt-work-permits />
+        } @if (activeTab() === 'schedule_changes') {
+        <!-- Cambios de Horario -->
+        <pt-schedule-changes-tab />
         }
       </div>
     } @else {
@@ -382,6 +406,9 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
           <button (click)="navigateToTab('work_permits')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'work_permits' ? 'bg-violet-500/20 text-violet-300 border border-violet-400/30' : 'text-gray-400 bg-neutral-700/30')">
             <i class="pi pi-id-card mr-1 text-xs"></i>Permisos @if (workPermitsPendingCount() > 0) { <span class="ml-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{{ workPermitsPendingCount() }}</span> }
           </button>
+          <button (click)="navigateToTab('schedule_changes')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'schedule_changes' ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-calendar-clock mr-1 text-xs"></i>Cambios de Horario @if (scheduleChangesPendingCount() > 0) { <span class="ml-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{{ scheduleChangesPendingCount() }}</span> }
+          </button>
         </div>
 
         <main class="flex-1 overflow-y-auto px-3 py-2">
@@ -414,6 +441,7 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
           @if (activeTab() === 'vacations') { <pt-vacations /> }
           @if (activeTab() === 'timelog_correction') { <pt-timelog-corrections /> }
           @if (activeTab() === 'work_permits') { <pt-work-permits /> }
+          @if (activeTab() === 'schedule_changes') { <pt-schedule-changes-tab /> }
         </main>
       </div>
     }
@@ -628,10 +656,16 @@ export class HRDisabilitiesComponent {
   private workPermitsService = inject(WorkPermitsService);
   protected device = inject(DeviceService);
   private scheduleAutoAssign = inject(ScheduleAutoAssignService);
+  private scheduleChangeRequestService = inject(ScheduleChangeRequestService);
   public service = inject(HrDisabilitiesService);
 
   // Delegate to service resources
   public disabilitiesApi = this.service.disabilitiesResource;
+  public scheduleChangesPendingCount = signal(0);
+
+  constructor() {
+    this.loadScheduleChangesPendingCount();
+  }
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
@@ -642,6 +676,7 @@ export class HRDisabilitiesComponent {
       | 'vacations'
       | 'timelog_correction'
       | 'work_permits'
+      | 'schedule_changes'
   ): void {
     this.activeTab.set(tab);
   }
@@ -654,6 +689,7 @@ export class HRDisabilitiesComponent {
     | 'suggestions'
     | 'timelog_correction'
     | 'work_permits'
+    | 'schedule_changes'
   >('disabilities');
   public globalSearchText = signal('');
 
@@ -938,6 +974,14 @@ export class HRDisabilitiesComponent {
     this.vacationsService.reload();
     this.documentRequestsService.reload();
     this.workPermitsService.reload();
+    this.loadScheduleChangesPendingCount();
+  }
+
+  private loadScheduleChangesPendingCount(): void {
+    this.scheduleChangeRequestService.getPendingCount().subscribe({
+      next: (requests) => this.scheduleChangesPendingCount.set(requests.length),
+      error: () => this.scheduleChangesPendingCount.set(0),
+    });
   }
 
   // Opciones de estado para tiempo compensatorio

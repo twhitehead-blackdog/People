@@ -107,6 +107,7 @@ interface TimeclockInfoData {
     NgClass,
     NewsTickerComponent,
     DogAnimationComponent,
+
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
@@ -142,7 +143,8 @@ interface TimeclockInfoData {
           [class.confirm-modal-exit]="confirmModalExiting()"
           [class.is-late]="confirmModalData()?.isLate"
           [class.is-birthday]="confirmModalData()?.isBirthday"
-          [class.is-matrix]="confirmModalData()?.isMatrix">
+          [class.is-matrix]="confirmModalData()?.isMatrix"
+          [class.is-moto]="confirmModalData()?.isMoto">
 
           <!-- Birthday confetti particles -->
           @if (confirmModalData()?.isBirthday) {
@@ -158,6 +160,10 @@ interface TimeclockInfoData {
             @if (confirmModalData()?.isBirthday) {
               <div class="confirm-modal-icon confirm-modal-icon--birthday">
                 <span class="birthday-icon-emoji">🎂</span>
+              </div>
+            } @else if (confirmModalData()?.isMoto) {
+              <div class="confirm-modal-icon confirm-modal-icon--moto">
+                <span class="moto-icon-emoji">🏍️</span>
               </div>
             } @else if (confirmModalData()?.isMatrix) {
               <div class="confirm-modal-icon confirm-modal-icon--matrix">
@@ -238,7 +244,8 @@ interface TimeclockInfoData {
           <div class="confirm-modal-phrase-box"
             [class.birthday-phrase]="confirmModalData()?.isBirthday"
             [class.vip-phrase]="confirmModalData()?.isVip"
-            [class.is-matrix-phrase]="confirmModalData()?.isMatrix">
+            [class.is-matrix-phrase]="confirmModalData()?.isMatrix"
+            [class.is-moto-phrase]="confirmModalData()?.isMoto">
             @if (confirmModalData()?.isBirthday) {
               <span class="birthday-phrase-icon">🎉</span>
             }
@@ -439,12 +446,16 @@ interface TimeclockInfoData {
         'naz-theme': isNazCompany(),
         'blackdog-theme': isBlackDogCompany(),
         'timeclock-mobile-kiosk': isMobileKiosk(),
-        'matrix-mode': matrixMode()
+        'matrix-mode': matrixMode(),
+        'moto-mode': motoMode()
       }"
       style="width: 100%; position: relative;"
     >
       <!-- Matrix rain canvas -->
       <canvas #matrixCanvas class="matrix-canvas" [class.matrix-canvas--active]="matrixMode()" aria-hidden="true"></canvas>
+
+      <!-- Moto road canvas (Gustavo only) -->
+      <canvas #motoCanvas class="moto-canvas" [class.moto-canvas--active]="motoMode()" aria-hidden="true"></canvas>
 
       <!-- Animated background orbs -->
       <div class="bg-orbs" aria-hidden="true">
@@ -466,13 +477,13 @@ interface TimeclockInfoData {
         />
         }
         <pt-news-ticker class="w-full max-w-lg" [variant]="isKioskMode() ? 'kiosk' : 'default'" />
-        <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10" [class.special-mode]="specialMode()" [class.matrix-card]="matrixMode()">
+        <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10" [class.special-mode]="specialMode()" [class.matrix-card]="matrixMode()" [class.moto-card]="motoMode()">
           <ng-template #title>
             <div class="flex flex-col items-center py-1 gap-1">
               <div class="greeting-msg" [class.greeting-special]="greetingMessage().text.startsWith('¡')">
                 {{ greetingMessage().text }}
               </div>
-              <div class="clock-hero-time" [class.blackdog-accent]="isBlackDogCompany()" [class.special-pulse]="specialMode()" [class.matrix-time]="matrixMode()">
+              <div class="clock-hero-time" [class.blackdog-accent]="isBlackDogCompany()" [class.special-pulse]="specialMode()" [class.matrix-time]="matrixMode()" [class.moto-time]="motoMode()">
                 {{ formattedTime() }}
               </div>
               <div class="clock-hero-date">
@@ -700,8 +711,12 @@ interface TimeclockInfoData {
       </div>
       }
 
-      <!-- Walking dog at the bottom -->
-      <pt-dog-animation></pt-dog-animation>
+      <pt-dog-animation
+        [selectedName]="selectedEmployee()?.first_name || ''"
+        [selectedPosition]="selectedEmployee()?.position?.name || ''"
+        [selectedDept]="selectedEmployee()?.department?.name || ''"
+        [selectedGender]="selectedEmployee()?.gender || ''"
+      ></pt-dog-animation>
     </div>
 
     <!-- Manager Override Modal - outside scroll container so position:fixed works correctly -->
@@ -2586,6 +2601,73 @@ interface TimeclockInfoData {
       border-color: rgba(0,204,68,0.3) !important;
       background: rgba(0,15,0,0.8) !important;
     }
+
+    /* ── Moto mode (Gustavo) ───────────────────────────── */
+    .moto-canvas {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0; opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .moto-canvas--active { opacity: 1; }
+
+    .moto-mode .bg-orbs { display: none; }
+    .moto-mode.animated-gradient-container {
+      background: #0a0a12 !important;
+    }
+
+    .moto-card {
+      background: rgba(10,8,20,0.85) !important;
+      border: 1px solid rgba(245,197,24,0.4) !important;
+      box-shadow: 0 0 30px rgba(245,197,24,0.15), 0 0 60px rgba(245,197,24,0.06) !important;
+    }
+    .moto-card ::ng-deep .p-card-body { background: transparent !important; }
+
+    .moto-time {
+      color: #f5c518 !important;
+      text-shadow: 0 0 20px rgba(245,197,24,0.6), 0 0 40px rgba(245,197,24,0.3) !important;
+      font-family: 'Courier New', monospace !important;
+    }
+
+    .moto-mode .greeting-msg,
+    .moto-mode .clock-hero-date,
+    .moto-mode .clock-subtitle {
+      color: rgba(245,197,24,0.8) !important;
+    }
+
+    .moto-mode ::ng-deep .p-select,
+    .moto-mode ::ng-deep .p-select .p-select-label,
+    .moto-mode ::ng-deep .p-inputotp-input {
+      background: rgba(20,15,5,0.9) !important;
+      color: #f5c518 !important;
+      border-color: rgba(245,197,24,0.35) !important;
+    }
+
+    .confirm-modal-icon--moto {
+      background: linear-gradient(135deg, #1a1200, #2c2000);
+      border: 2px solid rgba(245,197,24,0.6);
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .moto-icon-emoji { font-size: 1.8rem; }
+
+    .is-moto {
+      background: linear-gradient(160deg, #0a0800 0%, #1a1200 50%, #100e00 100%) !important;
+      border: 1px solid rgba(245,197,24,0.35) !important;
+      box-shadow: 0 0 40px rgba(245,197,24,0.12), 0 20px 60px rgba(0,0,0,0.6) !important;
+    }
+    .is-moto .confirm-modal-title,
+    .is-moto .confirm-modal-time { color: #f5c518 !important; }
+
+    .is-moto-phrase {
+      background: linear-gradient(135deg, rgba(245,197,24,0.08) 0%, rgba(180,140,0,0.04) 100%) !important;
+      border-left: 3px solid rgba(245,197,24,0.5) !important;
+      color: rgba(245,197,24,0.9) !important;
+    }
+
+    .moto-mode pt-news-ticker ::ng-deep * {
+      color: #f5c518 !important;
+    }
+
     .matrix-card ::ng-deep .p-button {
       background: rgba(0,180,60,0.15) !important;
       border: 1px solid #00cc44 !important;
@@ -3355,6 +3437,7 @@ export class TimeclockComponent implements OnDestroy {
     isBirthday: boolean;
     isVip: boolean;
     isMatrix: boolean;
+    isMoto: boolean;
     employeeName: string;
     isLunchOvertime: boolean;
     lunchExceededMinutes: number;
@@ -3376,6 +3459,9 @@ export class TimeclockComponent implements OnDestroy {
   private matrixRaf?: number;
   private matrixCols: number[] = [];
   private matrixAudio?: HTMLAudioElement;
+  public motoMode = signal(false);
+  @ViewChild('motoCanvas') private motoCanvas?: ElementRef<HTMLCanvasElement>;
+  private motoRaf?: number;
   public selectedBranchId = signal<string>('');
 
   public branchMismatch = computed(() => {
@@ -4352,18 +4438,24 @@ export class TimeclockComponent implements OnDestroy {
 
     if (employee?.id) {
       const fxId = employee.id;
+      const employeeName = employee?.first_name || employee?.father_name || '';
       firstValueFrom(this.http.post<{ v: boolean; m: boolean }>('/api/fx', { id: fxId }))
         .then(r => {
           // Ignore if a different employee was selected (or deselected) while request was in flight
           if (this.form.get('employee')?.value?.id !== fxId) return;
           this.specialMode.set(r?.v === true);
           const mx = r?.m === true;
-          this.matrixMode.set(mx);
-          document.body.classList.toggle('matrix-active', mx);
-          if (mx) setTimeout(() => this.startMatrix(), 50);
-          else this.stopMatrix();
+          const isGustavo = /gustavo/i.test(employeeName);
+          const moto = mx && isGustavo;
+          const matrix = mx && !isGustavo;
+          this.motoMode.set(moto);
+          this.matrixMode.set(matrix);
+          document.body.classList.toggle('matrix-active', matrix);
+          document.body.classList.toggle('moto-active', moto);
+          if (matrix) setTimeout(() => this.startMatrix(), 50); else this.stopMatrix();
+          if (moto)   setTimeout(() => this.startMoto(),   50); else this.stopMoto();
         })
-        .catch(() => { this.specialMode.set(false); this.stopMatrix(); });
+        .catch(() => { this.specialMode.set(false); this.stopMatrix(); this.stopMoto(); });
 
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
@@ -4381,8 +4473,11 @@ export class TimeclockComponent implements OnDestroy {
     } else {
       this.specialMode.set(false);
       this.matrixMode.set(false);
+      this.motoMode.set(false);
       document.body.classList.remove('matrix-active');
+      document.body.classList.remove('moto-active');
       this.stopMatrix();
+      this.stopMoto();
       this.updateAvailableTypes(null);
     }
   }
@@ -5120,16 +5215,17 @@ export class TimeclockComponent implements OnDestroy {
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
           // Mostrar diálogo con sonido apropiado
-          const showDialog = (isVip = false, isMatrix = false) => {
+          const showDialog = (isVip = false, isMatrix = false, isMoto = false) => {
             this.showConfirmationDialogWithSound(message, isLate, employeeId, {
               typeLabel,
               time: timeFormatted,
-              phrase: isMatrix ? this.getMatrixPhrase(employeeName) : isVip ? this.getVipPhrase(employeeName) : phrase,
+              phrase: isMoto ? this.getMotoPhrase(employeeName) : isMatrix ? this.getMatrixPhrase(employeeName) : isVip ? this.getVipPhrase(employeeName) : phrase,
               delayText,
               isVeryLate,
               isBirthday,
               isVip,
               isMatrix,
+              isMoto,
               employeeName,
               isLunchOvertime: !!isLunchOvertime,
               lunchExceededMinutes: result.lunchExceededMinutes || 0,
@@ -5138,7 +5234,11 @@ export class TimeclockComponent implements OnDestroy {
 
           firstValueFrom(
             this.http.post<{ v: boolean; m: boolean }>('/api/fx', { id: employeeId })
-          ).then(r => showDialog(r?.v === true, r?.m === true)).catch(() => showDialog());
+          ).then(r => {
+            const mx = r?.m === true;
+            const isMotoEmployee = /gustavo/i.test(employeeName);
+            showDialog(r?.v === true, mx && !isMotoEmployee, mx && isMotoEmployee);
+          }).catch(() => showDialog());
         },
         error: () => {
           this.isProcessing.set(false);
@@ -5160,6 +5260,7 @@ export class TimeclockComponent implements OnDestroy {
       isBirthday: boolean;
       isVip: boolean;
       isMatrix: boolean;
+      isMoto: boolean;
       employeeName: string;
       isLunchOvertime: boolean;
       lunchExceededMinutes: number;
@@ -5172,11 +5273,15 @@ export class TimeclockComponent implements OnDestroy {
     this.form.get('employee')?.reset();
     this.specialMode.set(false);
     this.matrixMode.set(false);
+    this.motoMode.set(false);
     document.body.classList.remove('matrix-active');
+    document.body.classList.remove('moto-active');
     this.stopMatrix();
+    this.stopMoto();
 
     const vip = !!modalData?.isVip;
     const mx = !!modalData?.isMatrix;
+    const moto = !!modalData?.isMoto;
 
     // Reproducir sonido según contexto
     if (modalData?.isBirthday) {
@@ -5206,6 +5311,7 @@ export class TimeclockComponent implements OnDestroy {
       isBirthday: modalData?.isBirthday || false,
       isVip: vip,
       isMatrix: mx,
+      isMoto: moto,
       employeeName: modalData?.employeeName || '',
       isLunchOvertime: modalData?.isLunchOvertime || false,
       lunchExceededMinutes: modalData?.lunchExceededMinutes || 0,
@@ -5219,7 +5325,7 @@ export class TimeclockComponent implements OnDestroy {
     }
 
     // Auto-dismiss
-    const dismissTime = modalData?.isBirthday ? 10000 : (vip || mx) ? 8000 : 6000;
+    const dismissTime = modalData?.isBirthday ? 10000 : (vip || mx || moto) ? 8000 : 6000;
     this.confirmModalTimer = setTimeout(() => {
       this.dismissConfirmModal();
     }, dismissTime);
@@ -5300,6 +5406,321 @@ export class TimeclockComponent implements OnDestroy {
     'El team no lo sabe, pero tú eres el storyline principal 💖',
     'Eres la razón por la que el lunes tiene redención 🦋',
   ];
+  private readonly _moto = [
+    (n: string) => `${n} llegó… y el acelerador todavía está caliente. 🏍️💨`,
+    (n: string) => `Delivery registrado. ${n} en punto. Sin excusas, sin semáforos. 🚦🏍️`,
+    (n: string) => `${n} marcó entrada. El casco todavía huele a carretera. ⛽🏍️`,
+    (n: string) => `Sistema de rastreo confirma: ${n} llegó antes que Google Maps. 📍🏍️`,
+    (n: string) => `${n} entregó su puntualidad a domicilio. Sin costo adicional. 💨`,
+    (n: string) => `Motor apagado. Asistencia encendida. ${n} presente. 🔑🏍️`,
+    (n: string) => `${n}: velocidad máxima en el trabajo, máxima en la moto. 🏁`,
+    (n: string) => `Ruta completada. ${n} marcó. Próxima parada: productividad. 📦🏍️`,
+    (n: string) => `GPS actualizado. ${n} en base. Combustible: determinación. ⛽`,
+    (n: string) => `El tráfico no lo detuvo. ${n} siempre llega. 🚦✅`,
+    (n: string) => `${n} no necesita GPS — ya sabe a dónde va. 🏍️🔥`,
+    (n: string) => `Registro confirmado. ${n} llegó con más revoluciones que el motor. 🏍️💯`,
+    (n: string) => `${n}: el único delivery que se entrega a sí mismo puntual. 📦⏱️`,
+    (n: string) => `Casco puesto. Pin marcado. ${n} listo para la jornada. 🪖🏍️`,
+    (n: string) => `${n} llegó tan rápido que el sistema casi no lo registra. 💨🏍️`,
+  ];
+  public getMotoPhrase(name = ''): string {
+    const fn = this._moto[Math.floor(Math.random() * this._moto.length)];
+    return fn(name || 'Gustavo');
+  }
+
+  private startMoto(): void {
+    if (this.motoRaf) { cancelAnimationFrame(this.motoRaf); this.motoRaf = undefined; }
+    const canvas = this.motoCanvas?.nativeElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+    // ── Types ──────────────────────────────────────────────────
+    interface Lamp  { t: number; speed: number; }
+    interface Smoke { x: number; y: number; r: number; vx: number; vy: number; alpha: number; }
+    interface Spark { x: number; y: number; vx: number; vy: number; alpha: number; }
+
+    // Street lamps — each has its own depth t (0=horizon,1=viewer) and speed
+    const mkLamp = (): Lamp => ({ t: Math.random() * 0.92, speed: 0.008 + Math.random() * 0.006 });
+    const lamps: Lamp[] = Array.from({ length: 7 }, mkLamp);
+
+    const smoke: Smoke[] = [];
+    const sparks: Spark[] = [];
+
+    let frame = 0;
+    // Dash pool: each dash has independent depth t
+    const NDASH = 10;
+    interface Dash { t: number; }
+    const dashes: Dash[] = Array.from({ length: NDASH }, (_, i) => ({ t: i / NDASH }));
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const easeT = (t: number) => t * t * (3 - 2 * t); // smooth perspective feel
+
+    const draw = () => {
+      frame++;
+      const W  = canvas.width;
+      const H  = canvas.height;
+      const CX = W / 2;
+      const HY = H * 0.40;          // horizon y
+      const RB = Math.min(W * 0.78, 720);  // road width at bottom
+      const RT = RB * 0.055;               // road width at horizon
+
+      // ─ Sky ───────────────────────────────────────────────────
+      const sky = ctx.createLinearGradient(0, 0, 0, HY + 40);
+      sky.addColorStop(0,   '#020408');
+      sky.addColorStop(0.6, '#0a0818');
+      sky.addColorStop(1,   '#200a30');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, HY + 40);
+
+      // ─ Stars with twinkle ────────────────────────────────────
+      for (let i = 0; i < 140; i++) {
+        // deterministic but twinkle-y
+        const sx = ((i * 1873 + frame * 0) % W);
+        const sy = ((i * 937)  % HY);
+        const tw = Math.sin(frame * 0.04 + i * 2.3);
+        const al = 0.3 + 0.7 * Math.max(0, tw);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 0.6 + (i % 3) * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,245,200,${al})`;
+        ctx.fill();
+      }
+
+      // ─ City silhouette ───────────────────────────────────────
+      const bldgs = [
+        {x:0.00,w:0.10,h:0.20},{x:0.09,w:0.06,h:0.30},{x:0.14,w:0.08,h:0.16},
+        {x:0.21,w:0.05,h:0.38},{x:0.25,w:0.07,h:0.24},{x:0.31,w:0.04,h:0.32},
+        {x:0.35,w:0.06,h:0.18},
+        {x:0.59,w:0.06,h:0.18},{x:0.64,w:0.04,h:0.32},{x:0.67,w:0.07,h:0.24},
+        {x:0.73,w:0.05,h:0.38},{x:0.77,w:0.08,h:0.16},{x:0.84,w:0.06,h:0.30},
+        {x:0.89,w:0.10,h:0.20},
+      ];
+      ctx.fillStyle = '#0c0b1a';
+      bldgs.forEach(b => { ctx.fillRect(b.x*W, HY - b.h*HY, b.w*W, b.h*HY + 2); });
+      // Neon windows
+      bldgs.forEach(b => {
+        const bh = b.h * HY;
+        const cols = Math.max(1, Math.floor(b.w * W / 9));
+        const rows = Math.max(1, Math.floor(bh / 12));
+        for (let r = 1; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const on = ((r * 17 + c * 11 + Math.floor(frame / 60)) % 9) < 3;
+            if (!on) continue;
+            const hue = (c * 40 + r * 70) % 360;
+            ctx.fillStyle = `hsla(${hue},80%,65%,0.55)`;
+            ctx.fillRect(b.x*W + c*9 + 1, HY - bh + r*12, 5, 6);
+          }
+        }
+      });
+
+      // ─ Road surface ──────────────────────────────────────────
+      ctx.beginPath();
+      ctx.moveTo(CX - RT/2, HY); ctx.lineTo(CX + RT/2, HY);
+      ctx.lineTo(CX + RB/2, H);  ctx.lineTo(CX - RB/2, H);
+      ctx.closePath();
+      const roadG = ctx.createLinearGradient(0, HY, 0, H);
+      roadG.addColorStop(0,   '#0d0d14');
+      roadG.addColorStop(0.5, '#161620');
+      roadG.addColorStop(1,   '#1c1c24');
+      ctx.fillStyle = roadG;
+      ctx.fill();
+
+      // Subtle road texture / reflections
+      for (let lane = 1; lane <= 2; lane++) {
+        const lx0 = lerp(CX - RT/2, CX - RB/2, 0) + lane * lerp(RT, RB, 0) / 3;
+        const lx1 = CX - RB/2 + lane * RB / 3;
+        const rG = ctx.createLinearGradient(0, HY, 0, H);
+        rG.addColorStop(0, 'rgba(255,200,80,0)');
+        rG.addColorStop(0.7, 'rgba(255,200,80,0.04)');
+        rG.addColorStop(1, 'rgba(255,200,80,0)');
+        ctx.fillStyle = rG;
+        ctx.beginPath();
+        ctx.moveTo(lerp(CX, CX - RB/2 + lane * RB/3 - 1, 0.05), HY);
+        ctx.lineTo(lx1, H); ctx.lineTo(lx1 + 2, H);
+        ctx.lineTo(lerp(CX, CX - RB/2 + lane * RB/3 + 1, 0.05), HY);
+        ctx.closePath(); ctx.fill();
+      }
+
+      // ─ Road edges ────────────────────────────────────────────
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(CX - RT/2, HY); ctx.lineTo(CX - RB/2, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(CX + RT/2, HY); ctx.lineTo(CX + RB/2, H); ctx.stroke();
+      // Neon orange edge glow
+      ctx.strokeStyle = 'rgba(255,140,20,0.18)';
+      ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.moveTo(CX - RT/2, HY); ctx.lineTo(CX - RB/2, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(CX + RT/2, HY); ctx.lineTo(CX + RB/2, H); ctx.stroke();
+
+      // ─ Center dashes — perspective zoom ──────────────────────
+      dashes.forEach(d => {
+        d.t += d.t * 0.055 + 0.003;   // exponential acceleration = perspective
+        if (d.t >= 1) d.t = 0.01 + Math.random() * 0.06;
+        const et = easeT(d.t);
+        const y0 = lerp(HY, H, et);
+        const y1 = lerp(HY, H, easeT(Math.min(1, d.t + 0.045)));
+        if (y1 <= y0) return;
+        const dw = lerp(1.5, 11, et);
+        ctx.globalAlpha = lerp(0.1, 1, et);
+        ctx.fillStyle = '#f5c518';
+        ctx.fillRect(CX - dw/2, y0, dw, y1 - y0);
+      });
+      ctx.globalAlpha = 1;
+
+      // ─ Street lamps — perspective pool ───────────────────────
+      // Sort back-to-front so closer ones draw on top
+      lamps.sort((a, b) => a.t - b.t);
+      lamps.forEach(lm => {
+        lm.t += lm.t * 0.05 + lm.speed;
+        if (lm.t >= 1.1) Object.assign(lm, mkLamp(), { t: 0.02 + Math.random() * 0.06 });
+        const et = easeT(Math.min(1, lm.t));
+        if (et < 0.01) return;
+        const lx  = lerp(CX - RT/2, CX - RB/2, et);
+        const rx  = lerp(CX + RT/2, CX + RB/2, et);
+        const ly  = lerp(HY, H, et);
+        const ph  = lerp(6, 70, et);
+        const lw  = lerp(0.5, 3, et);
+        const al  = Math.min(1, et * 3);
+
+        ([[lx, -1], [rx, 1]] as [number, number][]).forEach(([px, side]) => {
+          if (lm.t > 1.02) return;  // flew past
+          ctx.globalAlpha = al * 0.85;
+          ctx.strokeStyle = `rgba(120,120,140,${al})`;
+          ctx.lineWidth = lw;
+          ctx.beginPath(); ctx.moveTo(px, ly); ctx.lineTo(px, ly - ph); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(px, ly - ph);
+          ctx.lineTo(px + side * ph * 0.45, ly - ph * 1.18); ctx.stroke();
+          // Glow
+          const br = lerp(3, 30, et);
+          const grd = ctx.createRadialGradient(
+            px + side * ph * 0.45, ly - ph * 1.25, 0,
+            px + side * ph * 0.45, ly - ph * 1.25, br,
+          );
+          grd.addColorStop(0,   `rgba(255,225,100,${al})`);
+          grd.addColorStop(0.35,`rgba(255,170,40,${al * 0.4})`);
+          grd.addColorStop(1,   'rgba(255,120,0,0)');
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.arc(px + side * ph * 0.45, ly - ph * 1.25, br, 0, Math.PI * 2);
+          ctx.fill();
+          // Ground light cone
+          if (et > 0.5) {
+            const coneA = al * 0.12 * (et - 0.5) * 2;
+            const cg = ctx.createRadialGradient(px, ly, 0, px, ly, lerp(0, 80, et));
+            cg.addColorStop(0,   `rgba(255,200,60,${coneA})`);
+            cg.addColorStop(1,   'rgba(255,150,0,0)');
+            ctx.fillStyle = cg;
+            ctx.beginPath(); ctx.arc(px, ly, lerp(0, 80, et), 0, Math.PI * 2); ctx.fill();
+          }
+        });
+      });
+      ctx.globalAlpha = 1;
+
+      // ─ Warp speed lines from VP ───────────────────────────────
+      const NLINES = 28;
+      for (let i = 0; i < NLINES; i++) {
+        const angle = (i / NLINES) * Math.PI * 2;
+        const phase = (frame * 0.018 + i * 0.4) % 1;
+        const r0 = phase * Math.hypot(W, H) * 0.7;
+        const r1 = r0 + lerp(2, 60, phase);
+        const al = lerp(0, 0.18, phase) * (1 - phase);
+        if (al < 0.01) continue;
+        ctx.globalAlpha = al;
+        ctx.strokeStyle = 'rgba(255,200,80,0.9)';
+        ctx.lineWidth = lerp(0.3, 1.5, phase);
+        ctx.beginPath();
+        ctx.moveTo(CX + Math.cos(angle) * r0, HY + Math.sin(angle) * r0 * 0.4);
+        ctx.lineTo(CX + Math.cos(angle) * r1, HY + Math.sin(angle) * r1 * 0.4);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // ─ Headlight beam ─────────────────────────────────────────
+      const motoY = H - 72;
+      const cg = ctx.createLinearGradient(CX, motoY - 30, CX, HY);
+      cg.addColorStop(0,   'rgba(255,255,200,0.18)');
+      cg.addColorStop(0.5, 'rgba(255,230,120,0.06)');
+      cg.addColorStop(1,   'rgba(255,200,80,0)');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.moveTo(CX, motoY - 30);
+      ctx.lineTo(CX - RB * 0.30, HY + 10);
+      ctx.lineTo(CX + RB * 0.30, HY + 10);
+      ctx.closePath(); ctx.fill();
+
+      // ─ Smoke exhaust ─────────────────────────────────────────
+      if (frame % 3 === 0) smoke.push({
+        x: CX + 30 + (Math.random()-0.5)*16, y: motoY + 8,
+        r: 3 + Math.random()*5, vx: 1.2 + Math.random()*0.8,
+        vy: -0.5 - Math.random()*0.6, alpha: 0.35 + Math.random()*0.2,
+      });
+      for (let i = smoke.length - 1; i >= 0; i--) {
+        const s = smoke[i];
+        s.x += s.vx; s.y += s.vy; s.r += 0.55; s.alpha -= 0.018;
+        if (s.alpha <= 0) { smoke.splice(i, 1); continue; }
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(150,150,175,${s.alpha})`; ctx.fill();
+      }
+
+      // ─ Sparks (occasional) ───────────────────────────────────
+      if (frame % 18 === 0) {
+        for (let j = 0; j < 5; j++) sparks.push({
+          x: CX + (Math.random()-0.5)*40, y: motoY + 15,
+          vx: (Math.random()-0.5)*6, vy: -2 - Math.random()*4,
+          alpha: 0.9 + Math.random()*0.1,
+        });
+      }
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.x += s.vx; s.y += s.vy; s.vy += 0.2; s.alpha -= 0.06;
+        if (s.alpha <= 0) { sparks.splice(i, 1); continue; }
+        ctx.beginPath(); ctx.arc(s.x, s.y, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,210,60,${s.alpha})`; ctx.fill();
+      }
+
+      // ─ Motorcycle ────────────────────────────────────────────
+      const bounce = Math.sin(frame * 0.18) * 3.5;
+      const sway   = Math.sin(frame * 0.07) * 4;
+      const sz = Math.min(88, W * 0.12);
+      ctx.font = `${sz}px serif`;
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#ffcc00';
+      ctx.shadowBlur  = 36;
+      ctx.fillText('🏍️', CX + sway, motoY + bounce);
+      ctx.shadowColor = '#ff8800';
+      ctx.shadowBlur  = 18;
+      ctx.fillText('🏍️', CX + sway, motoY + bounce);
+      ctx.shadowBlur  = 0;
+
+      // Motion blur streaks
+      for (let i = 1; i <= 8; i++) {
+        const len = 18 + i * 16;
+        ctx.globalAlpha = 0.22 / i;
+        ctx.strokeStyle = i < 4 ? '#ffcc00' : '#ff8800';
+        ctx.lineWidth = 3 - i * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(CX + sway - 45, motoY - 6 + bounce + i * 1.5);
+        ctx.lineTo(CX + sway - 45 - len, motoY - 6 + bounce + i * 1.5);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'start';
+
+      this.motoRaf = requestAnimationFrame(draw);
+    };
+    draw();
+  }
+
+  private stopMoto(): void {
+    setTimeout(() => {
+      if (this.motoRaf) { cancelAnimationFrame(this.motoRaf); this.motoRaf = undefined; }
+    }, 600);
+  }
+
   private startMatrix(): void {
     if (this.matrixRaf) { cancelAnimationFrame(this.matrixRaf); this.matrixRaf = undefined; }
     const canvas = this.matrixCanvas?.nativeElement;

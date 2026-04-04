@@ -196,7 +196,7 @@ import { EmployeePortalTimelogsTabComponent } from './employee-portal/tabs/emplo
     `
       :host {
         display: block;
-        height: 100vh;
+        height: 100dvh;
       }
 
       /* Custom Scrollbar */

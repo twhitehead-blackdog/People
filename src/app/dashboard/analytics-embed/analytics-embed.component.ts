@@ -10,19 +10,24 @@ interface NavItem {
   icon: string;
   route: string;
   section?: string;
-  isSvg?: 'scissors' | 'stethoscope' | 'meta';
+  isSvg?: 'scissors' | 'stethoscope' | 'meta' | 'csat';
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard',  label: 'Dashboard',   icon: 'pi-objects-column', route: '/dashboard', section: 'Principal' },
-  { id: 'sales',      label: 'Ventas',      icon: 'pi-chart-line',     route: '/sales',     section: 'Reportes' },
+  { id: 'dashboard',   label: 'Dashboard',      icon: 'pi-objects-column', route: '/dashboard',  section: 'Principal' },
+  { id: 'ranking',    label: 'Ranking',        icon: 'pi-trophy',         route: '/ranking' },
+  { id: 'peak-hours', label: 'Horas Calientes',icon: 'pi-clock',          route: '/peak-hours' },
+  { id: 'sales',      label: 'Ventas',         icon: 'pi-chart-line',     route: '/sales',      section: 'Reportes' },
   { id: 'inventory',  label: 'Inventario',  icon: 'pi-box',            route: '/inventory' },
   { id: 'purchases',  label: 'Compras',     icon: 'pi-shopping-cart',  route: '/purchases' },
   { id: 'grooming',   label: 'Peluquería',  icon: '',                  route: '/grooming',  section: 'Servicios', isSvg: 'scissors' },
+  { id: 'grooming-live', label: 'Peluquería Live', icon: '', route: '/grooming-live', isSvg: 'scissors' },
   { id: 'vet',        label: 'Veterinaria', icon: '',                  route: '/vet',       isSvg: 'stethoscope' },
   { id: 'marketing',  label: 'Marketing',   icon: '',                  route: '/marketing', section: 'Marketing', isSvg: 'meta' },
+  { id: 'csat',       label: 'Calificaciones', icon: '',              route: '/csat',                         isSvg: 'csat' },
   { id: 'hr',         label: 'RR.HH.',      icon: 'pi-users',          route: '/hr',        section: 'Personas' },
   { id: 'security',   label: 'Seguridad',   icon: 'pi-shield',         route: '/security',  section: 'Operaciones' },
+  { id: 'audit',      label: 'Auditoría POS', icon: 'pi-search',       route: '/audit' },
 ];
 
 @Component({
@@ -76,6 +81,8 @@ const NAV_ITEMS: NavItem[] = [
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
                 } @else if (item.isSvg === 'meta') {
                   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+                } @else if (item.isSvg === 'csat') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
                 } @else {
                   <i class="pi text-sm" [class]="item.icon"></i>
                 }
@@ -115,7 +122,7 @@ const NAV_ITEMS: NavItem[] = [
 
     } @else {
     <!-- ===== MOBILE: scrollable tab bar + iframe ===== -->
-    <div class="flex flex-col" style="height: calc(100dvh - 52px)">
+    <div class="flex flex-col" style="height: calc(100dvh - 120px)">
       <!-- Scrollable tab bar -->
       <div class="bg-neutral-900 border-b border-neutral-800 shrink-0">
         <div class="flex items-center gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide"
@@ -136,6 +143,8 @@ const NAV_ITEMS: NavItem[] = [
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
                 } @else if (item.isSvg === 'meta') {
                   <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+                } @else if (item.isSvg === 'csat') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
                 } @else {
                   <i class="pi text-xs" [class]="item.icon"></i>
                 }

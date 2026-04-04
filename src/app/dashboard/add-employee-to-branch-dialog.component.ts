@@ -24,6 +24,13 @@ import { EmployeesStore } from '../stores/employees.store';
   imports: [SelectModule, Button, FormsModule],
   template: `
     <div class="flex flex-col gap-4">
+      @if (isStoreManagerMode) {
+      <div class="p-3 bg-blue-500/10 border border-blue-500/25 rounded-lg text-sm text-blue-200 leading-relaxed">
+        <i class="pi pi-info-circle text-blue-400 mr-1.5"></i>
+        Busca al empleado que necesitas en tu tienda. Al confirmar, será transferido a tu sucursal y
+        <strong>se notificará al gerente de su sucursal actual.</strong>
+      </div>
+      }
       <div class="input-container">
         <label for="employee">Buscar empleado</label>
         <p-select
@@ -132,6 +139,7 @@ export class AddEmployeeToBranchDialogComponent {
   public canSelectBranch = this.dialog.data?.canSelectBranch || false;
   public initialBranchId = this.dialog.data?.branchId || null;
   public initialBranchName = this.dialog.data?.branchName || '';
+  public isStoreManagerMode = this.dialog.data?.isStoreManager || false;
   public selectedBranch = signal<string | null>(this.initialBranchId);
 
   public isHRDepartment = computed(() => {
@@ -181,6 +189,50 @@ export class AddEmployeeToBranchDialogComponent {
     return this.employeesStore.employeesList().find((e) => e.id === empId);
   });
 
+  private notifySourceBranchManager(employeeId: string, targetBranchId: string): void {
+    const empData = this.selectedEmployeeData();
+    if (!empData?.branch_id || empData.branch_id === targetBranchId) return;
+
+    const sourceBranchId = empData.branch_id;
+    const sourceBranchName = empData.branch?.name || 'sucursal anterior';
+    const targetBranchName = this.targetBranchName();
+    const empName = `${empData.first_name} ${empData.father_name}`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    // Find manager(s) of the source branch
+    const managersUrl = this.apiUrl.build('rest/v1/employees', {
+      branch_id: `eq.${sourceBranchId}`,
+      is_active: 'eq.true',
+      select: 'id,position:positions(name)',
+      ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+    });
+
+    this.http.get<{ id: string; position: { name: string } | null }[]>(managersUrl)
+      .pipe(catchError(() => EMPTY), takeUntilDestroyed(this.destroyRef))
+      .subscribe(managers => {
+        const targetManagers = managers.filter(m => {
+          const pos = (m.position?.name || '').toLowerCase();
+          return pos.includes('gerente de tienda') || pos.includes('subgerente') || pos.includes('gerente');
+        });
+        if (!targetManagers.length) return;
+
+        const messages = targetManagers.map(m => ({
+          employee_id: m.id,
+          related_type: 'employee_transfer',
+          message_type: 'info',
+          title: 'Transferencia de empleado',
+          message: `${empName} ha sido transferido de ${sourceBranchName} a ${targetBranchName}.`,
+          is_read: false,
+          ...(companyId ? { company_id: companyId } : {}),
+        }));
+
+        const hrUrl = this.apiUrl.build('rest/v1/hr_messages');
+        this.http.post(hrUrl, messages)
+          .pipe(catchError(() => EMPTY), takeUntilDestroyed(this.destroyRef))
+          .subscribe();
+      });
+  }
+
   confirmAdd() {
     const employeeId = this.selectedEmployee();
     const branchId = this.targetBranchId();
@@ -225,6 +277,8 @@ export class AddEmployeeToBranchDialogComponent {
             summary: 'Éxito',
             detail: 'Empleado añadido a la sucursal correctamente',
           });
+          // Notify source branch manager (best-effort)
+          this.notifySourceBranchManager(employeeId, branchId);
           this.employeesStore.reloadItems();
           this.dialogRef.close(true);
         },

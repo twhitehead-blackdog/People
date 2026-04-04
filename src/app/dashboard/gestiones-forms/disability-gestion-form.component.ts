@@ -23,6 +23,7 @@ import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { getEnv } from '../../utils/env.utils';
 import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
+import { EmployeeNotificationService } from '../../services/employee-notification.service';
 
 @Component({
   selector: 'pt-disability-gestion-form',
@@ -212,6 +213,7 @@ export class DisabilityGestionFormComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private notificationService = inject(EmployeeNotificationService);
 
   public today = startOfDay(new Date());
 
@@ -317,6 +319,12 @@ export class DisabilityGestionFormComponent {
         severity: 'success',
         summary: 'Solicitud Enviada',
         detail: `Incapacidad para ${employee.first_name} ${employee.father_name} registrada correctamente`,
+      });
+
+      this.notificationService.notifyNewRequest('disability', `${employee.first_name} ${employee.father_name}`, {
+        'Fecha inicio': data.start_date,
+        'Fecha fin': data.end_date,
+        ...(data.description ? { Descripción: data.description } : {}),
       });
 
       this.requestCreated.emit();

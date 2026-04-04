@@ -39,7 +39,6 @@ import { EmployeePortalNotificationCenterComponent } from './components/employee
 import { EmployeePortalNotificationsComponent } from './components/employee-portal-notifications.component';
 import { EmployeePortalProfileComponent } from './components/employee-portal-profile.component';
 import { EmployeePortalRequestDetailsDialogComponent } from './components/employee-portal-request-details-dialog.component';
-import { EmployeePortalTimelogCorrectionComponent } from './components/employee-portal-timelog-correction.component';
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
 import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
 import { UniformTypesService } from '../dashboard/modules/uniform-requests/data/uniform-types.service';
@@ -71,6 +70,7 @@ import {
   hasTimeInfo,
 } from './utils/employee-portal-time.utils';
 import { getEnv } from '../utils/env.utils';
+import { notifyBranchManagers } from '../utils/manager-notification.utils';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -93,8 +93,6 @@ import { getEnv } from '../utils/env.utils';
     EmployeePortalNotificationsComponent,
     EmployeePortalCompensatoryTutorialDialogComponent,
     EmployeePortalRequestDetailsDialogComponent,
-    EmployeePortalTimelogCorrectionComponent,
-    EmployeePortalTimelogCorrectionComponent,
     EmployeePortalUniformRequestComponent,
     EmployeePortalWorkPermitComponent,
     EmployeePortalSurveysComponent,
@@ -360,26 +358,6 @@ import { getEnv } from '../utils/env.utils';
       </div>
       }
 
-      <!-- Omisión de Marcación Section -->
-      @if (portalStore.activeSection() === 'timelog_correction') {
-      <div id="timelog_correction" class="section-content">
-        <pt-employee-portal-timelog-correction
-          [correctionDate]="timelogCorrectionDate()"
-          (correctionDateChange)="timelogCorrectionDate.set($event)"
-          [correctionType]="timelogCorrectionType()"
-          (correctionTypeChange)="timelogCorrectionType.set($event)"
-          [correctionReason]="timelogCorrectionReason()"
-          (correctionReasonChange)="timelogCorrectionReason.set($event)"
-          [correctionFile]="timelogCorrectionFile()"
-          (correctionFileChange)="timelogCorrectionFile.set($event)"
-          [canSubmit]="canSubmitTimelogCorrection()"
-          [submitting]="submittingTimelogCorrection()"
-          [today]="today"
-          (submitRequest)="submitTimelogCorrectionRequest()"
-          (closeSection)="closeSubSection()"
-        />
-      </div>
-      }
 
       <!-- Solicitud de Uniforme Section -->
       @if (portalStore.activeSection() === 'uniform_request') {
@@ -448,7 +426,8 @@ import { getEnv } from '../utils/env.utils';
           [isLoading]="
             compensatoryTimeoffsApi.isLoading() ||
             disabilitiesApi.isLoading() ||
-            documentRequestsApi.isLoading()
+            documentRequestsApi.isLoading() ||
+            scheduleChangeRequestsApi.isLoading()
           "
           [statusOptions]="allRequestsStatusOptions"
           [typeOptions]="allRequestsTypeOptions"
@@ -1095,20 +1074,6 @@ export class EmployeePortalComponent {
   public disabilitiesApi = this.requestsService.disabilitiesApi;
   public myDisabilities = this.requestsService.allDisabilities;
 
-  // Timelog Correction Form
-  public timelogCorrectionDate = signal<Date | null>(null);
-  public timelogCorrectionType = signal('');
-  public timelogCorrectionReason = signal('');
-  public timelogCorrectionFile = signal<File | null>(null);
-  public submittingTimelogCorrection = signal(false);
-  public canSubmitTimelogCorrection = computed(() => {
-    return (
-      this.timelogCorrectionDate() !== null &&
-      this.timelogCorrectionType().trim() !== '' &&
-      this.timelogCorrectionReason().trim() !== ''
-    );
-  });
-
   // Uniform Request Form
   public uniformItemType = signal('');
   public uniformSize = signal('');
@@ -1328,6 +1293,7 @@ export class EmployeePortalComponent {
   // Delegar APIs de solicitudes al servicio
   public compensatoryTimeoffsApi = this.requestsService.compensatoryTimeoffsApi;
   public vacationTimeoffsApi = this.requestsService.vacationTimeoffsApi;
+  public scheduleChangeRequestsApi = this.requestsService.scheduleChangeRequestsApi;
 
   // Delegar filtros al servicio
   public allRequestsFilterStatus = this.requestsService.allRequestsFilterStatus;
@@ -1759,64 +1725,6 @@ export class EmployeePortalComponent {
     }
   }
 
-  /**
-   * Submit a timelog correction request
-   */
-  public async submitTimelogCorrectionRequest(): Promise<void> {
-    if (!this.canSubmitTimelogCorrection()) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Campos Requeridos',
-        detail: 'Por favor completa todos los campos requeridos',
-      });
-      return;
-    }
-
-    this.submittingTimelogCorrection.set(true);
-
-    try {
-      // Create the request record
-      const requestData = {
-        employee_id: this.currentEmployee()!.id,
-        request_type: 'timelog_correction',
-        request_date: format(this.timelogCorrectionDate()!, 'yyyy-MM-dd'),
-        correction_type: this.timelogCorrectionType(),
-        reason: this.timelogCorrectionReason(),
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      };
-
-      const url = this.apiUrl.build('rest/v1/employee_requests');
-      await firstValueFrom(this.http.post(url, requestData));
-
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Solicitud Enviada',
-        detail:
-          'Tu solicitud de corrección de marcación ha sido enviada para revisión.',
-      });
-
-      // Reset form
-      this.timelogCorrectionDate.set(null);
-      this.timelogCorrectionType.set('');
-      this.timelogCorrectionReason.set('');
-      this.timelogCorrectionFile.set(null);
-
-      // Navigate back
-      this.closeSubSection();
-    } catch (error: any) {
-      console.error('Error submitting timelog correction:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail:
-          error?.error?.message ||
-          'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
-      });
-    } finally {
-      this.submittingTimelogCorrection.set(false);
-    }
-  }
 
   /**
    * Submit a uniform request
@@ -1956,6 +1864,21 @@ export class EmployeePortalComponent {
       };
 
       await firstValueFrom(this.http.post(this.apiUrl.build('rest/v1/work_permits'), data));
+
+      // Notificar a gerentes de la sucursal
+      const empForPermit = this.currentEmployee();
+      if (empForPermit) {
+        const empName = `${empForPermit.first_name} ${empForPermit.father_name}`.trim();
+        notifyBranchManagers({
+          http: this.http,
+          apiUrl: this.apiUrl,
+          employee: empForPermit,
+          title: 'Nueva Solicitud de Permiso',
+          message: `${empName} envió una solicitud de permiso de trabajo.`,
+          relatedType: 'work_permit',
+          messageType: 'work_permit_request_manager',
+        });
+      }
 
       this.messageService.add({
         severity: 'success',
@@ -2121,6 +2044,15 @@ export class EmployeePortalComponent {
       compensatory_approved: 'pi pi-check-circle',
       compensatory_rejected: 'pi pi-times-circle',
       compensatory_registered: 'pi pi-calendar-check',
+      // Manager notifications
+      vacation_request_manager: 'pi pi-calendar',
+      compensatory_request_manager: 'pi pi-clock',
+      disability_upload_manager: 'pi pi-file',
+      document_request_manager: 'pi pi-file-edit',
+      work_permit_request_manager: 'pi pi-briefcase',
+      uniform_request_manager: 'pi pi-shopping-bag',
+      timelog_correction_manager: 'pi pi-pencil',
+      schedule_change_request_manager: 'pi pi-calendar-plus',
     };
     return icons[messageType] || 'pi pi-bell';
   }
@@ -2133,7 +2065,9 @@ export class EmployeePortalComponent {
       vacation: 'Vacaciones',
       compensatory: 'Compensatorio',
       uniform: 'Uniforme',
-      timelog_correction: 'Corrección Marcación',
+      work_permit: 'Permiso de Trabajo',
+      timelog_correction: 'Corrección de Marcación',
+      schedule_change: 'Cambio de Horario',
     };
     return labels[relatedType] || relatedType;
   }

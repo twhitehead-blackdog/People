@@ -170,6 +170,15 @@ export class NotificationsDropdownComponent {
       compensatory_approved: 'pi pi-check-circle',
       compensatory_rejected: 'pi pi-times-circle',
       compensatory_registered: 'pi pi-calendar-check',
+      // Manager notifications
+      vacation_request_manager: 'pi pi-calendar',
+      compensatory_request_manager: 'pi pi-clock',
+      disability_upload_manager: 'pi pi-file',
+      document_request_manager: 'pi pi-file-edit',
+      work_permit_request_manager: 'pi pi-briefcase',
+      uniform_request_manager: 'pi pi-shopping-bag',
+      timelog_correction_manager: 'pi pi-pencil',
+      schedule_change_request_manager: 'pi pi-calendar-plus',
     };
     return icons[messageType] || 'pi pi-bell';
   }
@@ -179,6 +188,12 @@ export class NotificationsDropdownComponent {
       timeoff: 'Tiempo Compensatorio',
       disability: 'Incapacidad',
       document: 'Documento',
+      vacation: 'Vacaciones',
+      compensatory: 'Compensatorio',
+      work_permit: 'Permiso de Trabajo',
+      uniform: 'Uniforme',
+      timelog_correction: 'Corrección de Marcación',
+      schedule_change: 'Cambio de Horario',
     };
     return labels[relatedType] || relatedType;
   }

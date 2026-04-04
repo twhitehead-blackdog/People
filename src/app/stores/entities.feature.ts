@@ -91,6 +91,8 @@ export function withCustomEntities<T extends { id: EntityId }>({
       'payrolls',
       'devices',
       'device_assignments',
+      'recruitment_rules',
+      'recruitment_classifications',
     ];
 
     // Bancos y creditors pueden tener company_id NULL (compartidos)

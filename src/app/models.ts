@@ -471,13 +471,71 @@ export type JobApplication = {
   salary_expectation?: number;
   resume_url?: string;
   resume_filename?: string;
+  resume_text?: string;
+  resume_parsed?: ResumeParsed;
+  source?: 'job_fair' | 'email';
   additional_info?: string;
   status: 'pending' | 'reviewed' | 'contacted' | 'rejected' | 'hired';
   interview_date?: Date;
   notes?: string;
   is_favorite?: boolean; // Campo para marcar como favorito
+  classification?: RecruitmentClassification;
   created_at?: Date;
   updated_at?: Date;
+};
+
+export type ResumeParsed = {
+  experiencia?: string[];
+  educacion?: string[];
+  habilidades?: string[];
+  idiomas?: string[];
+  keywords_found?: string[];
+};
+
+export type RecruitmentRuleMatchType =
+  | 'contains_keyword'
+  | 'contains_any'
+  | 'regex'
+  | 'equals'
+  | 'min_value'
+  | 'max_value'
+  | 'is_true'
+  | 'is_false';
+
+export type RecruitmentRule = {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string;
+  target_role: string;
+  field_to_check: string;
+  match_type: RecruitmentRuleMatchType;
+  match_value: string;
+  score_points: number;
+  is_active: boolean;
+  priority: number;
+  created_at?: Date;
+  updated_at?: Date;
+};
+
+export type MatchedRule = {
+  rule_id: string;
+  rule_name: string;
+  target_role: string;
+  points: number;
+};
+
+export type RecruitmentClassification = {
+  id: string;
+  job_application_id: string;
+  company_id: string;
+  recommended_role?: string;
+  scores: Record<string, number>;
+  matched_rules: MatchedRule[];
+  extraction_status: 'pending' | 'extracted' | 'failed' | 'no_resume';
+  extraction_error?: string;
+  classified_at?: Date;
+  classified_by?: string;
 };
 
 export const colorVariants: Record<string, string> = {
@@ -1448,3 +1506,36 @@ export const CONTRACT_TYPE_OPTIONS: { value: ContractType; label: string }[] = [
   { value: 'DEFINIDO', label: 'Definido' },
   { value: 'OBRA', label: 'Por Obra' },
 ];
+
+export type ItTicketStatus = 'open' | 'in_process' | 'resolved' | 'cancelled';
+export type ItTicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type ItTicketCategory = 'hardware' | 'software' | 'network' | 'other';
+
+export interface ItTicket {
+  id: number;
+  title: string;
+  description: string | null;
+  category: ItTicketCategory | null;
+  priority: ItTicketPriority;
+  status: ItTicketStatus;
+  branch_id: string | null;
+  company_id: string | null;
+  requester_id: string | null;
+  assignee_id: string | null;
+  created_at: string;
+  updated_at: string;
+  requester?: { first_name: string; father_name: string } | null;
+}
+
+/** Timelog guardado localmente cuando el servidor no responde */
+export interface EmergencyTimelog {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  company_id: string;
+  branch_id: string;
+  type: string;
+  type_label: string;
+  timestamp: string;
+  synced: boolean;
+}

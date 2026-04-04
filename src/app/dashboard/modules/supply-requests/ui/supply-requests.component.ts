@@ -351,29 +351,27 @@ import {
         </div>
         }
 
-        @if (selectedRequest()!.status === 'pending') {
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <i class="pi pi-cog text-amber-400"></i>
-            Acciones
-          </h3>
-          <div class="flex gap-2">
-            <p-button
-              label="Aprobar"
-              icon="pi pi-check"
-              severity="success"
-              (onClick)="approveRequest(selectedRequest()!); showDetailsDialog.set(false)"
-            />
-            <p-button
-              label="Rechazar"
-              icon="pi pi-times"
-              severity="danger"
-              (onClick)="showDetailsDialog.set(false); openRejectionDialog(selectedRequest()!)"
-            />
-          </div>
-        </div>
-        }
       </div>
+      }
+      @if (selectedRequest()?.status === 'pending') {
+      <ng-template pTemplate="footer">
+        <div class="flex items-center gap-3">
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.12)] active:scale-[0.98]"
+            (click)="approveRequest(selectedRequest()!); showDetailsDialog.set(false)"
+          >
+            <i class="pi pi-check-circle text-xs"></i>
+            Aprobar solicitud
+          </button>
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 bg-neutral-800 text-red-400 border border-neutral-600 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-300 active:scale-[0.98]"
+            (click)="showDetailsDialog.set(false); openRejectionDialog(selectedRequest()!)"
+          >
+            <i class="pi pi-times-circle text-xs"></i>
+            Rechazar
+          </button>
+        </div>
+      </ng-template>
       }
     </p-dialog>
 

@@ -867,6 +867,34 @@ export interface CompensatoryRequest {
       @if (showAuditSidebar()) {
       <div class="fixed inset-0 bg-black/50 z-[1199]" (click)="showAuditSidebar.set(false)"></div>
       }
+      <ng-template pTemplate="footer">
+        @if (selectedRequest() && (selectedRequest()!.review_status === 'pending' || (!selectedRequest()!.review_status && !selectedRequest()!.is_approved))) {
+        <div class="flex items-center gap-3">
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.12)] active:scale-[0.98]"
+            [class.opacity-60]="updatingStatus()"
+            [class.pointer-events-none]="updatingStatus()"
+            (click)="approveRequest(selectedRequest()!)"
+          >
+            @if (updatingStatus()) {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+            } @else {
+              <i class="pi pi-check-circle text-xs"></i>
+            }
+            Aprobar solicitud
+          </button>
+          <button
+            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 bg-neutral-800 text-red-400 border border-neutral-600 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-300 active:scale-[0.98]"
+            [class.opacity-60]="updatingStatus()"
+            [class.pointer-events-none]="updatingStatus()"
+            (click)="rejectRequest(selectedRequest()!)"
+          >
+            <i class="pi pi-times-circle text-xs"></i>
+            Rechazar
+          </button>
+        </div>
+        }
+      </ng-template>
     </p-dialog>
 
     <!-- Full Audit History Dialog -->
@@ -1003,9 +1031,13 @@ export class CompensatoryTabComponent {
 
   // Computed stats
   public totalCount = computed(() => this.compensatoryTimeoffsApi.value()?.length || 0);
-  public pendingCount = computed(() =>
-    this.compensatoryTimeoffsApi.value()?.filter(r => r.review_status === 'pending' || (!r.review_status && !r.is_approved)).length || 0
-  );
+  public pendingCount = computed(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return this.compensatoryTimeoffsApi.value()?.filter(r =>
+      (r.review_status === 'pending' || (!r.review_status && !r.is_approved)) &&
+      new Date(r.date_to) >= today
+    ).length || 0;
+  });
   public approvedCount = computed(() =>
     this.compensatoryTimeoffsApi.value()?.filter(r => r.is_approved === true).length || 0
   );

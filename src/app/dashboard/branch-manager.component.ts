@@ -35,6 +35,7 @@ import { BranchManagerService } from './modules/branch-manager/data/branch-manag
 import { BranchManagerRemindersTabComponent } from './modules/branch-manager/ui/branch-manager-reminders-tab.component';
 import { BranchManagerRequestsTabComponent } from './modules/branch-manager/ui/branch-manager-requests-tab.component';
 import { BranchManagerTimelogsTabComponent } from './modules/branch-manager/ui/branch-manager-timelogs-tab.component';
+import { BranchManagerItTicketsTabComponent } from './modules/branch-manager/ui/branch-manager-it-tickets-tab.component';
 import { RequestDetailsDialogComponent } from './modules/branch-manager/ui/request-details-dialog.component';
 import {
   processTimelogsForDisplay,
@@ -60,6 +61,7 @@ import {
     BranchManagerRemindersTabComponent,
     BranchManagerRequestsTabComponent,
     BranchManagerTimelogsTabComponent,
+    BranchManagerItTicketsTabComponent,
     RequestDetailsDialogComponent,
   ],
   providers: [MessageService],
@@ -297,6 +299,11 @@ import {
               </span>
               }
             </p-tab>
+            <p-tab value="it-tickets">
+              <i class="pi pi-desktop mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Tickets IT</span>
+              <span class="sm:hidden">IT</span>
+            </p-tab>
           </p-tablist>
 
           <p-tabpanel value="employee-requests">
@@ -308,7 +315,8 @@ import {
                 disabilitiesApi.isLoading() ||
                 vacationsApi.isLoading() ||
                 documentRequestsApi.isLoading() ||
-                workPermitsApi.isLoading()
+                workPermitsApi.isLoading() ||
+                scheduleChangeRequestsApi.isLoading()
               "
               [isMobile]="isMobile()"
               [(requestTypeFilter)]="requestTypeFilter"
@@ -356,6 +364,9 @@ import {
               (deleteReminder)="deleteReminder($event)"
               (create)="createReminderFromTab($event)"
             />
+          </p-tabpanel>
+          <p-tabpanel value="it-tickets">
+            <pt-branch-manager-it-tickets-tab />
           </p-tabpanel>
         </p-tabs>
       </p-card>
@@ -614,6 +625,7 @@ export class BranchManagerComponent {
   public get vacationsApi() { return this.service.vacationsApi; }
   public get documentRequestsApi() { return this.service.documentRequestsApi; }
   public get workPermitsApi() { return this.service.workPermitsApi; }
+  public get scheduleChangeRequestsApi() { return this.service.scheduleChangeRequestsApi; }
   public get timelogsResource() { return this.service.timelogsResource; }
   public get timelogSchedulesResource() { return this.service.timelogSchedulesResource; }
   public get enrichedNotifications() { return this.service.enrichedNotifications; }
@@ -637,7 +649,8 @@ export class BranchManagerComponent {
       this.workPermitsApi.value() || [],
       branchEmployeeIds,
       branchId,
-      this.employeesStore.entityMap()
+      this.employeesStore.entityMap(),
+      this.scheduleChangeRequestsApi.value() || []
     );
   });
 

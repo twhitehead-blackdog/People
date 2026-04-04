@@ -43,10 +43,8 @@ import { DeviceService } from '../services/device.service';
                 [class.block]="isDropdownOpen('auditoria')"
                 (mouseenter)="openDropdown('auditoria')" (mouseleave)="closeDropdown()">
                 @if (canAccessPerformance()) {
-                <a routerLink="performance"
-                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
-                  [class.bg-neutral-700]="isActiveRoute('performance')"
-                  [class.text-amber-300]="isActiveRoute('performance')">
+                <a href="https://scorecard.blackdogpanama.com" target="_blank" rel="noopener noreferrer"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2">
                   <i class="pi pi-chart-line text-sm"></i><span>Rendimiento 360</span>
                 </a>
                 }
@@ -251,7 +249,7 @@ import { DeviceService } from '../services/device.service';
           <nav class="p-2 flex flex-col gap-1">
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1">Auditoría</div>
             @if (canAccessPerformance()) {
-            <a routerLink="performance" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('performance')" [class.text-amber-300]="isActiveRoute('performance')"><i class="pi pi-chart-line text-sm"></i><span>Rendimiento 360</span></a>
+            <a href="https://scorecard.blackdogpanama.com" target="_blank" rel="noopener noreferrer" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white"><i class="pi pi-chart-line text-sm"></i><span>Rendimiento 360</span></a>
             }
             @if (adminSubs().audit_tasks) {
             <a routerLink="audit-tasks" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('audit-tasks')" [class.text-amber-300]="isActiveRoute('audit-tasks')"><i class="pi pi-check-square text-sm"></i><span>Control de Tareas</span></a>

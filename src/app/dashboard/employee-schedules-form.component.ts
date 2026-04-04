@@ -51,6 +51,7 @@ import { getScheduleWarningForManager, SCHEDULE_ID_DIA_LIBRE } from './services/
 import { ScheduleAuditService } from '../services/schedule-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { isStoreManagerRole } from '../utils/permission.utils';
+import { ScheduleLockService } from '../services/schedule-lock.service';
 
 @Component({
   selector: 'pt-employee-schedules-form',
@@ -246,6 +247,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private logger = inject(LoggerService);
   private auditService = inject(ScheduleAuditService);
   private ngZone = inject(NgZone);
+  private scheduleLockService = inject(ScheduleLockService);
   private audioContext: AudioContext | null = null;
   private originalSchedule: any = null;
   private singleDayEdit = false;
@@ -685,6 +687,25 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
   saveChanges(): void {
     this.loading.set(true);
+
+    // Gerentes de tienda: solo bloquear si la semana está bloqueada
+    if (this.isStoreManager()) {
+      const rawDate = this.dialog.data?.date || this.dialog.data?.weekStart || new Date();
+      const dialogDate: Date = rawDate instanceof Date ? rawDate : new Date(rawDate);
+      const empId = this.dialog.data?.employee_id || this.form.get('employee_id')?.value;
+      const emp = this.store.employees.entities().find((e) => e.id === empId);
+      const positionName = emp?.position?.name || '';
+      if (this.scheduleLockService.isDateLockedForPosition(dialogDate, positionName)) {
+        this.message.add({
+          severity: 'error',
+          summary: 'Semana bloqueada',
+          detail: 'Los horarios de esta semana están bloqueados. Usa "Cambio de Horario" en Gestiones para solicitar cambios.',
+        });
+        this.loading.set(false);
+        return;
+      }
+      // Semana no bloqueada: gerentes pueden guardar pero nunca aprobar
+    }
 
     // Verificar permisos antes de guardar
     if (!this.store.canManageSchedules()) {
@@ -1173,6 +1194,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                 ? format(new Date(value.end_date), 'dd/MM/yyyy')
                 : '';
 
+              const auditDateForLock = value.start_date ? new Date(value.start_date) : new Date();
+              const auditPositionForLock = employee?.position?.name || '';
+              const isLockedOverride = this.scheduleLockService.isDateLockedForPosition(auditDateForLock, auditPositionForLock);
+
               await this.auditService.logChange({
                 employeeScheduleId: scheduleId,
                 changedBy: currentEmployeeId,
@@ -1210,8 +1235,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                   start_date_formatted: newStartFormatted,
                   end_date_formatted: newEndFormatted,
                   approved: value.approved,
+                  ...(isLockedOverride ? { locked_override: true } : {}),
                 },
-                comment: this.singleDayEdit
+                comment: (isLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') + (this.singleDayEdit
                   ? `Horario "${oldSchedule?.name || 'Desconocido'
                   }" dividido (día específico modificado) para ${employee
                     ? `${employee.first_name} ${employee.father_name}`
@@ -1229,7 +1255,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                     ? ` (sucursal cambiada de ${oldBranch?.name || 'Desconocido'
                     } a ${newBranch?.name || 'Desconocido'})`
                     : ''
-                  }`,
+                  }`),
               });
             } else {
               // Creación
@@ -1250,6 +1276,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                 ? format(new Date(value.end_date), 'dd/MM/yyyy')
                 : '';
               const isSingleDay = startDate === endDate;
+              const createDateForLock = value.start_date ? new Date(value.start_date) : new Date();
+              const createPositionForLock = employee?.position?.name || '';
+              const isCreateLockedOverride = this.scheduleLockService.isDateLockedForPosition(createDateForLock, createPositionForLock);
 
               await this.auditService.logChange({
                 employeeScheduleId: scheduleId,
@@ -1272,8 +1301,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                   end_date_formatted: endDate,
                   is_single_day: isSingleDay,
                   approved: value.approved,
+                  ...(isCreateLockedOverride ? { locked_override: true } : {}),
                 },
-                comment: isSingleDay
+                comment: (isCreateLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') + (isSingleDay
                   ? `Horario "${schedule?.name || 'Desconocido'}" creado para ${employee
                     ? `${employee.first_name} ${employee.father_name}`
                     : 'empleado'
@@ -1283,7 +1313,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                     ? `${employee.first_name} ${employee.father_name}`
                     : 'empleado'
                   } del ${startDate} al ${endDate}${branch ? ` en sucursal ${branch.name}` : ''
-                  }`,
+                  }`),
               });
             }
           } catch (auditError) {

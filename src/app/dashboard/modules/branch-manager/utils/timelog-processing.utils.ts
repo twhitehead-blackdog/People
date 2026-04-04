@@ -149,10 +149,8 @@ export function processTimelogsForDisplay(
     };
   });
 
-  // Step 2: Filter logs strictly by branch_id and add people from other branches who clocked here
-  const branchLogs = branchId
-    ? logs.filter((log: any) => log.branch_id === branchId)
-    : logs;
+  // Step 2: Process logs for employees assigned to this branch (already filtered by employee.branch_id at API level)
+  const branchLogs = logs;
 
   branchLogs.forEach((log: any) => {
     if (!log.employee_id) return;
@@ -186,7 +184,7 @@ export function processTimelogsForDisplay(
       };
     }
 
-    const logTime = new Date(log.created_at);
+    const logTime = new Date(log.punched_at || log.created_at);
     const entry = grouped[log.employee_id];
 
     entry.is_missing = false;

@@ -1,5 +1,5 @@
 // People App — Service Worker
-const CACHE_NAME = 'people-v2';
+const CACHE_NAME = 'people-v3';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -46,8 +46,10 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET
   if (event.request.method !== 'GET') return;
 
-  // Skip API calls, auth, supabase, and external services
+  // Skip analytics, launcher, API calls, auth, supabase, and external services
   if (
+    url.pathname.startsWith('/analytics') ||
+    url.pathname.startsWith('/launcher') ||
     url.pathname.startsWith('/rest/') ||
     url.pathname.startsWith('/auth/') ||
     url.pathname.startsWith('/api/') ||
@@ -68,7 +70,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() => caches.match('/index.html').then((r) => r || fetch('/index.html')))
     );
     return;
   }
@@ -100,7 +102,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(event.request).then((r) => r || new Response('', { status: 503 })))
   );
 });
 

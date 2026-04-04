@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { Employee } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
 import { getEnv } from '../../utils/env.utils';
+import { notifyBranchManagers } from '../../utils/manager-notification.utils';
 
 type CompensatoryFormState = {
   startDate: Date | null;
@@ -194,6 +195,21 @@ export async function uploadCompensatory(
     await firstValueFrom(
       http.post(apiUrl.build('rest/v1/timeoffs'), compensatoryData)
     );
+
+    // Notificar a gerentes de la sucursal
+    const currentEmp = currentEmployee();
+    if (currentEmp) {
+      const empName = `${currentEmp.first_name} ${currentEmp.father_name}`.trim();
+      notifyBranchManagers({
+        http,
+        apiUrl,
+        employee: currentEmp,
+        title: 'Nueva Solicitud de Compensatorio',
+        message: `${empName} envió una solicitud de tiempo compensatorio.`,
+        relatedType: 'compensatory',
+        messageType: 'compensatory_request_manager',
+      });
+    }
 
     messageService.add({
       severity: 'success',

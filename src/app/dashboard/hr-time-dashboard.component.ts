@@ -53,7 +53,7 @@ interface Metric {
     >
       <!-- Header -->
       <div
-        class="bg-gradient-to-r from-neutral-800 via-neutral-800/95 to-neutral-800 border-b border-neutral-700/50 shadow-xl sticky top-0 z-40 backdrop-blur-sm px-4 py-3 mb-6"
+        class="bg-gradient-to-r from-neutral-800 via-neutral-800/95 to-neutral-800 border-b border-neutral-700/50 shadow-xl sticky top-0 z-40 backdrop-blur-sm px-4 sm:px-6 md:px-8 lg:px-12 py-3 mb-6"
       >
         <h1
           class="text-xl font-bold bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent m-0"
@@ -66,7 +66,7 @@ interface Metric {
         </p>
       </div>
 
-      <div class="px-4 space-y-6">
+      <div class="px-4 sm:px-6 md:px-8 lg:px-12 space-y-6">
         <!-- Tarjetas de Acciones -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Registrar eventualidad -->

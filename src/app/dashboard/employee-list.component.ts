@@ -32,6 +32,7 @@ import { ApiUrlService } from '../services/api-url.service';
 import { DeviceService } from '../services/device.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { EmployeeExportDialogComponent } from './employee-export-dialog.component';
 import { EmployeeFormComponent } from './employee-form.component';
 
 @Component({
@@ -908,12 +909,15 @@ export class EmployeeListComponent implements OnInit {
     return employee.id.substring(0, 8);
   }
 
-  async generateReport() {
-    const { utils, writeFile } = await import('xlsx');
-    const ws = utils.json_to_sheet(this.itemsToReports());
-    const wb = utils.book_new();
-    utils.book_append_sheet(wb, ws, 'Empleados');
-    writeFile(wb, 'REPORTE_EMPLEADOS.xlsx');
+  generateReport() {
+    this.dialog.open(EmployeeExportDialogComponent, {
+      header: 'Exportar empleados a Excel',
+      width: '700px',
+      modal: true,
+      dismissableMask: true,
+      closeOnEscape: true,
+      data: { employees: this.filtered() },
+    });
   }
 
   async inviteToPortal(employee: Employee) {
