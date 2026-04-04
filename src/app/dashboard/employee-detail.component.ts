@@ -37,7 +37,7 @@ import { EmployeeFormComponent } from './employee-form.component';
 import { EmployeeSchedulesComponent } from './employee-schedules.component';
 import { TerminationFormComponent } from './termination-form.component';
 import { TimeOffsComponent } from './time-offs.component';
-import { FingerprintStatus, WebAuthnService } from '../services/webauthn.service';
+import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../services/webauthn.service';
 
 @Component({
   selector: 'pt-employee-detail',
@@ -306,54 +306,81 @@ import { FingerprintStatus, WebAuthnService } from '../services/webauthn.service
           <!-- HUELLA -->
           @case (8) {
             <div class="p-4 md:p-6 space-y-4">
-              @if (!webAuthnSupported) {
-                <div class="ed-portal-status">
-                  <div class="ed-portal-icon"><i class="pi pi-times-circle"></i></div>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-white text-sm m-0">Navegador no compatible</p>
-                    <p class="text-xs text-gray-400 m-0 mt-0.5">WebAuthn no está disponible en este navegador.</p>
-                  </div>
-                </div>
-              } @else if (fingerprintStatusLoading()) {
-                <p-skeleton height="4rem" />
+              @if (fingerprintStatusLoading()) {
+                <p-skeleton height="4rem" /><p-skeleton height="4rem" styleClass="mt-2" />
               } @else {
-                <div class="ed-portal-status">
-                  <div class="ed-portal-icon" [ngClass]="fingerprintStatus()?.hasCredential ? 'ed-portal-icon--active' : ''">
-                    <i class="pi pi-fingerprint"></i>
+                <!-- Dispositivos registrados -->
+                @if (fingerprintStatus()?.credentials?.length) {
+                  <div class="space-y-2">
+                    @for (cred of fingerprintStatus()!.credentials!; track cred.id) {
+                      <div class="ed-portal-status">
+                        <div class="ed-portal-icon ed-portal-icon--active"><i class="pi pi-fingerprint"></i></div>
+                        <div class="flex-1 min-w-0">
+                          <p class="font-semibold text-white text-sm m-0">{{ cred.device_name }}</p>
+                          <p class="text-xs text-gray-400 m-0 mt-0.5">
+                            {{ cred.registered_by === 'self-service' ? 'Auto-registrado' : 'Registrado por admin' }}
+                            · {{ cred.created_at | date:'dd/MM/yyyy HH:mm' }}
+                          </p>
+                        </div>
+                        <button class="fp-delete-btn" [disabled]="deletingFingerprint()" (click)="confirmDeleteSingle(cred)" title="Eliminar">
+                          <i class="pi pi-trash"></i>
+                        </button>
+                      </div>
+                    }
                   </div>
+                } @else {
+                  <div class="ed-portal-status">
+                    <div class="ed-portal-icon"><i class="pi pi-fingerprint"></i></div>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-semibold text-white text-sm m-0">Sin huellas registradas</p>
+                      <p class="text-xs text-gray-400 m-0 mt-0.5">El empleado no puede marcar con huella aún.</p>
+                    </div>
+                  </div>
+                }
+
+                <!-- Acción: registrar desde este equipo (Kensington) -->
+                <div class="fp-action-card">
+                  <div class="fp-action-icon"><i class="pi pi-desktop"></i></div>
                   <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-white text-sm m-0">{{ fingerprintStatus()?.hasCredential ? 'Huella registrada' : 'Sin huella registrada' }}</p>
-                    <p class="text-xs text-gray-400 m-0 mt-0.5">{{ fingerprintStatus()?.hasCredential ? (fingerprintStatus()?.deviceName || 'Kensington VeriMark') : 'El empleado no puede marcar con huella' }}</p>
+                    <p class="text-sm font-semibold text-white m-0">Registrar desde este equipo</p>
+                    <p class="text-xs text-gray-400 m-0 mt-0.5">Requiere lector Kensington VeriMark conectado y Windows Hello activo.</p>
                   </div>
-                  <span class="ed-badge" [ngClass]="fingerprintStatus()?.hasCredential ? 'ed-badge--active' : 'ed-badge--inactive'">
-                    {{ fingerprintStatus()?.hasCredential ? 'Activa' : 'Inactiva' }}
-                  </span>
-                </div>
-                <div class="flex gap-2 flex-wrap">
                   <p-button
-                    [label]="fingerprintStatus()?.hasCredential ? 'Reregistrar Huella' : 'Registrar Huella'"
-                    [icon]="registeringFingerprint() ? 'pi pi-spin pi-spinner' : 'pi pi-fingerprint'"
-                    [severity]="fingerprintStatus()?.hasCredential ? 'warn' : 'success'"
+                    label="Registrar"
+                    icon="pi pi-fingerprint"
+                    severity="success"
+                    size="small"
                     [loading]="registeringFingerprint()"
                     [disabled]="registeringFingerprint() || deletingFingerprint()"
                     (onClick)="registerFingerprint()"
                   />
-                  @if (fingerprintStatus()?.hasCredential) {
-                    <p-button
-                      label="Eliminar Huella"
-                      icon="pi pi-trash"
-                      severity="danger"
-                      [outlined]="true"
-                      [loading]="deletingFingerprint()"
-                      [disabled]="registeringFingerprint() || deletingFingerprint()"
-                      (onClick)="confirmDeleteFingerprint()"
-                    />
-                  }
                 </div>
-                <p class="text-xs text-gray-500 m-0">
-                  El lector debe estar conectado al equipo donde se realice el registro.
-                  Requiere Windows Hello activo y el lector Kensington VeriMark enchufado.
-                </p>
+
+                <!-- Instrucción registro móvil -->
+                <div class="fp-action-card" style="border-color: rgba(99,179,237,0.25); background: rgba(99,179,237,0.05);">
+                  <div class="fp-action-icon" style="background:rgba(99,179,237,0.1);color:#63b3ed"><i class="pi pi-mobile"></i></div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-white m-0">Registrar desde móvil</p>
+                    <p class="text-xs text-gray-400 m-0 mt-0.5">
+                      En el teléfono, ir al reloj de marcación → seleccionar empleado →
+                      tab <strong class="text-blue-300">Huella</strong> → "Registrar huella en este dispositivo".
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Eliminar todo -->
+                @if (fingerprintStatus()?.credentials?.length) {
+                  <p-button
+                    label="Eliminar todas las huellas"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [outlined]="true"
+                    size="small"
+                    [loading]="deletingFingerprint()"
+                    [disabled]="registeringFingerprint() || deletingFingerprint()"
+                    (onClick)="confirmDeleteFingerprint()"
+                  />
+                }
               }
             </div>
           }
@@ -509,6 +536,25 @@ import { FingerprintStatus, WebAuthnService } from '../services/webauthn.service
       color: #52525b; font-size: 1.25rem;
     }
     .ed-portal-icon--active { background: rgba(34,197,94,0.1); color: #4ade80; }
+
+    /* ===== FINGERPRINT TAB ===== */
+    .fp-delete-btn {
+      width: 2rem; height: 2rem; border-radius: 6px; border: 1px solid rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.07); color: #f87171; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; flex-shrink: 0;
+    }
+    .fp-delete-btn:hover:not(:disabled) { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.5); }
+    .fp-delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .fp-action-card {
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 0.75rem;
+    }
+    .fp-action-icon {
+      width: 2.25rem; height: 2.25rem; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; background: rgba(251,191,36,0.08); color: #fbbf24;
+      font-size: 1rem; flex-shrink: 0;
+    }
 
     /* ===== CARD TAB ===== */
     .ed-card-tab { padding: 1.5rem; }
@@ -1044,7 +1090,7 @@ export class EmployeeDetailComponent implements OnInit {
       const status = await this.webAuthnService.getCredentialStatus(id);
       this.fingerprintStatus.set(status);
     } catch {
-      this.fingerprintStatus.set({ hasCredential: false });
+      this.fingerprintStatus.set({ hasCredential: false, credentials: [] });
     } finally {
       this.fingerprintStatusLoading.set(false);
     }
@@ -1068,6 +1114,29 @@ export class EmployeeDetailComponent implements OnInit {
     }
   }
 
+  confirmDeleteSingle(cred: CredentialDevice): void {
+    this.confirmationService.confirm({
+      message: `¿Eliminar la huella de "${cred.device_name}"?`,
+      header: 'Eliminar dispositivo',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: async () => {
+        this.deletingFingerprint.set(true);
+        try {
+          await this.webAuthnService.deleteSingleCredential(cred.id);
+          this.messageService.add({ severity: 'success', summary: 'Eliminada', detail: `Huella de ${cred.device_name} eliminada.` });
+          await this.loadFingerprintStatus();
+        } catch {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar.' });
+        } finally {
+          this.deletingFingerprint.set(false);
+        }
+      },
+    });
+  }
+
   confirmDeleteFingerprint(): void {
     this.confirmationService.confirm({
       message: '¿Eliminar la huella registrada? El empleado no podrá marcar con huella hasta que se registre nuevamente.',
@@ -1087,7 +1156,7 @@ export class EmployeeDetailComponent implements OnInit {
     try {
       await this.webAuthnService.deleteCredential(id);
       this.messageService.add({ severity: 'success', summary: 'Eliminada', detail: 'Huella eliminada correctamente.' });
-      this.fingerprintStatus.set({ hasCredential: false });
+      this.fingerprintStatus.set({ hasCredential: false, credentials: [] });
     } catch {
       this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar la huella.' });
     } finally {

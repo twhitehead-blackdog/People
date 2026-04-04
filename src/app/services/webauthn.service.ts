@@ -8,10 +8,21 @@ import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { getEnv } from '../utils/env.utils';
 
+export interface CredentialDevice {
+  id: string;
+  credential_id: string;
+  device_name: string;
+  registered_by: string;
+  created_at: string;
+}
+
 export interface FingerprintStatus {
   hasCredential: boolean;
   deviceName?: string;
+  credentials: CredentialDevice[];
 }
+
+
 
 @Injectable({ providedIn: 'root' })
 export class WebAuthnService {
@@ -54,6 +65,12 @@ export class WebAuthnService {
   async deleteCredential(employeeId: string): Promise<void> {
     await firstValueFrom(
       this.http.delete<{ success: boolean }>(this.url(`api/webauthn/credential/${employeeId}`))
+    );
+  }
+
+  async deleteSingleCredential(credentialDbId: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete<{ success: boolean }>(this.url(`api/webauthn/credential-single/${credentialDbId}`))
     );
   }
 

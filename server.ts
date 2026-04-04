@@ -471,7 +471,30 @@ export function app(): express.Express {
       server.get('/api/webauthn/credential-status/:employeeId', async (req, res) => {
         try {
           const creds = await fetchCredentials(req.params['employeeId']);
-          res.json({ hasCredential: creds.length > 0, deviceName: creds[0]?.device_name });
+          res.json({
+            hasCredential: creds.length > 0,
+            deviceName: creds[0]?.device_name,
+            credentials: creds.map((c: any) => ({
+              id: c.id,
+              credential_id: c.credential_id,
+              device_name: c.device_name,
+              registered_by: c.registered_by,
+              created_at: c.created_at,
+            })),
+          });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      // DELETE /api/webauthn/credential-single/:credentialDbId  (admin — deletes one specific credential)
+      server.delete('/api/webauthn/credential-single/:credentialDbId', requireAuth, async (req, res) => {
+        try {
+          await fetch(
+            `${SUPABASE_URL}/rest/v1/webauthn_credentials?id=eq.${req.params['credentialDbId']}`,
+            { method: 'DELETE', headers: sbHeaders }
+          );
+          res.json({ success: true });
         } catch (err: any) {
           res.status(500).json({ error: err.message });
         }
