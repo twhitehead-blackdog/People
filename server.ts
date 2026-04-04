@@ -8,6 +8,12 @@ import helmet from 'helmet';
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import nodemailer from 'nodemailer';
 import path from 'path';
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -359,12 +365,7 @@ export function app(): express.Express {
   // Authentication endpoints are public (timeclock kiosk has no Auth0 session).
   // ============================================================
   {
-    import('@simplewebauthn/server').then(({
-      generateRegistrationOptions,
-      verifyRegistrationResponse,
-      generateAuthenticationOptions,
-      verifyAuthenticationResponse,
-    }) => {
+    (() => {
       const rpName = 'BlackDog People';
 
       // Derive rpID from the request's Origin header (works for any deployment URL)
@@ -443,11 +444,16 @@ export function app(): express.Express {
           );
         }
         const { replace_all: _r, ...insertData } = data;
-        await fetch(`${SUPABASE_URL}/rest/v1/webauthn_credentials`, {
+        const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/webauthn_credentials`, {
           method: 'POST',
           headers: sbHeaders,
           body: JSON.stringify({ ...insertData, updated_at: new Date().toISOString() }),
         });
+        if (!insertRes.ok) {
+          const errText = await insertRes.text();
+          console.error('[WebAuthn] Supabase insert failed:', insertRes.status, errText);
+          throw new Error(`DB error ${insertRes.status}: ${errText}`);
+        }
       }
 
       async function updateSignCount(credentialId: string, newCount: number) {
@@ -628,9 +634,11 @@ export function app(): express.Express {
             deviceName?: string;
             response: any;
           };
+          console.log('[WebAuthn:self-verify] employeeId:', employeeId);
           if (!employeeId || !response) { res.status(400).json({ error: 'employeeId and response required' }); return; }
 
           const stored = challenges.get(`selfreg-${employeeId}`);
+          console.log('[WebAuthn:self-verify] challenge found:', !!stored, 'expires in:', stored ? Math.round((stored.expires - Date.now()) / 1000) + 's' : 'N/A');
           if (!stored || stored.expires < Date.now()) {
             res.status(400).json({ error: 'Challenge expired or not found' });
             return;
@@ -644,6 +652,7 @@ export function app(): express.Express {
             requireUserVerification: true,
           });
 
+          console.log('[WebAuthn:self-verify] verified:', verification.verified);
           if (!verification.verified) {
             res.status(400).json({ error: 'Verification failed' });
             return;
@@ -652,6 +661,7 @@ export function app(): express.Express {
           challenges.delete(`selfreg-${employeeId}`);
 
           const { credential } = verification.registrationInfo!;
+          console.log('[WebAuthn:self-verify] credential.id:', credential.id);
           const ua = req.headers['user-agent'] || '';
           const autoDeviceName = deviceName ||
             (ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iPhone' : 'Dispositivo móvil');
@@ -663,11 +673,13 @@ export function app(): express.Express {
             sign_count: credential.counter,
             device_name: autoDeviceName,
             registered_by: 'self-service',
-            replace_all: false, // keep other credentials (e.g. PC kiosk)
+            replace_all: false,
           });
 
+          console.log('[WebAuthn:self-verify] saved to DB successfully');
           res.json({ success: true });
         } catch (err: any) {
+          console.error('[WebAuthn:self-verify] ERROR:', err.message);
           res.status(500).json({ error: err.message });
         }
       });
@@ -752,9 +764,7 @@ export function app(): express.Express {
           res.status(500).json({ error: err.message });
         }
       });
-    }).catch((err) => {
-      console.error('[WebAuthn] Failed to load @simplewebauthn/server:', err);
-    });
+    })();
   }
 
   /**
