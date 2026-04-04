@@ -6,7 +6,7 @@ import {
 } from '@simplewebauthn/browser';
 import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { ApiUrlService } from './api-url.service';
+import { getEnv } from '../utils/env.utils';
 
 export interface FingerprintStatus {
   hasCredential: boolean;
@@ -16,7 +16,17 @@ export interface FingerprintStatus {
 @Injectable({ providedIn: 'root' })
 export class WebAuthnService {
   private http = inject(HttpClient);
-  private apiUrl = inject(ApiUrlService);
+
+  // WebAuthn endpoints live on the Express server (same origin as the app),
+  // NOT on Supabase. Use window.location.origin to always point to the right host.
+  private get base(): string {
+    if (typeof window !== 'undefined') return window.location.origin;
+    return (getEnv('ENV_APP_URL') || 'http://localhost:4200').replace(/\/$/, '');
+  }
+
+  private url(path: string): string {
+    return `${this.base}/${path}`;
+  }
 
   isSupported(): boolean {
     return browserSupportsWebAuthn();
@@ -24,28 +34,18 @@ export class WebAuthnService {
 
   async getCredentialStatus(employeeId: string): Promise<FingerprintStatus> {
     return firstValueFrom(
-      this.http.get<FingerprintStatus>(
-        this.apiUrl.build(`api/webauthn/credential-status/${employeeId}`)
-      )
+      this.http.get<FingerprintStatus>(this.url(`api/webauthn/credential-status/${employeeId}`))
     );
   }
 
   async registerFingerprint(employeeId: string, deviceName = 'Kensington VeriMark'): Promise<void> {
-    // 1. Get registration options from server (requires admin auth via interceptor)
     const options = await firstValueFrom(
-      this.http.post<any>(
-        this.apiUrl.build('api/webauthn/registration-options'),
-        { employeeId }
-      )
+      this.http.post<any>(this.url('api/webauthn/registration-options'), { employeeId })
     );
-
-    // 2. Trigger browser WebAuthn registration (employee places finger)
     const registrationResponse = await startRegistration({ optionsJSON: options });
-
-    // 3. Send response to server for verification
     await firstValueFrom(
       this.http.post<{ success: boolean }>(
-        this.apiUrl.build('api/webauthn/registration-verify'),
+        this.url('api/webauthn/registration-verify'),
         { employeeId, deviceName, response: registrationResponse }
       )
     );
@@ -53,33 +53,22 @@ export class WebAuthnService {
 
   async deleteCredential(employeeId: string): Promise<void> {
     await firstValueFrom(
-      this.http.delete<{ success: boolean }>(
-        this.apiUrl.build(`api/webauthn/credential/${employeeId}`)
-      )
+      this.http.delete<{ success: boolean }>(this.url(`api/webauthn/credential/${employeeId}`))
     );
   }
 
   /** Called from the timeclock kiosk. Returns true if authentication succeeded. */
   async authenticateFingerprint(employeeId: string): Promise<boolean> {
-    // 1. Get authentication options (public endpoint, no auth needed)
     const options = await firstValueFrom(
-      this.http.post<any>(
-        this.apiUrl.build('api/webauthn/authentication-options'),
-        { employeeId }
-      )
+      this.http.post<any>(this.url('api/webauthn/authentication-options'), { employeeId })
     );
-
-    // 2. Trigger browser WebAuthn (employee places finger on reader)
     const authResponse = await startAuthentication({ optionsJSON: options });
-
-    // 3. Verify with server
     const result = await firstValueFrom(
       this.http.post<{ success: boolean }>(
-        this.apiUrl.build('api/webauthn/authentication-verify'),
+        this.url('api/webauthn/authentication-verify'),
         { employeeId, response: authResponse }
       )
     );
-
     return result.success;
   }
 }
