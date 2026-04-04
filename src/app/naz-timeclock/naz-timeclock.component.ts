@@ -2795,7 +2795,8 @@ export class NazTimeclockComponent implements OnDestroy {
         company_id,
         type,
         employeeName,
-        employee.birth_date as any
+        employee.birth_date as any,
+        'pin'
       );
     } else {
       this.isProcessing.set(false);
@@ -2847,7 +2848,7 @@ export class NazTimeclockComponent implements OnDestroy {
         return;
       }
       const employeeName = `${employee.first_name} ${employee.father_name}`.trim();
-      this.processTimelog(employee.id, branch_id, company_id, type, employeeName, employee.birth_date as any);
+      this.processTimelog(employee.id, branch_id, company_id, type, employeeName, employee.birth_date as any, 'webauthn');
     } catch (err: any) {
       this.isProcessing.set(false);
       playFailureSound();
@@ -2866,7 +2867,8 @@ export class NazTimeclockComponent implements OnDestroy {
     companyId: string,
     type: string,
     employeeName: string,
-    birthDate?: string
+    birthDate?: string,
+    authMethod?: 'pin' | 'webauthn'
   ) {
     // Usar RPC para procesar todo en una sola transacción (same as main timeclock)
     this.http
@@ -2898,6 +2900,7 @@ export class NazTimeclockComponent implements OnDestroy {
           p_type: type,
           p_ip: this.getIP(),
           p_invalid_ip: this.IP_BYPASS_EMPLOYEE_IDS.has(employeeId) ? false : !this.validIP(),
+          ...(authMethod ? { p_auth_method: authMethod } : {}),
         },
         { observe: 'response' }
       )

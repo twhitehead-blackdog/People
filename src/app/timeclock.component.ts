@@ -4662,7 +4662,8 @@ export class TimeclockComponent implements OnDestroy {
         const employeeName = `${employee.first_name || ''} ${employee.father_name || ''}`.trim();
         this.processTimelog(
           employee.id, branch_id, finalCompanyId, type, employeeName,
-          employee.birth_date as any, employee.first_name as string, (employee as any).gender
+          employee.birth_date as any, employee.first_name as string, (employee as any).gender,
+          'webauthn'
         );
       } else {
         this.isProcessing.set(false);
@@ -5068,7 +5069,8 @@ export class TimeclockComponent implements OnDestroy {
         employeeName,
         employee.birth_date as any,
         employee.first_name as string,
-        (employee as any).gender as 'M' | 'F' | undefined
+        (employee as any).gender as 'M' | 'F' | undefined,
+        'pin'
       );
     } else {
       this.isProcessing.set(false);
@@ -5089,7 +5091,8 @@ export class TimeclockComponent implements OnDestroy {
     employeeName: string,
     birthDate?: string,
     firstName?: string,
-    gender?: 'M' | 'F'
+    gender?: 'M' | 'F',
+    authMethod?: 'pin' | 'webauthn'
   ) {
     // Validar IP - bypass for specific employees
     const invalidValue = this.IP_BYPASS_EMPLOYEE_IDS.has(employeeId) ? false : !this.validIP();
@@ -5139,6 +5142,7 @@ export class TimeclockComponent implements OnDestroy {
           p_type: type,
           p_ip: this.getIP(),
           p_invalid_ip: invalidValue,
+          ...(authMethod ? { p_auth_method: authMethod } : {}),
           ...(this.ipOverrideActive() && this.ipOverrideManager()
             ? { p_ip_override_by: this.ipOverrideManager()!.id }
             : {}),
