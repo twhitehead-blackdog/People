@@ -35,7 +35,7 @@ import { EmployeePortalTimelogsTabComponent } from './employee-portal/tabs/emplo
     EmployeePortalLatesTabComponent,
     EmployeePortalNotificationsDialogComponent,
   ],
-  providers: [MessageService],
+  providers: [MessageService, EmployeePortalDataService],
   template: `
     <div class="flex flex-col h-screen bg-black overflow-hidden relative">
       <!-- Background Effects -->
