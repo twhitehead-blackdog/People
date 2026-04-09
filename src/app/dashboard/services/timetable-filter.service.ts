@@ -76,6 +76,7 @@ export class TimetableFilterService {
           branch_id,
           position_id,
           position,
+          start_date,
         }) => ({
           id,
           first_name,
@@ -84,6 +85,7 @@ export class TimetableFilterService {
           branch_id,
           position,
           position_id,
+          start_date,
         })
       )
       .sort((a, b) => {

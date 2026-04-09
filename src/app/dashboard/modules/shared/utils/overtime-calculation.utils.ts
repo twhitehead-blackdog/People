@@ -72,7 +72,7 @@ export function processTimelogsForOvertime(timelogs: any[]): any[] {
 }
 
 /** Calculate total overtime hours from processed logs. */
-export function calculateTotalOvertimeHours(logs: any[]): number {
+export function calculateTotalOvertimeHours(logs: any[], requiredMinutesPerDay = 480): number {
   let totalOvertimeMinutes = 0;
 
   logs.forEach((log) => {
@@ -93,8 +93,7 @@ export function calculateTotalOvertimeHours(logs: any[]): number {
 
     const lunchToSubtract = Math.max(0, Math.min(lunchMinutes, 60));
     const workMinutes = totalMinutes - lunchToSubtract;
-    const requiredWorkMinutes = 480; // 8 hours
-    const overtimeMinutes = Math.max(0, workMinutes - requiredWorkMinutes);
+    const overtimeMinutes = Math.max(0, workMinutes - requiredMinutesPerDay);
 
     totalOvertimeMinutes += overtimeMinutes;
   });
@@ -103,7 +102,7 @@ export function calculateTotalOvertimeHours(logs: any[]): number {
 }
 
 /** Extract days with overtime > 0 with detailed info. */
-export function extractOvertimeDays(logs: any[]): OvertimeDaySummary[] {
+export function extractOvertimeDays(logs: any[], requiredMinutesPerDay = 480): OvertimeDaySummary[] {
   const overtimeDays: OvertimeDaySummary[] = [];
 
   logs.forEach((log) => {
@@ -124,8 +123,7 @@ export function extractOvertimeDays(logs: any[]): OvertimeDaySummary[] {
 
     const lunchToSubtract = Math.max(0, Math.min(lunchMinutes, 60));
     const workMinutes = totalMinutes - lunchToSubtract;
-    const requiredWorkMinutes = 480;
-    const overtimeMinutes = Math.max(0, workMinutes - requiredWorkMinutes);
+    const overtimeMinutes = Math.max(0, workMinutes - requiredMinutesPerDay);
 
     if (overtimeMinutes > 0) {
       overtimeDays.push({

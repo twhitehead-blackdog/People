@@ -130,6 +130,10 @@ import { notifyBranchManagers } from '../utils/manager-notification.utils';
             (quickAction)="setActiveSection($event)"
           />
         </div>
+        } @else {
+        <div class="flex items-center justify-center h-48">
+          <i class="pi pi-spin pi-spinner text-gray-400 text-2xl"></i>
+        </div>
         }
       </div>
       }

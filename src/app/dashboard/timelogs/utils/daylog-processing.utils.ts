@@ -7,12 +7,14 @@ import {
   getDay,
   getYear,
   isValid,
+  set,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
   DayLog,
   Employee,
   EmployeeScheduleData,
+  Schedule,
   TimeoffData,
 } from '../../../models';
 import { matchesEmployeeSearch } from './employee-search.utils';
@@ -432,6 +434,60 @@ function calculateMetrics(
 }
 
 /**
+ * Calcula los minutos de trabajo requeridos según el horario asignado.
+ * Resta el tiempo de almuerzo definido en el horario (o 60 min por defecto).
+ * Retorna 480 (8h) si no se puede calcular.
+ */
+export function getScheduleRequiredMinutes(schedule: Schedule): number {
+  const DEFAULT = 480;
+  if (!schedule.entry_time || !schedule.exit_time) return DEFAULT;
+
+  const entryStr =
+    typeof schedule.entry_time === 'string'
+      ? schedule.entry_time
+      : format(new Date(schedule.entry_time), 'HH:mm:ss');
+  const exitStr =
+    typeof schedule.exit_time === 'string'
+      ? schedule.exit_time
+      : format(new Date(schedule.exit_time), 'HH:mm:ss');
+
+  const [eH, eM] = entryStr.split(':').map(Number);
+  const [xH, xM] = exitStr.split(':').map(Number);
+  if ([eH, eM, xH, xM].some(isNaN)) return DEFAULT;
+
+  const base = new Date(2000, 0, 1);
+  const entryDate = set(base, { hours: eH, minutes: eM, seconds: 0, milliseconds: 0 });
+  let exitDate = set(base, { hours: xH, minutes: xM, seconds: 0, milliseconds: 0 });
+  if (exitDate <= entryDate) exitDate = addDays(exitDate, 1); // turno nocturno
+
+  const totalScheduleMinutes = differenceInMinutes(exitDate, entryDate);
+
+  let lunchMinutes = 60; // default si no hay almuerzo definido
+  if (schedule.lunch_start_time && schedule.lunch_end_time) {
+    const lsStr =
+      typeof schedule.lunch_start_time === 'string'
+        ? schedule.lunch_start_time
+        : format(new Date(schedule.lunch_start_time), 'HH:mm:ss');
+    const leStr =
+      typeof schedule.lunch_end_time === 'string'
+        ? schedule.lunch_end_time
+        : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
+    const [lsH, lsM] = lsStr.split(':').map(Number);
+    const [leH, leM] = leStr.split(':').map(Number);
+    if (![lsH, lsM, leH, leM].some(isNaN)) {
+      const lsDate = set(base, { hours: lsH, minutes: lsM, seconds: 0, milliseconds: 0 });
+      const leDate = set(base, { hours: leH, minutes: leM, seconds: 0, milliseconds: 0 });
+      if (leDate > lsDate) {
+        lunchMinutes = differenceInMinutes(leDate, lsDate);
+      }
+    }
+  }
+
+  const requiredMinutes = totalScheduleMinutes - lunchMinutes;
+  return requiredMinutes > 0 ? requiredMinutes : DEFAULT;
+}
+
+/**
  * Calcula horas trabajadas y horas extras para un DayLog con entrada y salida
  */
 function calculateWorkHours(
@@ -529,7 +585,11 @@ function calculateWorkHours(
   const totalHours = workMinutes > 0 ? workMinutes / 60 : 0;
   dayLog.totalHours = totalHours;
 
-  const requiredWorkMinutes = 480; // 8 horas
+  const requiredWorkMinutes = hasSchedule
+    ? getScheduleRequiredMinutes(dayLog.schedule!.schedule!)
+    : 480;
+  dayLog.requiredHours = requiredWorkMinutes / 60;
+
   const overtimeByWorkTime =
     workMinutes > requiredWorkMinutes
       ? workMinutes - requiredWorkMinutes

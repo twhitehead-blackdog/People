@@ -1489,7 +1489,7 @@ export class CompensatoryTabComponent {
     return processed.filter(log => log.entry && log.exit);
   }
 
-  private extractOvertimeDays(logs: any[]): Array<{ day: string; overtimeHours: number; entryTime?: string; exitTime?: string; totalHours?: number }> {
+  private extractOvertimeDays(logs: any[], requiredMinutesPerDay = 480): Array<{ day: string; overtimeHours: number; entryTime?: string; exitTime?: string; totalHours?: number }> {
     const overtimeDays: Array<{ day: string; overtimeHours: number; entryTime?: string; exitTime?: string; totalHours?: number }> = [];
     logs.forEach(log => {
       if (!log.entry || !log.exit) return;
@@ -1499,7 +1499,7 @@ export class CompensatoryTabComponent {
       const lunchMinutes = log.lunch_start && log.lunch_end ? differenceInMinutes(new Date(log.lunch_end.date), new Date(log.lunch_start.date)) : 0;
       const lunchToSubtract = Math.max(0, Math.min(lunchMinutes, 60));
       const workMinutes = totalMinutes - lunchToSubtract;
-      const overtimeMinutes = Math.max(0, workMinutes - 480);
+      const overtimeMinutes = Math.max(0, workMinutes - requiredMinutesPerDay);
       if (overtimeMinutes > 0) {
         overtimeDays.push({ day: log.day, overtimeHours: overtimeMinutes / 60, entryTime: format(entryDate, 'HH:mm'), exitTime: format(exitDate, 'HH:mm'), totalHours: workMinutes / 60 });
       }

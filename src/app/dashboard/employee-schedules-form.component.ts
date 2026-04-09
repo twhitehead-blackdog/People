@@ -688,14 +688,15 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   saveChanges(): void {
     this.loading.set(true);
 
-    // Gerentes de tienda: solo bloquear si la semana está bloqueada
+    // Gerentes de tienda: solo bloquear si la semana está bloqueada y no es nuevo ingreso
     if (this.isStoreManager()) {
       const rawDate = this.dialog.data?.date || this.dialog.data?.weekStart || new Date();
       const dialogDate: Date = rawDate instanceof Date ? rawDate : new Date(rawDate);
       const empId = this.dialog.data?.employee_id || this.form.get('employee_id')?.value;
       const emp = this.store.employees.entities().find((e) => e.id === empId);
       const positionName = emp?.position?.name || '';
-      if (this.scheduleLockService.isDateLockedForPosition(dialogDate, positionName)) {
+      const isNewHire = this.dialog.data?.isNewHire ?? false;
+      if (!isNewHire && this.scheduleLockService.isDateLockedForPosition(dialogDate, positionName)) {
         this.message.add({
           severity: 'error',
           summary: 'Semana bloqueada',
@@ -704,7 +705,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         this.loading.set(false);
         return;
       }
-      // Semana no bloqueada: gerentes pueden guardar pero nunca aprobar
+      // Semana no bloqueada o nuevo ingreso: gerentes pueden guardar pero nunca aprobar
     }
 
     // Verificar permisos antes de guardar

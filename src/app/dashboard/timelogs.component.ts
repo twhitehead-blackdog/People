@@ -289,8 +289,8 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
         <div>
           <h4 class="text-white font-semibold mt-0 mb-2"><i class="pi pi-star mr-2 text-amber-400"></i>Horas extras</h4>
           <ul class="list-disc pl-5 text-gray-300 flex flex-col gap-1 m-0">
-            <li>Solo se generan si las horas trabajadas superan <strong>8 horas</strong></li>
-            <li><strong>Extras</strong> = Horas trabajadas - 8h</li>
+            <li>Solo se generan si las horas trabajadas superan las <strong>horas del horario asignado</strong></li>
+            <li><strong>Extras</strong> = Horas trabajadas - horas del horario</li>
             <li>El exceso de almuerzo (> 60 min) no genera extras</li>
           </ul>
         </div>
@@ -300,7 +300,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
             <li><strong>Retraso</strong>: entrada posterior al horario asignado (tolerancia: 5 min)</li>
             <li><strong>Salida temprana</strong>: salida antes de la hora de salida del horario</li>
             <li><strong>Almuerzo excedido</strong>: almuerzo mayor a 60 minutos</li>
-            <li><strong>Horas insuficientes</strong>: menos de 8 horas trabajadas</li>
+            <li><strong>Horas insuficientes</strong>: menos de las horas requeridas por el horario asignado</li>
           </ul>
         </div>
         <div>
@@ -406,7 +406,7 @@ export class TimelogsComponent {
   public maxDelayTagWidth = computed(() => `${Math.max(100, 'Retraso de 999 min'.length * 8 + 24)}px`);
   public maxLunchTagWidth = computed(() => `${Math.max(100, 'Almuerzo 999 min'.length * 8 + 24)}px`);
   public maxExitTagWidth = computed(() => `${Math.max(100, 'Salida temprana'.length * 8 + 24)}px`);
-  public maxHoursTagWidth = computed(() => `${Math.max(100, 'Menos de 8h'.length * 8 + 24)}px`);
+  public maxHoursTagWidth = computed(() => `${Math.max(100, 'Horas insuficientes'.length * 8 + 24)}px`);
 
   // ─── Computed: Employee lists ──────────────────────────────
   public isNaz = computed(() => this.organizationService.isNaz());

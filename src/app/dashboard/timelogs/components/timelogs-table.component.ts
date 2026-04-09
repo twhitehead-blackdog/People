@@ -98,7 +98,7 @@ import {
                 </div>
                 <div class="flex flex-col items-end">
                   <span class="text-[8px] text-gray-600 uppercase">Horas</span>
-                  <span class="text-xs font-bold" [ngClass]="(log.totalHours ?? 0) >= 8 ? 'text-green-400' : (log.totalHours ?? 0) > 0 ? 'text-amber-400' : 'text-gray-600'">{{ log.totalHours ? formatHours(log.totalHours) : '-' }}</span>
+                  <span class="text-xs font-bold" [ngClass]="(log.totalHours ?? 0) >= (log.requiredHours ?? 8) ? 'text-green-400' : (log.totalHours ?? 0) > 0 ? 'text-amber-400' : 'text-gray-600'">{{ log.totalHours ? formatHours(log.totalHours) : '-' }}</span>
                 </div>
               </div>
               <!-- Row 4: Tags (delay, lunch exceeded, overtime) -->
@@ -369,11 +369,11 @@ import {
                 </span>
                 <p-tag
                   *ngIf="log.insufficientHours"
-                  value="Menos de 8h"
+                  value="Horas insuficientes"
                   severity="danger"
                   icon="pi pi-clock"
                   [pTooltip]="
-                    'El empleado no cumplió las 8 horas de trabajo requeridas (sin contar el tiempo de almuerzo)'
+                    'El empleado no cumplió las horas de trabajo requeridas según su horario (sin contar el tiempo de almuerzo)'
                   "
                   tooltipPosition="top"
                   [style]="{

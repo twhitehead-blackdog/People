@@ -891,6 +891,7 @@ export interface DayLog {
   lunchMinutes?: number;
   earlyExit?: boolean;
   insufficientHours?: boolean;
+  requiredHours?: number;
   totalHours?: number;
   overtimeHours?: number;
   overtimeRecord?: EmployeeOvertimeRecord; // Link to overtime confirmation record

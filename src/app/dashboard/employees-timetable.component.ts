@@ -14,6 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import {
   addDays,
+  differenceInDays,
   endOfDay,
   format,
   isBefore,
@@ -836,6 +837,7 @@ export class EmployeesTimetableComponent implements OnInit {
       position: employee.position
         ? { id: (employee.position as any).id, name: employee.position.name }
         : { id: '', name: '' },
+      isNewHire: differenceInDays(new Date(), employee.start_date ?? new Date()) < 15,
       days: employee.days.map((day) => {
         const shift =
           findIntervalForDate(
@@ -1109,12 +1111,15 @@ export class EmployeesTimetableComponent implements OnInit {
       return;
     }
 
+    // Calcular isNewHire antes de los checks de bloqueo (también se pasa al dialog)
+    const _empForNewHire = this.store.employees.entities().find(e => e.id === (employee_id || employee_schedule?.employee_id));
+    const isNewHire = differenceInDays(new Date(), _empForNewHire?.start_date ?? new Date()) < 15;
+
     // If date is locked for this employee's position and user is store manager, redirect to gestiones
     if (this.permissionsService.isStoreManager()) {
       const targetDate = date || (employee_schedule?.start_date ? new Date(employee_schedule.start_date) : this.start());
-      const emp = this.store.employees.entities().find(e => e.id === (employee_id || employee_schedule?.employee_id));
-      const positionName = emp?.position?.name || '';
-      if (this.scheduleLockService.isDateLockedForPosition(targetDate, positionName)) {
+      const positionName = _empForNewHire?.position?.name || '';
+      if (!isNewHire && this.scheduleLockService.isDateLockedForPosition(targetDate, positionName)) {
         this.message.add({
           severity: 'warn',
           summary: 'Calendario bloqueado',
@@ -1162,6 +1167,7 @@ export class EmployeesTimetableComponent implements OnInit {
             weekStart: this.start(),
             weekEnd: this.end(),
             employeeHasSchedulesInWeek,
+            isNewHire,
           },
           modal: true,
           dismissableMask: true,

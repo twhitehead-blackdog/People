@@ -9,6 +9,7 @@ type EmployeeWithDays = {
   first_name: string;
   father_name: string;
   position: { name: string };
+  isNewHire?: boolean;
   days: Array<{
     date: Date;
     day: number;
@@ -28,28 +29,37 @@ type EmployeeWithDays = {
       <div
         class="bg-neutral-800/60 rounded-xl border overflow-hidden"
         [ngClass]="
-          lockedPositions().has(employee.position.name || '')
-            ? 'border-amber-500/40 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
-            : 'border-neutral-700/40'
+          employee.isNewHire
+            ? 'border-green-500/40 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]'
+            : lockedPositions().has(employee.position.name || '')
+              ? 'border-amber-500/40 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
+              : 'border-neutral-700/40'
         "
       >
         <!-- Employee header -->
         <div
           class="px-3 py-2 border-b flex items-center gap-2"
           [ngClass]="
-            lockedPositions().has(employee.position.name || '')
-              ? 'bg-amber-500/10 border-amber-500/30'
-              : 'bg-neutral-700/20 border-neutral-700/30'
+            employee.isNewHire
+              ? 'bg-green-500/10 border-green-500/30'
+              : lockedPositions().has(employee.position.name || '')
+                ? 'bg-amber-500/10 border-amber-500/30'
+                : 'bg-neutral-700/20 border-neutral-700/30'
           "
         >
-          <div class="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <span class="text-[10px] font-bold text-amber-400">{{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}</span>
+          <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+            [ngClass]="employee.isNewHire ? 'bg-green-500/10 border border-green-500/20' : 'bg-amber-500/10 border border-amber-500/20'">
+            <span class="text-[10px] font-bold" [ngClass]="employee.isNewHire ? 'text-green-400' : 'text-amber-400'">{{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}</span>
           </div>
           <div class="min-w-0">
             <p class="text-[13px] font-semibold text-white m-0 truncate">{{ employee.first_name }} {{ employee.father_name }}</p>
-            <p class="text-[10px] m-0 truncate" [ngClass]="lockedPositions().has(employee.position.name || '') ? 'text-amber-300' : 'text-gray-500'">
-              @if (lockedPositions().has(employee.position.name || '')) {
-                <i class="pi pi-lock text-amber-400 text-[9px] mr-1"></i>
+            <p class="text-[10px] m-0 truncate flex items-center gap-1"
+              [ngClass]="employee.isNewHire ? 'text-green-300' : lockedPositions().has(employee.position.name || '') ? 'text-amber-300' : 'text-gray-500'">
+              @if (employee.isNewHire) {
+                <i class="pi pi-star-fill text-green-400 text-[9px]"></i>
+                <span class="text-[9px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded px-1">NUEVO</span>
+              } @else if (lockedPositions().has(employee.position.name || '')) {
+                <i class="pi pi-lock text-amber-400 text-[9px]"></i>
               }
               {{ employee.position.name || 'Sin cargo' }}
             </p>
@@ -69,7 +79,7 @@ type EmployeeWithDays = {
                 [canManageSchedules]="canManageSchedules()"
                 [canApprove]="canApproveSchedules()"
                 [isStoreManager]="isStoreManager()"
-                [isLocked]="lockedPositions().has(employee.position.name || '')"
+                [isLocked]="!employee.isNewHire && lockedPositions().has(employee.position.name || '')"
                 [scheduleWarning]="day.scheduleWarning ?? null"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
@@ -140,13 +150,18 @@ type EmployeeWithDays = {
               pFrozenColumn
               class="whitespace-nowrap"
               [ngClass]="
-                lockedPositions().has(item.position.name || '')
-                  ? 'bg-amber-500/10 text-amber-200 border-r border-amber-500/25'
-                  : ''
+                item.isNewHire
+                  ? 'bg-green-500/10 text-green-200 border-r border-green-500/25'
+                  : lockedPositions().has(item.position.name || '')
+                    ? 'bg-amber-500/10 text-amber-200 border-r border-amber-500/25'
+                    : ''
               "
             >
               <span class="inline-flex items-center gap-1">
-                @if (lockedPositions().has(item.position.name || '')) {
+                @if (item.isNewHire) {
+                  <i class="pi pi-star-fill text-green-400 text-[10px]"></i>
+                  <span class="text-[9px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded px-1 py-0.5">NUEVO</span>
+                } @else if (lockedPositions().has(item.position.name || '')) {
                   <i class="pi pi-lock text-amber-400 text-[10px]"></i>
                 }
                 {{ item.position.name }}
@@ -162,7 +177,7 @@ type EmployeeWithDays = {
                 [canManageSchedules]="canManageSchedules()"
                 [canApprove]="canApproveSchedules()"
                 [isStoreManager]="isStoreManager()"
-                [isLocked]="lockedPositions().has(item.position.name || '')"
+                [isLocked]="!item.isNewHire && lockedPositions().has(item.position.name || '')"
                 [scheduleWarning]="day.scheduleWarning ?? null"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
