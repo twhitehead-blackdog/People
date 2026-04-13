@@ -150,10 +150,12 @@ export function app(): express.Express {
   // Cache en memoria 2 min (igual que el upstream).
   let metasCache: { payload: unknown; expiry: number } | null = null;
   const METAS_TTL_MS = 2 * 60 * 1000;
-  const METAS_UPSTREAM =
-    process.env['ENV_METAS_URL'] ||
-    process.env['ENV_DASHBOARDS_URL']?.replace(/\/$/, '') + '/api/metas' ||
-    'http://localhost:3003/api/metas';
+  const METAS_UPSTREAM = (() => {
+    if (process.env['ENV_METAS_URL']) return process.env['ENV_METAS_URL'];
+    const base = process.env['ENV_DASHBOARDS_URL']?.replace(/\/$/, '');
+    if (base) return `${base}/api/metas`;
+    return 'http://localhost:3003/api/metas';
+  })();
   server.get('/api/metas', async (_req, res) => {
     try {
       const now = Date.now();
