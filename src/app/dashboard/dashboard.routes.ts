@@ -258,6 +258,14 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.SalonScheduleComponent
               ),
           },
+          {
+            path: 'movimientos-personal',
+            canActivate: [modulePermissionGuard('time_management', 'personnel_movements')],
+            loadComponent: () =>
+              import('./modules/personnel-movements/ui/personnel-movements.component').then(
+                (x) => x.PersonnelMovementsComponent
+              ),
+          },
 
           {
             path: 'hub',

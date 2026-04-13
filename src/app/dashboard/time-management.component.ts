@@ -60,6 +60,13 @@ import { DeviceService } from '../services/device.service';
             <i class="pi pi-calendar text-base"></i><span>Horarios</span>
           </a>
           }
+          @if (tmSubs().personnel_movements) {
+          <a routerLink="movimientos-personal"
+            class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 whitespace-nowrap"
+            [routerLinkActive]="['bg-gradient-to-r','from-amber-500/20','to-amber-600/20','text-amber-300','shadow-md']">
+            <i class="pi pi-map text-base"></i><span>Movimientos</span>
+          </a>
+          }
         </div>
         } @else {
         <!-- Mobile: horizontal scrollable tabs -->
@@ -98,6 +105,13 @@ import { DeviceService } from '../services/device.service';
               class="flex gap-1.5 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-3 py-2 transition-all duration-200 whitespace-nowrap text-sm"
               [routerLinkActive]="['bg-gradient-to-r','from-amber-500/20','to-amber-600/20','text-amber-300','shadow-md']">
               <i class="pi pi-calendar text-sm"></i><span>Horarios</span>
+            </a>
+            }
+            @if (tmSubs().personnel_movements) {
+            <a routerLink="movimientos-personal"
+              class="flex gap-1.5 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-3 py-2 transition-all duration-200 whitespace-nowrap text-sm"
+              [routerLinkActive]="['bg-gradient-to-r','from-amber-500/20','to-amber-600/20','text-amber-300','shadow-md']">
+              <i class="pi pi-map text-sm"></i><span>Movim.</span>
             </a>
             }
           </div>
@@ -140,6 +154,7 @@ export class TimeManagementComponent {
     schedules: this.permissionsService.canAccessSubModule('time_management', 'schedules'),
     vet_schedule: this.permissionsService.canAccessSubModule('time_management', 'vet_schedule'),
     salon_schedule: this.permissionsService.canAccessSubModule('time_management', 'salon_schedule'),
+    personnel_movements: this.permissionsService.canAccessSubModule('time_management', 'personnel_movements'),
   }));
 
   private redirectEffect = effect(() => {
@@ -152,6 +167,7 @@ export class TimeManagementComponent {
         { key: 'timelogs', route: 'timelogs' },
         { key: 'vet_schedule', route: 'vet-schedule' },
         { key: 'salon_schedule', route: 'salon-schedule' },
+        { key: 'personnel_movements', route: 'movimientos-personal' },
       ];
       for (const sub of subModuleRoutes) {
         if (subs[sub.key]) {

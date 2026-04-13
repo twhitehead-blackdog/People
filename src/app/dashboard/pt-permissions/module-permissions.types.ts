@@ -69,6 +69,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'schedules', label: 'Programaciones', description: 'Programaciones de turnos', icon: 'pi pi-calendar-plus', route: 'schedules' },
       { id: 'vet_schedule', label: 'Horario Veterinaria', description: 'Horarios específicos de veterinaria', icon: 'pi pi-calendar-clock', route: 'vet-schedule' },
       { id: 'salon_schedule', label: 'Horario Peluquería', description: 'Horarios específicos de peluquería', icon: 'pi pi-calendar-clock', route: 'salon-schedule' },
+      { id: 'personnel_movements', label: 'Movimientos de Personal', description: 'Seguimiento de movimientos entre sucursales, incidencias y metas', icon: 'pi pi-map', route: 'movimientos-personal' },
 
     ],
   },

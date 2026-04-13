@@ -144,6 +144,47 @@ export function app(): express.Express {
     res.json({ version: appVersion });
   });
 
+  // Proxy a dashboards-app /api/metas (Odoo sales targets).
+  // Usado por el módulo de Movimientos de Personal para cruzar metas de tienda
+  // con el personal y sus movimientos.
+  // Cache en memoria 2 min (igual que el upstream).
+  let metasCache: { payload: unknown; expiry: number } | null = null;
+  const METAS_TTL_MS = 2 * 60 * 1000;
+  const METAS_UPSTREAM =
+    process.env['ENV_METAS_URL'] ||
+    process.env['ENV_DASHBOARDS_URL']?.replace(/\/$/, '') + '/api/metas' ||
+    'http://localhost:3003/api/metas';
+  server.get('/api/metas', async (_req, res) => {
+    try {
+      const now = Date.now();
+      if (metasCache && now < metasCache.expiry) {
+        res.json(metasCache.payload);
+        return;
+      }
+      const upstream = await fetch(METAS_UPSTREAM, {
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!upstream.ok) {
+        if (metasCache) {
+          res.json(metasCache.payload);
+          return;
+        }
+        res.status(upstream.status).json({ error: 'Upstream metas error' });
+        return;
+      }
+      const payload = await upstream.json();
+      metasCache = { payload, expiry: now + METAS_TTL_MS };
+      res.json(payload);
+    } catch (err) {
+      safeLogger.error('[/api/metas] proxy error', err);
+      if (metasCache) {
+        res.json(metasCache.payload);
+        return;
+      }
+      res.status(502).json({ error: 'Failed to fetch metas', detail: String(err) });
+    }
+  });
+
   // Lock settings proxy — bypasses Supabase RLS (uses service role key)
   // Needed because schedule_lock_settings has no SELECT/UPDATE policy for authenticated users
   server.get('/api/lock-settings', async (req, res) => {
@@ -2462,7 +2503,7 @@ export function app(): express.Express {
   server.post('/api/fx', (req, res) => {
     const { id } = req.body as { id?: string };
     const v = id === '30e3cd7d-3ba0-4fb0-a0cb-0b4286c04c9d';
-    const m = id === 'd6619dd7-265e-4d05-942d-f36fb09b631b' || id === '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8' || id === '29a3ee6c-1b3e-4a4b-84dd-f14e2b2de8cd';
+    const m = id === 'd6619dd7-265e-4d05-942d-f36fb09b631b' || id === '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8' || id === '29a3ee6c-1b3e-4a4b-84dd-f14e2b2de8cd' || id === '09d3dbcf-1a91-461e-8163-37dc286c75f9' || id === '039e344c-f27a-4fb5-a570-7a191cbb8500' || id === 'c9a0ae86-e758-4a56-9755-7df5ee6a57b8';
     res.json({ v, m });
   });
 

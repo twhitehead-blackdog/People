@@ -13,6 +13,7 @@ export const MODULE_COLORS: Record<string, string> = {
   timelog_correction: 'EA580C', // orange-600
   uniform_request: '0D9488',    // teal-600
   work_permits: 'D97706',       // amber-600
+  personnel_movements: '8B5CF6', // violet-500
   general: '1E293B',            // slate-800
 };
 
