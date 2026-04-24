@@ -1,5 +1,5 @@
 // People App — Service Worker
-const CACHE_NAME = 'people-v3';
+const CACHE_NAME = 'people-v4';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -72,7 +72,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('/index.html').then((r) => r || fetch('/index.html')))
+        .catch(() => caches.match('/index.html').then((r) => r ?? fetch('/index.html')))
     );
     return;
   }
@@ -106,7 +106,7 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(event.request).then((r) => r ?? new Response('', { status: 503 })))
   );
 });
 

@@ -54,11 +54,31 @@ export class VersionCheckService {
         this.countdown.set(0);
         clearInterval(this.countdownIntervalId!);
         this.countdownIntervalId = null;
-        window.location.reload();
+        void this.reloadWithoutStaleAssets();
       } else {
         this.countdown.set(next);
       }
     }, tick);
+  }
+
+  private async reloadWithoutStaleAssets(): Promise<void> {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+    } catch {
+      // Aunque la limpieza falle, la recarga con cache-buster debe continuar.
+    } finally {
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', this.remoteVersion() ?? Date.now().toString());
+      window.location.replace(url.toString());
+    }
   }
 
   private clearAllIntervals(): void {

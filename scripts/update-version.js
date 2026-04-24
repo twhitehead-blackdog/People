@@ -20,6 +20,16 @@ try {
     process.exit(1);
   }
 
+  const currentContent = fs.existsSync(versionTsPath)
+    ? fs.readFileSync(versionTsPath, 'utf8')
+    : '';
+  const currentVersion = currentContent.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/)?.[1];
+  if (currentVersion === version) {
+    console.log(`✅ Versión ya sincronizada: ${version}`);
+    console.log(`⏭️ Archivo sin cambios: ${versionTsPath}`);
+    process.exit(0);
+  }
+
   // Generar contenido del archivo version.ts
   const versionTsContent = `/**
  * Versión de la aplicación

@@ -429,20 +429,19 @@ export class AppComponent implements OnInit {
       this.skeletonType.set('launcher');
       this.showSkeleton.set(true);
 
+      const callbackFallback = setTimeout(() => this.showSkeleton.set(false), 8000);
+
       this.auth.isAuthenticated$
-        .pipe(filter((isAuth) => isAuth !== undefined), take(1))
+        .pipe(filter((isAuth) => isAuth === true), take(1))
         .subscribe(() => {
+          clearTimeout(callbackFallback);
           setTimeout(() => {
-            this.router.events
-              .pipe(filter((event) => event instanceof NavigationEnd), take(1))
-              .subscribe(() => {
-                const cleanPath = window.location.pathname || '/';
-                if (window.location.search || window.location.hash) {
-                  window.history.replaceState({}, '', cleanPath);
-                }
-                this.showSkeleton.set(false);
-              });
-          }, 500);
+            const cleanPath = window.location.pathname || '/';
+            if (window.location.search || window.location.hash) {
+              window.history.replaceState({}, '', cleanPath);
+            }
+            this.showSkeleton.set(false);
+          }, 300);
         });
     }
 
