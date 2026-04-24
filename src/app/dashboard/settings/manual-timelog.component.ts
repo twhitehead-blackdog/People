@@ -8,13 +8,14 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { endOfDay, format, getHours, getMinutes, set, startOfDay } from 'date-fns';
+import { endOfDay, format, set, startOfDay } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
 import { Dialog } from 'primeng/dialog';
+import { InputText } from 'primeng/inputtext';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { Select } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
@@ -48,6 +49,7 @@ interface ExistingPunches {
     Button,
     Select,
     DatePicker,
+    InputText,
     InputTextarea,
     ToastModule,
     ConfirmDialog,
@@ -262,15 +264,22 @@ interface ExistingPunches {
               <!-- Hora -->
               <div class="space-y-2">
                 <label class="text-sm font-medium text-gray-300">Hora de Marcación</label>
-                <p-datepicker
-                  [(ngModel)]="selectedTime"
-                  [showIcon]="true"
-                  [timeOnly]="true"
-                  [hourFormat]="'12'"
-                  appendTo="body"
-                  styleClass="w-full"
-                  placeholder="Seleccionar hora..."
+                <input
+                  pInputText
+                  type="text"
+                  inputmode="numeric"
+                  [ngModel]="selectedTime()"
+                  (ngModelChange)="onTimeChange($event)"
+                  placeholder="ej: 0800 → 8:00 AM  |  1430 → 2:30 PM"
+                  maxlength="4"
+                  class="w-full"
                 />
+                @if (timePreview(); as preview) {
+                  <div class="flex items-center gap-2 mt-1">
+                    <i class="pi pi-clock text-cyan-400 text-xs"></i>
+                    <span class="text-xl font-bold text-cyan-300">{{ preview }}</span>
+                  </div>
+                }
               </div>
             </div>
 
@@ -317,7 +326,7 @@ interface ExistingPunches {
                 <p class="text-blue-300 font-semibold mb-2">Información Importante</p>
                 <ul class="text-sm text-gray-300 space-y-1 list-disc list-inside">
                   <li>Las marcaciones manuales quedan registradas con su nombre como responsable</li>
-                  <li>Haz clic en una marcación existente (en verde) para editarla</li>
+                  <li>Haz clic en una marcación existente (en verde) para editarla o eliminarla</li>
                   <li>Las marcaciones deben seguir el orden lógico: entrada → almuerzo → salida</li>
                   <li>No se puede registrar almuerzo o salida sin entrada previa</li>
                 </ul>
@@ -342,28 +351,47 @@ interface ExistingPunches {
         </p>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-gray-400">Nueva hora</label>
-          <p-datepicker
-            [(ngModel)]="editTime"
-            [timeOnly]="true"
-            [hourFormat]="'12'"
-            styleClass="w-full"
-            appendTo="body"
+          <input
+            pInputText
+            type="text"
+            inputmode="numeric"
+            [ngModel]="editTime()"
+            (ngModelChange)="onEditTimeChange($event)"
+            placeholder="ej: 0800 → 8:00 AM  |  1430 → 2:30 PM"
+            maxlength="4"
+            class="w-full"
           />
+          @if (editTimePreview(); as preview) {
+            <div class="flex items-center gap-2 mt-1">
+              <i class="pi pi-clock text-cyan-400 text-xs"></i>
+              <span class="text-xl font-bold text-cyan-300">{{ preview }}</span>
+            </div>
+          }
         </div>
-        <div class="flex justify-end gap-2 pt-2">
+        <div class="flex justify-between gap-2 pt-2">
           <p-button
-            label="Cancelar"
-            severity="secondary"
+            label="Eliminar"
+            icon="pi pi-trash"
+            severity="danger"
+            [outlined]="true"
             [disabled]="savingEdit()"
-            (click)="showEditDialog.set(false)"
+            (click)="deletePunch()"
           />
-          <p-button
-            label="Guardar"
-            icon="pi pi-check"
-            [loading]="savingEdit()"
-            [disabled]="!editTime()"
-            (click)="saveEdit()"
-          />
+          <div class="flex gap-2">
+            <p-button
+              label="Cancelar"
+              severity="secondary"
+              [disabled]="savingEdit()"
+              (click)="showEditDialog.set(false)"
+            />
+            <p-button
+              label="Guardar"
+              icon="pi pi-check"
+              [loading]="savingEdit()"
+              [disabled]="!editTimeValid()"
+              (click)="saveEdit()"
+            />
+          </div>
         </div>
       </div>
     </p-dialog>
@@ -390,7 +418,7 @@ export class ManualTimelogComponent {
 
   // Fecha/hora
   public selectedDate = signal<Date | null>(null);
-  public selectedTime = signal<Date | null>(null);
+  public selectedTime = signal<string>('');
   public today = new Date();
 
   // Tipo de marcación
@@ -417,7 +445,7 @@ export class ManualTimelogComponent {
   public showEditDialog = signal<boolean>(false);
   public editingPunchType = signal<PunchType | null>(null);
   public editingPunchId = signal<string | null>(null);
-  public editTime = signal<Date | null>(null);
+  public editTime = signal<string>('');
   public savingEdit = signal<boolean>(false);
 
   public punchTypeLabels: Record<PunchType, string> = {
@@ -465,9 +493,24 @@ export class ManualTimelogComponent {
     return t ? this.punchTypeLabels[t] : '';
   });
 
+  // Computed: preview en 12h de la hora que se está escribiendo
+  public timePreview = computed(() => {
+    const parsed = this.parseTimeDigits(this.selectedTime());
+    if (!parsed) return null;
+    return format(set(new Date(), { hours: parsed.hours, minutes: parsed.minutes, seconds: 0, milliseconds: 0 }), 'h:mm a');
+  });
+
+  public editTimePreview = computed(() => {
+    const parsed = this.parseTimeDigits(this.editTime());
+    if (!parsed) return null;
+    return format(set(new Date(), { hours: parsed.hours, minutes: parsed.minutes, seconds: 0, milliseconds: 0 }), 'h:mm a');
+  });
+
+  public editTimeValid = computed(() => !!this.parseTimeDigits(this.editTime()));
+
   // Computed: Validación
   public canSubmit = computed(() => {
-    if (!this.selectedEmployeeId() || !this.selectedDate() || !this.selectedTime()) return false;
+    if (!this.selectedEmployeeId() || !this.selectedDate() || !this.parseTimeDigits(this.selectedTime())) return false;
     if (this.submitting() || this.loadingPunches()) return false;
 
     const existing = this.existingPunches();
@@ -513,7 +556,7 @@ export class ManualTimelogComponent {
     this.existingPunches.set({ entry: null, lunch_start: null, lunch_end: null, exit: null });
     this.employeeSchedule.set(null);
     this.punchType.set('entry');
-    this.selectedTime.set(null);
+    this.selectedTime.set('');
     this.reason.set('');
   }
 
@@ -531,13 +574,22 @@ export class ManualTimelogComponent {
       company_id: `eq.${companyId}`,
       start_date: `lte.${dateStr}`,
       end_date: `gte.${dateStr}`,
-      select: 'id,schedule:schedules(id,name,entry_time,exit_time,lunch_start_time,lunch_end_time,day_off)',
-      limit: '1',
+      select: 'id,start_date,end_date,approved,created_at,schedule:schedules(id,name,entry_time,exit_time,lunch_start_time,lunch_end_time,day_off)',
     });
 
     try {
       const results = await firstValueFrom(this.http.get<any[]>(url));
-      this.employeeSchedule.set(results?.[0]?.schedule ?? null);
+      // Priorizar: individual > rango, aprobado > no aprobado, más reciente
+      const sorted = (results || []).sort((a: any, b: any) => {
+        const aS = a.start_date === a.end_date ? 1 : 0;
+        const bS = b.start_date === b.end_date ? 1 : 0;
+        if (aS !== bS) return bS - aS;
+        const aA = a.approved ? 1 : 0;
+        const bA = b.approved ? 1 : 0;
+        if (aA !== bA) return bA - aA;
+        return (b.created_at || '') > (a.created_at || '') ? 1 : -1;
+      });
+      this.employeeSchedule.set(sorted[0]?.schedule ?? null);
     } catch {
       this.employeeSchedule.set(null);
     } finally {
@@ -597,11 +649,10 @@ export class ManualTimelogComponent {
     const employeeId = this.selectedEmployeeId()!;
     const employee = this.allEmployees().find(e => e.id === employeeId);
     const typeLabel = this.punchTypeLabels[this.punchType()];
-    const time = this.selectedTime()!;
-    const timeStr = format(time, 'h:mm a');
+    const timeDisplay = this.timePreview() ?? this.selectedTime();
 
     this.confirmationService.confirm({
-      message: `¿Registrar ${typeLabel} para <strong>${employee?.short_name || 'este empleado'}</strong> a las <strong>${timeStr}</strong>?`,
+      message: `¿Registrar ${typeLabel} para <strong>${employee?.short_name || 'este empleado'}</strong> a las <strong>${timeDisplay}</strong>?`,
       header: 'Confirmar Marcación Manual',
       icon: 'pi pi-clock',
       acceptLabel: 'Registrar',
@@ -613,11 +664,11 @@ export class ManualTimelogComponent {
   private async doSubmitTimelog(): Promise<void> {
     const employeeId = this.selectedEmployeeId();
     const date = this.selectedDate();
-    const time = this.selectedTime();
     const type = this.punchType();
     const reason = this.reason();
+    const parsed = this.parseTimeDigits(this.selectedTime());
 
-    if (!employeeId || !date || !time) return;
+    if (!employeeId || !date || !parsed) return;
 
     const employee = this.allEmployees().find(e => e.id === employeeId);
     const branchId = (employee as any)?.branch_id;
@@ -625,7 +676,7 @@ export class ManualTimelogComponent {
     this.submitting.set(true);
 
     let punchedAt = new Date(date);
-    punchedAt = set(punchedAt, { hours: getHours(time), minutes: getMinutes(time), seconds: 0, milliseconds: 0 });
+    punchedAt = set(punchedAt, { hours: parsed.hours, minutes: parsed.minutes, seconds: 0, milliseconds: 0 });
 
     const companyId = this.orgService.getCurrentCompanyId();
     const currentEmployee = this.dashboardStore.currentEmployee();
@@ -652,7 +703,7 @@ export class ManualTimelogComponent {
       });
 
       await this.checkExistingPunches();
-      this.selectedTime.set(null);
+      this.selectedTime.set('');
       this.reason.set('');
     } catch (error: any) {
       console.error('Error creating manual timelog:', error);
@@ -670,6 +721,24 @@ export class ManualTimelogComponent {
     }
   }
 
+  public onTimeChange(value: string): void {
+    this.selectedTime.set(value.replace(/\D/g, '').slice(0, 4));
+  }
+
+  public onEditTimeChange(value: string): void {
+    this.editTime.set(value.replace(/\D/g, '').slice(0, 4));
+  }
+
+  private parseTimeDigits(digits: string): { hours: number; minutes: number } | null {
+    const clean = digits.replace(/\D/g, '');
+    if (clean.length < 3) return null;
+    const padded = clean.padStart(4, '0');
+    const h = parseInt(padded.slice(0, 2), 10);
+    const m = parseInt(padded.slice(2, 4), 10);
+    if (h > 23 || m > 59) return null;
+    return { hours: h, minutes: m };
+  }
+
   // ── Edición de marcaciones existentes ──
 
   public startEditPunch(type: PunchType): void {
@@ -678,20 +747,20 @@ export class ManualTimelogComponent {
 
     this.editingPunchType.set(type);
     this.editingPunchId.set(punch.id);
-    this.editTime.set(new Date(punch.time));
+    this.editTime.set(format(new Date(punch.time), 'HHmm'));
     this.showEditDialog.set(true);
   }
 
   public async saveEdit(): Promise<void> {
     const id = this.editingPunchId();
-    const time = this.editTime();
     const date = this.selectedDate();
-    if (!id || !time || !date) return;
+    const parsed = this.parseTimeDigits(this.editTime());
+    if (!id || !parsed || !date) return;
 
     this.savingEdit.set(true);
 
     let punchedAt = new Date(date);
-    punchedAt = set(punchedAt, { hours: getHours(time), minutes: getMinutes(time), seconds: 0, milliseconds: 0 });
+    punchedAt = set(punchedAt, { hours: parsed.hours, minutes: parsed.minutes, seconds: 0, milliseconds: 0 });
 
     try {
       await firstValueFrom(
@@ -715,6 +784,44 @@ export class ManualTimelogComponent {
       let detail = error?.error?.message || 'No se pudo actualizar la marcación.';
       if (status === 403) detail = 'No tienes permisos para editar esta marcación.';
 
+      this.messageService.add({ severity: 'error', summary: 'Error', detail });
+    } finally {
+      this.savingEdit.set(false);
+    }
+  }
+
+  public deletePunch(): void {
+    const id = this.editingPunchId();
+    const typeLabel = this.editingPunchTypeLabel();
+    if (!id) return;
+
+    this.confirmationService.confirm({
+      message: `¿Eliminar la marcación de <strong>${typeLabel}</strong>? Esta acción no se puede deshacer.`,
+      header: 'Confirmar Eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => this.doDeletePunch(id),
+    });
+  }
+
+  private async doDeletePunch(id: string): Promise<void> {
+    const typeLabel = this.editingPunchTypeLabel();
+    this.savingEdit.set(true);
+    try {
+      await firstValueFrom(
+        this.http.delete(this.apiUrl.build('rest/v1/timelogs', { id: `eq.${id}` }))
+      );
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Marcación Eliminada',
+        detail: `${typeLabel} eliminada correctamente`,
+      });
+      this.showEditDialog.set(false);
+      await this.checkExistingPunches();
+    } catch (error: any) {
+      const detail = error?.error?.message || 'No se pudo eliminar la marcación.';
       this.messageService.add({ severity: 'error', summary: 'Error', detail });
     } finally {
       this.savingEdit.set(false);

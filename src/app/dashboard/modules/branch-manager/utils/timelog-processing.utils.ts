@@ -4,6 +4,7 @@
  */
 import { differenceInMinutes, endOfDay, startOfDay, getHours, getMinutes, getSeconds, set } from 'date-fns';
 import { toDate } from 'date-fns-tz';
+import { resolveEmployeeScheduleForDate } from '../../../../utils/employee-schedule.utils';
 
 /** Parse DB date strings as UTC to avoid -1 day timezone offset */
 export function parseUTCDateString(dateStr: string | null | undefined): Date | null {
@@ -37,16 +38,7 @@ export function findEmployeeScheduleForDate(
   date: Date,
   schedules: any[]
 ): any {
-  const searchDate = startOfDay(toDate(date, { timeZone: 'America/Panama' }));
-
-  return schedules.find((s) => {
-    if (s.employee_id !== employeeId) return false;
-
-    const start = startOfDay(toDate(s.start_date, { timeZone: 'America/Panama' }));
-    const end = endOfDay(toDate(s.end_date, { timeZone: 'America/Panama' }));
-
-    return searchDate >= start && searchDate <= end;
-  });
+  return resolveEmployeeScheduleForDate(employeeId, date, schedules);
 }
 
 export function calculateDelayMinutes(entryTime: Date, schedule: any): number {

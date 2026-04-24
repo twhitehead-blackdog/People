@@ -190,6 +190,25 @@ import { AuditLogEntryComponent } from '../audit-log-entry/audit-log-entry.compo
             [showScheduleId]="true"
           />
           }
+          @if (hasMore() && !hasActiveFilters()) {
+          <div class="flex justify-center py-4">
+            @if (isLoadingMore()) {
+            <div class="flex items-center gap-2 text-gray-400">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span class="text-sm">Cargando más...</span>
+            </div>
+            } @else {
+            <p-button
+              label="Cargar más registros"
+              icon="pi pi-arrow-down"
+              [outlined]="true"
+              severity="secondary"
+              size="small"
+              (onClick)="loadMore.emit()"
+            />
+            }
+          </div>
+          }
         </div>
         }
       </div>
@@ -203,6 +222,10 @@ export class AuditHistoryDialogComponent {
   public isLoading = input<boolean>(false);
   public employeeOptions = input<any[]>([]);
 
+  public isLoadingMore = input<boolean>(false);
+  public hasMore = input<boolean>(true);
+
+  public loadMore = output<void>();
   public filterChanged = output<{
     employeeId: string | null;
     dateRange: Date[] | null;

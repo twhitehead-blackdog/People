@@ -1993,6 +1993,9 @@ export class NazTimeclockComponent implements OnDestroy {
   private readonly IP_BYPASS_EMPLOYEE_IDS = new Set([
     '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8', // Tristan Whitehead
   ]);
+
+  /** Tracks last successful punch timestamp per employee to prevent duplicates within 30s */
+  private readonly recentPunches = new Map<string, number>();
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -2753,6 +2756,7 @@ export class NazTimeclockComponent implements OnDestroy {
       select: 'schedule:schedules(id,name,entry_time,exit_time,day_off)',
       employee_id: `eq.${employeeId}`,
       start_date: `lte.${today}`,
+      end_date: `gte.${today}`,
       approved: 'eq.true',
       order: 'start_date.desc',
       limit: '1',
@@ -2870,6 +2874,21 @@ export class NazTimeclockComponent implements OnDestroy {
     birthDate?: string,
     authMethod?: 'pin' | 'webauthn'
   ) {
+    // Prevenir duplicados: rechazar si el mismo empleado marcó hace menos de 30 segundos
+    const now = Date.now();
+    const lastPunch = this.recentPunches.get(employeeId);
+    if (lastPunch && now - lastPunch < 30000) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'warn',
+        summary: 'Marcación reciente',
+        detail: 'Ya se registró una marcación para este empleado. Por favor espere 30 segundos.',
+        life: 5000,
+      });
+      return;
+    }
+    this.recentPunches.set(employeeId, now);
+
     // Usar RPC para procesar todo en una sola transacción (same as main timeclock)
     this.http
       .post<{

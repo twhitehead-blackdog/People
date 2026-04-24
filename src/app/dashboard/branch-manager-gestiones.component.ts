@@ -647,12 +647,12 @@ type ManagementCard = {
                   <i class="pi pi-file text-purple-400"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-white m-0">
-                  Paso 3: Documento de Respaldo (Opcional)
+                  Paso 3: Documento de Respaldo
                 </h3>
               </div>
               <p class="text-sm text-gray-400 mb-4">
-                Si tienes una solicitud física firmada, puedes adjuntarla como
-                PDF para respaldar la solicitud.
+                Adjunta la solicitud física firmada como PDF para respaldar la
+                solicitud. Este documento es obligatorio.
               </p>
               <p-fileUpload
                 mode="basic"
@@ -1535,7 +1535,7 @@ export class BranchManagerGestionesComponent {
   });
 
   public canSubmitVacation = computed(() => {
-    return !!(this.vacationStartDate() && this.vacationEndDate());
+    return !!(this.vacationStartDate() && this.vacationEndDate() && this.vacationFile());
   });
 
   public canSubmitDocument = computed(() => {

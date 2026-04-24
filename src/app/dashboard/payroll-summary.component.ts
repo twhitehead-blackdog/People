@@ -260,7 +260,7 @@ export class PayrollSummaryComponent {
             bolditalics: 'Helvetica-BoldOblique',
           },
         },
-        pdfFonts.vfs
+        pdfFonts.default
       )
       .download(
         `Planilla ${this.payroll.value()?.[0]?.payroll?.name || ''} - ${

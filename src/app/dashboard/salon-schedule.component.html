@@ -35,140 +35,374 @@
           (onClick)="goToNextWeek()"
           pTooltip="Semana siguiente"
         />
-        <p-button
-          label="Exportar"
-          icon="pi pi-file-excel"
-          severity="success"
-          size="small"
-          (onClick)="exportToExcel()"
-          pTooltip="Exportar horario a Excel"
-        />
+        @if (!isReadOnly()) {
+          <p-button
+            icon="pi pi-cog"
+            severity="secondary"
+            rounded
+            text
+            size="small"
+            (onClick)="settingsVisible.set(true)"
+            pTooltip="Configurar peluqueros rotantes"
+          />
+          <p-button
+            label="Exportar"
+            icon="pi pi-file-excel"
+            severity="success"
+            size="small"
+            (onClick)="exportToExcel()"
+            pTooltip="Exportar horario a Excel"
+          />
+        }
+      </div>
+    </div>
+
+    <!-- Barra de filtros: zona tabs + búsqueda + expand/collapse -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2 pt-2 border-t border-neutral-700/40">
+      <!-- Zone tabs -->
+      <div class="flex items-center gap-1 flex-wrap flex-1">
+        <button
+          class="px-2.5 py-1 rounded text-[11px] font-semibold transition-colors"
+          [class.bg-neutral-600]="activeZone() === null"
+          [class.text-white]="activeZone() === null"
+          [class.bg-neutral-800]="activeZone() !== null"
+          [class.text-neutral-400]="activeZone() !== null"
+          (click)="setActiveZone(null)"
+        >Todas</button>
+        @for (zone of orderedZones(); track zone) {
+          <button
+            class="px-2.5 py-1 rounded text-[11px] font-semibold transition-colors border"
+            [style.border-color]="getZoneColor(zone) + '80'"
+            [style.background-color]="activeZone() === zone ? getZoneColor(zone) : 'transparent'"
+            [style.color]="activeZone() === zone ? '#fff' : getZoneColor(zone)"
+            (click)="setActiveZone(zone)"
+          >{{ zone }}</button>
+        }
+      </div>
+
+      <!-- Search + expand/collapse -->
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="text-[10px] text-neutral-500">{{ filteredGroomerCount() }} peluqueros</span>
+        <div class="relative">
+          <i class="pi pi-search absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-neutral-500 pointer-events-none"></i>
+          <input
+            type="text"
+            [value]="nameFilter()"
+            (input)="nameFilter.set($any($event.target).value)"
+            placeholder="Buscar..."
+            class="pl-6 pr-2 py-1 text-[11px] bg-neutral-800 border border-neutral-600 rounded text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-400 w-32"
+          />
+        </div>
+        <p-button icon="pi pi-angle-double-down" severity="secondary" text size="small" (onClick)="expandAll()" pTooltip="Expandir todo" />
+        <p-button icon="pi pi-angle-double-up" severity="secondary" text size="small" (onClick)="collapseAll()" pTooltip="Colapsar todo" />
       </div>
     </div>
   </ng-template>
 
-  <!-- Mobile View: Card-based layout -->
-  <div class="md:hidden space-y-3">
-    @for(branchData of branchesWithAssignments(); track branchData.branch.id){
-    <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2">
-          <div
-            class="w-3 h-3 rounded-full"
-            [style.background-color]="getBranchColor(branchData.branch.short_name)"
-          ></div>
-          <p class="font-semibold text-white">{{ branchData.branch.name }}</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-7 gap-1">
-        @for(day of daysOfWeek(); track day){
-        <div class="text-center">
-          <div class="text-[10px] text-gray-400 mb-1 uppercase">
-            {{ day | date : 'EEE' : undefined : 'es' }}
-          </div>
-          <div class="text-[10px] text-gray-500 mb-1">
-            {{ day | date : 'd' : undefined : 'es' }}
-          </div>
-          <pt-groomer-branch-cell
-            [assignments]="getAssignmentsForBranchDate(branchData.branch.id, day)"
-            [date]="day"
-            [branchId]="branchData.branch.id"
-            [canManage]="isAdmin"
-            [availableEmployees]="getAvailableGroomersForDate(day)"
-            [nonWorkingMap]="nonWorkingMap()"
-            (assign)="onAssignGroomer($event)"
-            (remove)="onRemoveAssignment($event)"
-            (bulkAssign)="onOpenBulkAssign($event)"
-          />
-        </div>
-        }
-      </div>
-    </div>
-    }
-    @if(branchesWithAssignments().length === 0) {
-    <div class="text-center py-8">
-      <p class="text-gray-400">No hay sucursales disponibles</p>
-    </div>
-    }
-  </div>
-
-  <!-- Desktop View: Table layout -->
-  <div class="hidden md:block overflow-x-auto">
-    <p-table
-      [value]="branchesWithAssignments()"
-      [scrollable]="true"
-      scrollHeight="600px"
-      [tableStyle]="{ 'min-width': '50rem' }"
-      [rowTrackBy]="trackByBranchId"
-      responsiveLayout="scroll"
+  <!-- Selector de vista: Horario | Top Peluquería -->
+  <div class="flex items-center gap-1 px-2 pb-2 border-b border-neutral-700/40">
+    <button
+      class="px-3 py-1.5 rounded text-xs font-semibold transition-colors"
+      [class.bg-neutral-700]="activeView() === 'schedule'"
+      [class.text-white]="activeView() === 'schedule'"
+      [class.text-neutral-400]="activeView() !== 'schedule'"
+      (click)="setActiveView('schedule')"
     >
-      <ng-template #header>
-        <tr>
-          <th pFrozenColumn style="min-width: 180px">Sucursal</th>
-          @for(day of daysOfWeek(); track day){
-          <th class="text-center min-w-[120px] lg:min-w-[150px]">
-            <div class="flex flex-col items-center gap-0 leading-[1.1]">
-              <span class="text-xs font-bold uppercase">{{
-                day | date : 'EEE' : undefined : 'es'
-              }}</span>
-              <span class="text-[10px]">{{
-                day | date : 'd MMM' : undefined : 'es'
-              }}</span>
-            </div>
-          </th>
-          }
-        </tr>
-      </ng-template>
-
-      <ng-template #body let-branchData>
-        <tr>
-          <td pFrozenColumn>
-            <div class="flex items-center gap-2">
-              <div
-                class="w-3 h-3 rounded-full flex-shrink-0"
-                [style.background-color]="getBranchColor(branchData.branch.short_name)"
-              ></div>
-              <span class="font-medium">{{ branchData.branch.name }}</span>
-            </div>
-          </td>
-          @for(day of daysOfWeek(); track day){
-          <td class="text-center">
-            <pt-groomer-branch-cell
-              [assignments]="getAssignmentsForBranchDate(branchData.branch.id, day)"
-              [date]="day"
-              [branchId]="branchData.branch.id"
-              [canManage]="isAdmin"
-              [availableEmployees]="getAvailableGroomersForDate(day)"
-              [nonWorkingMap]="nonWorkingMap()"
-              (assign)="onAssignGroomer($event)"
-              (remove)="onRemoveAssignment($event)"
-              (bulkAssign)="onOpenBulkAssign($event)"
-            />
-          </td>
-          }
-        </tr>
-      </ng-template>
-
-      <ng-template #emptymessage>
-        <tr>
-          <td [colSpan]="daysOfWeek().length + 1" class="text-center py-8">
-            <p class="text-gray-400">No hay sucursales disponibles</p>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+      <i class="pi pi-calendar mr-1"></i> Horario
+    </button>
+    @if (canViewTop()) {
+      <button
+        class="px-3 py-1.5 rounded text-xs font-semibold transition-colors"
+        [class.bg-neutral-700]="activeView() === 'top'"
+        [class.text-white]="activeView() === 'top'"
+        [class.text-neutral-400]="activeView() !== 'top'"
+        (click)="setActiveView('top')"
+      >
+        <i class="pi pi-trophy mr-1"></i> Top Peluquería
+      </button>
+    }
   </div>
 
-  <!-- Diálogo de asignación masiva -->
+  @if (activeView() === 'top' && canViewTop()) {
+    <pt-salon-top />
+  }
+
+  @if (activeView() === 'schedule') {
+  <!-- Desktop: tabla principal -->
+  <div class="hidden md:block overflow-auto" style="max-height: calc(100vh - 220px)">
+    <table class="w-full border-collapse text-xs" style="min-width: 700px; table-layout: fixed">
+      <colgroup>
+        <col style="width: 150px">
+        <col style="width: 90px">
+        <col style="width: 110px">
+        @for (day of daysOfWeek(); track day) {
+          <col>
+        }
+      </colgroup>
+      <!-- Header -->
+      <thead class="sticky top-0 z-30">
+        <tr class="border-b-2 border-neutral-600">
+          <th class="text-left px-3 py-2 font-semibold text-gray-300 bg-neutral-800 sticky left-0 z-40 border-r border-neutral-700">
+            Peluquero
+          </th>
+          <th class="text-left px-2 py-2 font-semibold text-gray-300 bg-neutral-800 sticky z-40 border-r border-neutral-700/50 text-[11px]" style="left: 150px">
+            Sucursal
+          </th>
+          <th class="text-left px-2 py-2 font-semibold text-gray-300 bg-neutral-800 sticky z-40 border-r border-neutral-700/50 text-[11px]" style="left: 240px">
+            Cargo
+          </th>
+          @for (day of daysOfWeek(); track day) {
+            <th class="text-center py-2 font-semibold text-gray-300 bg-neutral-800 border-r border-neutral-700/50">
+              <div class="flex flex-col items-center leading-tight">
+                <span class="text-[11px] font-bold uppercase text-gray-200">{{ day | date:'EEE':undefined:'es' }}</span>
+                <span class="text-[10px] text-gray-400">{{ day | date:'d MMM':undefined:'es' }}</span>
+              </div>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of tableRows(); track $index) {
+
+          @if (row.type === 'spacer') {
+            <tr style="height: 8px"><td [attr.colspan]="daysOfWeek().length + 3" class="bg-neutral-950"></td></tr>
+          } @else if (row.type === 'zone-header') {
+            <!-- ── Encabezado de ZONA ── -->
+            <tr>
+              <td [attr.colspan]="daysOfWeek().length + 3"
+                class="px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white sticky left-0 z-10 border-b border-white/10"
+                [style.background-color]="row.color">
+                <i class="pi pi-map-marker text-[9px] mr-1.5 opacity-70"></i>{{ row.zoneName }}
+              </td>
+            </tr>
+
+          } @else if (row.type === 'branch-subheader') {
+            <!-- ── Sub-encabezado de SUCURSAL ── -->
+            <tr class="cursor-pointer select-none" (click)="toggleBranch(row.collapseKey)">
+              <td [attr.colspan]="daysOfWeek().length + 3"
+                class="px-4 py-1 text-[10px] font-semibold text-white/90 sticky left-0 z-10 border-b border-white/10"
+                [style.background-color]="row.color + 'bb'">
+                <i class="pi text-[9px] mr-1 opacity-70"
+                   [class.pi-building]="!isBranchCollapsed(row.collapseKey)"
+                   [class.pi-chevron-right]="isBranchCollapsed(row.collapseKey)"></i>{{ row.branchName }}
+                @if (isBranchCollapsed(row.collapseKey)) {
+                  <span class="ml-2 text-[9px] opacity-60">(colapsado)</span>
+                }
+              </td>
+            </tr>
+
+          } @else if (row.type === 'rotating-header') {
+            <!-- ── Encabezado ROTATIVOS ── -->
+            <tr>
+              <td [attr.colspan]="daysOfWeek().length + 3"
+                class="px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white sticky left-0 z-10 bg-neutral-950 border-b border-white/10 border-t-2 border-t-amber-500/60">
+                <i class="pi pi-sync text-[9px] mr-1.5 text-amber-400"></i>Rotativos
+              </td>
+            </tr>
+
+          } @else {
+            <!-- ── Fila de GROOMER ── -->
+            @let rotating = isRotating(row.employee.id);
+            <tr class="border-b border-neutral-700/30 group" style="height: 46px">
+
+              <!-- Peluquero -->
+              <td class="px-2 sticky left-0 border-r border-neutral-800 z-10 align-middle" style="left: 0"
+                [style.background-color]="rotating ? '#0a0a0a' : (row.employee.branch ? getBranchColor(row.employee.branch.short_name) + '28' : '#0a0a0a')">
+                <div class="flex items-center gap-1.5 w-full">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                    [style.background-color]="rotating ? '#374151' : getBranchColor(row.employee.first_name)">
+                    {{ row.employee.first_name.charAt(0) }}{{ row.employee.father_name?.charAt(0) ?? '' }}
+                  </div>
+                  <span class="font-semibold text-[11px] truncate"
+                    [class.text-white]="!rotating"
+                    [class.text-neutral-300]="rotating">
+                    {{ row.employee.first_name }} {{ row.employee.father_name }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Sucursal -->
+              <td class="px-2 border-r border-neutral-800 align-middle sticky z-10" style="left: 150px"
+                [style.background-color]="rotating ? '#111111' : (row.employee.branch ? getBranchColor(row.employee.branch.short_name) + '44' : '#111111')">
+                @if (rotating) {
+                  <span class="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+                    <i class="pi pi-sync text-[9px]"></i> Rotativo
+                  </span>
+                } @else if (row.employee.branch) {
+                  <div class="flex flex-col leading-tight">
+                    <span class="text-[11px] font-bold truncate"
+                      [style.color]="getBranchColor(row.employee.branch.short_name)">
+                      {{ row.employee.branch.short_name }}
+                    </span>
+                    <span class="text-[9px] text-neutral-500 truncate">{{ row.employee.branch.name }}</span>
+                  </div>
+                }
+              </td>
+
+              <!-- Cargo -->
+              <td class="px-2 border-r border-neutral-800 align-middle sticky z-10" style="left: 240px"
+                [style.background-color]="rotating ? '#0d0d0d' : (row.employee.branch ? getBranchColor(row.employee.branch.short_name) + '1c' : '#0d0d0d')">
+                <span class="text-[10px] leading-tight line-clamp-2"
+                  [class.text-neutral-400]="!rotating"
+                  [class.text-neutral-500]="rotating">
+                  {{ row.employee.position?.name ?? '—' }}
+                </span>
+              </td>
+
+              <!-- Días -->
+              @for (day of daysOfWeek(); track day) {
+                <td class="border-r border-neutral-800 p-0 align-stretch"
+                  [style.background-color]="rotating ? '#080808' : ''">
+                  @if (getNonWorkingLabel(row.employee.id, day); as nonWorkLabel) {
+                    <div
+                      class="flex items-center justify-center w-full h-full min-h-[46px] bg-amber-500/20 border-l-2 border-amber-400/50 px-1 transition-opacity"
+                      [class.cursor-pointer]="!isReadOnly()"
+                      [class.hover:opacity-80]="!isReadOnly()"
+                      [pTooltip]="!isReadOnly() ? 'Click para cambiar horario' : nonWorkLabel"
+                      tooltipPosition="top"
+                      (click)="!isReadOnly() && openGroomerAssignDialog(row.employee, day)"
+                    >
+                      <span class="text-[10px] font-semibold text-amber-300 text-center leading-tight">{{ nonWorkLabel | slice:0:9 }}</span>
+                    </div>
+                  } @else if (getAssignmentForDate(row.employee, day); as assignment) {
+                    <div
+                      class="relative flex flex-col items-center justify-center w-full h-full min-h-[46px] cursor-pointer transition-opacity hover:opacity-80"
+                      [style.background-color]="getBranchColor(assignment.branch?.short_name ?? '') + 'dd'"
+                      [pTooltip]="assignment.branch?.name ?? ''"
+                      tooltipPosition="top"
+                      (click)="!isReadOnly() && onEditAssignment({ assignment: assignment, date: day })"
+                    >
+                      <span class="text-[10px] font-bold text-white drop-shadow-sm leading-tight text-center px-1 break-words hyphens-auto w-full">
+                        {{ assignment.branch?.name }}
+                      </span>
+                      @if (!isReadOnly()) {
+                        <i class="pi pi-times-circle absolute top-0.5 right-0.5 text-[12px] text-red-500 hover:text-red-400 cursor-pointer opacity-80 hover:opacity-100 transition-opacity drop-shadow"
+                          (click)="onRemoveAssignment({ assignment: assignment }); $event.stopPropagation()"></i>
+                      }
+                    </div>
+                  } @else if (!isReadOnly()) {
+                    <div class="flex items-center justify-center w-full h-full min-h-[46px] opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button class="text-neutral-600 hover:text-amber-400 transition-colors p-1.5 rounded"
+                        (click)="openGroomerAssignDialog(row.employee, day)"
+                        pTooltip="Asignar sucursal" tooltipPosition="top">
+                        <i class="pi pi-plus text-[10px]"></i>
+                      </button>
+                    </div>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- Mobile: vista de cards -->
+  <div class="md:hidden space-y-3 px-2">
+    @for (employee of groomerEmployees(); track employee.id) {
+      <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+            [style.background-color]="getBranchColor(employee.first_name)">
+            {{ employee.first_name.charAt(0) }}{{ employee.father_name?.charAt(0) ?? '' }}
+          </div>
+          <div>
+            <span class="font-semibold text-white text-sm">{{ employee.first_name }} {{ employee.father_name }}</span>
+            @if (isRotating(employee.id)) {
+              <span class="ml-2 text-[10px] text-amber-400"><i class="pi pi-sync text-[9px]"></i> Rota</span>
+            }
+          </div>
+        </div>
+        <div class="grid grid-cols-7 gap-1">
+          @for (day of daysOfWeek(); track day) {
+            <div class="flex flex-col items-center gap-0.5">
+              <span class="text-[9px] text-gray-500 uppercase">{{ day | date:'EEE':undefined:'es' }}</span>
+              <span class="text-[9px] text-gray-600">{{ day | date:'d' }}</span>
+              @if (getNonWorkingLabel(employee.id, day); as nonWorkLabel) {
+                <span class="text-[9px] px-0.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-center leading-tight">{{ nonWorkLabel | slice:0:4 }}</span>
+              } @else if (getAssignmentForDate(employee, day); as assignment) {
+                <span class="text-[9px] px-1 py-0.5 rounded font-bold text-white text-center"
+                  [style.background-color]="getBranchColor(assignment.branch?.short_name ?? '')">
+                  {{ assignment.branch?.short_name ?? assignment.branch?.name }}
+                </span>
+              } @else {
+                <span class="text-neutral-700 text-[9px]">—</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  }
+
+  <!-- Diálogo de asignación -->
   <pt-groomer-branch-selection-dialog
     [visible]="dialogVisible()"
+    [employee]="selectedEmployee()"
     [branchId]="selectedBranchId()"
+    [currentBranchId]="selectedAssignment()?.branch_id"
     [date]="selectedDate()"
-    [availableEmployees]="groomerEmployees()"
+    [allGroomerEmployees]="groomerEmployees()"
+    [existingAssignments]="assignments()"
     [nonWorkingMap]="nonWorkingMap()"
-    [assignedEmployeeIdsForDate]="assignedEmployeeIdsForDate()"
     (visibleChange)="dialogVisible.set($event)"
     (confirm)="onDialogConfirm($event)"
     (cancel)="onDialogCancel()"
   />
 </p-card>
+
+<!-- Diálogo: configurar peluqueros (zonas + rotantes) -->
+<p-dialog
+  header="Configuración de peluqueros"
+  [visible]="settingsVisible()"
+  (visibleChange)="settingsVisible.set($event)"
+  [modal]="true"
+  [style]="{ width: '480px' }"
+  [draggable]="false"
+>
+  <p class="text-xs text-gray-400 mb-4">
+    Asigna una zona a cada peluquero para agruparlos en el horario. Los marcados como "Rota" se resaltan visualmente.
+  </p>
+
+  <!-- Encabezado de columnas -->
+  <div class="grid grid-cols-[1fr_140px_auto] gap-2 px-1 mb-1">
+    <span class="text-[10px] font-semibold text-gray-500 uppercase">Peluquero</span>
+    <span class="text-[10px] font-semibold text-gray-500 uppercase">Zona</span>
+    <span class="text-[10px] font-semibold text-gray-500 uppercase">Rota</span>
+  </div>
+
+  <div class="flex flex-col gap-1">
+    @for (emp of groomerEmployees(); track emp.id) {
+      <div class="grid grid-cols-[1fr_140px_auto] items-center gap-2 py-1.5 border-b border-neutral-700/40">
+        <!-- Avatar + nombre -->
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+            [style.background-color]="getBranchColor(emp.first_name)">
+            {{ emp.first_name.charAt(0) }}{{ emp.father_name?.charAt(0) ?? '' }}
+          </div>
+          <span class="text-sm text-gray-200 truncate">{{ emp.first_name }} {{ emp.father_name }}</span>
+        </div>
+        <!-- Dropdown de zona (editable para crear nuevas) -->
+        <p-select
+          [options]="availableZones()"
+          [ngModel]="getGroomerZone(emp.id)"
+          (ngModelChange)="setGroomerZone(emp.id, $event)"
+          [editable]="true"
+          placeholder="Seleccionar zona..."
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full text-xs"
+        />
+        <!-- Toggle rotante -->
+        <p-toggleswitch
+          [ngModel]="isRotating(emp.id)"
+          (ngModelChange)="toggleRotating(emp.id)"
+        />
+      </div>
+    }
+  </div>
+</p-dialog>

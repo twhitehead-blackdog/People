@@ -578,7 +578,7 @@ export class PayrollVacationsComponent {
           italics: 'Roboto-Italic.ttf',
           bolditalics: 'Roboto-Italic.ttf',
         },
-      }, pdfFonts.vfs)
+      }, pdfFonts.default)
       .download(`Vacaciones_${empName.replace(/\s/g, '_')}.pdf`);
   }
 

@@ -6,6 +6,7 @@ import {
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 import { EmployeeSchedule } from '../../../models';
+import { resolveEmployeeScheduleForDate } from '../../../utils/employee-schedule.utils';
 import {
   branchDayKey,
   conflictKey,
@@ -46,6 +47,8 @@ export function buildShiftIntervalsByEmployeeId(
       schedule: (s as any).schedule,
       branch: (s as any).branch,
       approved: (s as any).approved,
+      created_at: (s as any).created_at,
+      time_off_type: (s as any).time_off_type ?? null,
     };
 
     const start = startOfDay(
@@ -65,31 +68,25 @@ export function buildShiftIntervalsByEmployeeId(
 }
 
 /**
- * Binary search for interval containing a specific date.
+ * Find the interval (and its underlying shift) that applies for a given date.
+ * When multiple intervals overlap the same date, delegates to the canonical
+ * resolver (individual > approved > created_at desc) so all views agree.
  */
 export function findIntervalForDate(
   intervals: ShiftInterval[],
   date: Date
 ): ShiftInterval | null {
-  let left = 0;
-  let right = intervals.length - 1;
+  const overlapping = intervals.filter(
+    (iv) => date >= iv.start && date <= iv.end
+  );
 
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-    const interval = intervals[mid];
+  if (overlapping.length === 0) return null;
+  if (overlapping.length === 1) return overlapping[0];
 
-    if (date >= interval.start && date <= interval.end) {
-      return interval;
-    }
-
-    if (date < interval.start) {
-      right = mid - 1;
-    } else {
-      left = mid + 1;
-    }
-  }
-
-  return null;
+  const rows = overlapping.map((iv) => iv.shift);
+  const empId = rows[0].employee_id;
+  const winner = resolveEmployeeScheduleForDate(empId, date, rows);
+  return overlapping.find((iv) => iv.shift === winner) ?? overlapping[0];
 }
 
 /**

@@ -344,6 +344,8 @@ export class PermissionsService {
         tmModule.subModules['timetables'] = true;
         tmModule.subModules['schedules'] = true;
         tmModule.subModules['shifts'] = true;
+        tmModule.subModules['salon_schedule'] = true;
+        tmModule.subModules['salon_top'] = false;
       }
     }
 
@@ -492,8 +494,14 @@ export class PermissionsService {
       return hasSubModuleAccess(GERENTE_TEST_FRONTEND_PERMISSIONS as any, moduleId, subModuleId);
     }
 
-    // Gerentes/Sub Gerentes siempre pueden ver la lista de turnos (view-only)
-    if (moduleId === 'time_management' && subModuleId === 'schedules') {
+    // Gerentes/Sub Gerentes siempre pueden ver la lista de turnos y el horario
+    // de peluquería (view-only; el componente aplica el modo solo lectura).
+    // Excluye 'salon_top' (ranking con datos sensibles de Odoo) — ese se gestiona
+    // solo por override explícito.
+    if (
+      moduleId === 'time_management' &&
+      (subModuleId === 'schedules' || subModuleId === 'salon_schedule')
+    ) {
       if (isStoreManagerRole(this.store.isScheduleAdmin(), this.store.isAdmin(), currentEmployee.position?.name ?? '')) {
         return true;
       }

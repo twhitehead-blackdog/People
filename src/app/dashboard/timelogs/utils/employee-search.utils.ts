@@ -1,11 +1,15 @@
 import { Employee } from '../../../models';
 
-const normalize = (value?: string | null) => (value || '').trim().toLowerCase();
+const stripAccents = (value: string) =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const normalize = (value?: string | null) =>
+  stripAccents((value || '').trim().toLowerCase());
 
 export function matchesEmployeeSearch(emp: Partial<Employee>, searchTerm: string): boolean {
   if (!searchTerm) return false;
 
-  const trimmedSearch = searchTerm.toLowerCase().trim();
+  const trimmedSearch = normalize(searchTerm);
   if (!trimmedSearch) return false;
 
   const firstName = normalize(emp.first_name);

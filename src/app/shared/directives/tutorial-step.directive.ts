@@ -73,7 +73,7 @@ export class TutorialStepDirective implements OnInit, OnDestroy {
   /**
    * Intercept clicks when this element is the current tutorial step
    */
-  @HostListener('click', ['$event'])
+  @HostListener('click')
   onClick(): void {
     if (this.tutorialService.shouldInterceptClick(this.ptTutorialStep)) {
       this.tutorialService.onElementClick(this.ptTutorialStep);

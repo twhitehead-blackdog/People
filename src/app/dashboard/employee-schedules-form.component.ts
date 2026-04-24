@@ -1035,26 +1035,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     // Comportamiento normal: crear o actualizar
     // IMPORTANTE: Formatear fechas a strings antes de enviar
-    const requestData: any = {
-      ...value,
-      start_date: value.start_date
-        ? format(new Date(value.start_date), 'yyyy-MM-dd')
-        : null,
-      end_date: value.end_date
-        ? format(new Date(value.end_date), 'yyyy-MM-dd')
-        : null,
-    };
-    if (companyId && !requestData.company_id) {
-      requestData.company_id = companyId;
-    }
-    if (requestData.approved) {
-      requestData.approved_by = this.store.currentEmployee()?.id || null;
-    }
-
-    const createRequest = this.http.post(
-      this.apiUrl.build('rest/v1/employee_schedules'),
-      requestData
-    );
 
     // Construir updateData sin el id (el id va en los params, no en el body)
     const formRawValue = this.form.getRawValue();
@@ -1081,22 +1061,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       updateData.schedule_id = value.schedule_id;
     }
 
-    const updateRequest = this.http.patch(
-      this.apiUrl.build('rest/v1/employee_schedules', { id: `eq.${value.id}` }),
-      updateData,
-      {}
-    );
-
     // CORRECCIÓN: Determinar si debemos hacer UPDATE o CREATE
-    // Regla principal: Si hay un employee_schedule en los datos del diálogo, significa que estamos editando
-    // un horario existente. En ese caso, hacer UPDATE a menos que singleDayEdit sea true
-    // (que significa que se está dividiendo un rango multi-día y se generó un nuevo ID)
     const hasEmployeeSchedule = !!this.dialog.data.employee_schedule;
     const hasOriginalSchedule = !!this.originalSchedule;
 
-    // Hacer UPDATE si hay employee_schedule Y:
-    // 1. El ID del formulario coincide con el ID original (edición normal de un horario existente)
-    // 2. O no es singleDayEdit (para asegurar que se actualice en lugar de crear)
     const idMatches =
       hasOriginalSchedule && value.id === this.originalSchedule.id;
     const shouldUpdate =
@@ -1118,6 +1086,44 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         }
       );
     }
+
+    // Si es CREATE y el rango cubre múltiples días, expandir a registros individuales por día
+    const createStartDate = value.start_date ? new Date(value.start_date) : null;
+    const createEndDate = value.end_date ? new Date(value.end_date) : null;
+    const isMultiDayCreate = !shouldUpdate && createStartDate && createEndDate && !isSameDay(createStartDate, createEndDate);
+
+    if (isMultiDayCreate) {
+      this.createDailySchedules(value, companyId);
+      return;
+    }
+
+    // Crear requestData para single-day create
+    const requestData: any = {
+      ...value,
+      start_date: value.start_date
+        ? format(new Date(value.start_date), 'yyyy-MM-dd')
+        : null,
+      end_date: value.end_date
+        ? format(new Date(value.end_date), 'yyyy-MM-dd')
+        : null,
+    };
+    if (companyId && !requestData.company_id) {
+      requestData.company_id = companyId;
+    }
+    if (requestData.approved) {
+      requestData.approved_by = this.store.currentEmployee()?.id || null;
+    }
+
+    const createRequest = this.http.post(
+      this.apiUrl.build('rest/v1/employee_schedules'),
+      requestData
+    );
+
+    const updateRequest = this.http.patch(
+      this.apiUrl.build('rest/v1/employee_schedules', { id: `eq.${value.id}` }),
+      updateData,
+      {}
+    );
 
     iif(() => shouldUpdate, updateRequest, createRequest)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -1259,7 +1265,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                   }`),
               });
             } else {
-              // Creación
+              // Creación (single day)
               const schedule = this.store.schedules
                 .entities()
                 .find((s) => s.id === value.schedule_id);
@@ -1273,10 +1279,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
               const startDate = value.start_date
                 ? format(new Date(value.start_date), 'dd/MM/yyyy')
                 : '';
-              const endDate = value.end_date
-                ? format(new Date(value.end_date), 'dd/MM/yyyy')
-                : '';
-              const isSingleDay = startDate === endDate;
               const createDateForLock = value.start_date ? new Date(value.start_date) : new Date();
               const createPositionForLock = employee?.position?.name || '';
               const isCreateLockedOverride = this.scheduleLockService.isDateLockedForPosition(createDateForLock, createPositionForLock);
@@ -1299,27 +1301,21 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                   start_date: value.start_date,
                   end_date: value.end_date,
                   start_date_formatted: startDate,
-                  end_date_formatted: endDate,
-                  is_single_day: isSingleDay,
+                  end_date_formatted: startDate,
+                  is_single_day: true,
                   approved: value.approved,
                   ...(isCreateLockedOverride ? { locked_override: true } : {}),
                 },
-                comment: (isCreateLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') + (isSingleDay
-                  ? `Horario "${schedule?.name || 'Desconocido'}" creado para ${employee
+                comment: (isCreateLockedOverride ? '[CALENDARIO BLOQUEADO] ' : '') +
+                  `Horario "${schedule?.name || 'Desconocido'}" creado para ${employee
                     ? `${employee.first_name} ${employee.father_name}`
                     : 'empleado'
                   } el día ${startDate}${branch ? ` en sucursal ${branch.name}` : ''
-                  }`
-                  : `Horario "${schedule?.name || 'Desconocido'}" creado para ${employee
-                    ? `${employee.first_name} ${employee.father_name}`
-                    : 'empleado'
-                  } del ${startDate} al ${endDate}${branch ? ` en sucursal ${branch.name}` : ''
-                  }`),
+                  }`,
               });
             }
           } catch (auditError) {
             console.error('❌ Error al registrar auditoría:', auditError);
-            // No interrumpir el flujo principal si falla la auditoría
             this.logger.error(
               '[EmployeeSchedulesFormComponent] Error al registrar auditoría:',
               auditError
@@ -1484,6 +1480,119 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       });
   }
 
+  /**
+   * Crea registros individuales por día cuando el usuario selecciona un rango de fechas.
+   * Esto evita crear un solo registro con start_date != end_date que causa conflictos.
+   */
+  private createDailySchedules(
+    scheduleData: any,
+    companyId: string | null
+  ): void {
+    const startDate = new Date(scheduleData.start_date);
+    const endDate = new Date(scheduleData.end_date);
+
+    const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+    const requests = days.map((day) => {
+      const daySchedule: any = {
+        id: v4(),
+        employee_id: scheduleData.employee_id,
+        schedule_id: scheduleData.schedule_id,
+        branch_id: scheduleData.branch_id,
+        start_date: format(day, 'yyyy-MM-dd'),
+        end_date: format(day, 'yyyy-MM-dd'),
+        approved: scheduleData.approved,
+        ...(scheduleData.approved ? { approved_by: this.store.currentEmployee()?.id || null } : {}),
+      };
+      if (companyId) {
+        daySchedule.company_id = companyId;
+      }
+      return this.http.post(
+        this.apiUrl.build('rest/v1/employee_schedules'),
+        daySchedule
+      );
+    });
+
+    forkJoin(requests)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: async (responses) => {
+          // Registrar auditoría para cada día
+          const currentEmployeeId = this.store.currentEmployee()?.id;
+          if (currentEmployeeId) {
+            const schedule = this.store.schedules
+              .entities()
+              .find((s) => s.id === scheduleData.schedule_id);
+            const employee = this.store.employees
+              .entities()
+              .find((e) => e.id === scheduleData.employee_id);
+            const branch = this.store.branches
+              .entities()
+              .find((b) => b.id === scheduleData.branch_id);
+
+            for (let i = 0; i < responses.length; i++) {
+              const response = responses[i];
+              const responseId = Array.isArray(response)
+                ? (response[0] as any)?.id
+                : (response as any)?.id;
+              const dayDate = format(days[i], 'dd/MM/yyyy');
+              const dayName = format(days[i], 'EEEE', { locale: es });
+
+              await this.auditService.logChange({
+                employeeScheduleId: responseId || v4(),
+                changedBy: currentEmployeeId,
+                action: 'created',
+                oldStatus: false,
+                newStatus: scheduleData.approved,
+                newValue: {
+                  employee_id: scheduleData.employee_id,
+                  employee_name: employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'Desconocido',
+                  schedule_id: scheduleData.schedule_id,
+                  schedule_name: schedule?.name || 'Desconocido',
+                  branch_id: scheduleData.branch_id,
+                  branch_name: branch?.name || 'Desconocido',
+                  start_date: format(days[i], 'yyyy-MM-dd'),
+                  end_date: format(days[i], 'yyyy-MM-dd'),
+                  start_date_formatted: dayDate,
+                  end_date_formatted: dayDate,
+                  day_name: dayName,
+                  is_single_day: true,
+                  approved: scheduleData.approved,
+                },
+                comment: `Horario "${schedule?.name || 'Desconocido'
+                  }" creado para ${employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                  } el ${dayName} ${dayDate}${branch ? ` en sucursal ${branch.name}` : ''
+                  } (rango expandido a días individuales)`,
+              });
+            }
+          }
+
+          this.message.add({
+            severity: 'success',
+            summary: 'Horarios creados',
+            detail: `Se crearon horarios para ${days.length} días individuales.`,
+          });
+          this.dialogRef.close();
+        },
+        error: (error) => {
+          this.logger.error(
+            '[EmployeeSchedulesFormComponent] Error al crear horarios diarios:',
+            error
+          );
+          this.loading.set(false);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error al guardar',
+            detail: 'Ocurrió un error al crear los horarios.',
+          });
+        },
+      });
+  }
+
   private shouldSplitSchedule(newScheduleData: any): boolean {
     // Si ya se detectó en ngOnInit, usar esa detección
     if (this.singleDayEdit) {
@@ -1545,140 +1654,72 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     const newStart = newScheduleData.start_date;
     const newEnd = newScheduleData.end_date;
 
+    // Estrategia: eliminar el rango original y crear registros individuales por día.
+    // El día editado usa los datos nuevos; los demás días conservan los datos originales.
     const requests: any[] = [];
 
-    // Caso 1: El día seleccionado es el primer día del rango
-    if (isSameDay(originalStart, newStart)) {
-      // Actualizar el turno original para que empiece al día siguiente
-      // Mantener todos los demás campos del turno original
-      if (addDays(newStart, 1) <= originalEnd) {
-        const updateData: any = {
-          start_date: format(addDays(newStart, 1), 'yyyy-MM-dd'),
-          end_date: format(originalEnd, 'yyyy-MM-dd'),
-          // Mantener todos los campos originales
-          schedule_id: this.originalSchedule.schedule_id,
-          branch_id: this.originalSchedule.branch_id,
-          approved: this.originalSchedule.approved,
-        };
-        if (companyId) updateData.company_id = companyId;
+    // 1. Eliminar el registro original (rango multi-día)
+    const deleteParams: any = { id: `eq.${this.originalSchedule.id}` };
+    if (companyId) deleteParams.company_id = `eq.${companyId}`;
+    requests.push(
+      this.http.delete(
+        this.apiUrl.build('rest/v1/employee_schedules'),
+        { params: deleteParams }
+      )
+    );
 
+    // 2. Crear registros individuales para cada día del rango original
+    const allDays = eachDayOfInterval({ start: originalStart, end: originalEnd });
+    const finalBranchId =
+      newScheduleData.branch_id || this.originalSchedule.branch_id;
+
+    for (const day of allDays) {
+      const isEditedDay = isSameDay(day, newStart);
+      const dayStr = format(day, 'yyyy-MM-dd');
+
+      if (isEditedDay) {
+        // Día editado: usar datos del formulario
+        const editedRecord: any = {
+          id: v4(),
+          employee_id:
+            newScheduleData.employee_id || this.originalSchedule.employee_id,
+          schedule_id:
+            newScheduleData.schedule_id || this.originalSchedule.schedule_id,
+          branch_id: finalBranchId,
+          start_date: dayStr,
+          end_date: dayStr,
+          approved:
+            newScheduleData.approved !== undefined
+              ? newScheduleData.approved
+              : this.originalSchedule.approved,
+        };
+        if (companyId) editedRecord.company_id = companyId;
         requests.push(
-          this.http.patch(
-            this.apiUrl.build('rest/v1/employee_schedules', {
-              id: `eq.${this.originalSchedule.id}`,
-              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-            }),
-            updateData,
-            {}
+          this.http.post(
+            this.apiUrl.build('rest/v1/employee_schedules'),
+            editedRecord
           )
         );
-      }
-    }
-    // Caso 2: El día seleccionado es el último día del rango
-    else if (isSameDay(originalEnd, newEnd)) {
-      // Actualizar el turno original para que termine el día anterior
-      // Mantener todos los demás campos del turno original
-      if (subDays(newEnd, 1) >= originalStart) {
-        const updateData: any = {
-          start_date: format(originalStart, 'yyyy-MM-dd'),
-          end_date: format(subDays(newEnd, 1), 'yyyy-MM-dd'),
-          // Mantener todos los campos originales
-          schedule_id: this.originalSchedule.schedule_id,
-          branch_id: this.originalSchedule.branch_id,
-          approved: this.originalSchedule.approved,
-        };
-        if (companyId) updateData.company_id = companyId;
-
-        requests.push(
-          this.http.patch(
-            this.apiUrl.build('rest/v1/employee_schedules', {
-              id: `eq.${this.originalSchedule.id}`,
-              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-            }),
-            updateData,
-            {}
-          )
-        );
-      }
-    }
-    // Caso 3: El día seleccionado está en el medio del rango
-    else {
-      // Dividir en dos turnos: uno antes y uno después del día seleccionado
-      // 1. Actualizar el turno original para que termine el día anterior
-      // Mantener todos los demás campos del turno original
-      const updateData1: any = {
-        start_date: format(originalStart, 'yyyy-MM-dd'),
-        end_date: format(subDays(newStart, 1), 'yyyy-MM-dd'),
-        // Mantener todos los campos originales
-        schedule_id: this.originalSchedule.schedule_id,
-        branch_id: this.originalSchedule.branch_id,
-        approved: this.originalSchedule.approved,
-      };
-      if (companyId) updateData1.company_id = companyId;
-
-      requests.push(
-        this.http.patch(
-          this.apiUrl.build('rest/v1/employee_schedules', {
-            id: `eq.${this.originalSchedule.id}`,
-            ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-          }),
-          updateData1,
-          {}
-        )
-      );
-
-      // 2. Crear un nuevo turno para el período después del día seleccionado
-      // Mantener todos los campos del turno original excepto las fechas
-      if (addDays(newEnd, 1) <= originalEnd) {
-        const createData2: any = {
+      } else {
+        // Día sin cambios: conservar datos originales
+        const originalRecord: any = {
           id: v4(),
           employee_id: this.originalSchedule.employee_id,
           schedule_id: this.originalSchedule.schedule_id,
           branch_id: this.originalSchedule.branch_id,
-          start_date: format(addDays(newEnd, 1), 'yyyy-MM-dd'),
-          end_date: format(originalEnd, 'yyyy-MM-dd'),
+          start_date: dayStr,
+          end_date: dayStr,
           approved: this.originalSchedule.approved,
         };
-        if (companyId) createData2.company_id = companyId;
-
+        if (companyId) originalRecord.company_id = companyId;
         requests.push(
           this.http.post(
             this.apiUrl.build('rest/v1/employee_schedules'),
-            createData2
+            originalRecord
           )
         );
       }
     }
-
-    // 3. Crear el nuevo turno para el día seleccionado
-    // IMPORTANTE: Siempre generar un ID nuevo para evitar conflictos con el turno original
-    // Usar branch_id del formulario, o del original si no está disponible
-    const finalBranchId =
-      newScheduleData.branch_id || this.originalSchedule.branch_id;
-    const newScheduleRequest: any = {
-      id: v4(), // Generar nuevo ID para el nuevo turno
-      employee_id:
-        newScheduleData.employee_id || this.originalSchedule.employee_id,
-      schedule_id:
-        newScheduleData.schedule_id || this.originalSchedule.schedule_id,
-      branch_id: finalBranchId,
-      start_date: format(newStart, 'yyyy-MM-dd'),
-      end_date: format(newEnd, 'yyyy-MM-dd'),
-      approved:
-        newScheduleData.approved !== undefined
-          ? newScheduleData.approved
-          : this.originalSchedule.approved,
-    };
-    if (companyId) {
-      newScheduleRequest.company_id = companyId;
-    }
-
-    requests.push(
-      this.http.post(
-        this.apiUrl.build('rest/v1/employee_schedules'),
-        newScheduleRequest
-      )
-    );
 
     // Ejecutar todas las operaciones en paralelo
     forkJoin(requests)
@@ -1712,37 +1753,19 @@ export class EmployeeSchedulesFormComponent implements OnInit {
               .find((b) => b.id === this.originalSchedule.branch_id);
 
             const newStartFormatted = format(newStart, 'dd/MM/yyyy');
-            const newEndFormatted = format(newEnd, 'yyyy-MM-dd');
-            const originalStartFormatted = format(
-              toDate(this.originalSchedule.start_date, {
-                timeZone: 'America/Panama',
-              }),
-              'dd/MM/yyyy'
-            );
-            const originalEndFormatted = format(
-              toDate(this.originalSchedule.end_date, {
-                timeZone: 'America/Panama',
-              }),
-              'dd/MM/yyyy'
-            );
-            const isSingleDay = isSameDay(newStart, newEnd);
-            const dayName = isSingleDay
+            const originalStartFormatted = format(originalStart, 'dd/MM/yyyy');
+            const originalEndFormatted = format(originalEnd, 'dd/MM/yyyy');
+            const isSingleDayEdit = isSameDay(newStart, newEnd);
+            const dayName = isSingleDayEdit
               ? format(newStart, 'EEEE', { locale: es })
               : '';
 
-            // Obtener el ID del nuevo horario creado (último response)
-            const lastResponse = Array.isArray(responses[responses.length - 1])
-              ? responses[responses.length - 1][0]
-              : responses[responses.length - 1];
-            const newScheduleId = lastResponse?.id;
-
-            // Registrar que se dividió el horario original
             await this.auditService.logChange({
               employeeScheduleId: this.originalSchedule.id,
               changedBy: currentEmployeeId,
               action: 'split',
               oldStatus: this.originalSchedule.approved,
-              newStatus: this.originalSchedule.approved, // El estado no cambia
+              newStatus: this.originalSchedule.approved,
               oldValue: {
                 employee_id: this.originalSchedule.employee_id,
                 employee_name: employee
@@ -1776,24 +1799,15 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                 start_date_formatted: newStartFormatted,
                 end_date_formatted: format(newEnd, 'dd/MM/yyyy'),
                 day_name: dayName,
-                is_single_day: isSingleDay,
-                new_schedule_id: newScheduleId,
+                is_single_day: isSingleDayEdit,
+                expanded_to_individual_days: allDays.length,
                 approved:
                   newScheduleData.approved !== undefined
                     ? newScheduleData.approved
                     : this.originalSchedule.approved,
               },
-              comment: isSingleDay
-                ? `Horario "${schedule?.name || 'Desconocido'
-                }" dividido: día específico ${dayName} ${newStartFormatted} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${employee
-                  ? `${employee.first_name} ${employee.father_name}`
-                  : 'empleado'
-                }${branch ? ` en sucursal ${branch.name}` : ''}`
-                : `Horario "${schedule?.name || 'Desconocido'
-                }" dividido: rango ${newStartFormatted} - ${format(
-                  newEnd,
-                  'dd/MM/yyyy'
-                )} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${employee
+              comment: `Horario "${schedule?.name || 'Desconocido'
+                }" dividido: rango ${originalStartFormatted} - ${originalEndFormatted} expandido a ${allDays.length} registros individuales, día ${dayName} ${newStartFormatted} modificado para ${employee
                   ? `${employee.first_name} ${employee.father_name}`
                   : 'empleado'
                 }${branch ? ` en sucursal ${branch.name}` : ''}`,
@@ -1803,7 +1817,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.message.add({
             severity: 'success',
             summary: 'Cambios guardados',
-            detail: 'El turno se dividió y se guardó correctamente.',
+            detail: `El turno se dividió en ${allDays.length} registros individuales y se guardó correctamente.`,
           });
           this.dialogRef.close();
         },

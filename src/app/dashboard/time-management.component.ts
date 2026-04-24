@@ -154,6 +154,7 @@ export class TimeManagementComponent {
     schedules: this.permissionsService.canAccessSubModule('time_management', 'schedules'),
     vet_schedule: this.permissionsService.canAccessSubModule('time_management', 'vet_schedule'),
     salon_schedule: this.permissionsService.canAccessSubModule('time_management', 'salon_schedule'),
+    salon_top: this.permissionsService.canAccessSubModule('time_management', 'salon_top'),
     personnel_movements: this.permissionsService.canAccessSubModule('time_management', 'personnel_movements'),
   }));
 

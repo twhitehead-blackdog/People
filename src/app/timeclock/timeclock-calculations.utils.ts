@@ -213,7 +213,7 @@ export function calculateStreak(
     if (checkedDates.has(logDateStr)) continue;
     checkedDates.add(logDateStr);
 
-    const schedule = schedules.find((s) => {
+    const matchingSchedules = schedules.filter((s) => {
       const startDate =
         s.start_date instanceof Date ? s.start_date : new Date(s.start_date);
       const endDate =
@@ -226,6 +226,18 @@ export function calculateStreak(
         !s.schedule?.day_off
       );
     });
+    // Priorizar: individual > rango, aprobado > no aprobado, más reciente
+    const schedule = matchingSchedules.length <= 1
+      ? matchingSchedules[0]
+      : matchingSchedules.sort((a: any, b: any) => {
+          const aS = a.start_date === a.end_date ? 1 : 0;
+          const bS = b.start_date === b.end_date ? 1 : 0;
+          if (aS !== bS) return bS - aS;
+          const aA = a.approved ? 1 : 0;
+          const bA = b.approved ? 1 : 0;
+          if (aA !== bA) return bA - aA;
+          return (b.created_at || '') > (a.created_at || '') ? 1 : -1;
+        })[0];
 
     if (!schedule || !schedule.schedule?.entry_time) continue;
 

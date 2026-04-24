@@ -8,6 +8,76 @@ const GENERAL_SUCCESS_SOUNDS = ['/sounds/meow.mp3', '/sounds/bark.mp3'];
 
 const _VIP_TRACK = 'https://cdn.pixabay.com/download/audio/2024/11/26/audio_2133d71af7.mp3?filename=benkirb-shine-11-268907.mp3';
 
+/** Corridos guitar strum for confirmation */
+export function playCorridosConfirmSound(): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    // Guitar strum: rapid arpeggiated chord (Am)
+    [220, 261.63, 329.63, 440, 523.25, 659.25].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = freq;
+      const t = now + i * 0.03;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.14, t + 0.01);
+      g.gain.setValueAtTime(0.12, t + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = freq * 1.5; bp.Q.value = 1.5;
+      o.connect(bp); bp.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.65);
+    });
+  } catch { /* noop */ }
+}
+
+/** Star Wars lightsaber ignite sound for confirmation */
+export function playStarWarsConfirmSound(): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    // Lightsaber ignite: rising hum with buzz
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(220, now + 0.15);
+    osc.frequency.setValueAtTime(220, now + 0.15);
+    osc.frequency.exponentialRampToValueAtTime(185, now + 0.6);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.15, now + 0.08);
+    g.gain.setValueAtTime(0.12, now + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 800; lp.Q.value = 2;
+    osc.connect(lp); lp.connect(g); g.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.75);
+    // High harmonic buzz
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(440, now + 0.1);
+    osc2.frequency.exponentialRampToValueAtTime(370, now + 0.6);
+    g2.gain.setValueAtTime(0, now + 0.1);
+    g2.gain.linearRampToValueAtTime(0.04, now + 0.18);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.start(now + 0.1); osc2.stop(now + 0.7);
+  } catch { /* noop */ }
+}
+
+/** "I'm Batman" audio clip for Batman confirmation */
+export function playBatmanConfirmSound(): void {
+  try {
+    const a = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_3fbefd4588.mp3?filename=freesound_community-im-batman-2-87380.mp3');
+    a.volume = 0.5;
+    a.play().catch(() => {});
+  } catch { /* noop */ }
+}
+
 export function playMatrixConfirmSound(): void {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -30,6 +100,53 @@ export function playMatrixConfirmSound(): void {
       o.start(now + i * 0.07);
       o.stop(now + i * 0.07 + 0.08);
     });
+  } catch { /* noop */ }
+}
+
+/** Watch Dogs ctOS hacker sound for confirmation */
+export function playWatchDogsConfirmSound(): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    // ctOS access granted: rising digital ping + data burst
+    // Phase 1: short low beep (system wake)
+    const wake = ctx.createOscillator();
+    const wakeG = ctx.createGain();
+    wake.type = 'square';
+    wake.frequency.setValueAtTime(220, now);
+    wake.frequency.linearRampToValueAtTime(440, now + 0.05);
+    wakeG.gain.setValueAtTime(0, now);
+    wakeG.gain.linearRampToValueAtTime(0.1, now + 0.01);
+    wakeG.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    wake.connect(wakeG); wakeG.connect(ctx.destination);
+    wake.start(now); wake.stop(now + 0.1);
+    // Phase 2: rapid data burst (ascending glitch)
+    [660, 880, 1100, 1320].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      const t = now + 0.12 + i * 0.045;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.09, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = freq * 0.8;
+      o.connect(hp); hp.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.05);
+    });
+    // Phase 3: clean confirmation tone (access granted)
+    const ping = ctx.createOscillator();
+    const pingG = ctx.createGain();
+    ping.type = 'sine';
+    ping.frequency.setValueAtTime(1047, now + 0.35); // C6
+    ping.frequency.exponentialRampToValueAtTime(880, now + 0.7);
+    pingG.gain.setValueAtTime(0, now + 0.35);
+    pingG.gain.linearRampToValueAtTime(0.18, now + 0.37);
+    pingG.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+    ping.connect(pingG); pingG.connect(ctx.destination);
+    ping.start(now + 0.35); ping.stop(now + 0.8);
   } catch { /* noop */ }
 }
 

@@ -1,10 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
-  addDays,
+  eachDayOfInterval,
   format,
   isSameDay,
-  subDays,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
@@ -416,109 +415,35 @@ export class TimetableScheduleActionsService {
     });
     const requests: any[] = [];
 
-    if (isSameDay(startDateObj, dateToDelete)) {
-      if (addDays(dateToDelete, 1) <= endDateObj) {
-        const updateData: any = {
-          start_date: format(addDays(dateToDelete, 1), 'yyyy-MM-dd'),
-          end_date: format(endDateObj, 'yyyy-MM-dd'),
-          schedule_id: schedule.schedule_id,
-          branch_id: schedule.branch_id,
-          approved: schedule.approved,
-        };
-        if (companyId) updateData.company_id = companyId;
-        requests.push(
-          this.http.patch(
-            this.apiUrl.build('rest/v1/employee_schedules'),
-            updateData,
-            {
-              params: {
-                id: `eq.${schedule.id}`,
-                ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-              },
-            }
-          )
-        );
-      } else {
-        const params: any = { id: `eq.${schedule.id}` };
-        if (companyId) params.company_id = `eq.${companyId}`;
-        requests.push(
-          this.http.delete(this.apiUrl.build('rest/v1/employee_schedules'), {
-            params,
-          })
-        );
-      }
-    } else if (isSameDay(endDateObj, dateToDelete)) {
-      if (subDays(dateToDelete, 1) >= startDateObj) {
-        const updateData: any = {
-          start_date: format(startDateObj, 'yyyy-MM-dd'),
-          end_date: format(subDays(dateToDelete, 1), 'yyyy-MM-dd'),
-          schedule_id: schedule.schedule_id,
-          branch_id: schedule.branch_id,
-          approved: schedule.approved,
-        };
-        if (companyId) updateData.company_id = companyId;
-        requests.push(
-          this.http.patch(
-            this.apiUrl.build('rest/v1/employee_schedules'),
-            updateData,
-            {
-              params: {
-                id: `eq.${schedule.id}`,
-                ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-              },
-            }
-          )
-        );
-      } else {
-        const params: any = { id: `eq.${schedule.id}` };
-        if (companyId) params.company_id = `eq.${companyId}`;
-        requests.push(
-          this.http.delete(this.apiUrl.build('rest/v1/employee_schedules'), {
-            params,
-          })
-        );
-      }
-    } else {
-      // Day is in the middle - split into two ranges
-      const updateData1: any = {
-        start_date: format(startDateObj, 'yyyy-MM-dd'),
-        end_date: format(subDays(dateToDelete, 1), 'yyyy-MM-dd'),
+    // Eliminar el rango original y crear registros individuales por cada día restante
+    const deleteParams: any = { id: `eq.${schedule.id}` };
+    if (companyId) deleteParams.company_id = `eq.${companyId}`;
+    requests.push(
+      this.http.delete(this.apiUrl.build('rest/v1/employee_schedules'), {
+        params: deleteParams,
+      })
+    );
+
+    const allDays = eachDayOfInterval({ start: startDateObj, end: endDateObj });
+    for (const day of allDays) {
+      if (isSameDay(day, dateToDelete)) continue;
+      const dayStr = format(day, 'yyyy-MM-dd');
+      const record: any = {
+        id: v4(),
+        employee_id: schedule.employee_id,
         schedule_id: schedule.schedule_id,
         branch_id: schedule.branch_id,
+        start_date: dayStr,
+        end_date: dayStr,
         approved: schedule.approved,
       };
-      if (companyId) updateData1.company_id = companyId;
+      if (companyId) record.company_id = companyId;
       requests.push(
-        this.http.patch(
+        this.http.post(
           this.apiUrl.build('rest/v1/employee_schedules'),
-          updateData1,
-          {
-            params: {
-              id: `eq.${schedule.id}`,
-              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-            },
-          }
+          record
         )
       );
-
-      if (addDays(dateToDelete, 1) <= endDateObj) {
-        const createData2: any = {
-          id: v4(),
-          employee_id: schedule.employee_id,
-          schedule_id: schedule.schedule_id,
-          branch_id: schedule.branch_id,
-          start_date: format(addDays(dateToDelete, 1), 'yyyy-MM-dd'),
-          end_date: format(endDateObj, 'yyyy-MM-dd'),
-          approved: schedule.approved,
-        };
-        if (companyId) createData2.company_id = companyId;
-        requests.push(
-          this.http.post(
-            this.apiUrl.build('rest/v1/employee_schedules'),
-            createData2
-          )
-        );
-      }
     }
 
     forkJoin(requests)

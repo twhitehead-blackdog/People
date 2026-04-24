@@ -783,7 +783,7 @@ export class PayrollDecimoComponent {
             bolditalics: 'Roboto-Italic.ttf',
           },
         },
-        pdfFonts.vfs
+        pdfFonts.default
       )
       .download(`Decimo_Tercer_Mes_${year}.pdf`);
   }

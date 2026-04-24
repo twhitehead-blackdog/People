@@ -7,8 +7,10 @@ import {
   Output,
   Signal,
   WritableSignal,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AutoComplete, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { InputNumber } from 'primeng/inputnumber';
@@ -17,6 +19,7 @@ import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { Employee } from '../../../models';
+import { matchesEmployeeSearch } from '../utils/employee-search.utils';
 
 @Component({
   selector: 'pt-timelogs-filters',
@@ -24,6 +27,7 @@ import { Employee } from '../../../models';
   imports: [
     CommonModule,
     FormsModule,
+    AutoComplete,
     Button,
     InputText,
     DatePicker,
@@ -35,15 +39,24 @@ import { Employee } from '../../../models';
   template: `
     <div class="flex flex-col md:flex-row gap-2 md:gap-3 items-center mb-2 md:mb-4">
       <div class="flex-1 w-full md:w-auto flex gap-2">
-        <input
-          pInputText
-          type="text"
-          [ngModel]="employeeSearchInput()"
-          (ngModelChange)="employeeSearchInput.set($event)"
-          (keyup.enter)="handleSearch()"
-          placeholder="Buscar empleado por nombre..."
-          class="flex-1 text-xs md:text-sm"
-        />
+        <div class="flex-1">
+          <p-autoComplete
+            [ngModel]="employeeSearchInput()"
+            (ngModelChange)="employeeSearchInput.set($event)"
+            [suggestions]="employeeSuggestions()"
+            (completeMethod)="onEmployeeComplete($event)"
+            (onSelect)="onSuggestionSelected($event)"
+            (keyup.enter)="handleSearch()"
+            [minLength]="1"
+            [delay]="150"
+            [forceSelection]="false"
+            placeholder="Buscar empleado por nombre..."
+            styleClass="w-full"
+            [inputStyleClass]="'w-full text-xs md:text-sm'"
+            appendTo="body"
+          >
+          </p-autoComplete>
+        </div>
         <p-button
           icon="pi pi-search"
           (click)="handleSearch()"
@@ -296,11 +309,33 @@ export class TimelogsFiltersComponent {
   @Input() public activeFiltersCount!: Signal<number>;
   @Output() public searchRequested = new EventEmitter<void>();
 
+  public employeeSuggestions = signal<string[]>([]);
+
   public handleSearch(): void {
     this.searchRequested.emit();
   }
 
   public toggleFilters(): void {
     this.filtersExpanded.set(!this.filtersExpanded());
+  }
+
+  public onEmployeeComplete(event: AutoCompleteCompleteEvent): void {
+    const term = (event.query || '').trim();
+    if (!term) {
+      this.employeeSuggestions.set([]);
+      return;
+    }
+    const all = this.activeEmployeesList();
+    this.employeeSuggestions.set(
+      all
+        .filter((emp) => matchesEmployeeSearch(emp, term))
+        .slice(0, 10)
+        .map((emp) => `${emp.first_name || ''} ${emp.father_name || ''}`.trim())
+    );
+  }
+
+  public onSuggestionSelected(event: { value: string }): void {
+    this.employeeSearchInput.set(event.value);
+    this.searchRequested.emit();
   }
 }

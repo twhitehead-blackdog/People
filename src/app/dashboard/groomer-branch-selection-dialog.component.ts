@@ -1,29 +1,50 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, input, output, OnChanges } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { differenceInCalendarDays } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
 import { SelectButton } from 'primeng/selectbutton';
+import { SelectModule } from 'primeng/select';
 
-import { Employee } from '../models';
+import { Employee, GroomerBranchAssignment } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 
 export interface GroomerBranchSelectionResult {
-  branchId: string;
   employeeId: string;
   startDate: Date;
   endDate: Date;
+  branchId?: string;
+  scheduleId?: string;
 }
+
+// Constants mirrored from employee-schedules-form
+const HIDDEN_FOR_ALL = ['1f4161d1-4935-4fab-9a53-b6eee2a3efd6'];
+const HIDDEN_FOR_STORE_MANAGERS = ['cac0d93b-5277-4d42-978d-d4c5eda52f80'];
+const COMPENSATORY_SCHEDULE_ID = 'f2d92995-96a0-414f-b64a-9823db776745';
+const FEMALE_ONLY_KEYWORDS = ['lactancia', 'maternidad'];
+const ALLOWED_STORE_MANAGER_SHIFTS = [
+  'CM', 'Incapacidad', '7:00 AM - 4:00 PM', '8:00 AM - 5:00 PM',
+  'Lactancia 1', 'Lactancia 2', '10:30 AM - 7:00 PM', 'Dia Libre',
+  '11:30 AM - 8:00 PM', '12:30 PM - 9:00 PM', 'A. Injus',
+  'Licencia maternidad', 'Permiso', 'Vacaciones', 'Inventario 2', 'Entrenamiento',
+];
 
 @Component({
   selector: 'pt-groomer-branch-selection-dialog',
   standalone: true,
   imports: [
     DialogModule,
-    DropdownModule,
+    SelectModule,
     Button,
     FormsModule,
     DatePipe,
@@ -32,119 +53,204 @@ export interface GroomerBranchSelectionResult {
   ],
   template: `
     <p-dialog
-      header="Seleccionar Sucursal"
+      header="Asignar Peluquero"
       [modal]="true"
       [closable]="true"
       [dismissableMask]="true"
       [visible]="visible()"
       (visibleChange)="visibleChange.emit($event)"
-      [style]="{ width: '450px' }"
+      [style]="{ width: '95vw', maxWidth: '540px' }"
     >
-      <div class="p-4">
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">
-            Peluquero: {{ employee()?.first_name }}
-            {{ employee()?.father_name }}
-          </label>
+      <div class="flex flex-col md:grid grid-cols-2 gap-4">
+
+        <!-- Peluquero -->
+        <div class="input-container col-span-2">
+          <label>Peluquero</label>
+          @if (employee()) {
+            <div class="flex items-center gap-2 px-3 py-2 rounded border border-neutral-600 bg-neutral-800/60">
+              <div class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                [style.background-color]="getEmployeeColor(employee()!.id)"></div>
+              <span class="font-medium">{{ employee()!.first_name }} {{ employee()!.father_name }}</span>
+              <span class="text-xs text-slate-500 ml-1">— {{ employee()!.position?.name }}</span>
+            </div>
+          } @else {
+            <p-select
+              [options]="filteredEmployees()"
+              [ngModel]="selectedEmployeeId()"
+              (ngModelChange)="selectedEmployeeId.set($event)"
+              placeholder="Buscar peluquero..."
+              [filter]="true"
+              filterBy="first_name,father_name"
+              [showClear]="true"
+              optionValue="id"
+              appendTo="body"
+            >
+              <ng-template let-emp #item>
+                <div class="flex items-center gap-2 py-0.5">
+                  <div class="w-2 h-2 rounded-full flex-shrink-0"
+                    [style.background-color]="getEmployeeColor(emp.id)"></div>
+                  <div class="flex flex-col leading-tight">
+                    <span class="text-sm font-medium">{{ emp.first_name }} {{ emp.father_name }}</span>
+                    <span class="text-xs text-slate-500">{{ emp.position?.name }}</span>
+                  </div>
+                  @if (isNonWorking(emp.id)) {
+                    <span class="ml-auto text-xs text-amber-400 italic">{{ getNonWorkingLabel(emp.id) }}</span>
+                  }
+                </div>
+              </ng-template>
+              <ng-template let-emp #selectedItem>
+                @if (emp) {
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full flex-shrink-0"
+                      [style.background-color]="getEmployeeColor(emp.id)"></div>
+                    <span>{{ emp.first_name }} {{ emp.father_name }}</span>
+                  </div>
+                }
+              </ng-template>
+            </p-select>
+          }
+          @if (selectedEmployeeNonWorking()) {
+            <small class="flex items-center gap-1 text-amber-400">
+              <i class="pi pi-exclamation-triangle text-xs"></i>
+              {{ selectedEmployeeNonWorking() }} — no labora en la fecha seleccionada.
+            </small>
+          }
         </div>
 
-        <!-- Tipo de selección de fecha -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2"
-            >Tipo de asignación</label
-          >
+        <!-- Tipo de asignación -->
+        <div class="input-container col-span-2">
+          <label>Tipo de asignación</label>
           <p-selectbutton
             [options]="dateTypeOptions"
-            [(ngModel)]="dateType"
+            [ngModel]="dateType()"
+            (ngModelChange)="dateType.set($event)"
             optionLabel="label"
             optionValue="value"
             styleClass="w-full"
           />
         </div>
 
-        <!-- Fecha única o rango -->
-        <div class="mb-4">
-          @if (dateType === 'single') {
-          <label class="block text-sm font-medium mb-2">Fecha</label>
-          <p-datepicker
-            [(ngModel)]="startDate"
-            dateFormat="dd/mm/yy"
-            [showIcon]="true"
-            [minDate]="minDate"
-            styleClass="w-full"
-            appendTo="body"
-          />
-          } @else {
+        <!-- Fecha única -->
+        @if (dateType() === 'single') {
+          <div class="input-container col-span-2">
+            <label>Fecha</label>
+            <p-datepicker
+              [ngModel]="startDate()"
+              (ngModelChange)="startDate.set($event)"
+              dateFormat="dd/mm/yy"
+              [showIcon]="true"
+              [minDate]="minDate"
+              appendTo="body"
+            />
+          </div>
+        } @else {
+          <!-- Rango de fechas -->
+          <div class="input-container">
+            <label>Fecha inicio</label>
+            <p-datepicker
+              [ngModel]="startDate()"
+              (ngModelChange)="startDate.set($event)"
+              dateFormat="dd/mm/yy"
+              [showIcon]="true"
+              [minDate]="minDate"
+              appendTo="body"
+            />
+          </div>
+          <div class="input-container">
+            <label>Fecha fin</label>
+            <p-datepicker
+              [ngModel]="endDate()"
+              (ngModelChange)="endDate.set($event)"
+              dateFormat="dd/mm/yy"
+              [showIcon]="true"
+              [minDate]="startDate() || minDate"
+              appendTo="body"
+            />
+          </div>
+          @if (dayCount() > 0) {
+            <small class="col-span-2 text-slate-500 flex items-center gap-1">
+              <i class="pi pi-info-circle"></i>
+              Se asignarán {{ dayCount() }} día(s)
+            </small>
+          }
+        }
+
+        <!-- Sucursal | Horario (mitad cada uno) -->
+        <div class="col-span-2">
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium mb-2">Fecha inicio</label>
-              <p-datepicker
-                [(ngModel)]="startDate"
-                dateFormat="dd/mm/yy"
-                [showIcon]="true"
-                [minDate]="minDate"
-                styleClass="w-full"
-                appendTo="body"
-              />
+            <!-- Sucursal -->
+            <div class="input-container">
+              <label>Sucursal</label>
+              @if (branchIsLocked()) {
+                <div class="px-3 py-2 rounded border border-neutral-600 bg-neutral-800/60">
+                  <span class="font-medium">{{ lockedBranchName() }}</span>
+                </div>
+              } @else {
+                <p-select
+                  [options]="branches()"
+                  optionLabel="name"
+                  optionValue="id"
+                  [ngModel]="selectedBranchId()"
+                  (ngModelChange)="onBranchChange($event)"
+                  placeholder="Sucursal..."
+                  [showClear]="true"
+                  appendTo="body"
+                  [virtualScroll]="true"
+                  [virtualScrollItemSize]="35"
+                  [disabled]="scheduleDisabled()"
+                />
+              }
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-2">Fecha fin</label>
-              <p-datepicker
-                [(ngModel)]="endDate"
-                dateFormat="dd/mm/yy"
-                [showIcon]="true"
-                [minDate]="startDate || minDate"
-                styleClass="w-full"
+
+            <!-- Horario -->
+            <div class="input-container">
+              <label>Horario</label>
+              <p-select
+                [options]="availableSchedules()"
+                optionLabel="name"
+                optionValue="id"
+                [ngModel]="selectedScheduleId()"
+                (ngModelChange)="onScheduleChange($event)"
+                placeholder="Horario..."
+                [showClear]="true"
                 appendTo="body"
+                [filter]="true"
+                filterBy="name"
+                [virtualScroll]="true"
+                [virtualScrollItemSize]="35"
+                [disabled]="branchDisabled()"
               />
             </div>
           </div>
-          @if (dayCount() > 0) {
-          <p class="text-xs text-gray-400 mt-2">
-            <i class="pi pi-info-circle mr-1"></i>
-            Se asignarán {{ dayCount() }} día(s)
-          </p>
-          } }
+          @if (selectedScheduleId() && !selectedBranchId()) {
+            <small class="text-slate-400 text-xs mt-1 flex items-center gap-1">
+              <i class="pi pi-info-circle text-xs"></i>
+              Se creará un horario especial (sin sucursal)
+            </small>
+          }
         </div>
 
-        <div class="mb-4">
-          <label for="branch-select" class="block text-sm font-medium mb-2">
-            Sucursal
-          </label>
-          <p-dropdown
-            id="branch-select"
-            [options]="branches()"
-            optionLabel="name"
-            optionValue="id"
-            [(ngModel)]="selectedBranchId"
-            placeholder="Seleccione una sucursal"
-            class="w-full"
-            [showClear]="true"
-            appendTo="body"
-            [panelStyle]="{ 'max-height': '200px' }"
-            [virtualScroll]="true"
-            [virtualScrollItemSize]="35"
-          />
-        </div>
-
-        <div class="flex justify-end gap-2">
+        <!-- Botones -->
+        <div class="dialog-actions col-span-2">
           <p-button
             label="Cancelar"
             severity="secondary"
+            rounded
             (onClick)="cancelSelection()"
           />
           <p-button
             label="Asignar"
-            severity="success"
+            rounded
             (onClick)="confirmSelection()"
             [disabled]="!canConfirm()"
           />
         </div>
+
       </div>
     </p-dialog>
   `,
 })
-export class GroomerBranchSelectionDialogComponent implements OnChanges {
+export class GroomerBranchSelectionDialogComponent {
   private store = inject(DashboardStore);
 
   // Inputs
@@ -153,118 +259,225 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
   date = input<Date | undefined>();
   currentBranchId = input<string | undefined>();
   branchId = input<string | undefined>();
-  availableEmployees = input<Employee[]>([]);
+  allGroomerEmployees = input<Employee[]>([]);
   nonWorkingMap = input<Record<string, string>>({});
-  assignedEmployeeIdsForDate = input<string[]>([]);
+  existingAssignments = input<GroomerBranchAssignment[]>([]);
 
   // Outputs
   visibleChange = output<boolean>();
   confirm = output<GroomerBranchSelectionResult>();
   cancel = output<void>();
 
-  // State
-  selectedBranchId: string | null = null;
-  selectedEmployeeId: string | null = null;
-  dateType: 'single' | 'range' = 'single';
-  startDate: Date | null = null;
-  endDate: Date | null = null;
-  minDate: Date | undefined = undefined;
+  // Internal state
+  selectedEmployeeId = signal<string | null>(null);
+  selectedBranchId = signal<string | null>(null);
+  selectedScheduleId = signal<string | null>(null);
+  dateType = signal<'single' | 'range'>('single');
+  startDate = signal<Date | null>(null);
+  endDate = signal<Date | null>(null);
 
-  // Persistence State
-  private lastEmployeeId: string | null = null;
-  private lastBranchId: string | null = null;
-  private wasVisible = false;
+  minDate: Date | undefined = undefined;
 
   dateTypeOptions = [
     { label: 'Fecha única', value: 'single' },
     { label: 'Rango de fechas', value: 'range' },
   ];
 
-  // Computed
-  branches = () =>
+  private readonly empColors = [
+    '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B',
+    '#EF4444', '#06B6D4', '#EC4899', '#84CC16',
+  ];
+
+  // Computed: available branches
+  branches = computed(() =>
     this.store.branches.entities().filter(
       (branch) =>
         branch.is_active &&
         branch.name !== 'Bodega Dos Caminos' &&
-        branch.id !== '7862b9be-890d-4432-8a2f-9329a15a2853' // Oficina Central
-    );
+        branch.id !== '7862b9be-890d-4432-8a2f-9329a15a2853'
+    )
+  );
 
-  dayCount = computed(() => {
-    if (!this.startDate || !this.endDate) return 0;
-    return Math.abs(differenceInCalendarDays(this.endDate, this.startDate)) + 1;
+  // Computed: available schedules (same filtering as employee-schedules-form)
+  availableSchedules = computed(() => {
+    const all = (this.store.schedules.entities() ?? []).filter(
+      (s: any) => !HIDDEN_FOR_ALL.includes(s?.id)
+    );
+    const emp = this.employee();
+    const isFemale = emp?.gender === 'F';
+    const isAdmin = this.store.isAdmin();
+    const isStoreManager = this.store.isScheduleAdmin() && !isAdmin;
+
+    const filterGender = (schedules: any[]) =>
+      isFemale
+        ? schedules
+        : schedules.filter(
+            (s: any) =>
+              !FEMALE_ONLY_KEYWORDS.some((kw) =>
+                String(s?.name ?? '').toLowerCase().includes(kw)
+              )
+          );
+
+    if (isAdmin) return filterGender(all);
+
+    if (isStoreManager) {
+      return filterGender(
+        all.filter(
+          (s: any) =>
+            !HIDDEN_FOR_STORE_MANAGERS.includes(s?.id) &&
+            ALLOWED_STORE_MANAGER_SHIFTS.some(
+              (a) => String(s?.name ?? '').toUpperCase() === a.toUpperCase()
+            )
+        )
+      );
+    }
+
+    return filterGender(
+      all.filter(
+        (s: any) =>
+          s?.id !== COMPENSATORY_SCHEDULE_ID &&
+          !String(s?.name ?? '').toLowerCase().includes('compensatorio')
+      )
+    );
   });
 
-  canConfirm(): boolean {
-    if (!this.selectedEmployeeId) return false;
-    if (!this.selectedBranchId) return false;
-    if (!this.startDate) return false;
-    if (this.dateType === 'range') {
-      if (!this.endDate) return false;
-      if (this.startDate > this.endDate) return false;
+  // Mutual exclusion
+  branchDisabled = computed(() => !!this.selectedScheduleId());
+  scheduleDisabled = computed(() => !!this.selectedBranchId() || this.branchIsLocked());
+
+  // Computed: employees filtered by already-assigned on selected date
+  filteredEmployees = computed(() => {
+    const dateKey = this.startDate()
+      ? format(this.startDate()!, 'yyyy-MM-dd')
+      : null;
+    const allEmployees = this.allGroomerEmployees();
+    if (!dateKey) return allEmployees;
+
+    const assignedIds = new Set(
+      this.existingAssignments()
+        .filter((a) => a.date.toString().slice(0, 10) === dateKey)
+        .map((a) => a.employee_id)
+    );
+
+    const editingId = this.employee()?.id;
+    return allEmployees.filter(
+      (e) => !assignedIds.has(e.id) || e.id === editingId
+    );
+  });
+
+  branchIsLocked = computed(() => !!this.branchId());
+
+  lockedBranchName = computed(() => {
+    const id = this.branchId();
+    if (!id) return '';
+    return this.store.branches.entities().find((b) => b.id === id)?.name ?? '';
+  });
+
+  dayCount = computed(() => {
+    const s = this.startDate();
+    const e = this.endDate();
+    if (!s || !e) return 0;
+    return Math.abs(differenceInCalendarDays(e, s)) + 1;
+  });
+
+  selectedEmployeeNonWorking = computed(() => {
+    const empId = this.employee()?.id ?? this.selectedEmployeeId();
+    if (!empId) return null;
+    const dateKey = this.startDate()
+      ? format(this.startDate()!, 'yyyy-MM-dd')
+      : null;
+    if (!dateKey) return null;
+    const key = `${empId}|${dateKey}`;
+    return this.nonWorkingMap()[key] ?? null;
+  });
+
+  canConfirm = computed(() => {
+    const empId = this.employee()?.id ?? this.selectedEmployeeId();
+    const hasBranch = !!(this.branchId() ?? this.selectedBranchId());
+    const hasSchedule = !!this.selectedScheduleId();
+    if (!empId || (!hasBranch && !hasSchedule) || !this.startDate()) return false;
+    if (this.dateType() === 'range') {
+      if (!this.endDate()) return false;
+      if (this.startDate()! > this.endDate()!) return false;
     }
     return true;
-  }
+  });
 
-  // Effect-like logic via ngOnChanges to handle "On Open"
-  ngOnChanges(): void {
-    if (this.visible() && !this.wasVisible) {
-      // Dialog just opened
-      this.initDialogState();
-    }
-    this.wasVisible = this.visible();
+  constructor() {
+    effect(() => {
+      if (this.visible()) {
+        this.initDialogState();
+      }
+    });
   }
 
   private initDialogState(): void {
-    // 1. Initialize Dates
-    if (this.date()) {
-      this.startDate = new Date(this.date()!);
-      this.endDate = null;
-    } else {
-      this.startDate = new Date();
-      this.endDate = new Date();
-    }
+    this.startDate.set(this.date() ? new Date(this.date()!) : new Date());
+    this.endDate.set(null);
+    this.dateType.set('single');
+    this.selectedEmployeeId.set(null);
+    this.selectedScheduleId.set(null);
 
-    // 2. Initialize Branch Selection
-    const empId = this.employee()?.id;
+    const lockBranch = this.branchId();
     const editBranch = this.currentBranchId();
+    this.selectedBranchId.set(editBranch ?? lockBranch ?? null);
+  }
 
-    if (editBranch) {
-      // Editing existing: always use that
-      this.selectedBranchId = editBranch;
-    } else {
-      // Adding new: check memory
-      if (empId && empId === this.lastEmployeeId && this.lastBranchId) {
-        this.selectedBranchId = this.lastBranchId;
-      } else {
-        this.selectedBranchId = null; // Reset if different employee or no memory
-      }
-    }
+  onBranchChange(value: string | null): void {
+    this.selectedBranchId.set(value);
+    if (value) this.selectedScheduleId.set(null);
+  }
 
-    // Default to single
-    this.dateType = 'single';
+  onScheduleChange(value: string | null): void {
+    this.selectedScheduleId.set(value);
+    if (value) this.selectedBranchId.set(null);
+  }
+
+  getEmployeeColor(employeeId: string): string {
+    const hash = employeeId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return this.empColors[hash % this.empColors.length];
+  }
+
+  isNonWorking(employeeId: string): boolean {
+    const dateKey = this.startDate()
+      ? format(this.startDate()!, 'yyyy-MM-dd')
+      : null;
+    if (!dateKey) return false;
+    return !!this.nonWorkingMap()[`${employeeId}|${dateKey}`];
+  }
+
+  getNonWorkingLabel(employeeId: string): string {
+    const dateKey = this.startDate()
+      ? format(this.startDate()!, 'yyyy-MM-dd')
+      : null;
+    if (!dateKey) return '';
+    return this.nonWorkingMap()[`${employeeId}|${dateKey}`] ?? '';
   }
 
   confirmSelection(): void {
-    if (this.selectedEmployeeId && this.startDate) {
-      const result: GroomerBranchSelectionResult = {
-        branchId: this.branchId() || this.selectedBranchId || '',
-        employeeId: this.selectedEmployeeId,
-        startDate: this.startDate,
-        endDate:
-          this.dateType === 'range' && this.endDate
-            ? this.endDate
-            : this.startDate,
-      };
+    if (!this.canConfirm()) return;
 
-      // Save to memory
-      if (this.employee()?.id) {
-        this.lastEmployeeId = this.employee()!.id;
-        this.lastBranchId = this.selectedBranchId;
-      }
+    const empId = this.employee()?.id ?? this.selectedEmployeeId()!;
+    const startDate = this.startDate()!;
+    const endDate =
+      this.dateType() === 'range' && this.endDate()
+        ? this.endDate()!
+        : startDate;
 
-      this.confirm.emit(result);
-      this.closeDialog();
+    const result: GroomerBranchSelectionResult = {
+      employeeId: empId,
+      startDate,
+      endDate,
+    };
+
+    if (this.selectedScheduleId()) {
+      result.scheduleId = this.selectedScheduleId()!;
+    } else {
+      result.branchId = this.branchId() ?? this.selectedBranchId()!;
     }
+
+    this.confirm.emit(result);
+    this.closeDialog();
   }
 
   cancelSelection(): void {
@@ -273,11 +486,12 @@ export class GroomerBranchSelectionDialogComponent implements OnChanges {
   }
 
   private closeDialog(): void {
-    this.selectedBranchId = null;
-    this.selectedEmployeeId = null;
-    this.startDate = null;
-    this.endDate = null;
-    this.dateType = 'single';
+    this.selectedEmployeeId.set(null);
+    this.selectedBranchId.set(null);
+    this.selectedScheduleId.set(null);
+    this.startDate.set(null);
+    this.endDate.set(null);
+    this.dateType.set('single');
     this.visibleChange.emit(false);
   }
 }

@@ -782,6 +782,89 @@ pt-login .switch-button-active .p-button-icon {
 .mobile-search input::placeholder { color: rgba(255, 255, 255, 0.3); }
 .mobile-search i { color: rgba(255, 255, 255, 0.3); font-size: 0.8rem; }
 
+body.corridos-active .p-select-overlay {
+  background: rgba(30, 15, 5, 0.97) !important;
+  border: 1.5px solid rgba(220, 160, 60, 0.35) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 0 25px rgba(220, 160, 60, 0.15) !important;
+}
+body.corridos-active .p-select-overlay .p-select-list-container,
+body.corridos-active .p-select-overlay .p-select-list {
+  background: transparent !important;
+}
+body.corridos-active .p-select-overlay .p-select-option {
+  color: rgba(240, 220, 180, 0.9) !important;
+  background: transparent !important;
+}
+body.corridos-active .p-select-overlay .p-select-option:hover,
+body.corridos-active .p-select-overlay .p-select-option.p-select-option-selected {
+  background: rgba(220, 160, 60, 0.12) !important;
+  color: #ffd740 !important;
+}
+body.corridos-active .p-select-overlay .p-select-filter-input {
+  background: rgba(30, 15, 5, 0.95) !important;
+  border-color: rgba(220, 160, 60, 0.35) !important;
+  color: #ffd740 !important;
+}
+
+body.starwars-active .p-select-overlay {
+  background: rgba(5, 8, 25, 0.97) !important;
+  border: 1.5px solid rgba(70, 140, 255, 0.35) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 25px rgba(70, 140, 255, 0.15) !important;
+}
+body.starwars-active .p-select-overlay .p-select-list-container,
+body.starwars-active .p-select-overlay .p-select-list {
+  background: transparent !important;
+}
+body.starwars-active .p-select-overlay .p-select-option {
+  color: rgba(200, 210, 240, 0.9) !important;
+  background: transparent !important;
+}
+body.starwars-active .p-select-overlay .p-select-option:hover,
+body.starwars-active .p-select-overlay .p-select-option.p-select-option-selected {
+  background: rgba(70, 140, 255, 0.12) !important;
+  color: #4e9eff !important;
+}
+body.starwars-active .p-select-overlay .p-select-filter-input {
+  background: rgba(5, 8, 25, 0.95) !important;
+  border-color: rgba(70, 140, 255, 0.35) !important;
+  color: #4e9eff !important;
+}
+
+body.batman-active .p-select-overlay {
+  background: rgba(5, 5, 15, 0.97) !important;
+  border: 1.5px solid #ffd740 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 30px rgba(255, 215, 64, 0.2) !important;
+  transition: background 0.5s ease, border-color 0.5s ease;
+}
+body.batman-active .p-select-overlay .p-select-list-container,
+body.batman-active .p-select-overlay .p-select-list {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+body.batman-active .p-select-overlay .p-select-option {
+  color: rgba(220, 220, 240, 0.9) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body.batman-active .p-select-overlay .p-select-option:hover,
+body.batman-active .p-select-overlay .p-select-option.p-select-option-selected {
+  background: rgba(255, 215, 64, 0.15) !important;
+  color: #ffd740 !important;
+}
+body.batman-active .p-select-overlay .p-select-filter-input {
+  background: rgba(5, 5, 15, 0.95) !important;
+  border: 1.5px solid rgba(255, 215, 64, 0.4) !important;
+  border-radius: 0 !important;
+  color: #ffd740 !important;
+  font-weight: 600 !important;
+}
+
 body.matrix-active .p-select-overlay {
   background: rgba(0, 12, 0, 0.95) !important;
   border: 1px solid #00cc44 !important;

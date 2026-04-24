@@ -18,6 +18,14 @@ import {
 // Cargar variables de entorno desde .env
 dotenv.config();
 
+// Helpers WebAuthn: producen Uint8Array con ArrayBuffer explícito (requerido por @simplewebauthn types)
+function toU8(input: string | Buffer | Uint8Array): Uint8Array<ArrayBuffer> {
+  const src = typeof input === 'string' ? new TextEncoder().encode(input) : input;
+  const buf = new ArrayBuffer(src.byteLength);
+  new Uint8Array(buf).set(src);
+  return new Uint8Array(buf);
+}
+
 // Helper para logging seguro en producción
 const isProduction = process.env['NODE_ENV'] === 'production';
 const safeLogger = {
@@ -184,6 +192,68 @@ export function app(): express.Express {
         return;
       }
       res.status(502).json({ error: 'Failed to fetch metas', detail: String(err) });
+    }
+  });
+
+  // Supabase proxy for employee_schedules — avoids CORS issues in staging/alternative domains
+  server.get('/api/supabase/employee-schedules', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const anonKey = process.env['ENV_SUPABASE_API_KEY'] || process.env['ENV_SUPABASE_ANON_KEY'];
+      if (!supabaseUrl || !anonKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(req.query)) {
+        if (typeof v === 'string') params.set(k, v);
+      }
+      const url = `${supabaseUrl}/rest/v1/employee_schedules?${params.toString()}`;
+      // Forward auth token from the client request if present
+      const authHeader = req.headers['authorization'] as string | undefined;
+      const response = await fetch(url, {
+        headers: {
+          'apikey': anonKey,
+          'Authorization': authHeader || `Bearer ${anonKey}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      safeLogger.error('Error en /api/supabase/employee-schedules', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Supabase proxy for timelogs — avoids CORS issues in staging/alternative domains
+  server.get('/api/supabase/timelogs', async (req, res) => {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const anonKey = process.env['ENV_SUPABASE_API_KEY'] || process.env['ENV_SUPABASE_ANON_KEY'];
+      if (!supabaseUrl || !anonKey) {
+        res.status(503).json({ error: 'Server configuration missing' });
+        return;
+      }
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(req.query)) {
+        if (typeof v === 'string') params.set(k, v);
+        else if (Array.isArray(v)) v.forEach(val => { if (typeof val === 'string') params.append(k, val); });
+      }
+      const url = `${supabaseUrl}/rest/v1/timelogs?${params.toString()}`;
+      const authHeader = req.headers['authorization'] as string | undefined;
+      const response = await fetch(url, {
+        headers: {
+          'apikey': anonKey,
+          'Authorization': authHeader || `Bearer ${anonKey}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      safeLogger.error('Error en /api/supabase/timelogs', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -561,7 +631,7 @@ export function app(): express.Express {
           const options = await generateRegistrationOptions({
             rpName,
             rpID: reqRpID,
-            userID: new TextEncoder().encode(employeeId) as unknown as Uint8Array,
+            userID: toU8(employeeId),
             userName: employee.email || employee.document_id || employeeId,
             userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
             attestationType: 'none',
@@ -670,7 +740,7 @@ export function app(): express.Express {
           const options = await generateRegistrationOptions({
             rpName,
             rpID: reqRpID,
-            userID: new TextEncoder().encode(employeeId) as unknown as Uint8Array,
+            userID: toU8(employeeId),
             userName: employee.email || employee.document_id || employeeId,
             userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
             attestationType: 'none',
@@ -813,7 +883,7 @@ export function app(): express.Express {
             expectedRPID: stored.rpID,
             credential: {
               id: credential.credential_id,
-              publicKey: Buffer.from(credential.public_key, 'base64url') as unknown as Uint8Array,
+              publicKey: toU8(Buffer.from(credential.public_key, 'base64url')),
               counter: credential.sign_count,
             },
             requireUserVerification: true,
@@ -963,6 +1033,153 @@ export function app(): express.Express {
       safeLogger.error('Error en /api/odoo/sale-orders', error);
       return res.status(500).json({
         error: 'Error al obtener órdenes de Odoo',
+        message: error?.message || 'Error desconocido',
+      });
+    }
+  });
+
+  /**
+   * Top Peluquería: ranking agregado de estilistas a partir de x.mascota.line.
+   * Lee líneas de peluquería del rango, expande el Many2many responsable_peluqueria
+   * y suma cortes/baños/mascotas por estilista.
+   */
+  server.get('/api/odoo/top-peluqueria', async (req, res) => {
+    try {
+      const url = process.env['ENV_ODOO_URL'];
+      const db = process.env['ENV_ODOO_DB'];
+      const username = process.env['ENV_ODOO_USERNAME'];
+      const password = process.env['ENV_ODOO_PASSWORD'] || process.env['ENV_ODOO_API_KEY'];
+
+      if (!url || !db || !username || !password) {
+        return res.status(503).json({ error: 'Odoo no configurado' });
+      }
+
+      const now = Date.now();
+      let uid: number;
+      if (configCache.odooUid && (now - configCache.odooUid.ts) < CACHE_TTL) {
+        uid = configCache.odooUid.value;
+      } else {
+        const authResult = (await odooJsonRpc(url, 'common', 'authenticate', [
+          db, username, password, {},
+        ])) as number | false;
+        if (!authResult) {
+          return res.status(401).json({ error: 'Odoo: autenticación fallida' });
+        }
+        uid = authResult;
+        configCache.odooUid = { value: uid, ts: now };
+      }
+
+      const dateFrom = req.query['date_from'] as string | undefined;
+      const dateTo = req.query['date_to'] as string | undefined;
+
+      const domain: unknown[] = [['servicio_peluqueria', '=', true]];
+      if (dateFrom) domain.push(['order_id.date_order', '>=', dateFrom]);
+      if (dateTo) domain.push(['order_id.date_order', '<=', dateTo + ' 23:59:59']);
+
+      const mascotaLines = (await odooJsonRpc(url, 'object', 'execute_kw', [
+        db, uid, password,
+        'x.mascota.line',
+        'search_read',
+        [domain],
+        {
+          fields: [
+            'id', 'responsable_peluqueria',
+            'bano', 'corte', 'acicalado', 'mantenimiento', 'rapado', 'deslanado',
+            'profilaxis', 'tinte', 'corte_unas', 'limpieza_oidos',
+          ],
+          limit: 5000,
+        },
+      ])) as Array<{
+        id: number;
+        responsable_peluqueria: number[];
+        bano?: boolean; corte?: boolean;
+        acicalado?: boolean; mantenimiento?: boolean; rapado?: boolean; deslanado?: boolean;
+        profilaxis?: boolean; tinte?: boolean; corte_unas?: boolean; limpieza_oidos?: boolean;
+      }>;
+
+      // Líneas de venta con estilistas + monto (para dividir comisión si hay varios).
+      const orderLineDomain: unknown[] = [['estilista_ids', '!=', false]];
+      if (dateFrom) orderLineDomain.push(['order_id.date_order', '>=', dateFrom]);
+      if (dateTo) orderLineDomain.push(['order_id.date_order', '<=', dateTo + ' 23:59:59']);
+      orderLineDomain.push(['order_id.state', 'in', ['sale', 'done']]);
+
+      const orderLines = (await odooJsonRpc(url, 'object', 'execute_kw', [
+        db, uid, password,
+        'sale.order.line',
+        'search_read',
+        [orderLineDomain],
+        { fields: ['id', 'estilista_ids', 'price_subtotal'], limit: 10000 },
+      ])) as Array<{ id: number; estilista_ids: number[]; price_subtotal: number }>;
+
+      const employeeIds = Array.from(
+        new Set([
+          ...mascotaLines.flatMap((l) => l.responsable_peluqueria || []),
+          ...orderLines.flatMap((l) => l.estilista_ids || []),
+        ])
+      );
+
+      const employees = employeeIds.length
+        ? ((await odooJsonRpc(url, 'object', 'execute_kw', [
+            db, uid, password, 'hr.employee', 'read',
+            [employeeIds], { fields: ['id', 'name'] },
+          ])) as Array<{ id: number; name: string }>)
+        : [];
+      const nameById = new Map(employees.map((e) => [e.id, e.name]));
+
+      type Row = {
+        stylistId: number; stylistName: string;
+        mascotas: number; cortes: number; banos: number; banoCorte: number;
+        extras: number; amount: number;
+      };
+      const agg = new Map<number, Row>();
+      const ensure = (sid: number): Row => {
+        let row = agg.get(sid);
+        if (!row) {
+          row = {
+            stylistId: sid,
+            stylistName: nameById.get(sid) || `#${sid}`,
+            mascotas: 0, cortes: 0, banos: 0, banoCorte: 0, extras: 0, amount: 0,
+          };
+          agg.set(sid, row);
+        }
+        return row;
+      };
+
+      for (const line of mascotaLines) {
+        const stylists = line.responsable_peluqueria || [];
+        if (stylists.length === 0) continue;
+        const corte = !!line.corte;
+        const bano = !!line.bano;
+        const extras = [
+          line.acicalado, line.mantenimiento, line.rapado, line.deslanado,
+          line.profilaxis, line.tinte, line.corte_unas, line.limpieza_oidos,
+        ].filter(Boolean).length;
+
+        for (const sid of stylists) {
+          const row = ensure(sid);
+          row.mascotas += 1;
+          if (corte && bano) row.banoCorte += 1;
+          else if (corte) row.cortes += 1;
+          else if (bano) row.banos += 1;
+          row.extras += extras;
+        }
+      }
+
+      for (const ol of orderLines) {
+        const stylists = ol.estilista_ids || [];
+        if (stylists.length === 0) continue;
+        const share = (ol.price_subtotal || 0) / stylists.length;
+        for (const sid of stylists) {
+          ensure(sid).amount += share;
+        }
+      }
+
+      const data = [...agg.values()].sort((a, b) => b.amount - a.amount);
+      return res.json({ success: true, data });
+    } catch (error: any) {
+      safeLogger.error('Error en /api/odoo/top-peluqueria', error);
+      return res.status(500).json({
+        error: 'Error al calcular top peluquería',
         message: error?.message || 'Error desconocido',
       });
     }
@@ -3378,7 +3595,7 @@ ${context || 'No disponible en este momento.'}`;
   // ============================================================
   // Esto permite que Angular Router maneje las rutas del frontend
   // IMPORTANTE: Esta ruta debe ir DESPUÉS de express.static para que funcione correctamente
-  server.get('*', (req, res) => {
+  server.get('/*splat', (req, res) => {
     // Ignorar rutas de API
     if (req.path.startsWith('/api/')) {
       res.status(404).json({ error: 'API endpoint not found' });

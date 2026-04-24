@@ -327,7 +327,7 @@ export class PayrollLiquidationDetailComponent {
           italics: 'Roboto-Italic.ttf',
           bolditalics: 'Roboto-Italic.ttf',
         },
-      }, pdfFonts.vfs)
+      }, pdfFonts.default)
       .download(`Liquidacion_${liq.employee_name.replace(/\s/g, '_')}.pdf`);
   }
 

@@ -431,7 +431,10 @@ import {
       [(visible)]="showAuditHistoryDialog"
       [allHistory]="allAuditHistory()"
       [isLoading]="isLoadingAuditHistory()"
+      [isLoadingMore]="isLoadingMoreAudit()"
+      [hasMore]="hasMoreAuditHistory()"
       [employeeOptions]="store.employees.employeesList()"
+      (loadMore)="loadMoreAuditHistory()"
     />
 
     <pt-specific-audit-dialog
@@ -574,7 +577,11 @@ export class EmployeesTimetableComponent implements OnInit {
   // Audit history
   public showAuditHistoryDialog = signal(false);
   public isLoadingAuditHistory = signal(false);
+  public isLoadingMoreAudit = signal(false);
   public allAuditHistory = signal<ScheduleAuditLog[]>([]);
+  public hasMoreAuditHistory = signal(true);
+  private auditPage = 1;
+  private readonly AUDIT_PAGE_SIZE = 50;
 
   // Specific audit dialog
   public showSpecificAuditDialog = signal(false);
@@ -1116,6 +1123,7 @@ export class EmployeesTimetableComponent implements OnInit {
     const isNewHire = differenceInDays(new Date(), _empForNewHire?.start_date ?? new Date()) < 15;
 
     // If date is locked for this employee's position and user is store manager, redirect to gestiones
+    // Si la semana está bloqueada y el gerente no es admin/HR, redirigir a gestiones
     if (this.permissionsService.isStoreManager()) {
       const targetDate = date || (employee_schedule?.start_date ? new Date(employee_schedule.start_date) : this.start());
       const positionName = _empForNewHire?.position?.name || '';
@@ -1128,16 +1136,6 @@ export class EmployeesTimetableComponent implements OnInit {
         });
         return;
       }
-    }
-
-    if (this.permissionsService.isStoreManager() && employee_schedule?.approved) {
-      this.message.add({
-        severity: 'warn',
-        summary: 'Acción no permitida',
-        detail:
-          'No puedes editar horarios que ya han sido aprobados. Contacta a un administrador o al departamento de RRHH.',
-      });
-      return;
     }
 
     const employeeHasSchedulesInWeek = employee_id
@@ -1219,16 +1217,6 @@ export class EmployeesTimetableComponent implements OnInit {
         });
         return;
       }
-    }
-
-    if (this.permissionsService.isStoreManager() && employee_schedule.approved) {
-      this.message.add({
-        severity: 'warn',
-        summary: 'Acción no permitida',
-        detail:
-          'No puedes eliminar horarios que ya han sido aprobados. Contacta a un administrador o al departamento de RRHH.',
-      });
-      return;
     }
 
     this.scheduleActions.deleteSchedule(
@@ -1450,16 +1438,43 @@ export class EmployeesTimetableComponent implements OnInit {
 
   private async loadAuditHistory() {
     this.isLoadingAuditHistory.set(true);
+    this.auditPage = 1;
+    this.hasMoreAuditHistory.set(true);
     try {
       const history = await firstValueFrom(
-        this.auditService.getAllAuditHistory()
+        this.auditService.getAllAuditHistory({ page: 1, pageSize: this.AUDIT_PAGE_SIZE })
       );
       this.allAuditHistory.set(history || []);
+      if (!history || history.length < this.AUDIT_PAGE_SIZE) {
+        this.hasMoreAuditHistory.set(false);
+      }
     } catch (error) {
       console.error('Error cargando historial de auditoría:', error);
       this.allAuditHistory.set([]);
     } finally {
       this.isLoadingAuditHistory.set(false);
+    }
+  }
+
+  public async loadMoreAuditHistory() {
+    if (this.isLoadingMoreAudit() || !this.hasMoreAuditHistory()) return;
+    this.isLoadingMoreAudit.set(true);
+    this.auditPage++;
+    try {
+      const more = await firstValueFrom(
+        this.auditService.getAllAuditHistory({ page: this.auditPage, pageSize: this.AUDIT_PAGE_SIZE })
+      );
+      if (!more || more.length < this.AUDIT_PAGE_SIZE) {
+        this.hasMoreAuditHistory.set(false);
+      }
+      if (more?.length) {
+        this.allAuditHistory.update(prev => [...prev, ...more]);
+      }
+    } catch (error) {
+      console.error('Error cargando más auditoría:', error);
+      this.auditPage--;
+    } finally {
+      this.isLoadingMoreAudit.set(false);
     }
   }
 

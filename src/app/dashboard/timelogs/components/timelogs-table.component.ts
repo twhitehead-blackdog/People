@@ -68,14 +68,29 @@ import {
               </div>
               <!-- Row 2: Schedule + Alert -->
               <div style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;">
-                <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold"
-                  [ngClass]="log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!] ? colorVariants[log.schedule!.schedule!.color!] : 'bg-neutral-700 text-gray-400'"
-                  [ngStyle]="log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!] ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!) : null"
-                >{{ log?.schedule?.schedule?.name || 'Sin horario' }}</span>
-                @if (log.alert) {
-                  <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
-                    [ngClass]="{'bg-red-500/20 text-red-400': log.alert === 'Falta' || log.alert === 'Aus. Injustificada', 'bg-yellow-500/20 text-yellow-400': log.alert === 'Feriado' || log.alert === 'Día Libre', 'bg-blue-500/20 text-blue-400': log.alert === 'Permiso' || log.alert === 'Justificada', 'bg-pink-500/20 text-pink-400': log.alert === 'Cert. Médico', 'bg-amber-500/20 text-amber-400': true}"
-                  >{{ log.alert }}</span>
+                @if (log.scheduleError) {
+                  <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold inline-flex items-center gap-1 ring-1 ring-red-500/60"
+                    [ngClass]="log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!] ? colorVariants[log.schedule!.schedule!.color!] : 'bg-neutral-700 text-gray-300'"
+                    [ngStyle]="log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!] ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!) : null"
+                  >
+                    {{ log.schedule?.schedule?.name || 'Sin horario' }}
+                    <i class="pi pi-exclamation-triangle text-red-400 text-[9px]"></i>
+                  </span>
+                } @else if (!log.schedule) {
+                  <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold bg-red-500/20 text-red-400 inline-flex items-center gap-1">
+                    <i class="pi pi-exclamation-triangle text-[9px]"></i>
+                    Sin horario
+                  </span>
+                } @else {
+                  <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold"
+                    [ngClass]="log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!] ? colorVariants[log.schedule!.schedule!.color!] : 'bg-neutral-700 text-gray-400'"
+                    [ngStyle]="log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!] ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!) : null"
+                  >{{ log.schedule!.schedule!.name }}</span>
+                  @if (log.alert) {
+                    <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
+                      [ngClass]="{'bg-red-500/20 text-red-400': log.alert === 'Falta' || log.alert === 'Aus. Injustificada', 'bg-yellow-500/20 text-yellow-400': log.alert === 'Feriado' || log.alert === 'Día Libre', 'bg-blue-500/20 text-blue-400': log.alert === 'Permiso' || log.alert === 'Justificada', 'bg-pink-500/20 text-pink-400': log.alert === 'Cert. Médico', 'bg-amber-500/20 text-amber-400': true}"
+                    >{{ log.alert }}</span>
+                  }
                 }
               </div>
               <!-- Row 3: Entry/Exit times + Hours -->
@@ -83,7 +98,7 @@ import {
                 <div style="display:flex;gap:0.75rem;align-items:center;">
                   <div class="flex flex-col items-center">
                     <span class="text-[8px] text-gray-600 uppercase">Ent</span>
-                    <span class="text-[11px] font-semibold" [ngClass]="log.delay ? 'text-red-400' : 'text-green-400'">{{ log.entry?.date | panamaDate : 'hh:mm a' }}</span>
+                    <span class="text-[11px] font-semibold" [ngClass]="log.delay ? 'text-red-400' : log.withinTolerance ? 'text-sky-400' : 'text-green-400'" [pTooltip]="log.withinTolerance ? 'Dentro de tolerancia' : undefined">{{ log.entry?.date | panamaDate : 'hh:mm a' }}</span>
                   </div>
                   @if (log.lunch_start) {
                   <div class="flex flex-col items-center">
@@ -101,9 +116,12 @@ import {
                   <span class="text-xs font-bold" [ngClass]="(log.totalHours ?? 0) >= (log.requiredHours ?? 8) ? 'text-green-400' : (log.totalHours ?? 0) > 0 ? 'text-amber-400' : 'text-gray-600'">{{ log.totalHours ? formatHours(log.totalHours) : '-' }}</span>
                 </div>
               </div>
-              <!-- Row 4: Tags (delay, lunch exceeded, overtime) -->
-              @if (log.delay || log.lunchExceeded || log.overtimeHours) {
+              <!-- Row 4: Tags (delay, lunch exceeded, overtime, shift mismatch) -->
+              @if (log.delay || log.lunchExceeded || log.overtimeHours || log.shiftMismatch) {
               <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+                @if (log.shiftMismatch) {
+                  <span class="text-[9px] px-1.5 py-0.5 bg-yellow-500/15 text-yellow-400 rounded-full" [pTooltip]="'Turno asignado: ' + log.expectedScheduleName" tooltipPosition="top">⚠ Turno incorrecto</span>
+                }
                 @if (log.delay) {
                   <span class="text-[9px] px-1.5 py-0.5 bg-red-500/15 text-red-400 rounded-full">Retraso {{ log.delay }}min</span>
                 }
@@ -166,23 +184,6 @@ import {
                   >
                   {{ log.employee.first_name }} {{ log.employee.father_name }}
                   <p-tag
-                    *ngIf="log.scheduleError"
-                    value="Error de Horario"
-                    severity="danger"
-                    icon="pi pi-exclamation-triangle"
-                    [pTooltip]="
-                      log.alert +
-                      ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
-                    "
-                    tooltipPosition="top"
-                    [style]="{
-                      'min-width': maxEmployeeTagWidth,
-                      display: 'inline-block',
-                      'text-align': 'center'
-                    }"
-                    styleClass="ml-2"
-                  ></p-tag>
-                  <p-tag
                     *ngIf="!log.scheduleError && log.alert"
                     [value]="log.alert"
                     [severity]="alertSeverity(log.alert)"
@@ -202,39 +203,82 @@ import {
             <td>{{ log.day | panamaDate : 'mediumDate' }}</td>
             <td>
               <span
-                class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1"
+                *ngIf="log.scheduleError; else scheduleCell"
+                class="relative rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1 ring-1 ring-red-500/60"
                 [ngClass]="
-                  (log.schedule?.schedule?.color &&
-                  colorVariants[log.schedule.schedule.color]
-                    ? colorVariants[log.schedule.schedule.color]
-                    : '') +
-                  (log.schedule && log.schedule.approved === false
-                    ? ' opacity-60'
-                    : '')
+                  log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!]
+                    ? colorVariants[log.schedule!.schedule!.color!]
+                    : 'bg-neutral-700 text-gray-300'
                 "
                 [ngStyle]="
-                  log.schedule?.schedule?.color &&
-                  !colorVariants[log.schedule.schedule.color]
-                    ? getScheduleColorInlineStyle(log.schedule.schedule.color)
+                  log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!]
+                    ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!)
                     : null
                 "
                 [style]="{
                   'min-width': maxScheduleBadgeWidth,
                   'text-align': 'center'
                 }"
-                [pTooltip]="scheduleTooltip(log.schedule)"
+                [pTooltip]="
+                  (log.alert ? log.alert + ': ' : '') +
+                  'El empleado trabajó pero está marcado como feriado/día libre. El gerente debe corregir la configuración.'
+                "
                 tooltipPosition="top"
               >
-                {{ log?.schedule?.schedule?.name || 'Sin horario' }}
-                <i
-                  *ngIf="log.schedule && log.schedule.approved === false"
-                  class="pi pi-exclamation-circle text-yellow-200 text-[10px] animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
-                ></i>
-                <i
-                  *ngIf="log.schedule && log.schedule.approved === true"
-                  class="pi pi-check-circle text-green-400 text-[10px] flex-shrink-0"
-                ></i>
+                {{ log.schedule?.schedule?.name || 'Sin horario' }}
+                <i class="pi pi-exclamation-triangle text-red-400 text-[10px] flex-shrink-0"></i>
               </span>
+              <ng-template #scheduleCell>
+                <span
+                  *ngIf="!log.schedule; else scheduleCellAssigned"
+                  class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1 bg-red-500/20 text-red-400"
+                  [style]="{
+                    'min-width': maxScheduleBadgeWidth,
+                    'text-align': 'center'
+                  }"
+                  [pTooltip]="'No hay horario asignado para este empleado en este día. El gerente debe asignar un horario en Turnos.'"
+                  tooltipPosition="top"
+                >
+                  <i class="pi pi-exclamation-triangle text-[10px] flex-shrink-0"></i>
+                  Sin horario
+                </span>
+              </ng-template>
+              <ng-template #scheduleCellAssigned>
+                <span
+                  class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1"
+                  [ngClass]="
+                    (log.schedule?.schedule?.color &&
+                    colorVariants[log.schedule.schedule.color]
+                      ? colorVariants[log.schedule.schedule.color]
+                      : '') +
+                    (log.schedule && log.schedule.approved === false
+                      ? ' opacity-60'
+                      : '')
+                  "
+                  [ngStyle]="
+                    log.schedule?.schedule?.color &&
+                    !colorVariants[log.schedule.schedule.color]
+                      ? getScheduleColorInlineStyle(log.schedule.schedule.color)
+                      : null
+                  "
+                  [style]="{
+                    'min-width': maxScheduleBadgeWidth,
+                    'text-align': 'center'
+                  }"
+                  [pTooltip]="scheduleTooltip(log.schedule)"
+                  tooltipPosition="top"
+                >
+                  {{ log.schedule!.schedule!.name }}
+                  <i
+                    *ngIf="log.schedule && log.schedule.approved === false"
+                    class="pi pi-exclamation-circle text-yellow-200 text-[10px] animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+                  ></i>
+                  <i
+                    *ngIf="log.schedule && log.schedule.approved === true"
+                    class="pi pi-check-circle text-green-400 text-[10px] flex-shrink-0"
+                  ></i>
+                </span>
+              </ng-template>
             </td>
             <td>
               <div class="flex gap-2 items-center">
@@ -248,8 +292,10 @@ import {
                 ></p-avatar>
                 <span
                   [ngClass]="{
-                    'text-red-500 font-semibold': log.delay
+                    'text-red-500 font-semibold': log.delay,
+                    'text-sky-500 font-semibold': !log.delay && log.withinTolerance
                   }"
+                  [pTooltip]="log.withinTolerance ? 'Dentro de tolerancia' : undefined"
                   >{{ log.entry?.date | panamaDate : 'hh:mm a' }}</span
                 >
                 <p-tag
@@ -270,6 +316,15 @@ import {
                     display: 'inline-block',
                     'text-align': 'center'
                   }"
+                  styleClass="ml-2"
+                ></p-tag>
+                <p-tag
+                  *ngIf="log.shiftMismatch"
+                  value="Turno incorrecto"
+                  severity="warn"
+                  icon="pi pi-exclamation-triangle"
+                  [pTooltip]="'Marcó fuera del turno asignado: ' + log.expectedScheduleName + '. La entrada no coincide con el horario (diferencia > 2h).'"
+                  tooltipPosition="top"
                   styleClass="ml-2"
                 ></p-tag>
               </div>
@@ -352,6 +407,21 @@ import {
                     display: 'inline-block',
                     'text-align': 'center'
                   }"
+                  styleClass="ml-2"
+                ></p-tag>
+                <p-tag
+                  *ngIf="log.compensatoryHours"
+                  [value]="'Compensatorio ' + log.compensatoryHours + 'h'"
+                  severity="info"
+                  icon="pi pi-clock"
+                  [pTooltip]="
+                    'Compensatorio por horas aprobado: ' +
+                    log.compensatoryHours +
+                    ' hora(s). Salida permitida ' +
+                    log.compensatoryHours +
+                    'h antes del horario.'
+                  "
+                  tooltipPosition="top"
                   styleClass="ml-2"
                 ></p-tag>
               </div>

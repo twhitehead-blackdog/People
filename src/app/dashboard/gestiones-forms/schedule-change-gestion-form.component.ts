@@ -38,6 +38,7 @@ import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { notifyBranchManagers } from '../../utils/manager-notification.utils';
 import { EmployeeNotificationService } from '../../services/employee-notification.service';
+import { resolveEmployeeScheduleForDate } from '../../utils/employee-schedule.utils';
 
 interface DayColumn {
   date: Date;
@@ -543,9 +544,7 @@ export class ScheduleChangeGestionFormComponent implements OnInit {
   }
 
   public getScheduleForCell(employeeId: string, dateStr: string): any | null {
-    return this.allSchedulesForWeek().find(
-      s => s.employee_id === employeeId && dateStr >= s.start_date && dateStr <= s.end_date
-    ) || null;
+    return resolveEmployeeScheduleForDate(employeeId, dateStr, this.allSchedulesForWeek()) ?? null;
   }
 
   public hasChange(employeeId: string, dateStr: string): boolean {

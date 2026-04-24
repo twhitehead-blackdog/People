@@ -2,10 +2,16 @@
 <html lang="en" class="dark">
   <head>
     <script>
-      // Desregistrar service workers viejos para evitar cache stale
+      // Desregistrar SOLO service workers viejos de Angular PWA (ngsw-worker.js),
+      // no el nuevo /sw.js. Se ejecuta una sola vez y limpia cache stale del build anterior.
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          registrations.forEach(function(r) { r.unregister(); });
+          registrations.forEach(function(r) {
+            var url = r.active && r.active.scriptURL ? r.active.scriptURL : '';
+            if (url.indexOf('ngsw') !== -1 || url.indexOf('safety-worker') !== -1) {
+              r.unregister();
+            }
+          });
         });
       }
     </script>
@@ -357,16 +363,6 @@
         </div>
       </div>
     </pt-root>
-    <script>
-      // Register Service Worker for PWA
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(reg) {
-            // Check for updates every 60 minutes
-            setInterval(function() { reg.update(); }, 60 * 60 * 1000);
-          }).catch(function() {});
-        });
-      }
-    </script>
+    <!-- Service Worker registration handled by main.ts -->
   </body>
 </html>

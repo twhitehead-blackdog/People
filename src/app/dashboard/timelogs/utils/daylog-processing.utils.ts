@@ -4,11 +4,11 @@ import {
   differenceInMinutes,
   differenceInSeconds,
   format,
-  getDay,
   getYear,
   isValid,
   set,
 } from 'date-fns';
+import { resolveEmployeeScheduleForDate } from '../../../utils/employee-schedule.utils';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
   DayLog,
@@ -184,9 +184,6 @@ function createInitialDayLogs(
         return;
       }
 
-      const dayDate = new Date(day + 'T00:00:00');
-      const dayOfWeek = getDay(dayDate);
-
       // Buscar schedules que coincidan con el rango de fechas
       const matchingSchedules = schedulesData.filter(
         (schedule) =>
@@ -195,52 +192,24 @@ function createInitialDayLogs(
           schedule.end_date >= day
       );
 
-      let schedule = matchingSchedules[0];
+      // Resolver usando el resolver canónico: individual > aprobado > más reciente
+      const schedule = resolveEmployeeScheduleForDate(employee.id!, day, matchingSchedules);
 
-      if (matchingSchedules.length > 1) {
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-          const workSchedule = matchingSchedules.find(
-            (s) =>
-              s.schedule &&
-              !s.schedule.day_off &&
-              !RESTRICTED_SCHEDULE_IDS.includes(s.schedule.id || '') &&
-              !RESTRICTED_SCHEDULE_NAMES.some((name) =>
-                s.schedule?.name?.toLowerCase().includes(name)
-              )
-          );
-          if (workSchedule) schedule = workSchedule;
-        } else if (dayOfWeek === 6) {
-          const dayOffSchedule = matchingSchedules.find(
-            (s) =>
-              s.schedule?.day_off ||
-              RESTRICTED_SCHEDULE_NAMES.some(
-                (name) =>
-                  s.schedule?.name?.toLowerCase().includes('dia libre') ||
-                  s.schedule?.name?.toLowerCase().includes('día libre')
-              )
-          );
-          if (dayOffSchedule) schedule = dayOffSchedule;
-        } else if (dayOfWeek === 0) {
-          const holidaySchedule = matchingSchedules.find(
-            (s) =>
-              RESTRICTED_SCHEDULE_IDS.includes(s.schedule?.id || '') ||
-              RESTRICTED_SCHEDULE_NAMES.some((name) =>
-                s.schedule?.name?.toLowerCase().includes('feriado')
-              )
-          );
-          if (holidaySchedule) schedule = holidaySchedule;
-        }
-      } else if (matchingSchedules.length === 1) {
-        schedule = matchingSchedules[0];
-      }
+      // Detectar si hay un schedule de compensatorio por horas para este día
+      const compensatorySchedule = matchingSchedules.find(
+        (s) => s.time_off_type === 'compensatory_hours' && s.compensatory_hours_amount
+      );
 
       acc.push({
         employee,
         day,
         schedule,
+        compensatoryHours: compensatorySchedule?.compensatory_hours_amount ?? null,
         delay: undefined,
         alert: undefined,
         scheduleError: false,
+        shiftMismatch: false,
+        expectedScheduleName: undefined,
         lunchExceeded: false,
         lunchMinutes: undefined,
         earlyExit: false,
@@ -277,7 +246,9 @@ function detectAlerts(
     const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
     return dayStr >= fromStr && dayStr <= toStr;
   });
-  const hasTimeOff = !!timeoffForDay;
+  // Compensatorio por horas: el empleado SÍ debe trabajar, no es un día libre completo
+  const isCompensatoryHours = timeoffForDay?.compensatory_type === 'hours';
+  const hasTimeOff = !!timeoffForDay && !isCompensatoryHours;
   const timeoffTypeId = timeoffForDay?.type_id || timeoffForDay?.type?.id;
   const hasRestrictedTimeOff =
     hasTimeOff &&
@@ -342,7 +313,9 @@ function calculateMetrics(
     const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
     return dayStr >= fromStr && dayStr <= toStr;
   });
-  const hasTimeOff = !!timeoffForDay;
+  // Compensatorio por horas: el empleado SÍ debe trabajar
+  const isCompensatoryHoursMetrics = timeoffForDay?.compensatory_type === 'hours';
+  const hasTimeOff = !!timeoffForDay && !isCompensatoryHoursMetrics;
 
   const scheduleId = dayLog.schedule?.schedule?.id;
   const scheduleName = dayLog.schedule?.schedule?.name?.toLowerCase() || '';
@@ -382,16 +355,32 @@ function calculateMetrics(
               ? scheduleTime
               : format(new Date(scheduleTime), 'HH:mm:ss');
           const delayTotal = calcTimeDiff(entryTime, scheduleTimeStr);
-          if (delayTotal > delayToleranceMinutes) {
+
+          // Detectar error de marcación: entrada difiere más de 2h del turno asignado
+          const SHIFT_MISMATCH_THRESHOLD = 120; // 2 horas en minutos
+          if (Math.abs(delayTotal) > SHIFT_MISMATCH_THRESHOLD) {
+            dayLog.shiftMismatch = true;
+            dayLog.expectedScheduleName = dayLog.schedule?.schedule?.name ?? '';
+            // No calcular tardanza en este caso — es turno incorrecto, no tardanza
+            dayLog.delay = undefined;
+            dayLog.withinTolerance = false;
+          } else if (delayTotal > delayToleranceMinutes) {
             dayLog.delay = delayTotal - delayToleranceMinutes;
+            dayLog.withinTolerance = false;
+          } else if (delayTotal > 0) {
+            dayLog.delay = undefined;
+            dayLog.withinTolerance = true;
+            dayLog.toleranceUsedMinutes = delayTotal;
           } else {
             dayLog.delay = undefined;
+            dayLog.withinTolerance = false;
+            dayLog.toleranceUsedMinutes = 0;
           }
         }
       }
     }
   } else {
-    dayLog.alert = 'Sin Horario';
+    // Sin horario — se muestra en la columna Horario de la tabla, no como alert tag
   }
 
   // Validar tiempo de almuerzo
@@ -401,9 +390,9 @@ function calculateMetrics(
       dayLog.lunch_start.date
     );
     dayLog.lunchMinutes = lunchMinutes;
-    if (lunchMinutes > 60) {
-      dayLog.lunchExceeded = true;
-    }
+    dayLog.lunchExceeded = lunchMinutes > 60;
+  } else {
+    dayLog.lunchExceeded = false;
   }
 
   // Validar salida temprana
@@ -422,11 +411,19 @@ function calculateMetrics(
       const exitParts = exitTime.split(':');
       const scheduleParts = scheduleTimeStr.split(':');
       const exitMinutes = +exitParts[0] * 60 + +exitParts[1];
-      const scheduleMinutes = +scheduleParts[0] * 60 + +scheduleParts[1];
-      if (exitMinutes < scheduleMinutes) {
-        dayLog.earlyExit = true;
+      let scheduleMinutes = +scheduleParts[0] * 60 + +scheduleParts[1];
+
+      // Si tiene compensatorio por horas, reducir la hora de salida esperada
+      if (dayLog.compensatoryHours && dayLog.compensatoryHours > 0) {
+        scheduleMinutes -= dayLog.compensatoryHours * 60;
       }
+
+      dayLog.earlyExit = exitMinutes < scheduleMinutes;
+    } else {
+      dayLog.earlyExit = false;
     }
+  } else {
+    dayLog.earlyExit = false;
   }
 
   // Calcular horas trabajadas y horas extras
@@ -478,7 +475,7 @@ export function getScheduleRequiredMinutes(schedule: Schedule): number {
       const lsDate = set(base, { hours: lsH, minutes: lsM, seconds: 0, milliseconds: 0 });
       const leDate = set(base, { hours: leH, minutes: leM, seconds: 0, milliseconds: 0 });
       if (leDate > lsDate) {
-        lunchMinutes = differenceInMinutes(leDate, lsDate);
+        lunchMinutes = Math.min(differenceInMinutes(leDate, lsDate), 60);
       }
     }
   }
@@ -585,9 +582,16 @@ function calculateWorkHours(
   const totalHours = workMinutes > 0 ? workMinutes / 60 : 0;
   dayLog.totalHours = totalHours;
 
-  const requiredWorkMinutes = hasSchedule
+  let requiredWorkMinutes = hasSchedule
     ? getScheduleRequiredMinutes(dayLog.schedule!.schedule!)
     : 480;
+
+  // Si tiene compensatorio por horas, reducir las horas requeridas
+  if (dayLog.compensatoryHours && dayLog.compensatoryHours > 0) {
+    requiredWorkMinutes -= dayLog.compensatoryHours * 60;
+    if (requiredWorkMinutes < 0) requiredWorkMinutes = 0;
+  }
+
   dayLog.requiredHours = requiredWorkMinutes / 60;
 
   const overtimeByWorkTime =
@@ -597,8 +601,16 @@ function calculateWorkHours(
   const totalOvertimeMinutes = Math.max(0, overtimeByWorkTime);
   dayLog.overtimeHours = totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
 
-  if (workMinutes < requiredWorkMinutes) {
+  // Si la entrada estuvo dentro de la tolerancia, restar esos minutos al requerido
+  const effectiveRequired =
+    dayLog.withinTolerance && dayLog.toleranceUsedMinutes
+      ? Math.max(0, requiredWorkMinutes - dayLog.toleranceUsedMinutes)
+      : requiredWorkMinutes;
+
+  if (workMinutes < effectiveRequired) {
     dayLog.insufficientHours = true;
+  } else {
+    dayLog.insufficientHours = false;
   }
 }
 

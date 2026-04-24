@@ -314,6 +314,11 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
               <i class="pi pi-star"></i><span>Peluquería</span>
             </a>
             }
+            @if(tmSubs().personnel_movements) {
+            <a (click)="navigateAbsolute('time-management/movimientos-personal')" [class.nav-active]="currentUrl().includes('/movimientos-personal')" class="nav-item">
+              <i class="pi pi-map"></i><span>Movimientos</span>
+            </a>
+            }
             @if(canAccessBranchManager()) {
             <a (click)="navigateAbsolute('branch-manager')" [class.nav-active]="isBranchManagerActive()" class="nav-item">
               <i class="pi pi-shop"></i><span>Mi Sucursal</span>
@@ -437,6 +442,13 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
                     <a (click)="navigateAbsolute('time-management/vet-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Veterinaria</a>
                     <a (click)="navigateAbsolute('time-management/salon-schedule'); closeDropdown()" class="dd-item"><i class="pi pi-calendar-plus"></i>Peluquería</a>
                   </div>
+                  @if(tmSubs().personnel_movements) {
+                  <div class="dd-col-sep"></div>
+                  <div class="dd-col-group">
+                    <span class="dd-col-label">Personal</span>
+                    <a (click)="navigateAbsolute('time-management/movimientos-personal'); closeDropdown()" class="dd-item"><i class="pi pi-map"></i>Movimientos</a>
+                  </div>
+                  }
                 </div>
               </div>
               }
@@ -637,7 +649,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
         </button>
       </div>
       }
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto py-5 pl-10">
         @if(showEmployeePortalView()) {
         <pt-employee-portal />
         } @else {
@@ -1221,6 +1233,7 @@ export class DashboardComponent {
     schedules: this.permissionsService.canAccessSubModule('time_management', 'schedules'),
     vet_schedule: this.permissionsService.canAccessSubModule('time_management', 'vet_schedule'),
     salon_schedule: this.permissionsService.canAccessSubModule('time_management', 'salon_schedule'),
+    personnel_movements: this.permissionsService.canAccessSubModule('time_management', 'personnel_movements'),
   }));
 
   // Mobile admin bottom nav tabs (computed based on permissions)
@@ -1230,6 +1243,9 @@ export class DashboardComponent {
       const tabs: MobileNavTab[] = [];
       if (this.tmSubs().timetables) {
         tabs.push({ id: 'time-management/timetables', label: 'Turnos', icon: 'pi pi-calendar' });
+      }
+      if (this.tmSubs().salon_schedule) {
+        tabs.push({ id: 'time-management/salon-schedule', label: 'Horario Peluquería', icon: 'pi pi-calendar-plus' });
       }
       if (this.tmSubs().timelogs) {
         tabs.push({ id: 'time-management/timelogs', label: 'Registros', icon: 'pi pi-clock' });
