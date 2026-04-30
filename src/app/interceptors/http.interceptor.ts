@@ -242,7 +242,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   // For non-Supabase requests, use Auth0 token
-  return inject(AuthService)
+  const authService = inject(AuthService);
+  return authService
     .getAccessTokenSilently()
     .pipe(
       switchMap((token) => {
@@ -253,8 +254,27 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       }),
       catchError((error) => {
         if (isDevelopment) {
-          console.error('[HttpInterceptor] Auth0 token error:', req.url, error.status);
+          console.error('[HttpInterceptor] Auth0 token error:', req.url, error.status, error?.message);
         }
+
+        // Recovery automatico: cache de Auth0 inconsistente (refresh token
+        // requerido pero no presente). Limpiamos localStorage de @@auth0spa@@*
+        // y mandamos a re-login. Pasa cuando el usuario tenia un build viejo
+        // con useRefreshTokens=true cacheado y la nueva config no lo emite.
+        const msg = String(error?.message || error?.error_description || '');
+        if (/Missing Refresh Token/i.test(msg)) {
+          try {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const k = localStorage.key(i);
+              if (k && k.startsWith('@@auth0spa@@')) localStorage.removeItem(k);
+            }
+          } catch {}
+          authService.loginWithRedirect({
+            appState: { returnTo: window.location.pathname + window.location.search },
+          }).subscribe({ error: () => {} });
+          return throwError(() => error);
+        }
+
         if (error.status === 0 || !error.status) {
           diagnosticService.addNetworkError(
             req.url,
