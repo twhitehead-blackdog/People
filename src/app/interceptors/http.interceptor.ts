@@ -1,7 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject, isDevMode } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
-import { catchError, filter, switchMap, take, tap, throwError } from 'rxjs';
+import { catchError, filter, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
 import { ApiUrlService } from '../services/api-url.service';
 import { DiagnosticService } from '../services/diagnostic.service';
 import { getEnv } from '../utils/env.utils';
@@ -97,12 +97,22 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
 
   if (req.url.includes('supabase')) {
+    // En kiosk no hay sesion Auth0 — esperar isLoading$ fuerza al SDK a
+    // inicializar, leer cache stale y disparar "Missing Refresh Token".
+    // Detectamos kiosk por path y mandamos request directo (Supabase usa
+    // service-role key, no token Auth0).
+    const isKioskPath = typeof window !== 'undefined' &&
+      /\/timeclock-kiosk(-mobile)?(\/|$|\?)/.test(window.location.pathname + window.location.search);
+
+    const supabaseFlow$: Observable<unknown> = isKioskPath
+      ? of(true)
+      : auth.isLoading$.pipe(filter((isLoading) => !isLoading));
+
     // Esperar a que Auth0 termine de procesar el callback antes de enviar
     // peticiones a Supabase. Sin esto, las peticiones salen en paralelo con
     // el redirect interno de Auth0 y se abortan (ERR_ABORTED), dejando los
     // httpResource en estado loading aunque la segunda tanda devuelva 200.
-    return auth.isLoading$.pipe(
-      filter((isLoading) => !isLoading),
+    return supabaseFlow$.pipe(
       take(1),
       switchMap(() => {
     // Logging de métricas (solo en localhost)
@@ -238,6 +248,14 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.includes('/api/webauthn/registration-options-self') ||
     req.url.includes('/api/webauthn/registration-verify-self')
   ) {
+    return next(req);
+  }
+
+  // En kiosk no hay sesion Auth0 — saltarse el token. Las APIs llamadas desde
+  // kiosk (/api/dp/*, /api/fx, etc.) no requieren auth en server.ts:481.
+  const isKioskPath = typeof window !== 'undefined' &&
+    /\/timeclock-kiosk(-mobile)?(\/|$|\?)/.test(window.location.pathname + window.location.search);
+  if (isKioskPath) {
     return next(req);
   }
 
