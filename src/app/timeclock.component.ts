@@ -638,11 +638,9 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle: visible cuando no hay huella usable
-                 O cuando ya falló la huella (fallback PIN).
-                 DP requiere lector conectado en esta PC; si está desconectado,
-                 permitimos PIN como fallback aunque el empleado tenga DP enrolada. -->
-            @if (selectedEmployee() && (allowPinFallback() || (!employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())))) {
+            <!-- Auth Method Toggle: SIEMPRE visible cuando hay empleado.
+                 PIN es opcional para todos aunque tengan huella enrolada. -->
+            @if (selectedEmployee()) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> PIN
@@ -660,8 +658,8 @@ interface TimeclockInfoData {
               </div>
             }
 
-            <!-- PIN Input Section: tambien visible si la huella fallo (allowPinFallback). -->
-            @if (authMethod() === 'pin' && (allowPinFallback() || !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected()))) {
+            <!-- PIN Input Section: visible siempre que authMethod sea 'pin'. -->
+            @if (authMethod() === 'pin') {
             <div
               class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
             >
