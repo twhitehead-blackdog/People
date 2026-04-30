@@ -72,7 +72,11 @@ export const appConfig: ApplicationConfig = {
         redirect_uri: window.location.origin,
         audience: getEnv('ENV_AUTH0_AUDIENCE') ?? '',
       },
-      useRefreshTokens: true,
+      // Refresh tokens NO funcionan con audience del Management API de Auth0
+      // (Auth0 no emite refresh token aunque pidas offline_access). Usamos
+      // Silent Auth via iframe + cookie SSO en login.blackdogpanama.com para
+      // renovar tokens sin interaccion del usuario.
+      useRefreshTokens: false,
       cacheLocation: 'localstorage',
       // @ts-ignore - onRedirectCallback is valid in this version
       onRedirectCallback: (appState: any) => {
