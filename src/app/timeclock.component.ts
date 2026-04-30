@@ -638,20 +638,21 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle: visible cuando no hay huella usable.
+            <!-- Auth Method Toggle: visible cuando no hay huella usable
+                 O cuando ya falló la huella (fallback PIN).
                  DP requiere lector conectado en esta PC; si está desconectado,
                  permitimos PIN como fallback aunque el empleado tenga DP enrolada. -->
-            @if (selectedEmployee() && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
+            @if (selectedEmployee() && (allowPinFallback() || (!employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())))) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
-                  <i class="pi pi-shield"></i> Autenticador
+                  <i class="pi pi-shield"></i> PIN
                 </button>
-                @if (employeeHasDp()) {
+                @if (employeeHasDp() && !dpReaderConnected()) {
                   <button type="button" class="auth-method-btn auth-method-btn--disabled" disabled
                           title="Lector de huellas no detectado en esta PC">
                     <i class="pi pi-fingerprint"></i> Huella (lector off)
                   </button>
-                } @else {
+                } @else if (employeeHasFingerprint() || employeeHasDp()) {
                   <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'fingerprint'" (click)="authMethod.set('fingerprint')">
                     <i class="pi pi-fingerprint"></i> Huella
                   </button>
@@ -659,8 +660,8 @@ interface TimeclockInfoData {
               </div>
             }
 
-            <!-- PIN Input Section -->
-            @if (authMethod() === 'pin' && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
+            <!-- PIN Input Section: tambien visible si la huella fallo (allowPinFallback). -->
+            @if (authMethod() === 'pin' && (allowPinFallback() || !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected()))) {
             <div
               class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
             >
@@ -1141,6 +1142,10 @@ export class TimeclockComponent implements OnDestroy {
   public isIPValid = signal<boolean>(true);
   public authMethod = signal<'pin' | 'fingerprint'>('pin');
   public employeeHasFingerprint = signal<boolean>(false);
+  // Fallback PIN: si falla la huella, habilitamos PIN aunque el empleado
+  // tenga huella enrolada. Reseteamos al cambiar de empleado.
+  public fingerprintFailures = signal<number>(0);
+  public allowPinFallback = signal<boolean>(false);
 
   // ── Manager IP Override ────────────────────────────────────────────
   public ipOverrideActive   = signal<boolean>(false);
@@ -2358,6 +2363,9 @@ export class TimeclockComponent implements OnDestroy {
     this.authMethod.set('pin');
     this.employeeHasFingerprint.set(false);
     this.employeeHasDp.set(false);
+    // Reset fallback PIN al cambiar de empleado.
+    this.fingerprintFailures.set(0);
+    this.allowPinFallback.set(false);
     initAudioContext();
 
     if (employee?.id) {
@@ -2538,14 +2546,33 @@ export class TimeclockComponent implements OnDestroy {
         );
       } else {
         this.isProcessing.set(false);
-        this.message.add({ severity: 'error', summary: 'Huella no reconocida', detail: 'Intenta de nuevo. Coloca el dedo bien centrado en el lector.', life: 5000 });
+        this.handleFingerprintFailure('Huella no reconocida. Intenta de nuevo o usa tu PIN.');
       }
     } catch (err: any) {
       this.isProcessing.set(false);
       const detail = err?.name === 'NotAllowedError'
-        ? 'Verificación cancelada. Intenta de nuevo.'
-        : (err?.message || 'Error al leer la huella. Intenta de nuevo.');
-      this.message.add({ severity: 'error', summary: 'Error', detail });
+        ? 'Verificación cancelada. Intenta de nuevo o usa tu PIN.'
+        : (err?.message || 'Error al leer la huella. Intenta de nuevo o usa tu PIN.');
+      this.handleFingerprintFailure(detail);
+    }
+  }
+
+  /** Incrementa contador de fallos de huella y habilita fallback a PIN. */
+  private handleFingerprintFailure(detail: string): void {
+    const next = this.fingerprintFailures() + 1;
+    this.fingerprintFailures.set(next);
+    // Tras el primer fallo, abrimos el PIN como alternativa.
+    this.allowPinFallback.set(true);
+    this.message.add({
+      severity: next >= 2 ? 'warn' : 'error',
+      summary: next >= 2 ? 'Huella sigue fallando' : 'Huella no reconocida',
+      detail,
+      life: 6000,
+    });
+    // Tras 2 fallos consecutivos, cambiamos automaticamente a PIN para que
+    // el empleado no pierda mas tiempo intentando la huella.
+    if (next >= 2) {
+      this.authMethod.set('pin');
     }
   }
 
