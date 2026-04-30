@@ -163,6 +163,10 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     subModules: [
       { id: 'live_access', label: 'Asistencia en Vivo', description: 'Vista en tiempo real de la asistencia', icon: 'pi pi-objects-column', route: '/live' },
       { id: 'analytics_access', label: 'Analytics', description: 'Panel de análisis y reportes avanzados', icon: 'pi pi-chart-line', route: '/analytics' },
+      { id: 'metas_access', label: 'Metas', description: 'Metas mensuales y diarias por sucursal', icon: 'pi pi-flag', route: '/metas' },
+      { id: 'stock_access', label: 'Stock', description: 'Top 100, rotación, sin movimiento, salud sucursal', icon: 'pi pi-box', route: '/stock' },
+      { id: 'respond_access', label: 'Respond', description: 'Conversaciones Respond.io en vivo', icon: 'pi pi-comments', route: '/respond' },
+      { id: 'scorecard_access', label: 'Scorecard', description: 'Tarjeta de puntaje por sucursal', icon: 'pi pi-trophy', route: '/scorecard' },
       { id: 'launcher_access', label: 'Lanzador de Apps', description: 'Acceso al lanzador de aplicaciones', icon: 'pi pi-th-large', route: '/launcher' },
     ],
   },

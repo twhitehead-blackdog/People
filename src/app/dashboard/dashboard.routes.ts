@@ -445,6 +445,38 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
         canActivate: [employeePortalGuard, modulePermissionGuard('services', 'live_access')],
       },
+      {
+        path: 'metas',
+        loadComponent: () =>
+          import('./metas-embed/metas-embed.component').then(
+            (x) => x.MetasEmbedComponent
+          ),
+        canActivate: [employeePortalGuard, modulePermissionGuard('services', 'metas_access')],
+      },
+      {
+        path: 'stock',
+        loadComponent: () =>
+          import('./stock-embed/stock-embed.component').then(
+            (x) => x.StockEmbedComponent
+          ),
+        canActivate: [employeePortalGuard, modulePermissionGuard('services', 'stock_access')],
+      },
+      {
+        path: 'respond',
+        loadComponent: () =>
+          import('./respond-embed/respond-embed.component').then(
+            (x) => x.RespondEmbedComponent
+          ),
+        canActivate: [employeePortalGuard, modulePermissionGuard('services', 'respond_access')],
+      },
+      {
+        path: 'scorecard',
+        loadComponent: () =>
+          import('./scorecard-embed/scorecard-embed.component').then(
+            (x) => x.ScorecardEmbedComponent
+          ),
+        canActivate: [employeePortalGuard, modulePermissionGuard('services', 'scorecard_access')],
+      },
     ],
   },
 ];

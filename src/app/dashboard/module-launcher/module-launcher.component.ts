@@ -196,13 +196,14 @@ const MODULE_CONFIGS: Record<string, { title: string; icon: string; sections: re
     </div>
   `,
   styles: [`
+    /* :host es block normal y el scroll lo maneja el contenedor exterior
+       (.flex-1 min-h-0 overflow-y-auto del shell). Si ponemos flex+overflow
+       hidden aquí, el padre <main> no es flex container y el host colapsa
+       en altura clipeando las cards. */
     :host {
-      display: flex;
-      flex-direction: column;
-      flex: 1 1 0;
-      min-height: 0;
+      display: block;
       width: 100%;
-      overflow: hidden;
+      min-height: 100%;
       background:
         radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,191,36,0.08), transparent 60%),
         radial-gradient(ellipse 60% 40% at 100% 100%, rgba(167,139,250,0.06), transparent 60%),
@@ -212,18 +213,12 @@ const MODULE_CONFIGS: Record<string, { title: string; icon: string; sections: re
     .launcher {
       max-width: 1200px;
       width: 100%;
-      flex: 1 1 0;
-      min-height: 0;
       margin: 0 auto;
       padding: clamp(1rem, 3vh, 2rem) clamp(0.75rem, 2.5vw, 2rem);
       display: flex;
       flex-direction: column;
-      justify-content: center;
       gap: clamp(1.25rem, 3vh, 2rem);
-      overflow-y: auto;
       box-sizing: border-box;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.1) transparent;
     }
     .launcher::-webkit-scrollbar { width: 5px; }
     .launcher::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }

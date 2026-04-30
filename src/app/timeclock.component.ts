@@ -638,20 +638,29 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle: only visible when employee has NO fingerprint registered -->
-            @if (selectedEmployee() && !employeeHasFingerprint() && !employeeHasDp()) {
+            <!-- Auth Method Toggle: visible cuando no hay huella usable.
+                 DP requiere lector conectado en esta PC; si está desconectado,
+                 permitimos PIN como fallback aunque el empleado tenga DP enrolada. -->
+            @if (selectedEmployee() && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> Autenticador
                 </button>
-                <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'fingerprint'" (click)="authMethod.set('fingerprint')">
-                  <i class="pi pi-fingerprint"></i> Huella
-                </button>
+                @if (employeeHasDp()) {
+                  <button type="button" class="auth-method-btn auth-method-btn--disabled" disabled
+                          title="Lector de huellas no detectado en esta PC">
+                    <i class="pi pi-fingerprint"></i> Huella (lector off)
+                  </button>
+                } @else {
+                  <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'fingerprint'" (click)="authMethod.set('fingerprint')">
+                    <i class="pi pi-fingerprint"></i> Huella
+                  </button>
+                }
               </div>
             }
 
-            <!-- PIN Input Section: only when employee has NO fingerprint -->
-            @if (authMethod() === 'pin' && !employeeHasFingerprint() && !employeeHasDp()) {
+            <!-- PIN Input Section -->
+            @if (authMethod() === 'pin' && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
             <div
               class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
             >
@@ -708,10 +717,11 @@ interface TimeclockInfoData {
             </div>
             }
 
-            <!-- Fingerprint Section: auto-scan visual -->
-            @if (authMethod() === 'fingerprint' || employeeHasFingerprint() || employeeHasDp()) {
+            <!-- Fingerprint Section: solo si la huella es usable
+                 (WebAuthn siempre, DP sólo cuando el lector está conectado) -->
+            @if (authMethod() === 'fingerprint' && (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected()))) {
               <div class="w-full flex flex-col items-center gap-3 px-2">
-                @if (employeeHasFingerprint() || employeeHasDp()) {
+                @if (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected())) {
                   <div class="fp-scanner" [class.fp-scanner--scanning]="isProcessing()" [class.fp-scanner--ready]="!isProcessing()">
                     <div class="fp-scanner__ring"></div>
                     <div class="fp-scanner__ring fp-scanner__ring--2"></div>
@@ -1352,7 +1362,19 @@ export class TimeclockComponent implements OnDestroy {
   constructor() {
     // Monitorear estado del lector DP
     this.dp.startStatusPolling(5000);
-    this.dp.onConnectionChange((c) => this.dpReaderConnected.set(c));
+    this.dp.onConnectionChange((c) => {
+      this.dpReaderConnected.set(c);
+      // Si el lector cae mientras el empleado solo tiene DP enrolada,
+      // soltamos al PIN para que pueda seguir marcando.
+      if (!c && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'fingerprint') {
+        this.authMethod.set('pin');
+      }
+      // Si vuelve y la huella es la opción real, reactivar
+      if (c && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'pin') {
+        this.authMethod.set('fingerprint');
+        this.maybeAutoStartFingerprint();
+      }
+    });
 
     // Detectar organización desde URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -2352,9 +2374,17 @@ export class TimeclockComponent implements OnDestroy {
       ]).then(([waStatus, dpStatus]: any[]) => {
         this.employeeHasDp.set(!!dpStatus?.enrolled);
         this.employeeHasFingerprint.set(!dpStatus?.enrolled && !!waStatus?.hasCredential);
-        if (this.employeeHasDp() || this.employeeHasFingerprint()) {
+        // Forzar huella sólo si el método está realmente disponible:
+        //   - WebAuthn (employeeHasFingerprint) funciona sin lector externo.
+        //   - DP (employeeHasDp) requiere que esta PC tenga el Lite Client conectado;
+        //     si no, dejar PIN como fallback para no bloquear al empleado.
+        const fingerprintUsable = this.employeeHasFingerprint() ||
+          (this.employeeHasDp() && this.dpReaderConnected());
+        if (fingerprintUsable) {
           this.authMethod.set('fingerprint');
           this.maybeAutoStartFingerprint();
+        } else {
+          this.authMethod.set('pin');
         }
       });
 

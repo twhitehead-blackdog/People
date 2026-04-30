@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { MessageService } from 'primeng/api';
 import { filter, take } from 'rxjs';
@@ -373,9 +373,25 @@ export class AppComponent implements OnInit {
         // Mostrar loader solo si tarda >800ms (no para tránsitos rápidos típicos)
         this.skeletonTimer = setTimeout(() => this.showSkeleton.set(true), 800);
       }
-      if (event instanceof NavigationEnd) {
+      // Clear on End, Cancel, AND Error — otherwise a failed lazy-chunk load
+      // (typical after a rebuild: old shell tries to fetch a hashed chunk that
+      // no longer exists) leaves the skeleton stuck on forever.
+      if (
+        event instanceof NavigationEnd ||
+        event instanceof NavigationCancel ||
+        event instanceof NavigationError
+      ) {
         if (this.skeletonTimer) { clearTimeout(this.skeletonTimer); this.skeletonTimer = null; }
         this.showSkeleton.set(false);
+
+        // If the failure looks like a missing chunk (post-deploy shell mismatch),
+        // force a hard reload so the browser pulls the fresh index.html + new hashes.
+        if (event instanceof NavigationError) {
+          const msg = String(event.error?.message ?? event.error ?? '');
+          if (/ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed/i.test(msg)) {
+            window.location.reload();
+          }
+        }
       }
     });
   }

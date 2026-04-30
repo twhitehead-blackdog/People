@@ -96,6 +96,20 @@ export class DpFingerprintService {
    */
   private pollerStarted = false;
   private statusReader: any = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Stop the heartbeat and release the reader. Call from ngOnDestroy of host components. */
+  stopStatusPolling(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+    try { this.statusReader?.off?.(); } catch {}
+    this.statusReader = null;
+    this.pollerStarted = false;
+    this.setConnected(false);
+  }
+
   async startStatusPolling(_intervalMs?: number) {
     if (this.pollerStarted || typeof window === 'undefined') return;
     this.pollerStarted = true;
@@ -130,7 +144,8 @@ export class DpFingerprintService {
     await initStatusReader();
 
     // Heartbeat: si perdimos el reader (CommunicationFailed o no se inicializó), reintenta
-    setInterval(async () => {
+    this.heartbeatTimer = setInterval(async () => {
+      if (!this.pollerStarted) return; // Component unmounted, race-safe.
       if (!this.statusReader) {
         await initStatusReader();
         return;

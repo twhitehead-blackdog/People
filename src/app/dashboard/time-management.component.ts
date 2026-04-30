@@ -15,7 +15,7 @@ import { DeviceService } from '../services/device.service';
 @Component({
   selector: 'pt-time-management',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass],
-  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
+  template: `<div class="h-full flex flex-col" [ngClass]="{ 'naz-theme': isNaz() }">
     @if (designVersion.isClassic()) {
     <!-- Classic secondary sub-nav header -->
     <header
@@ -120,11 +120,12 @@ import { DeviceService } from '../services/device.service';
       </div>
     </header>
     }
-    <main class="bg-neutral-900 min-h-full" [ngClass]="{ 'naz-main': isNaz() }">
+    <main class="bg-neutral-900 flex-1 min-h-0" [ngClass]="{ 'naz-main': isNaz() }">
       <router-outlet />
     </main>
   </div>`,
   styles: `
+    :host { display: block; height: 100%; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     :host-context(html.dark) .naz-theme header.naz-header {

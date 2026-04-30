@@ -57,6 +57,10 @@ const PEOPLE_MODULES: readonly Module[] = [
 const EXTERNAL_MODULES: readonly Module[] = [
   { id: 'analytics',  label: 'Analytics',           description: 'KPIs y ventas',           icon: 'pi-chart-line',     target: 'analytics',                            accent: 'teal'   },
   { id: 'dashboards', label: 'Asistencias en vivo', description: 'Asistencia en tiempo real', icon: 'pi-objects-column', target: 'live',                                accent: 'indigo' },
+  { id: 'metas',      label: 'Metas',               description: 'Mensuales y diarias',     icon: 'pi-flag',           target: 'metas',                                accent: 'amber'   },
+  { id: 'stock',      label: 'Stock',               description: 'Top100, rotación, salud', icon: 'pi-box',            target: 'stock',                                accent: 'lime'    },
+  { id: 'respond',    label: 'Respond',             description: 'Conversaciones en vivo',  icon: 'pi-comments',       target: 'respond',                              accent: 'cyan'    },
+  { id: 'scorecard',  label: 'Scorecard',           description: 'Puntaje por sucursal',    icon: 'pi-trophy',         target: 'scorecard',                            accent: 'fuchsia' },
   { id: 'it',         label: 'BD IT',               description: 'Inventario y soporte',    icon: 'pi-desktop',        target: 'https://it.blackdogpanama.com',  external: true, accent: 'slate'  },
   { id: 'deploy',     label: 'Deploy',              description: 'CI/CD',                   icon: 'pi-upload',         target: 'https://deploy.blackdogpanama.com', external: true, accent: 'pink'   },
   { id: 'agent',      label: 'Agente IA',           description: 'Asistente inteligente',   icon: 'pi-android',        target: 'https://agent.blackdogpanama.com', external: true, accent: 'purple' },
@@ -151,13 +155,13 @@ const EXTERNAL_MODULES: readonly Module[] = [
     </div>
   `,
   styles: [`
+    /* :host es block normal y el scroll lo maneja el contenedor exterior
+       del shell (.flex-1 min-h-0 overflow-y-auto). flex+overflow hidden aquí
+       colapsa la altura porque el padre no es flex container. */
     :host {
-      display: flex;
-      flex-direction: column;
-      flex: 1 1 0;
-      min-height: 0;
+      display: block;
       width: 100%;
-      overflow: hidden;
+      min-height: 100%;
       background:
         radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,191,36,0.08), transparent 60%),
         radial-gradient(ellipse 60% 40% at 100% 100%, rgba(167,139,250,0.06), transparent 60%),
@@ -167,18 +171,12 @@ const EXTERNAL_MODULES: readonly Module[] = [
     .launcher {
       max-width: 1200px;
       width: 100%;
-      flex: 1 1 0;
-      min-height: 0;
       margin: 0 auto;
       padding: clamp(1rem, 3vh, 2rem) clamp(0.75rem, 2.5vw, 2rem);
       display: flex;
       flex-direction: column;
-      justify-content: center;
       gap: clamp(1.25rem, 3vh, 2rem);
-      overflow-y: auto;
       box-sizing: border-box;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.1) transparent;
     }
     .launcher::-webkit-scrollbar { width: 5px; }
     .launcher::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
