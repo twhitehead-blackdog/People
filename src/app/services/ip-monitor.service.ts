@@ -191,28 +191,28 @@ export class IpMonitorService {
         return this.processIPCheck(clientIP, previousIP);
       }),
       catchError((serverError) => {
-        // Si el servidor falla o devuelve localhost, intentar WebRTC
-        // No mostrar error en consola si es Naz (no requiere validación de IP)
+        // Si el servidor falla o devuelve localhost, ipify (publica) primero;
+        // WebRTC ultimo porque devuelve IP local que no matchea con la
+        // publica de la sucursal en branches.ip.
         if (this.isNaz()) {
           return of({ allowed: true, ip: null });
         }
-        return this.getLocalIPWithWebRTC().pipe(
+        return this.getIPViaHttp().pipe(
           timeout(8000),
-          map((localIP) => {
-            if (localIP && localIP !== '127.0.0.1' && localIP !== '::1') {
-              return this.processIPCheck(localIP, previousIP);
+          switchMap((httpIP) => {
+            if (httpIP && httpIP !== '127.0.0.1') {
+              return of(this.processIPCheck(httpIP, previousIP));
             }
-            throw new Error('IP de WebRTC es localhost o inválida');
+            throw new Error('IP de HTTP invalida');
           }),
-          catchError((webrtcError) => {
-            
-            // Fallback a HTTP
-            return this.getIPViaHttp().pipe(
-              switchMap((httpIP) => {
-                if (httpIP && httpIP !== '127.0.0.1') {
-                  return of(this.processIPCheck(httpIP, previousIP));
+          catchError(() => {
+            return this.getLocalIPWithWebRTC().pipe(
+              timeout(8000),
+              switchMap((localIP) => {
+                if (localIP && localIP !== '127.0.0.1' && localIP !== '::1') {
+                  return of(this.processIPCheck(localIP, previousIP));
                 }
-                throw new Error('IP de HTTP es localhost o inválida');
+                throw new Error('IP de WebRTC es localhost o invalida');
               }),
               catchError((httpError) => {
                 // En caso de error, mantener la IP anterior si existe
@@ -356,31 +356,36 @@ export class IpMonitorService {
           return { allowed: isAllowed, ip: clientIP };
         }),
         catchError((serverError) => {
-          // Método 2: Intentar obtener IP local usando WebRTC (mismo que timeclock)
-          return this.getLocalIPWithWebRTC().pipe(
+          // Método 2 (era 3): IP publica via ipify. Las IPs en la tabla
+          // branches son publicas, asi que probamos esto ANTES de WebRTC
+          // (que solo da IP local del kiosk y nunca matchea con la publica
+          // de la sucursal).
+          return this.getIPViaHttp().pipe(
             timeout(8000),
-            map((localIP) => {
-              if (localIP && localIP !== '127.0.0.1' && localIP !== '::1') {
-                const isAllowed = this.isIPAllowed(localIP);
-                this.currentIP$.next(localIP);
+            switchMap((httpIP) => {
+              if (httpIP && httpIP !== '127.0.0.1') {
+                const isAllowed = this.isIPAllowed(httpIP);
+                this.currentIP$.next(httpIP);
                 this.isIPValid$.next(isAllowed);
-                return { allowed: isAllowed, ip: localIP };
+                return of({ allowed: isAllowed, ip: httpIP });
               }
-              throw new Error('IP de WebRTC es localhost o inválida');
+              throw new Error('IP de HTTP invalida');
             }),
-            catchError((webrtcError) => {
-              // Método 3: Intentar servicios HTTP externos (mismo que timeclock)
-              return this.getIPViaHttp().pipe(
-                switchMap((httpIP) => {
-                  if (httpIP && httpIP !== '127.0.0.1') {
-                    const isAllowed = this.isIPAllowed(httpIP);
-                    this.currentIP$.next(httpIP);
+            catchError((httpError) => {
+              // Método 3 (era 2): WebRTC como ultimo recurso. Si los
+              // branches.ip almacenan IPs locales (LAN), todavia funciona.
+              return this.getLocalIPWithWebRTC().pipe(
+                timeout(8000),
+                map((localIP) => {
+                  if (localIP && localIP !== '127.0.0.1' && localIP !== '::1') {
+                    const isAllowed = this.isIPAllowed(localIP);
+                    this.currentIP$.next(localIP);
                     this.isIPValid$.next(isAllowed);
-                    return of({ allowed: isAllowed, ip: httpIP });
+                    return { allowed: isAllowed, ip: localIP };
                   }
-                  throw new Error('IP de HTTP es localhost o inválida');
+                  throw new Error('IP de WebRTC es localhost o invalida');
                 }),
-                catchError((httpError) => {
+                catchError(() => {
                   this.isIPValid$.next(false);
                   return of({ allowed: false, ip: null });
                 })
