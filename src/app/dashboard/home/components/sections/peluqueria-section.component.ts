@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TooltipModule } from 'primeng/tooltip';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { HomeDataService, OdooSaleOrder } from '../../services/home-data.service';
 import { BranchesStore } from '../../../../stores/branches.store';
 import { PELUQUERIA_POSITION_NAMES } from '../../../services/groomer-schedule-utils.service';
@@ -93,7 +93,7 @@ export type BranchPeluqueriaRow = {
 @Component({
   selector: 'pt-peluqueria-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, TooltipModule, CalendarModule],
+  imports: [CommonModule, FormsModule, TooltipModule, DatePickerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- ========== DESKTOP ========== -->
@@ -107,7 +107,7 @@ export type BranchPeluqueriaRow = {
           </h2>
           <div class="date-filter">
             <label class="date-filter-label">Ver fecha:</label>
-            <p-calendar
+            <p-datepicker
               [ngModel]="homeData.peluqueriaViewDate()"
               (ngModelChange)="onViewDateChange($event)"
               [showIcon]="true"
@@ -115,7 +115,7 @@ export type BranchPeluqueriaRow = {
               [maxDate]="maxDate()"
               styleClass="peluqueria-date-picker"
               inputStyleClass="peluqueria-date-input"
-            ></p-calendar>
+            ></p-datepicker>
           </div>
         </div>
         <p class="section-subtitle">
@@ -302,7 +302,7 @@ export type BranchPeluqueriaRow = {
         <p class="text-xs text-gray-400 mb-2">Peluqueros por tienda</p>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-xs text-gray-400">Fecha:</span>
-          <p-calendar
+          <p-datepicker
             [ngModel]="homeData.peluqueriaViewDate()"
             (ngModelChange)="onViewDateChange($event)"
             [showIcon]="true"
@@ -310,7 +310,7 @@ export type BranchPeluqueriaRow = {
             [maxDate]="maxDate()"
             styleClass="peluqueria-date-picker"
             inputStyleClass="peluqueria-date-input"
-          ></p-calendar>
+          ></p-datepicker>
         </div>
         <p class="text-xs text-gray-500">{{ dateLabel() }}</p>
       </div>

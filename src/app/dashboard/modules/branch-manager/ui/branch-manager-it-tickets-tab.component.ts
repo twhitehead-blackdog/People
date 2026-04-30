@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
@@ -70,11 +70,10 @@ const PRIORITY_META: Record<string, { label: string; severity: 'danger' | 'warn'
   standalone: true,
   imports: [
     DatePipe,
-    NgClass,
     FormsModule,
     ButtonModule,
     DialogModule,
-    DropdownModule,
+    SelectModule,
     InputTextModule,
     ProgressSpinnerModule,
     TableModule,
@@ -149,7 +148,7 @@ const PRIORITY_META: Record<string, { label: string; severity: 'danger' | 'warn'
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-tag mr-1 text-amber-400 text-xs"></i>Estado
               </label>
-              <p-dropdown [options]="statusFilterOptions" [(ngModel)]="filterStatus"
+              <p-select [options]="statusFilterOptions" [(ngModel)]="filterStatus"
                 placeholder="Todos" [showClear]="true" styleClass="w-full text-sm"
                 [style]="{ height: '32px' }" />
             </div>
@@ -157,7 +156,7 @@ const PRIORITY_META: Record<string, { label: string; severity: 'danger' | 'warn'
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-desktop mr-1 text-amber-400 text-xs"></i>Categoría
               </label>
-              <p-dropdown [options]="categoryFilterOptions" [(ngModel)]="filterCategory"
+              <p-select [options]="categoryFilterOptions" [(ngModel)]="filterCategory"
                 placeholder="Todas" [showClear]="true" styleClass="w-full text-sm"
                 [style]="{ height: '32px' }" />
             </div>
@@ -165,7 +164,7 @@ const PRIORITY_META: Record<string, { label: string; severity: 'danger' | 'warn'
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-exclamation-triangle mr-1 text-amber-400 text-xs"></i>Prioridad
               </label>
-              <p-dropdown [options]="priorityFilterOptions" [(ngModel)]="filterPriority"
+              <p-select [options]="priorityFilterOptions" [(ngModel)]="filterPriority"
                 placeholder="Todas" [showClear]="true" styleClass="w-full text-sm"
                 [style]="{ height: '32px' }" />
             </div>
@@ -370,11 +369,11 @@ const PRIORITY_META: Record<string, { label: string; severity: 'danger' | 'warn'
 
       @if (showFilters()) {
       <div class="grid grid-cols-1 gap-2 p-3 bg-neutral-800/80 rounded-lg border border-neutral-700/50">
-        <p-dropdown [options]="statusFilterOptions" [(ngModel)]="filterStatus"
+        <p-select [options]="statusFilterOptions" [(ngModel)]="filterStatus"
           placeholder="Estado" [showClear]="true" styleClass="w-full" />
-        <p-dropdown [options]="categoryFilterOptions" [(ngModel)]="filterCategory"
+        <p-select [options]="categoryFilterOptions" [(ngModel)]="filterCategory"
           placeholder="Categoría" [showClear]="true" styleClass="w-full" />
-        <p-dropdown [options]="priorityFilterOptions" [(ngModel)]="filterPriority"
+        <p-select [options]="priorityFilterOptions" [(ngModel)]="filterPriority"
           placeholder="Prioridad" [showClear]="true" styleClass="w-full" />
         <p-button label="Limpiar filtros" icon="pi pi-filter-slash"
           [outlined]="true" severity="secondary" size="small"

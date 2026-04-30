@@ -12,10 +12,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { TabViewModule } from 'primeng/tabview';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
@@ -37,11 +37,11 @@ interface LocalAnswer {
     CommonModule,
     CardModule,
     Button,
-    TabViewModule,
+    TabsModule,
     SelectButtonModule,
     FormsModule,
     TagModule,
-    InputTextarea,
+    Textarea,
     ProgressSpinnerModule,
     ToastModule,
   ],
@@ -117,61 +117,68 @@ interface LocalAnswer {
 
       <!-- Sections Tabs -->
       <div class="card">
-        <p-tabView>
-          @for (section of form()?.sections || []; track section.id) {
-          <p-tabPanel
-            [header]="section.title + ' (' + section.weight_percentage + '%)'"
-          >
-            <div class="space-y-6 pt-4">
-              @for (question of section.questions || []; track question.id) {
-              <div
-                class="p-4 rounded-lg bg-surface-800 border border-surface-700"
-              >
-                <div class="flex justify-between items-start mb-3">
-                  <p class="text-lg font-medium text-white max-w-3xl">
-                    {{ question.code }} - {{ question.question_text }}
+        <p-tabs [value]="0">
+          <p-tablist>
+            @for (section of form()?.sections || []; track section.id; let i = $index) {
+              <p-tab [value]="i">
+                {{ section.title }} ({{ section.weight_percentage }}%)
+              </p-tab>
+            }
+          </p-tablist>
+          <p-tabpanels>
+            @for (section of form()?.sections || []; track section.id; let i = $index) {
+              <p-tabpanel [value]="i">
+                <div class="space-y-6 pt-4">
+                  @for (question of section.questions || []; track question.id) {
+                  <div
+                    class="p-4 rounded-lg bg-surface-800 border border-surface-700"
+                  >
+                    <div class="flex justify-between items-start mb-3">
+                      <p class="text-lg font-medium text-white max-w-3xl">
+                        {{ question.code }} - {{ question.question_text }}
+                      </p>
+                      @if (question.is_critical) {
+                      <p-tag
+                        value="Crítico"
+                        severity="danger"
+                        icon="pi pi-exclamation-triangle"
+                      ></p-tag>
+                      }
+                    </div>
+
+                    <div
+                      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4"
+                    >
+                      <div class="w-full sm:w-auto">
+                        <p-selectButton
+                          [options]="responseOptions"
+                          [ngModel]="getAnswerValue(question.id)"
+                          (ngModelChange)="setAnswerValue(question.id, $event)"
+                          optionLabel="label"
+                          optionValue="value"
+                        ></p-selectButton>
+                      </div>
+
+                      <textarea
+                        pInputTextarea
+                        rows="1"
+                        placeholder="Observaciones (opcional)"
+                        class="w-full sm:w-1/2 bg-surface-900 border-surface-600 text-sm"
+                        [ngModel]="getAnswerNotes(question.id)"
+                        (ngModelChange)="setAnswerNotes(question.id, $event)"
+                      ></textarea>
+                    </div>
+                  </div>
+                  } @empty {
+                  <p class="text-gray-500 text-center py-4">
+                    No hay preguntas en esta sección.
                   </p>
-                  @if (question.is_critical) {
-                  <p-tag
-                    value="Crítico"
-                    severity="danger"
-                    icon="pi pi-exclamation-triangle"
-                  ></p-tag>
                   }
                 </div>
-
-                <div
-                  class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4"
-                >
-                  <div class="w-full sm:w-auto">
-                    <p-selectButton
-                      [options]="responseOptions"
-                      [ngModel]="getAnswerValue(question.id)"
-                      (ngModelChange)="setAnswerValue(question.id, $event)"
-                      optionLabel="label"
-                      optionValue="value"
-                    ></p-selectButton>
-                  </div>
-
-                  <textarea
-                    pInputTextarea
-                    rows="1"
-                    placeholder="Observaciones (opcional)"
-                    class="w-full sm:w-1/2 bg-surface-900 border-surface-600 text-sm"
-                    [ngModel]="getAnswerNotes(question.id)"
-                    (ngModelChange)="setAnswerNotes(question.id, $event)"
-                  ></textarea>
-                </div>
-              </div>
-              } @empty {
-              <p class="text-gray-500 text-center py-4">
-                No hay preguntas en esta sección.
-              </p>
-              }
-            </div>
-          </p-tabPanel>
-          }
-        </p-tabView>
+              </p-tabpanel>
+            }
+          </p-tabpanels>
+        </p-tabs>
       </div>
       } @else {
       <div class="text-center py-12 text-gray-500">

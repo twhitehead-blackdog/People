@@ -1,4 +1,3 @@
-import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,11 +9,10 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Calendar } from 'primeng/calendar';
+import { DatePicker } from 'primeng/datepicker';
 import { Dialog } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
-import { InputText } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
+import { InputText } from 'primeng/inputtext';
 import { ScheduleAuditLog } from '../../../../services/schedule-audit.service';
 import {
   AUDIT_ACTION_OPTIONS,
@@ -27,10 +25,9 @@ import { AuditLogEntryComponent } from '../audit-log-entry/audit-log-entry.compo
   imports: [
     Dialog,
     FormsModule,
-    NgClass,
     Button,
-    Calendar,
-    DropdownModule,
+    DatePicker,
+    SelectModule,
     InputText,
     SelectModule,
     AuditLogEntryComponent,
@@ -104,7 +101,7 @@ import { AuditLogEntryComponent } from '../audit-log-entry/audit-log-entry.compo
                   <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i>Rango
                   de Fechas
                 </label>
-                <p-calendar
+                <p-datepicker
                   [(ngModel)]="selectedDateRange"
                   selectionMode="range"
                   [showIcon]="true"
@@ -120,7 +117,7 @@ import { AuditLogEntryComponent } from '../audit-log-entry/audit-log-entry.compo
                   <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Tipo de
                   Acción
                 </label>
-                <p-dropdown
+                <p-select
                   [options]="auditActionOptions"
                   optionLabel="label"
                   optionValue="value"

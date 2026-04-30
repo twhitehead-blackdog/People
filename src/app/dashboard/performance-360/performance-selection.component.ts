@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ToastModule } from 'primeng/toast';
 import { AuditForm } from '../../models';
@@ -21,7 +21,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
     CommonModule,
     CardModule,
     Button,
-    DropdownModule,
+    SelectModule,
     FormsModule,
     ProgressSpinnerModule,
     ToastModule,
@@ -52,14 +52,14 @@ import { DashboardStore } from '../../stores/dashboard.store';
           styleClass="h-full bg-surface-900 border-surface-700"
         >
           <div class="p-fluid">
-            <p-dropdown
+            <p-select
               [options]="branchesStore.entities()"
               [(ngModel)]="selectedBranchId"
               optionLabel="name"
               optionValue="id"
               placeholder="Seleccione Sucursal"
               styleClass="w-full"
-            ></p-dropdown>
+            ></p-select>
           </div>
         </p-card>
 

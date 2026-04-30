@@ -12,7 +12,6 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { addDays, addYears, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
-import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
 import { Employee } from '../models';
@@ -36,7 +35,6 @@ import { EmployeePortalLatesComponent } from './components/employee-portal-lates
 import { EmployeePortalManagementNavigationComponent } from './components/employee-portal-management-navigation.component';
 import { EmployeePortalMyRequestsComponent } from './components/employee-portal-my-requests.component';
 import { EmployeePortalNotificationCenterComponent } from './components/employee-portal-notification-center.component';
-import { EmployeePortalNotificationsComponent } from './components/employee-portal-notifications.component';
 import { EmployeePortalProfileComponent } from './components/employee-portal-profile.component';
 import { EmployeePortalRequestDetailsDialogComponent } from './components/employee-portal-request-details-dialog.component';
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
@@ -77,7 +75,6 @@ import { notifyBranchManagers } from '../utils/manager-notification.utils';
   standalone: true,
   imports: [
     CommonModule,
-    Card,
     ToastModule,
     EmployeePortalDashboardComponent,
     EmployeePortalManagementNavigationComponent,
@@ -90,7 +87,6 @@ import { notifyBranchManagers } from '../utils/manager-notification.utils';
     EmployeePortalProfileComponent,
     EmployeePortalMyRequestsComponent,
     EmployeePortalNotificationCenterComponent,
-    EmployeePortalNotificationsComponent,
     EmployeePortalCompensatoryTutorialDialogComponent,
     EmployeePortalRequestDetailsDialogComponent,
     EmployeePortalUniformRequestComponent,

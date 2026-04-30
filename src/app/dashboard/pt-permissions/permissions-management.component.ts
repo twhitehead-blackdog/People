@@ -284,7 +284,7 @@ export class PermissionsManagementComponent {
       baseZIndex: 10000,
     });
 
-    dialogRef.onClose.subscribe((result) => {
+    dialogRef?.onClose.subscribe((result) => {
       if (result) {
         this.store.employees.reloadItems();
       }

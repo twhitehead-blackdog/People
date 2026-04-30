@@ -518,7 +518,7 @@ export class DeviceInventoryComponent {
   readonly assignmentStore = inject(DeviceAssignmentStore);
   private dashboardStore = inject(DashboardStore);
   protected device = inject(DeviceService);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
   private dialog = inject(DialogService);
 
   searchQuery = signal('');
@@ -674,7 +674,7 @@ export class DeviceInventoryComponent {
       data: { device },
     });
 
-    this.ref.onClose.subscribe((result) => {
+    this.ref?.onClose?.subscribe((result) => {
       if (result) {
         this.deviceStore.reloadItems();
       }
@@ -695,7 +695,7 @@ export class DeviceInventoryComponent {
       data: { deviceId: device.id },
     });
 
-    this.ref.onClose.subscribe((result) => {
+    this.ref?.onClose?.subscribe((result) => {
       if (result) {
         this.deviceStore.reloadItems();
         this.assignmentStore.reloadItems();
@@ -720,7 +720,7 @@ export class DeviceInventoryComponent {
       },
     });
 
-    this.ref.onClose.subscribe((result) => {
+    this.ref?.onClose?.subscribe((result) => {
       if (result) {
         this.deviceStore.reloadItems();
         this.assignmentStore.reloadItems();

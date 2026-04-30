@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Tag } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 
@@ -38,7 +38,7 @@ export interface OvertimeDialogResult {
     FormsModule,
     DatePipe,
     InputNumberModule,
-    InputTextarea,
+    Textarea,
     Tag,
     TooltipModule,
   ],

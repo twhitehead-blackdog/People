@@ -18,7 +18,7 @@ import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -82,7 +82,7 @@ type ManagementCard = {
     DatePicker,
     FileUpload,
     InputText,
-    InputTextarea,
+    Textarea,
     EmployeePortalCompensatoryComponent,
     TutorialStepDirective,
     TutorialSpotlightComponent,

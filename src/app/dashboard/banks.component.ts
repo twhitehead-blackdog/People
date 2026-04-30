@@ -99,7 +99,7 @@ export class BanksComponent {
     });
     
     // Recargar la lista cuando se cierre el diálogo
-    ref.onClose.subscribe(() => {
+    ref?.onClose.subscribe(() => {
       this.store.banks.reloadItems();
     });
   }

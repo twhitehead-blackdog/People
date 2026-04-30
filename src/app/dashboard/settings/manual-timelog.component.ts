@@ -16,7 +16,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
 import { Dialog } from 'primeng/dialog';
 import { InputText } from 'primeng/inputtext';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
@@ -50,7 +50,7 @@ interface ExistingPunches {
     Select,
     DatePicker,
     InputText,
-    InputTextarea,
+    Textarea,
     ToastModule,
     ConfirmDialog,
     Dialog,

@@ -228,19 +228,18 @@ export class PayrollEmployeesComponent {
   private http = inject(HttpClient);
 
   public editEmployee(employee?: PayrollEmployee) {
-    this.dialogService
-      .open(PayrollEmployeesFormComponent, {
-        data: {
-          payrollId: this.payrollId(),
-          employee,
-        },
-        modal: true,
-        width: '48rem',
-        header: 'Empleado',
-      })
-      .onClose.subscribe(() => {
-        this.employees.reload();
-      });
+    const ref = this.dialogService.open(PayrollEmployeesFormComponent, {
+      data: {
+        payrollId: this.payrollId(),
+        employee,
+      },
+      modal: true,
+      width: '48rem',
+      header: 'Empleado',
+    });
+    ref?.onClose?.subscribe(() => {
+      this.employees.reload();
+    });
   }
 
   massiveCharge() {

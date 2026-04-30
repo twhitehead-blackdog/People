@@ -204,15 +204,14 @@ export class EmployeeSchedulesComponent {
       employee_id,
       employee_schedule,
     });
-    this.dialog
-      .open(EmployeeSchedulesFormComponent, {
-        header: employee_schedule ? 'Editar horario' : 'Nuevo horario',
-        data: { employee_id, employee_schedule },
-        width: '40%',
-      })
-      .onClose.subscribe(() => {
-        this.resourceSchedules.reload();
-      });
+    const ref = this.dialog.open(EmployeeSchedulesFormComponent, {
+      header: employee_schedule ? 'Editar horario' : 'Nuevo horario',
+      data: { employee_id, employee_schedule },
+      width: '40%',
+    });
+    ref?.onClose?.subscribe(() => {
+      this.resourceSchedules.reload();
+    });
   }
 
   deleteSchedule(id: string) {

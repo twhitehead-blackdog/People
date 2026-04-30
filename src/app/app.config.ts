@@ -90,12 +90,8 @@ export const appConfig: ApplicationConfig = {
       theme: {
         preset: MyPreset,
         options: {
-          darkModeSelector: 'html.dark',
-          cssLayer: {
-            name: 'primeng',
-            order:
-              'tw-base, primeng, tw-components, tw-utilities, tw-variants;',
-          },
+          darkModeSelector: '.dark',
+          cssLayer: false,
         },
       },
       translation: es,

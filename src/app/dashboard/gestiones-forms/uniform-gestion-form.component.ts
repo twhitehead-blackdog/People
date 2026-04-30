@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -31,7 +31,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
     FormsModule,
     Button,
     InputText,
-    InputTextarea,
+    Textarea,
     Select,
     TooltipModule,
     TutorialStepDirective,

@@ -10,9 +10,9 @@ import { NgClass } from '@angular/common';
 import { catchError, of, switchMap } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
@@ -40,9 +40,9 @@ import { DeviceService } from '../../../../services/device.service';
     NgClass,
     FormsModule,
     ButtonModule,
-    CalendarModule,
+    DatePickerModule,
     DialogModule,
-    DropdownModule,
+    SelectModule,
     InputTextModule,
     ProgressSpinnerModule,
     TableModule,
@@ -77,7 +77,7 @@ import { DeviceService } from '../../../../services/device.service';
             <span class="text-sm font-semibold text-white">Solicitudes por Tienda</span>
           </div>
           <div class="flex items-center gap-2">
-            <p-calendar [(ngModel)]="selectedMetricMonth" view="month" dateFormat="MM yy"
+            <p-datepicker [(ngModel)]="selectedMetricMonth" view="month" dateFormat="MM yy"
               [inputStyle]="{ height: '28px', padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: '110px' }"
               (click)="$event.stopPropagation()" />
             <i [class]="showBranchMetrics() ? 'pi pi-chevron-up text-gray-400 text-xs' : 'pi pi-chevron-down text-gray-400 text-xs'"></i>
@@ -157,7 +157,7 @@ import { DeviceService } from '../../../../services/device.service';
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-tag mr-1 text-amber-400 text-xs"></i>Estado
               </label>
-              <p-dropdown [options]="statusOptions" [(ngModel)]="selectedStatus"
+              <p-select [options]="statusOptions" [(ngModel)]="selectedStatus"
                 placeholder="Todos" [showClear]="true" class="w-full text-sm"
                 [style]="{ height: '32px' }" />
             </div>
@@ -165,7 +165,7 @@ import { DeviceService } from '../../../../services/device.service';
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-tag mr-1 text-amber-400 text-xs"></i>Tipo
               </label>
-              <p-dropdown [options]="typeOptions" [(ngModel)]="selectedType"
+              <p-select [options]="typeOptions" [(ngModel)]="selectedType"
                 placeholder="Todos" [showClear]="true" class="w-full text-sm"
                 [style]="{ height: '32px' }" />
             </div>
@@ -173,7 +173,7 @@ import { DeviceService } from '../../../../services/device.service';
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-calendar mr-1 text-amber-400 text-xs"></i>Rango de Fechas
               </label>
-              <p-calendar [(ngModel)]="dateRange" selectionMode="range"
+              <p-datepicker [(ngModel)]="dateRange" selectionMode="range"
                 [showIcon]="true" dateFormat="dd/mm/yy" placeholder="Seleccionar"
                 [showClear]="true" class="w-full text-sm"
                 [inputStyle]="{ height: '32px', padding: '0.375rem' }" />
@@ -403,9 +403,9 @@ import { DeviceService } from '../../../../services/device.service';
       <div class="grid grid-cols-1 gap-2 p-2 bg-neutral-800/80 rounded-lg border border-neutral-700/50">
         <input type="text" pInputText placeholder="Empleado, motivo..."
           [(ngModel)]="searchText" class="w-full text-sm py-2 bg-neutral-900/50 border-neutral-600 rounded" />
-        <p-dropdown [options]="statusOptions" [(ngModel)]="selectedStatus"
+        <p-select [options]="statusOptions" [(ngModel)]="selectedStatus"
           placeholder="Estado" [showClear]="true" class="w-full" styleClass="w-full" />
-        <p-dropdown [options]="typeOptions" [(ngModel)]="selectedType"
+        <p-select [options]="typeOptions" [(ngModel)]="selectedType"
           placeholder="Tipo" [showClear]="true" class="w-full" styleClass="w-full" />
         <p-button label="Limpiar filtros" icon="pi pi-filter-slash"
           [outlined]="true" severity="secondary" size="small"

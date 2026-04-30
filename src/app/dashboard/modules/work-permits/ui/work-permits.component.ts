@@ -126,7 +126,6 @@ const PERMIT_TYPE_LABELS: Record<string, string> = {
           paginatorPosition="bottom"
           [scrollable]="true"
           scrollHeight="600px"
-          [responsive]="true"
           styleClass="p-datatable-sm p-datatable-striped"
         >
           <ng-template pTemplate="header">

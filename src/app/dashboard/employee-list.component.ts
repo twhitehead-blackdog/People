@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -50,7 +50,6 @@ import { EmployeeFormComponent } from './employee-form.component';
     FormsModule,
     Button,
     MultiSelectModule,
-    NgClass,
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
@@ -861,7 +860,7 @@ export class EmployeeListComponent implements OnInit {
     }))
   );
   private dialog = inject(DialogService);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
 
   ngOnInit(): void {
     this.store.employees.clearSelectedEntity();

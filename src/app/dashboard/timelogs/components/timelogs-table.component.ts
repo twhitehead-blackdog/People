@@ -70,8 +70,8 @@ import {
               <div style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;">
                 @if (log.scheduleError) {
                   <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold inline-flex items-center gap-1 ring-1 ring-red-500/60"
-                    [ngClass]="log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!] ? colorVariants[log.schedule!.schedule!.color!] : 'bg-neutral-700 text-gray-300'"
-                    [ngStyle]="log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!] ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!) : null"
+                    [ngClass]="getScheduleColor(log) && colorVariants[getScheduleColor(log)!] ? colorVariants[getScheduleColor(log)!] : 'bg-neutral-700 text-gray-300'"
+                    [ngStyle]="getScheduleColor(log) && !colorVariants[getScheduleColor(log)!] ? getScheduleColorInlineStyle(getScheduleColor(log)!) : null"
                   >
                     {{ log.schedule?.schedule?.name || 'Sin horario' }}
                     <i class="pi pi-exclamation-triangle text-red-400 text-[9px]"></i>
@@ -83,8 +83,8 @@ import {
                   </span>
                 } @else {
                   <span class="rounded text-[10px] px-1.5 py-0.5 font-semibold"
-                    [ngClass]="log.schedule?.schedule?.color && colorVariants[log.schedule!.schedule!.color!] ? colorVariants[log.schedule!.schedule!.color!] : 'bg-neutral-700 text-gray-400'"
-                    [ngStyle]="log.schedule?.schedule?.color && !colorVariants[log.schedule!.schedule!.color!] ? getScheduleColorInlineStyle(log.schedule!.schedule!.color!) : null"
+                    [ngClass]="getScheduleColor(log) && colorVariants[getScheduleColor(log)!] ? colorVariants[getScheduleColor(log)!] : 'bg-neutral-700 text-gray-400'"
+                    [ngStyle]="getScheduleColor(log) && !colorVariants[getScheduleColor(log)!] ? getScheduleColorInlineStyle(getScheduleColor(log)!) : null"
                   >{{ log.schedule!.schedule!.name }}</span>
                   @if (log.alert) {
                     <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
@@ -103,7 +103,7 @@ import {
                   @if (log.lunch_start) {
                   <div class="flex flex-col items-center">
                     <span class="text-[8px] text-gray-600 uppercase">Alm</span>
-                    <span class="text-[11px] text-gray-400">{{ log.lunch_start?.date | panamaDate : 'hh:mm' }}-{{ log.lunch_end?.date | panamaDate : 'hh:mm' }}</span>
+                    <span class="text-[11px] text-gray-400">{{ log.lunch_start.date | panamaDate : 'hh:mm' }}-{{ log.lunch_end?.date | panamaDate : 'hh:mm' }}</span>
                   </div>
                   }
                   <div class="flex flex-col items-center">
@@ -537,6 +537,11 @@ export class TimelogsTableComponent {
 
   public getScheduleColorInlineStyle(color: string | undefined | null) {
     return getColorStyle(color);
+  }
+
+  /** Helper para evitar warnings NG8107 en templates con cadenas opcionales largas. */
+  public getScheduleColor(log: DayLog): string | undefined {
+    return log.schedule?.schedule?.color ?? undefined;
   }
 
   // Overtime button visibility - only for admins when overtime > 0

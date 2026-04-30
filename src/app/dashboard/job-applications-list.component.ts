@@ -1282,7 +1282,7 @@ export class JobApplicationsListComponent implements OnInit {
       closeOnEscape: true,   // Cerrar con tecla Escape
     });
 
-    ref.onClose.subscribe(() => {
+    ref?.onClose?.subscribe(() => {
       // Recargar posiciones después de cerrar el diálogo
       this.positionsStore.reloadItems();
     });
@@ -1370,7 +1370,7 @@ export class JobApplicationsListComponent implements OnInit {
       },
     });
 
-    ref.onClose.subscribe((newStatus: JobApplication['status'] | null) => {
+    ref?.onClose?.subscribe((newStatus: JobApplication['status'] | null) => {
       if (newStatus) {
         this.updateStatus(application, newStatus);
       }
@@ -1583,7 +1583,7 @@ export class JobApplicationsListComponent implements OnInit {
       closeOnEscape: true, // Permite cerrar con ESC
     });
 
-    ref.onClose.subscribe((result: any) => {
+    ref?.onClose?.subscribe((result: any) => {
       // Recargar estados después de cerrar el diálogo
       // Siempre recargar para asegurar que los nuevos estados estén disponibles
       // Usar un delay más largo para asegurar que la petición HTTP se complete

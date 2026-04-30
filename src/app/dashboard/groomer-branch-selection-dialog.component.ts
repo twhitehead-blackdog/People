@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import {
   Component,
   computed,
@@ -47,7 +46,6 @@ const ALLOWED_STORE_MANAGER_SHIFTS = [
     SelectModule,
     Button,
     FormsModule,
-    DatePipe,
     SelectButton,
     DatePicker,
   ],

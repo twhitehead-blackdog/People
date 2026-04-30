@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -11,13 +11,11 @@ import { DeviceService } from '../services/device.service';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Dialog } from 'primeng/dialog';
 import { InputNumber } from 'primeng/inputnumber';
-import { InputText } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { ConfirmDialog } from 'primeng/confirmdialog';
@@ -46,9 +44,9 @@ const STATUS_CONFIG: Record<VacPayStatus, { label: string; severity: 'secondary'
   selector: 'pt-payroll-vacations',
   standalone: true,
   imports: [
-    CurrencyPipe, DatePipe, FormsModule,
-    Button, Card, Select, TableModule, Tag, Dialog,
-    InputNumber, InputText, Textarea, ProgressSpinner,
+    CurrencyPipe, FormsModule,
+    Button, Select, TableModule, Tag, Dialog,
+    InputNumber, Textarea, ProgressSpinner,
     ConfirmDialog, Toast,
   ],
   providers: [ConfirmationService, MessageService],

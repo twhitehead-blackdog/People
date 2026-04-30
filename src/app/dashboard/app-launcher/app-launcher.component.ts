@@ -1,250 +1,432 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { PermissionsService } from '../../services/permissions.service';
 import { DashboardStore } from '../../stores/dashboard.store';
 
 interface Module {
-  id: string;
-  label: string;
-  description: string;
-  icon: string;
-  target: string;
-  moduleId?: string;
-  external?: boolean;
-  tw: string;
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+  readonly icon: string;
+  readonly target: string;
+  readonly moduleId?: string;
+  readonly external?: boolean;
+  readonly accent: AccentKey;
 }
 
-const PEOPLE_MODULES: Module[] = [
-  {
-    id: 'home',
-    label: 'Dashboard RRHH',
-    description: 'KPIs y métricas ejecutivas',
-    icon: 'pi-chart-bar',
-    target: 'admin/home',
-    moduleId: 'home',
-    tw: 'blue',
-  },
-  {
-    id: 'admin',
-    label: 'Administración',
-    description: 'Empleados, posiciones y más',
-    icon: 'pi-building',
-    target: 'admin',
-    moduleId: 'admin',
-    tw: 'violet',
-  },
-  {
-    id: 'time_management',
-    label: 'Gestión de tiempo',
-    description: 'Horarios, turnos y timelogs',
-    icon: 'pi-clock',
-    target: 'time-management',
-    moduleId: 'time_management',
-    tw: 'emerald',
-  },
-  {
-    id: 'payroll',
-    label: 'Planilla',
-    description: 'Nóminas, deducciones y décimo',
-    icon: 'pi-wallet',
-    target: 'payroll',
-    moduleId: 'payroll',
-    tw: 'amber',
-  },
-  {
-    id: 'timeclock',
-    label: 'Reloj',
-    description: 'Registro de entradas y salidas',
-    icon: 'pi-stopwatch',
-    target: 'timeclock',
-    moduleId: 'timeclock',
-    tw: 'rose',
-  },
-  {
-    id: 'branch_manager',
-    label: 'Gerente de Sucursal',
-    description: 'Gestión de sucursal',
-    icon: 'pi-sitemap',
-    target: 'branch-manager',
-    moduleId: 'branch_manager',
-    tw: 'orange',
-  },
-  {
-    id: 'my_portal',
-    label: 'Mi Portal',
-    description: 'Mi perfil y solicitudes',
-    icon: 'pi-user',
-    target: 'employee-portal',
-    tw: 'fuchsia',
-  },
-];
+type AccentKey =
+  | 'blue' | 'violet' | 'emerald' | 'amber' | 'rose'
+  | 'orange' | 'fuchsia' | 'teal' | 'indigo' | 'pink'
+  | 'purple' | 'slate' | 'cyan' | 'lime';
 
-const EXTERNAL_MODULES: Module[] = [
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    description: 'KPIs y ventas por tienda',
-    icon: 'pi-chart-line',
-    target: 'analytics',
-    tw: 'teal',
-  },
-  {
-    id: 'dashboards',
-    label: 'Asistencias en vivo',
-    description: 'Dashboard de asistencia',
-    icon: 'pi-objects-column',
-    target: 'live',
-    tw: 'indigo',
-  },
-  {
-    id: 'it',
-    label: 'BD IT',
-    description: 'Inventario y soporte técnico',
-    icon: 'pi-desktop',
-    target: 'https://it.blackdogpanama.com',
-    external: true,
-    tw: 'slate',
-  },
-  {
-    id: 'deploy',
-    label: 'Deploy',
-    description: 'CI/CD y deploys automáticos',
-    icon: 'pi-upload',
-    target: 'https://deploy.blackdogpanama.com',
-    external: true,
-    tw: 'pink',
-  },
-  {
-    id: 'agent',
-    label: 'Agente IA',
-    description: 'Asistente inteligente',
-    icon: 'pi-android',
-    target: 'https://agent.blackdogpanama.com',
-    external: true,
-    tw: 'purple',
-  },
-];
+interface AccentTokens {
+  readonly hex: string;
+  readonly bg: string;
+  readonly border: string;
+  readonly glow: string;
+  readonly text: string;
+}
 
-const COLOR_MAP: Record<string, { hex: string; bgCls: string; iconCls: string; hoverBorderCls: string; hoverShadowCls: string }> = {
-  blue:    { hex: '#60a5fa', bgCls: 'bg-blue-500/15',    iconCls: 'text-blue-400',    hoverBorderCls: 'hover:border-blue-500/40',    hoverShadowCls: 'hover:shadow-blue-500/20' },
-  violet:  { hex: '#a78bfa', bgCls: 'bg-violet-500/15',  iconCls: 'text-violet-400',  hoverBorderCls: 'hover:border-violet-500/40',  hoverShadowCls: 'hover:shadow-violet-500/20' },
-  emerald: { hex: '#34d399', bgCls: 'bg-emerald-500/15', iconCls: 'text-emerald-400', hoverBorderCls: 'hover:border-emerald-500/40', hoverShadowCls: 'hover:shadow-emerald-500/20' },
-  amber:   { hex: '#fbbf24', bgCls: 'bg-amber-500/15',   iconCls: 'text-amber-400',   hoverBorderCls: 'hover:border-amber-500/40',   hoverShadowCls: 'hover:shadow-amber-500/20' },
-  rose:    { hex: '#fb7185', bgCls: 'bg-rose-500/15',    iconCls: 'text-rose-400',    hoverBorderCls: 'hover:border-rose-500/40',    hoverShadowCls: 'hover:shadow-rose-500/20' },
-  orange:  { hex: '#fb923c', bgCls: 'bg-orange-500/15',  iconCls: 'text-orange-400',  hoverBorderCls: 'hover:border-orange-500/40',  hoverShadowCls: 'hover:shadow-orange-500/20' },
-  fuchsia: { hex: '#e879f9', bgCls: 'bg-fuchsia-500/15', iconCls: 'text-fuchsia-400', hoverBorderCls: 'hover:border-fuchsia-500/40', hoverShadowCls: 'hover:shadow-fuchsia-500/20' },
-  teal:    { hex: '#2dd4bf', bgCls: 'bg-teal-500/15',    iconCls: 'text-teal-400',    hoverBorderCls: 'hover:border-teal-500/40',    hoverShadowCls: 'hover:shadow-teal-500/20' },
-  indigo:  { hex: '#818cf8', bgCls: 'bg-indigo-500/15',  iconCls: 'text-indigo-400',  hoverBorderCls: 'hover:border-indigo-500/40',  hoverShadowCls: 'hover:shadow-indigo-500/20' },
-  pink:    { hex: '#f472b6', bgCls: 'bg-pink-500/15',    iconCls: 'text-pink-400',    hoverBorderCls: 'hover:border-pink-500/40',    hoverShadowCls: 'hover:shadow-pink-500/20' },
-  purple:  { hex: '#c084fc', bgCls: 'bg-purple-500/15',  iconCls: 'text-purple-400',  hoverBorderCls: 'hover:border-purple-500/40',  hoverShadowCls: 'hover:shadow-purple-500/20' },
-  slate:   { hex: '#94a3b8', bgCls: 'bg-slate-500/15',   iconCls: 'text-slate-400',   hoverBorderCls: 'hover:border-slate-500/40',   hoverShadowCls: 'hover:shadow-slate-500/20' },
+const ACCENTS: Record<AccentKey, AccentTokens> = {
+  blue:    { hex: '#60a5fa', bg: 'rgba(96,165,250,.14)',  border: 'rgba(96,165,250,.45)',  glow: 'rgba(96,165,250,.35)',  text: '#93c5fd' },
+  violet:  { hex: '#a78bfa', bg: 'rgba(167,139,250,.14)', border: 'rgba(167,139,250,.45)', glow: 'rgba(167,139,250,.35)', text: '#c4b5fd' },
+  emerald: { hex: '#34d399', bg: 'rgba(52,211,153,.14)',  border: 'rgba(52,211,153,.45)',  glow: 'rgba(52,211,153,.35)',  text: '#6ee7b7' },
+  amber:   { hex: '#fbbf24', bg: 'rgba(251,191,36,.14)',  border: 'rgba(251,191,36,.5)',   glow: 'rgba(251,191,36,.4)',   text: '#fcd34d' },
+  rose:    { hex: '#fb7185', bg: 'rgba(251,113,133,.14)', border: 'rgba(251,113,133,.45)', glow: 'rgba(251,113,133,.35)', text: '#fda4af' },
+  orange:  { hex: '#fb923c', bg: 'rgba(251,146,60,.14)',  border: 'rgba(251,146,60,.45)',  glow: 'rgba(251,146,60,.35)',  text: '#fdba74' },
+  fuchsia: { hex: '#e879f9', bg: 'rgba(232,121,249,.14)', border: 'rgba(232,121,249,.45)', glow: 'rgba(232,121,249,.35)', text: '#f0abfc' },
+  teal:    { hex: '#2dd4bf', bg: 'rgba(45,212,191,.14)',  border: 'rgba(45,212,191,.45)',  glow: 'rgba(45,212,191,.35)',  text: '#5eead4' },
+  indigo:  { hex: '#818cf8', bg: 'rgba(129,140,248,.14)', border: 'rgba(129,140,248,.45)', glow: 'rgba(129,140,248,.35)', text: '#a5b4fc' },
+  pink:    { hex: '#f472b6', bg: 'rgba(244,114,182,.14)', border: 'rgba(244,114,182,.45)', glow: 'rgba(244,114,182,.35)', text: '#f9a8d4' },
+  purple:  { hex: '#c084fc', bg: 'rgba(192,132,252,.14)', border: 'rgba(192,132,252,.45)', glow: 'rgba(192,132,252,.35)', text: '#d8b4fe' },
+  slate:   { hex: '#94a3b8', bg: 'rgba(148,163,184,.14)', border: 'rgba(148,163,184,.45)', glow: 'rgba(148,163,184,.35)', text: '#cbd5e1' },
+  cyan:    { hex: '#22d3ee', bg: 'rgba(34,211,238,.14)',  border: 'rgba(34,211,238,.45)',  glow: 'rgba(34,211,238,.35)',  text: '#67e8f9' },
+  lime:    { hex: '#a3e635', bg: 'rgba(163,230,53,.14)',  border: 'rgba(163,230,53,.45)',  glow: 'rgba(163,230,53,.35)',  text: '#bef264' },
 };
+
+const PEOPLE_MODULES: readonly Module[] = [
+  { id: 'home',            label: 'Dashboard',           description: 'KPIs y métricas',         icon: 'pi-chart-bar',     target: 'admin/home',       moduleId: 'home',            accent: 'blue'    },
+  { id: 'admin',           label: 'Administración',      description: 'Empleados y posiciones',  icon: 'pi-building',      target: 'admin',            moduleId: 'admin',           accent: 'violet'  },
+  { id: 'time_management', label: 'Gestión de tiempo',   description: 'Horarios y turnos',       icon: 'pi-clock',         target: 'time-management',  moduleId: 'time_management', accent: 'emerald' },
+  { id: 'payroll',         label: 'Planilla',            description: 'Nóminas y décimo',        icon: 'pi-wallet',        target: 'payroll',          moduleId: 'payroll',         accent: 'amber'   },
+  { id: 'timeclock',       label: 'Reloj',               description: 'Entradas y salidas',      icon: 'pi-stopwatch',     target: 'timeclock',        moduleId: 'timeclock',       accent: 'rose'    },
+  { id: 'branch_manager',  label: 'Gerente de Sucursal', description: 'Gestión de sucursal',     icon: 'pi-sitemap',       target: 'branch-manager',   moduleId: 'branch_manager',  accent: 'orange'  },
+  { id: 'my_portal',       label: 'Mi Portal',           description: 'Mi perfil y solicitudes', icon: 'pi-user',          target: 'employee-portal',                               accent: 'fuchsia' },
+] as const;
+
+const EXTERNAL_MODULES: readonly Module[] = [
+  { id: 'analytics',  label: 'Analytics',           description: 'KPIs y ventas',           icon: 'pi-chart-line',     target: 'analytics',                            accent: 'teal'   },
+  { id: 'dashboards', label: 'Asistencias en vivo', description: 'Asistencia en tiempo real', icon: 'pi-objects-column', target: 'live',                                accent: 'indigo' },
+  { id: 'it',         label: 'BD IT',               description: 'Inventario y soporte',    icon: 'pi-desktop',        target: 'https://it.blackdogpanama.com',  external: true, accent: 'slate'  },
+  { id: 'deploy',     label: 'Deploy',              description: 'CI/CD',                   icon: 'pi-upload',         target: 'https://deploy.blackdogpanama.com', external: true, accent: 'pink'   },
+  { id: 'agent',      label: 'Agente IA',           description: 'Asistente inteligente',   icon: 'pi-android',        target: 'https://agent.blackdogpanama.com', external: true, accent: 'purple' },
+] as const;
 
 @Component({
   selector: 'pt-app-launcher',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-[#0a0a0a] px-2 sm:px-6 md:px-10 py-6 space-y-8" style="min-height: 100dvh">
-
-      <!-- Greeting -->
-      <div class="flex flex-col items-center text-center gap-1 pt-2">
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight
-                   bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+    <div class="launcher" role="main">
+      <!-- Saludo con hora -->
+      <header class="hero">
+        <p class="hero-eyebrow">{{ greeting() }}</p>
+        <h1 class="hero-title">
           @if (firstName()) {
-            Hola, <span class="text-amber-400">{{ firstName() }}</span>
+            Hola, <span class="hero-name">{{ firstName() }}</span>
           } @else {
             Bienvenido
           }
         </h1>
-        <p class="text-gray-400 text-sm">¿A dónde vas hoy?</p>
-      </div>
+        <p class="hero-sub">¿A dónde vas hoy?</p>
+      </header>
 
       <!-- People modules -->
       @if (visiblePeopleModules().length > 0) {
-      <section>
-        <div class="flex items-center gap-3 mb-4 max-w-5xl mx-auto">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">People</span>
-          <div class="flex-1 h-px bg-white/[0.06]"></div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 max-w-5xl mx-auto">
-          @for (mod of visiblePeopleModules(); track mod.id) {
-            @let c = colors(mod.tw);
-            <button (click)="open(mod)" [title]="mod.description"
-               class="group relative overflow-hidden rounded-xl bg-white/5 border border-white/10
-                      p-4 md:p-5 flex flex-col items-center gap-2.5 text-center
-                      transition-all duration-300 hover:bg-white/10 hover:shadow-lg cursor-pointer outline-none"
-               [class]="c.hoverBorderCls + ' ' + c.hoverShadowCls">
-              <div class="absolute top-0 right-0 w-14 h-14 rounded-full -translate-y-1/2 translate-x-1/2
-                          opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                   [class]="c.bgCls"></div>
-              <div class="relative w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                   [class]="c.bgCls">
-                <i class="pi text-lg" [class]="mod.icon + ' ' + c.iconCls"></i>
-              </div>
-              <span class="text-xs font-semibold text-white leading-tight">{{ mod.label }}</span>
-              <span class="text-[0.65rem] text-gray-500 leading-snug hidden sm:block">{{ mod.description }}</span>
-            </button>
-          }
-        </div>
-      </section>
+        <section class="section" role="region" aria-label="Módulos People">
+          <div class="section-header">
+            <span class="section-label">People</span>
+            <span class="section-line" aria-hidden="true"></span>
+            <span class="section-count">{{ visiblePeopleModules().length }}</span>
+          </div>
+          <div class="grid grid--people">
+            @for (mod of visiblePeopleModules(); track mod.id; let i = $index) {
+              <button
+                type="button"
+                class="card"
+                [style.--accent]="acc(mod).hex"
+                [style.--accent-bg]="acc(mod).bg"
+                [style.--accent-border]="acc(mod).border"
+                [style.--accent-glow]="acc(mod).glow"
+                [style.--accent-text]="acc(mod).text"
+                [style.--enter-delay.ms]="i * 40"
+                [attr.aria-label]="mod.label + ': ' + mod.description"
+                (click)="open(mod)">
+                <span class="card-glow" aria-hidden="true"></span>
+                <span class="card-icon">
+                  <i class="pi" [class]="mod.icon"></i>
+                </span>
+                <span class="card-label">{{ mod.label }}</span>
+                <span class="card-desc">{{ mod.description }}</span>
+                <span class="card-arrow" aria-hidden="true"><i class="pi pi-arrow-up-right"></i></span>
+              </button>
+            }
+          </div>
+        </section>
       }
 
       <!-- Servicios externos -->
-      <section>
-        <div class="flex items-center gap-3 mb-4 max-w-5xl mx-auto">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Servicios</span>
-          <div class="flex-1 h-px bg-white/[0.06]"></div>
+      <section class="section" role="region" aria-label="Servicios">
+        <div class="section-header">
+          <span class="section-label">Servicios</span>
+          <span class="section-line" aria-hidden="true"></span>
+          <span class="section-count">{{ EXTERNAL_MODULES.length }}</span>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
-          @for (mod of EXTERNAL_MODULES; track mod.id) {
-            @let c = colors(mod.tw);
-            <button (click)="open(mod)" [title]="mod.description"
-               class="group relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/[0.07]
-                      p-4 md:p-5 flex flex-col items-center gap-2.5 text-center
-                      transition-all duration-300 hover:bg-white/[0.07] hover:shadow-lg cursor-pointer outline-none"
-               [class]="c.hoverBorderCls + ' ' + c.hoverShadowCls">
-              <div class="absolute top-0 right-0 w-14 h-14 rounded-full -translate-y-1/2 translate-x-1/2
-                          opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                   [class]="c.bgCls"></div>
-              <div class="relative w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                   [class]="c.bgCls">
-                <i class="pi text-lg" [class]="mod.icon + ' ' + c.iconCls"></i>
-              </div>
-              <span class="text-xs font-semibold text-white/80 leading-tight">{{ mod.label }}</span>
-              <span class="text-[0.65rem] text-gray-600 leading-snug hidden sm:block">{{ mod.description }}</span>
+        <div class="grid grid--ext">
+          @for (mod of EXTERNAL_MODULES; track mod.id; let i = $index) {
+            <button
+              type="button"
+              class="card card--ext"
+              [style.--accent]="acc(mod).hex"
+              [style.--accent-bg]="acc(mod).bg"
+              [style.--accent-border]="acc(mod).border"
+              [style.--accent-glow]="acc(mod).glow"
+              [style.--accent-text]="acc(mod).text"
+              [style.--enter-delay.ms]="(visiblePeopleModules().length + i) * 40"
+              [attr.aria-label]="mod.label + ': ' + mod.description"
+              (click)="open(mod)">
+              <span class="card-glow" aria-hidden="true"></span>
+              <span class="card-icon">
+                <i class="pi" [class]="mod.icon"></i>
+              </span>
+              <span class="card-label">{{ mod.label }}</span>
+              <span class="card-desc">{{ mod.description }}</span>
+              @if (mod.external) {
+                <span class="card-ext-badge" aria-hidden="true"><i class="pi pi-external-link"></i></span>
+              }
             </button>
           }
         </div>
       </section>
-
     </div>
   `,
   styles: [`
-    :host { display: block; }
+    :host {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-height: 0;
+      width: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,191,36,0.08), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(167,139,250,0.06), transparent 60%),
+        #0a0a0a;
+      font-family: var(--font-stapel, "Stapel", system-ui, sans-serif);
+    }
+    .launcher {
+      max-width: 1200px;
+      width: 100%;
+      flex: 1 1 0;
+      min-height: 0;
+      margin: 0 auto;
+      padding: clamp(1rem, 3vh, 2rem) clamp(0.75rem, 2.5vw, 2rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(1.25rem, 3vh, 2rem);
+      overflow-y: auto;
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .launcher::-webkit-scrollbar { width: 5px; }
+    .launcher::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* ─── Hero ─── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.4rem;
+      padding-top: 0.25rem;
+      flex-shrink: 0;
+      animation: hero-in 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+    .hero-eyebrow {
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .hero-title {
+      margin: 0;
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      background: linear-gradient(180deg, #ffffff 30%, rgba(255, 255, 255, 0.55));
+      -webkit-background-clip: text;
+              background-clip: text;
+      color: transparent;
+    }
+    .hero-name {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+              background-clip: text;
+      color: transparent;
+    }
+    .hero-sub {
+      margin: 0;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 400;
+    }
+
+    /* ─── Sections ─── */
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      flex-shrink: 0;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0));
+    }
+    .section-count {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.35);
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── Grid ─── */
+    .grid {
+      display: grid;
+      gap: clamp(0.5rem, 1vw, 0.85rem);
+    }
+    .grid--people { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .grid--ext    { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+
+    /* ─── Card ─── */
+    .card {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 1.1rem 0.85rem 0.95rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      text-align: center;
+      color: inherit;
+      font-family: inherit;
+      transition: transform 220ms cubic-bezier(0.2, 0.7, 0.3, 1),
+                  border-color 220ms ease,
+                  background 220ms ease;
+      animation: card-in 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+      animation-delay: var(--enter-delay, 0ms);
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--accent-border);
+    }
+    .card:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .card:active { transform: translateY(-1px); }
+    .card-glow {
+      position: absolute;
+      top: -40%;
+      right: -30%;
+      width: 60%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-bg), transparent 70%);
+      opacity: 0;
+      transition: opacity 320ms ease;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .card:hover .card-glow { opacity: 1; }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--accent-bg);
+      color: var(--accent-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+      transition: transform 280ms cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+    .card:hover .card-icon { transform: scale(1.08) rotate(-3deg); }
+    .card-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+      letter-spacing: -0.005em;
+      line-height: 1.2;
+    }
+    .card-desc {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.3;
+      font-weight: 500;
+    }
+    .card-arrow {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.2);
+      opacity: 0;
+      transform: translate(-4px, 4px);
+      transition: opacity 220ms ease, transform 220ms ease, color 220ms ease;
+    }
+    .card:hover .card-arrow {
+      opacity: 1;
+      transform: translate(0, 0);
+      color: var(--accent-text);
+    }
+    .card--ext { background: rgba(255, 255, 255, 0.02); }
+    .card-ext-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.25);
+    }
+    .card--ext:hover .card-ext-badge { color: var(--accent-text); }
+
+    /* ─── Animations ─── */
+    @keyframes hero-in {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce) {
+      .hero, .card { animation: none !important; }
+      .card:hover { transform: none; }
+      .card:hover .card-icon { transform: none; }
+    }
+
+    /* Mobile compact */
+    @media (max-width: 480px) {
+      .card { padding: 0.85rem 0.5rem 0.75rem; }
+      .card-icon { width: 38px; height: 38px; font-size: 1rem; }
+      .card-desc { display: none; }
+      .grid--people, .grid--ext { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    }
   `],
 })
 export class AppLauncherComponent {
-  private router = inject(Router);
-  private permissionsService = inject(PermissionsService);
-  private store = inject(DashboardStore);
+  private readonly router = inject(Router);
+  private readonly permissions = inject(PermissionsService);
+  private readonly store = inject(DashboardStore);
 
-  public EXTERNAL_MODULES = EXTERNAL_MODULES;
+  protected readonly EXTERNAL_MODULES = EXTERNAL_MODULES;
 
-  public firstName = computed(() =>
-    this.store.currentEmployee()?.first_name?.trim() || null
+  protected readonly firstName = computed(
+    () => this.store.currentEmployee()?.first_name?.trim() || null,
   );
 
-  public visiblePeopleModules = computed(() =>
-    PEOPLE_MODULES.filter((m) =>
-      m.moduleId ? this.permissionsService.canAccessModule(m.moduleId) : true
-    )
+  protected readonly visiblePeopleModules = computed(() =>
+    PEOPLE_MODULES.filter(
+      (m) => !m.moduleId || this.permissions.canAccessModule(m.moduleId),
+    ),
   );
 
-  public colors(tw: string) {
-    return COLOR_MAP[tw] ?? COLOR_MAP['slate'];
+  /** Saludo según hora local. */
+  protected readonly greeting = computed(() => {
+    const h = new Date().getHours();
+    if (h < 6)  return 'Buenas noches';
+    if (h < 12) return 'Buenos días';
+    if (h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  });
+
+  /** Tokens de color según el accent del módulo. */
+  protected acc(mod: Module): AccentTokens {
+    return ACCENTS[mod.accent] ?? ACCENTS.slate;
   }
 
-  public open(mod: Module): void {
+  protected open(mod: Module): void {
     if (mod.external) {
       window.location.href = mod.target;
     } else {

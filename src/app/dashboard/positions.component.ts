@@ -165,7 +165,7 @@ import { PositionsFormComponent } from './positions-form.component';
 export class PositionsComponent implements OnInit {
   readonly store = inject(DashboardStore);
   private dialog = inject(DialogService);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
   protected device = inject(DeviceService);
   public positions = computed(() => [...this.store.positions.entities()]);
 

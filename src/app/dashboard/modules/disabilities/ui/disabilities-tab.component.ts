@@ -10,8 +10,8 @@ import {
 import { differenceInCalendarDays } from 'date-fns';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
-import { DropdownModule } from 'primeng/dropdown';
+import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
@@ -27,8 +27,8 @@ import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.comp
     DatePipe,
     FormsModule,
     ButtonModule,
-    CalendarModule,
-    DropdownModule,
+    DatePickerModule,
+    SelectModule,
     InputTextModule,
     ProgressSpinnerModule,
     TableModule,
@@ -100,7 +100,7 @@ import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.comp
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Estado
               </label>
-              <p-dropdown
+              <p-select
                 [options]="statusOptions"
                 [(ngModel)]="selectedStatus"
                 placeholder="Todos"
@@ -114,7 +114,7 @@ import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.comp
                 <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i
                 >Rango de Fechas
               </label>
-              <p-calendar
+              <p-datepicker
                 [(ngModel)]="dateRange"
                 selectionMode="range"
                 [showIcon]="true"
@@ -494,7 +494,7 @@ import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.comp
           [(ngModel)]="searchText"
           class="w-full text-sm py-2 bg-neutral-900/50 border-neutral-600 rounded"
         />
-        <p-dropdown
+        <p-select
           [options]="statusOptions"
           [(ngModel)]="selectedStatus"
           placeholder="Estado"
@@ -502,7 +502,7 @@ import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.comp
           class="w-full"
           styleClass="w-full"
         />
-        <p-calendar
+        <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
           dateFormat="dd/mm/yy"

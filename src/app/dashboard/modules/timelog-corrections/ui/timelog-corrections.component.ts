@@ -13,7 +13,6 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { DocumentViewerCardComponent } from '../../../../shared/components/document-viewer-card.component';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
 import { DocumentRequestsService } from '../../document-requests/data/document-requests.service';
@@ -46,7 +45,6 @@ import { SafeUrlPipe } from '../../shared/pipes/safe-url.pipe';
     TextareaModule,
     HrStatsGridComponent,
     HrFiltersPanelComponent,
-    DocumentViewerCardComponent,
     SafeUrlPipe,
   ],
   providers: [MessageService, ConfirmationService],

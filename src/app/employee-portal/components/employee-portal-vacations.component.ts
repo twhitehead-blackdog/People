@@ -11,7 +11,6 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { DeviceService } from '../../services/device.service';
@@ -26,8 +25,7 @@ import { DeviceService } from '../../services/device.service';
     Textarea,
     FileUpload,
     Button,
-    TooltipModule,
-    ProgressSpinner],
+    TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
@@ -51,7 +49,7 @@ import { DeviceService } from '../../services/device.service';
           <p class="text-gray-400">Cargando tus solicitudes...</p>
         </div>
       </div>
-      } @else if ((vacationRequests?.length ?? 0) > 0) {
+      } @else if (vacationRequests.length > 0) {
       <!-- List View -->
       <div class="space-y-4">
         @for (request of vacationRequests!; track request.id) {
@@ -384,10 +382,10 @@ import { DeviceService } from '../../services/device.service';
         </button>
         <div>
           <h2 class="text-lg font-bold text-white m-0">
-            {{ (vacationRequests?.length ?? 0) > 0 ? 'Mis Solicitudes' : 'Solicitar Vacaciones' }}
+            {{ vacationRequests.length > 0 ? 'Mis Solicitudes' : 'Solicitar Vacaciones' }}
           </h2>
           <p class="text-xs text-gray-400 m-0">
-            {{ (vacationRequests?.length ?? 0) > 0
+            {{ vacationRequests.length > 0
               ? 'Visualiza tus solicitudes'
               : 'Solicita tus días de vacaciones' }}
           </p>
@@ -402,7 +400,7 @@ import { DeviceService } from '../../services/device.service';
           <p class="text-gray-400 text-sm">Cargando solicitudes...</p>
         </div>
       </div>
-      } @else if ((vacationRequests?.length ?? 0) > 0) {
+      } @else if (vacationRequests.length > 0) {
       <!-- List View - Card style for mobile -->
       <div class="space-y-3">
         @for (request of vacationRequests!; track request.id) {

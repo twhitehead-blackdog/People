@@ -665,49 +665,48 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         break;
     }
 
-    this.dialogService
-      .open(PaymentItemFormComponent, {
-        modal: true,
-        width: '36rem',
-        header: `Editar ${label}`,
-        data: {
-          item,
-        },
-      })
-      .onClose.subscribe({
-        next: (item) => {
-          if (!item) return;
-          switch (concept) {
-            case 'salary_base':
-              this.employeeSalaryBase.set(item.amount);
-              break;
-            case 'sunday_payment':
-              this.summary.update((summary) => ({
-                ...summary,
-                sunday_payment: item.amount,
-              }));
-              break;
-            case 'late_hours_payment':
-              this.summary.update((summary) => ({
-                ...summary,
-                late_hours_payment: item.amount,
-              }));
-              break;
-            case 'compensatory_hours_payment':
-              this.summary.update((summary) => ({
-                ...summary,
-                compensatory_hours_payment: item.amount,
-              }));
-              break;
-            case 'other_income':
-              this.otherIncome.update((otherIncome) => [...otherIncome, item]);
-              break;
-            case 'new_income':
-              this.otherIncome.update((otherIncome) => [...otherIncome, item]);
-              break;
-          }
-        },
-      });
+    const ref = this.dialogService.open(PaymentItemFormComponent, {
+      modal: true,
+      width: '36rem',
+      header: `Editar ${label}`,
+      data: {
+        item,
+      },
+    });
+    ref?.onClose?.subscribe({
+      next: (item) => {
+        if (!item) return;
+        switch (concept) {
+          case 'salary_base':
+            this.employeeSalaryBase.set(item.amount);
+            break;
+          case 'sunday_payment':
+            this.summary.update((summary) => ({
+              ...summary,
+              sunday_payment: item.amount,
+            }));
+            break;
+          case 'late_hours_payment':
+            this.summary.update((summary) => ({
+              ...summary,
+              late_hours_payment: item.amount,
+            }));
+            break;
+          case 'compensatory_hours_payment':
+            this.summary.update((summary) => ({
+              ...summary,
+              compensatory_hours_payment: item.amount,
+            }));
+            break;
+          case 'other_income':
+            this.otherIncome.update((otherIncome) => [...otherIncome, item]);
+            break;
+          case 'new_income':
+            this.otherIncome.update((otherIncome) => [...otherIncome, item]);
+            break;
+        }
+      },
+    });
   }
 
   async updateStatus(status: 'REVIEWED' | 'APPROVED' | 'PAID') {
@@ -1483,35 +1482,34 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   };
 
   setCompensatoryHours(id: string, hours: number) {
-    this.dialogService
-      .open(LateCompensatoryFormComponent, {
-        data: {
-          hours,
-        },
-        modal: true,
-        width: '36rem',
-        header: 'Justifiacion de Horas',
-      })
-      .onClose.subscribe({
-        next: (res) => {
-          if (res) {
-            this.attendanceSheet.update((attendanceSheet) => ({
-              ...attendanceSheet,
-              [id]: {
-                ...attendanceSheet[id],
-                is_justified: res.cause === 'JUSTIFICADA',
-                justified_hours: res.hours,
-                justification_notes: res.notes,
-                justification_cause: res.cause,
-                compensatory_hours_payment: roundNumber(
-                  res.hours * this.selectedEmployee()!.hourly_salary!
-                ),
-              },
-            }));
-            console.log(this.attendanceSheet()[id]);
-          }
-        },
-      });
+    const ref = this.dialogService.open(LateCompensatoryFormComponent, {
+      data: {
+        hours,
+      },
+      modal: true,
+      width: '36rem',
+      header: 'Justifiacion de Horas',
+    });
+    ref?.onClose?.subscribe({
+      next: (res) => {
+        if (res) {
+          this.attendanceSheet.update((attendanceSheet) => ({
+            ...attendanceSheet,
+            [id]: {
+              ...attendanceSheet[id],
+              is_justified: res.cause === 'JUSTIFICADA',
+              justified_hours: res.hours,
+              justification_notes: res.notes,
+              justification_cause: res.cause,
+              compensatory_hours_payment: roundNumber(
+                res.hours * this.selectedEmployee()!.hourly_salary!
+              ),
+            },
+          }));
+          console.log(this.attendanceSheet()[id]);
+        }
+      },
+    });
   }
 
   getHours({

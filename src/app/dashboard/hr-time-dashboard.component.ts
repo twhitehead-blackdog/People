@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 import { BaseChartDirective } from 'ng2-charts';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { getEnv } from '../utils/env.utils';
 import { OrganizationService } from '../services/organization.service';
 
@@ -44,7 +44,7 @@ interface Metric {
     CardModule,
     ButtonModule,
     BaseChartDirective,
-    DropdownModule,
+    SelectModule,
     FormsModule,
   ],
   template: `
@@ -341,13 +341,13 @@ interface Metric {
             </ng-template>
             <div class="space-y-4">
               <div class="grid grid-cols-2 gap-2">
-                <p-dropdown
+                <p-select
                   [options]="employeeOptions()"
                   [(ngModel)]="selectedEmployee"
                   placeholder="Trabajadores"
                   class="w-full"
                 />
-                <p-dropdown
+                <p-select
                   [options]="periodOptions"
                   [(ngModel)]="selectedPeriod"
                   placeholder="Últimos 7 días"

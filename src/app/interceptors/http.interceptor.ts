@@ -1,7 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject, isDevMode } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
-import { catchError, switchMap, tap, throwError } from 'rxjs';
+import { catchError, filter, switchMap, take, tap, throwError } from 'rxjs';
 import { ApiUrlService } from '../services/api-url.service';
 import { DiagnosticService } from '../services/diagnostic.service';
 import { getEnv } from '../utils/env.utils';
@@ -94,8 +94,17 @@ function needsServiceRole(url: string): boolean {
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const apiUrl = inject(ApiUrlService);
   const diagnosticService = inject(DiagnosticService);
+  const auth = inject(AuthService);
 
   if (req.url.includes('supabase')) {
+    // Esperar a que Auth0 termine de procesar el callback antes de enviar
+    // peticiones a Supabase. Sin esto, las peticiones salen en paralelo con
+    // el redirect interno de Auth0 y se abortan (ERR_ABORTED), dejando los
+    // httpResource en estado loading aunque la segunda tanda devuelva 200.
+    return auth.isLoading$.pipe(
+      filter((isLoading) => !isLoading),
+      take(1),
+      switchMap(() => {
     // Logging de métricas (solo en localhost)
     const startTime = isDevelopment ? performance.now() : null;
     const method = req.method;
@@ -212,6 +221,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
           );
         }
         return throwError(() => error);
+      })
+    );
       })
     );
   }

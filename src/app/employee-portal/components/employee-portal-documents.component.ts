@@ -10,8 +10,6 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
-import { InputText } from 'primeng/inputtext';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
@@ -24,12 +22,10 @@ import { DeviceService } from '../../services/device.service';
     CommonModule,
     FormsModule,
     Select,
-    InputText,
     Textarea,
     DatePicker,
     Button,
-    TooltipModule,
-    ProgressSpinner],
+    TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (device.isDesktop()) {
@@ -53,7 +49,7 @@ import { DeviceService } from '../../services/device.service';
           <p class="text-gray-400">Cargando tus solicitudes...</p>
         </div>
       </div>
-      } @else if ((documentRequests?.length ?? 0) > 0) {
+      } @else if (documentRequests.length > 0) {
       <!-- List View -->
       <div class="space-y-4">
         @for (request of documentRequests; track request.id) {
@@ -327,10 +323,10 @@ import { DeviceService } from '../../services/device.service';
         </button>
         <div>
           <h2 class="text-lg font-bold text-white m-0">
-            {{ (documentRequests?.length ?? 0) > 0 ? 'Mis Solicitudes' : 'Solicitar Documentos' }}
+            {{ documentRequests.length > 0 ? 'Mis Solicitudes' : 'Solicitar Documentos' }}
           </h2>
           <p class="text-xs text-gray-400 m-0">
-            {{ (documentRequests?.length ?? 0) > 0
+            {{ documentRequests.length > 0
               ? 'Visualiza tus solicitudes'
               : 'Cartas de trabajo u otros documentos' }}
           </p>
@@ -345,7 +341,7 @@ import { DeviceService } from '../../services/device.service';
           <p class="text-gray-400 text-sm">Cargando solicitudes...</p>
         </div>
       </div>
-      } @else if ((documentRequests?.length ?? 0) > 0) {
+      } @else if (documentRequests.length > 0) {
       <!-- List View - Card style for mobile -->
       <div class="space-y-3">
         @for (request of documentRequests; track request.id) {

@@ -10,11 +10,11 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { InputSwitchModule } from 'primeng/inputswitch';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageModule } from 'primeng/message';
 import { AccordionModule } from 'primeng/accordion';
 import { BadgeModule } from 'primeng/badge';
-import { TabViewModule } from 'primeng/tabview';
+import { TabsModule } from 'primeng/tabs';
 import { DividerModule } from 'primeng/divider';
 import { PermissionsService } from '../../services/permissions.service';
 import { invalidateEmployeeCache } from '../../guards/employee-portal.guard';
@@ -30,19 +30,30 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
   standalone: true,
   imports: [
     Button,
-    InputSwitchModule,
+    ToggleSwitchModule,
     FormsModule,
     MessageModule,
     AccordionModule,
     BadgeModule,
-    TabViewModule,
+    TabsModule,
     DividerModule,
   ],
   template: `
     <div class="flex flex-col gap-4 permission-editor-container">
       <!-- Tabs para cambiar entre permisos legacy y frontend -->
-      <p-tabView styleClass="permissions-tabs">
-        <p-tabPanel header="Permisos del Sistema" leftIcon="pi pi-shield">
+      <p-tabs [value]="0" styleClass="permissions-tabs">
+        <p-tablist>
+          <p-tab [value]="0">
+            <i class="pi pi-shield"></i>
+            <span class="ml-2">Permisos del Sistema</span>
+          </p-tab>
+          <p-tab [value]="1">
+            <i class="pi pi-desktop"></i>
+            <span class="ml-2">Acceso al Frontend</span>
+          </p-tab>
+        </p-tablist>
+        <p-tabpanels>
+        <p-tabpanel [value]="0">
           <div class="flex flex-col gap-3 mt-2">
             <p-message
               severity="info"
@@ -63,16 +74,16 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
                   <p class="text-xs text-gray-400 m-0">{{ def.description }}</p>
                 </div>
 
-                <p-inputSwitch
+                <p-toggleswitch
                   [(ngModel)]="tempPermissions[def.key]"
-                ></p-inputSwitch>
+                ></p-toggleswitch>
               </div>
               }
             </div>
           </div>
-        </p-tabPanel>
+        </p-tabpanel>
 
-        <p-tabPanel header="Acceso al Frontend" leftIcon="pi pi-desktop">
+        <p-tabpanel [value]="1">
           <div class="flex flex-col gap-3 mt-2">
             <p-message
               severity="warn"
@@ -86,57 +97,58 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
                 <span class="font-semibold text-sm text-blue-300">Acceso Total</span>
                 <span class="text-xs text-gray-400">Habilitar todos los módulos y submódulos</span>
               </div>
-              <p-inputSwitch
+              <p-toggleswitch
                 [ngModel]="isAllEnabled()"
                 (ngModelChange)="toggleAll($event)"
-              ></p-inputSwitch>
+              ></p-toggleswitch>
             </div>
 
             <p-divider></p-divider>
 
             <!-- Lista de módulos -->
-            <p-accordion [multiple]="true" class="modules-accordion">
+            <p-accordion [value]="defaultAccordionValues" [multiple]="true" class="modules-accordion">
               @for (module of systemModules; track module.id) {
-              <p-accordionTab [selected]="true">
-                <ng-template pTemplate="header">
+              <p-accordion-panel [value]="module.id">
+                <p-accordion-header>
                   <div class="flex items-center gap-2 w-full pr-2">
                     <i [class]="module.icon" class="text-blue-400"></i>
                     <span class="font-medium text-sm">{{ module.label }}</span>
-                    <p-badge 
-                      [value]="getEnabledSubModulesCount(module.id) + '/' + module.subModules.length" 
+                    <p-badge
+                      [value]="getEnabledSubModulesCount(module.id) + '/' + module.subModules.length"
                       [severity]="getModuleEnabled(module.id) ? 'success' : 'secondary'"
                       class="ml-auto"
                     />
-                    <p-inputSwitch
+                    <p-toggleswitch
                       [ngModel]="getModuleEnabled(module.id)"
                       (ngModelChange)="toggleModule(module.id, $event)"
                       (click)="$event.stopPropagation()"
-                    ></p-inputSwitch>
+                    ></p-toggleswitch>
                   </div>
-                </ng-template>
-
-                <div class="flex flex-col gap-2 pl-2">
-                  @for (sub of module.subModules; track sub.id) {
-                  <div 
-                    class="flex items-center justify-between p-2 rounded-lg transition-colors"
-                    [class.bg-neutral-800]="getSubModuleEnabled(module.id, sub.id)"
-                    [class.bg-transparent]="!getSubModuleEnabled(module.id, sub.id)"
-                  >
-                    <div class="flex items-center gap-2">
-                      <i [class]="sub.icon" class="text-gray-500 text-sm"></i>
-                      <div class="flex flex-col">
-                        <span class="text-sm text-gray-200">{{ sub.label }}</span>
-                        <span class="text-xs text-gray-500">{{ sub.description }}</span>
+                </p-accordion-header>
+                <p-accordion-content>
+                  <div class="flex flex-col gap-2 pl-2">
+                    @for (sub of module.subModules; track sub.id) {
+                    <div
+                      class="flex items-center justify-between p-2 rounded-lg transition-colors"
+                      [class.bg-neutral-800]="getSubModuleEnabled(module.id, sub.id)"
+                      [class.bg-transparent]="!getSubModuleEnabled(module.id, sub.id)"
+                    >
+                      <div class="flex items-center gap-2">
+                        <i [class]="sub.icon" class="text-gray-500 text-sm"></i>
+                        <div class="flex flex-col">
+                          <span class="text-sm text-gray-200">{{ sub.label }}</span>
+                          <span class="text-xs text-gray-500">{{ sub.description }}</span>
+                        </div>
                       </div>
+                      <p-toggleswitch
+                        [ngModel]="getSubModuleEnabled(module.id, sub.id)"
+                        (ngModelChange)="toggleSubModule(module.id, sub.id, $event)"
+                      ></p-toggleswitch>
                     </div>
-                    <p-inputSwitch
-                      [ngModel]="getSubModuleEnabled(module.id, sub.id)"
-                      (ngModelChange)="toggleSubModule(module.id, sub.id, $event)"
-                    ></p-inputSwitch>
+                    }
                   </div>
-                  }
-                </div>
-              </p-accordionTab>
+                </p-accordion-content>
+              </p-accordion-panel>
               }
             </p-accordion>
 
@@ -159,8 +171,9 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
               </div>
             </div>
           </div>
-        </p-tabPanel>
-      </p-tabView>
+        </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
 
       <div class="sticky-buttons flex justify-end gap-2">
         <p-button
@@ -247,6 +260,9 @@ export class PermissionEditorDialogComponent {
 
   // Módulos del sistema
   public systemModules = SYSTEM_MODULES;
+
+  // Valores iniciales para abrir todos los paneles del acordeón por defecto
+  public defaultAccordionValues = SYSTEM_MODULES.map((m) => m.id);
 
   // Permisos de frontend (estructura mutable)
   private frontendPermissionsState = signal<FrontendPermissions>(

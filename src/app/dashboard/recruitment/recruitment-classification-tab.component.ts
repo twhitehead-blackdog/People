@@ -11,7 +11,6 @@ import {
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { ProgressBar } from 'primeng/progressbar';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -32,7 +31,6 @@ const EXTRACT_BATCH_SIZE = 20;
     TableModule,
     Tag,
     Button,
-    Card,
     ProgressBar,
     ToastModule,
     TooltipModule,

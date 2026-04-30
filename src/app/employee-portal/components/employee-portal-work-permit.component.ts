@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { DeviceService } from '../../services/device.service';
@@ -30,7 +30,7 @@ export const PORTAL_PERMIT_TYPE_OPTIONS = [
     FormsModule,
     DatePicker,
     FileUpload,
-    InputTextarea,
+    Textarea,
     Select,
     Button,
     TooltipModule],

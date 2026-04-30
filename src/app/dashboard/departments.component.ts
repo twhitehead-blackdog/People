@@ -117,7 +117,7 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class DepartmentsComponent {
   readonly state = inject(DepartmentsStore);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
   private dialog = inject(DialogService);
   protected device = inject(DeviceService);
   public departments = computed(() => [...this.state.entities()]);

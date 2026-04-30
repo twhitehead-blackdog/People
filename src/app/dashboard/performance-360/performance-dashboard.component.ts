@@ -3,10 +3,10 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { KnobModule } from 'primeng/knob';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -30,8 +30,8 @@ import { DashboardStore } from '../../stores/dashboard.store';
     ProgressBarModule,
     TableModule,
     ProgressSpinnerModule,
-    CalendarModule,
-    DropdownModule,
+    DatePickerModule,
+    SelectModule,
   ],
   template: `
     <div class="p-4 space-y-6">
@@ -61,7 +61,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
           <label class="block text-gray-400 text-xs mb-1"
             >Rango de Fechas</label
           >
-          <p-calendar
+          <p-datepicker
             [(ngModel)]="dateRange"
             selectionMode="range"
             [readonlyInput]="true"
@@ -69,11 +69,11 @@ import { DashboardStore } from '../../stores/dashboard.store';
             styleClass="w-full"
             [showIcon]="true"
             (onSelect)="loadData()"
-          ></p-calendar>
+          ></p-datepicker>
         </div>
         <div class="flex-1 w-full md:w-auto">
           <label class="block text-gray-400 text-xs mb-1">Sucursal</label>
-          <p-dropdown
+          <p-select
             [options]="branchesStore.entities()"
             [(ngModel)]="selectedBranch"
             optionLabel="name"
@@ -82,7 +82,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
             [showClear]="true"
             styleClass="w-full"
             (onChange)="loadData()"
-          ></p-dropdown>
+          ></p-select>
         </div>
         <div class="flex items-end self-stretch md:self-end">
           <p-button

@@ -51,10 +51,10 @@ import { SYSTEM_MODULES } from './module-permissions.types';
         @if (enabledModules().length === 0) {
           <p class="text-gray-500 text-sm italic m-0">Este empleado no tiene módulos habilitados.</p>
         } @else {
-          <p-accordion [multiple]="true">
+          <p-accordion [value]="enabledModuleIds()" [multiple]="true">
             @for (mod of enabledModules(); track mod.id) {
-              <p-accordionTab [selected]="true">
-                <ng-template pTemplate="header">
+              <p-accordion-panel [value]="mod.id">
+                <p-accordion-header>
                   <div class="flex items-center gap-2">
                     <i [class]="mod.icon" class="text-blue-400"></i>
                     <span class="font-medium text-sm">{{ mod.label }}</span>
@@ -62,28 +62,29 @@ import { SYSTEM_MODULES } from './module-permissions.types';
                       {{ mod.enabledCount }}/{{ mod.totalCount }} activos
                     </span>
                   </div>
-                </ng-template>
-
-                <div class="flex flex-col gap-1">
-                  @for (sub of mod.subModules; track sub.id) {
-                    <div class="flex items-center gap-2 px-2 py-1.5 rounded">
-                      @if (sub.enabled) {
-                        <i class="pi pi-check-circle text-green-400 text-sm"></i>
-                      } @else {
-                        <i class="pi pi-times-circle text-red-400/60 text-sm"></i>
-                      }
-                      <div class="flex flex-col">
-                        <span class="text-sm" [class.text-white]="sub.enabled" [class.text-gray-500]="!sub.enabled">
-                          {{ sub.label }}
-                        </span>
-                        @if (sub.description) {
-                          <span class="text-xs text-gray-500">{{ sub.description }}</span>
+                </p-accordion-header>
+                <p-accordion-content>
+                  <div class="flex flex-col gap-1">
+                    @for (sub of mod.subModules; track sub.id) {
+                      <div class="flex items-center gap-2 px-2 py-1.5 rounded">
+                        @if (sub.enabled) {
+                          <i class="pi pi-check-circle text-green-400 text-sm"></i>
+                        } @else {
+                          <i class="pi pi-times-circle text-red-400/60 text-sm"></i>
                         }
+                        <div class="flex flex-col">
+                          <span class="text-sm" [class.text-white]="sub.enabled" [class.text-gray-500]="!sub.enabled">
+                            {{ sub.label }}
+                          </span>
+                          @if (sub.description) {
+                            <span class="text-xs text-gray-500">{{ sub.description }}</span>
+                          }
+                        </div>
                       </div>
-                    </div>
-                  }
-                </div>
-              </p-accordionTab>
+                    }
+                  </div>
+                </p-accordion-content>
+              </p-accordion-panel>
             }
           </p-accordion>
         }
@@ -186,6 +187,8 @@ export class PermissionPreviewDialogComponent {
         return !!modulePerm?.enabled;
       });
   });
+
+  enabledModuleIds = computed(() => this.enabledModules().map((m) => m.id));
 
   legacyPermissions = computed(() => {
     return ALL_LEGACY_PERMISSIONS.map((key) => {

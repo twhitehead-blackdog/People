@@ -8,13 +8,11 @@ import {
   model,
   signal,
 } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 import { Dialog } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
-import { Tag } from 'primeng/tag';
 import {
   ScheduleChangeRequest,
   ScheduleChangeRequestService,
@@ -31,7 +29,7 @@ interface MetricRow {
 @Component({
   selector: 'pt-change-requests-metrics',
   standalone: true,
-  imports: [Dialog, NgClass, SelectModule, FormsModule, Tag],
+  imports: [Dialog, SelectModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-dialog

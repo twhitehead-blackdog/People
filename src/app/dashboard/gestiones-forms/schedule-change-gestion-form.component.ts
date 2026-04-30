@@ -25,7 +25,7 @@ import {
 import { es } from 'date-fns/locale';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Popover } from 'primeng/popover';
 import { firstValueFrom } from 'rxjs';
 import { colorVariants, Employee, Schedule } from '../../models';
@@ -64,7 +64,7 @@ interface ChangeEntry {
 @Component({
   selector: 'pt-schedule-change-gestion-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, Button, InputTextarea, Popover],
+  imports: [CommonModule, FormsModule, Button, Textarea, Popover],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">

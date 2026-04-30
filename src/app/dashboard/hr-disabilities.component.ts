@@ -583,25 +583,25 @@ export { CompensatoryRequest } from './modules/disabilities/models/disability.mo
       box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.2) !important;
     }
 
-    ::ng-deep .p-dropdown {
+    ::ng-deep .p-select {
       background: #111827 !important;
       border-color: #374151 !important;
     }
 
-    ::ng-deep .p-dropdown:not(.p-disabled):hover {
+    ::ng-deep .p-select:not(.p-disabled):hover {
       border-color: #06b6d4 !important;
     }
 
-    ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
+    ::ng-deep .p-select:not(.p-disabled).p-focus {
       border-color: #06b6d4 !important;
       box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.2) !important;
     }
 
-    ::ng-deep .p-calendar {
+    ::ng-deep .p-datepicker {
       background: #111827 !important;
     }
 
-    ::ng-deep .p-calendar .p-inputtext {
+    ::ng-deep .p-datepicker .p-inputtext {
       background: #111827 !important;
       border-color: #374151 !important;
     }

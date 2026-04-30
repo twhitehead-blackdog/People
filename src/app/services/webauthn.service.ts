@@ -49,7 +49,7 @@ export class WebAuthnService {
     );
   }
 
-  async registerFingerprint(employeeId: string, deviceName = 'Kensington VeriMark'): Promise<void> {
+  async registerFingerprint(employeeId: string, deviceName = 'WebAuthn'): Promise<void> {
     const options = await firstValueFrom(
       this.http.post<any>(this.url('api/webauthn/registration-options'), { employeeId })
     );

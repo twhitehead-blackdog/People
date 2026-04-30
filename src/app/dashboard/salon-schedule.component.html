@@ -211,7 +211,7 @@
                 <div class="flex items-center gap-1.5 w-full">
                   <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
                     [style.background-color]="rotating ? '#374151' : getBranchColor(row.employee.first_name)">
-                    {{ row.employee.first_name.charAt(0) }}{{ row.employee.father_name?.charAt(0) ?? '' }}
+                    {{ row.employee.first_name.charAt(0) }}{{ row.employee.father_name.charAt(0) }}
                   </div>
                   <span class="font-semibold text-[11px] truncate"
                     [class.text-white]="!rotating"
@@ -306,7 +306,7 @@
         <div class="flex items-center gap-2 mb-3">
           <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
             [style.background-color]="getBranchColor(employee.first_name)">
-            {{ employee.first_name.charAt(0) }}{{ employee.father_name?.charAt(0) ?? '' }}
+            {{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}
           </div>
           <div>
             <span class="font-semibold text-white text-sm">{{ employee.first_name }} {{ employee.father_name }}</span>
@@ -382,7 +382,7 @@
         <div class="flex items-center gap-2 min-w-0">
           <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
             [style.background-color]="getBranchColor(emp.first_name)">
-            {{ emp.first_name.charAt(0) }}{{ emp.father_name?.charAt(0) ?? '' }}
+            {{ emp.first_name.charAt(0) }}{{ emp.father_name.charAt(0) }}
           </div>
           <span class="text-sm text-gray-200 truncate">{{ emp.first_name }} {{ emp.father_name }}</span>
         </div>

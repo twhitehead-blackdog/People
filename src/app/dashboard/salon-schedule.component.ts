@@ -27,7 +27,6 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
-import { Tag } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { DialogModule } from 'primeng/dialog';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -45,7 +44,6 @@ import { TestModeService } from '../services/test-mode.service';
 import { isStoreManagerRole } from '../utils/permission.utils';
 import { DashboardStore } from '../stores/dashboard.store';
 import { GroomerScheduleUtilsService } from './services/groomer-schedule-utils.service';
-import { GroomerBranchCellComponent } from './groomer-branch-cell.component';
 import { GroomerBranchSelectionDialogComponent, GroomerBranchSelectionResult } from './groomer-branch-selection-dialog.component';
 import { SalonTopComponent } from './salon-top/salon-top.component';
 
@@ -61,14 +59,12 @@ type GroomerWithAssignments = {
     TableModule,
     Button,
     FormsModule,
-    Tag,
     DatePipe,
     SlicePipe,
     TooltipModule,
     DialogModule,
     ToggleSwitch,
     SelectModule,
-    GroomerBranchCellComponent,
     GroomerBranchSelectionDialogComponent,
     SalonTopComponent,
   ],

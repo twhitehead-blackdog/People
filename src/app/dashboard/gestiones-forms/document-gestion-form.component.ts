@@ -14,7 +14,7 @@ import { startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -32,7 +32,7 @@ import { EmployeeNotificationService } from '../../services/employee-notificatio
     FormsModule,
     Button,
     DatePicker,
-    InputTextarea,
+    Textarea,
     Select,
     TooltipModule,
     TutorialStepDirective,

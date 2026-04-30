@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -7,7 +7,6 @@ import {
   input,
   output,
 } from '@angular/core';
-import { Button } from 'primeng/button';
 import { DeviceService } from '../../services/device.service';
 import { NotificationFilter } from '../../stores/employee-portal.store';
 
@@ -25,7 +24,7 @@ type Notification = {
 @Component({
   selector: 'pt-employee-portal-notification-center',
   standalone: true,
-  imports: [Button, DatePipe, NgClass],
+  imports: [NgClass],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="notification-center">

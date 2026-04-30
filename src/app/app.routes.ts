@@ -59,6 +59,12 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'dp-timeclock',
+    loadComponent: () =>
+      import('./dp-timeclock/dp-timeclock.component').then((x) => x.DpTimeclockComponent),
+    canActivate: [timeclockKioskGuard],
+  },
+  {
     path: 'job-fair',
     loadComponent: () =>
       import('./job-fair/job-fair-form.component').then(

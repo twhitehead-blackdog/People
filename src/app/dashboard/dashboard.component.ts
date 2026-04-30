@@ -47,7 +47,6 @@ import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
 
-import { DogAnimationComponent } from './components/dog.component';
 import { PermissionsService } from '../services/permissions.service';
 import { DeviceService } from '../services/device.service';
 import { NotificationsService } from '../services/notifications.service';
@@ -89,7 +88,6 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
     NgClass,
     CommonModule,
     ScreenLockComponent,
-    DogAnimationComponent,
     MobileBottomNavComponent,
     NotificationsDropdownComponent,
     ChatWidgetComponent,
@@ -649,7 +647,9 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
         </button>
       </div>
       }
-      <div class="flex-1 overflow-y-auto py-5 pl-10">
+      <div class="flex-1 min-h-0 bg-[#0a0a0a] flex flex-col relative"
+           [class.overflow-hidden]="isFullHeightView()"
+           [class.overflow-y-auto]="!isFullHeightView()">
         @if(showEmployeePortalView()) {
         <pt-employee-portal />
         } @else {
@@ -1610,6 +1610,19 @@ export class DashboardComponent {
   public isTimeclockActive = computed(() => {
     const route = this.currentRoute();
     return route === 'timeclock';
+  });
+
+  /**
+   * Vistas que deben ocupar exactamente la altura del wrapper sin scroll:
+   * timeclock, launcher principal y sub-launchers (hub).
+   */
+  public isFullHeightView = computed(() => {
+    const url = this.currentUrl();
+    if (this.isTimeclockActive()) return true;
+    if (this.isLauncherActive()) return true;
+    // Sub-launchers tipo /admin/hub, /payroll/hub, etc.
+    if (url.endsWith('/hub') || url.endsWith('/hub/')) return true;
+    return false;
   });
 
   public isBranchManagerActive = computed(() => {

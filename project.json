@@ -37,6 +37,7 @@
           "./src/styles.scss"
         ],
         "scripts": [],
+        "externalDependencies": ["WebSdk"],
         "plugins": [
           "plugins/env-var-plugin.js"
         ]
@@ -51,8 +52,8 @@
             },
             {
               "type": "anyComponentStyle",
-              "maximumWarning": "10kb",
-              "maximumError": "80kb"
+              "maximumWarning": "20kb",
+              "maximumError": "120kb"
             }
           ],
           "outputHashing": "all",

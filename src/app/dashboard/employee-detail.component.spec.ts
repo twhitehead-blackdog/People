@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { randomUUID } from 'crypto';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { TabViewModule } from 'primeng/tabview';
+import { TabsModule } from 'primeng/tabs';
 import { EmployeesStore } from '../stores/employees.store';
 import { EmployeeDetailComponent } from './employee-detail.component';
 window.ResizeObserver =
@@ -28,7 +28,7 @@ describe('EmployeeDetailComponent', () => {
       ],
       imports: [
         EmployeeDetailComponent,
-        TabViewModule,
+        TabsModule,
         RouterModule.forRoot([]),
       ],
     }).compileComponents();

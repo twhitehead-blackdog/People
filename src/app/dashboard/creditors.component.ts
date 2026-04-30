@@ -79,7 +79,7 @@ import { CreditorsFormComponent } from './creditors-form.component';
 })
 export class CreditorsComponent {
   public store = inject(PayrollStore);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
   private dialogService = inject(DialogService);
 
   constructor() {
@@ -88,7 +88,7 @@ export class CreditorsComponent {
   }
 
   editCreditor(creditor?: Creditor) {
-    this.ref = this.dialogService.open(CreditorsFormComponent, {
+    this.ref = this.dialogService.open<any>(CreditorsFormComponent, {
       width: '36rem',
       data: { creditor },
       header: 'Datos del accreedor',
@@ -98,7 +98,7 @@ export class CreditorsComponent {
     });
     
     // Recargar la lista cuando se cierre el diálogo
-    this.ref.onClose.subscribe(() => {
+    this.ref?.onClose?.subscribe(() => {
       this.store.creditors.reloadItems();
     });
   }

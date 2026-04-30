@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { differenceInMilliseconds, format } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -72,7 +72,7 @@ interface ComplaintMessage {
   imports: [
     Button,
     Select,
-    InputTextarea,
+    Textarea,
     Tag,
     FormsModule,
     DatePipe,

@@ -11,7 +11,6 @@ import {
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -83,7 +82,6 @@ const STATUS_CONFIG: Record<DecimoStatus, { label: string; severity: 'secondary'
     DatePipe,
     FormsModule,
     Button,
-    Card,
     Select,
     TableModule,
     Tag,

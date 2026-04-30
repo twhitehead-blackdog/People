@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { Employee } from '../../models';
 import { DeviceService } from '../../services/device.service';
@@ -26,7 +26,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
     Button,
     DatePicker,
     FileUpload,
-    InputTextarea,
+    Textarea,
     TooltipModule,
     TutorialStepDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -55,8 +55,8 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
               class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center"
             >
               <span class="text-cyan-400 font-semibold text-lg">
-                {{ selectedEmployee.first_name?.charAt(0)
-                }}{{ selectedEmployee.father_name?.charAt(0) }}
+                {{ selectedEmployee.first_name.charAt(0)
+                }}{{ selectedEmployee.father_name.charAt(0) }}
               </span>
             </div>
             <div>
@@ -504,7 +504,7 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
             <span class="text-cyan-400 font-semibold text-sm">
-              {{ selectedEmployee.first_name?.charAt(0) }}{{ selectedEmployee.father_name?.charAt(0) }}
+              {{ selectedEmployee.first_name.charAt(0) }}{{ selectedEmployee.father_name.charAt(0) }}
             </span>
           </div>
           <div>

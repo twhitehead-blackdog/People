@@ -10,8 +10,6 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
-import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { catchError, of, switchMap } from 'rxjs';
 import { Branch } from './models';
 import { ApiUrlService } from './services/api-url.service';
@@ -21,7 +19,7 @@ import { getEnv } from './utils/env.utils';
 @Component({
   selector: 'pt-no-access',
   standalone: true,
-  imports: [Button, Card, RouterLink],
+  imports: [RouterLink],
   template: `
     <div class="na-screen">
       <div class="na-card">

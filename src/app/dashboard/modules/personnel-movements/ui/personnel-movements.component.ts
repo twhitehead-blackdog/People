@@ -2,8 +2,8 @@ import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
-import { DropdownModule } from 'primeng/dropdown';
+import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
@@ -36,8 +36,8 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
     NgClass,
     FormsModule,
     ButtonModule,
-    CalendarModule,
-    DropdownModule,
+    DatePickerModule,
+    SelectModule,
     InputNumberModule,
     ToastModule,
     ToggleButtonModule,
@@ -71,7 +71,7 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">Rango de Fechas</label>
-            <p-calendar
+            <p-datepicker
               [ngModel]="dateRange()"
               (ngModelChange)="onDateRangeChange($event)"
               selectionMode="range"
@@ -83,7 +83,7 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">Colaborador</label>
-            <p-dropdown
+            <p-select
               [options]="employeeOptions()"
               optionLabel="label"
               optionValue="value"
@@ -98,7 +98,7 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">Sucursal Origen</label>
-            <p-dropdown
+            <p-select
               [options]="branchOptions()"
               optionLabel="label"
               optionValue="value"
@@ -111,7 +111,7 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">Sucursal Destino</label>
-            <p-dropdown
+            <p-select
               [options]="branchOptions()"
               optionLabel="label"
               optionValue="value"
@@ -124,7 +124,7 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">Sucursal Actual (incidencia)</label>
-            <p-dropdown
+            <p-select
               [options]="branchOptions()"
               optionLabel="label"
               optionValue="value"
@@ -137,7 +137,7 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-300 mb-1">Tipo de Incidencia</label>
-            <p-dropdown
+            <p-select
               [options]="incidenciaOptions"
               optionLabel="label"
               optionValue="value"

@@ -14,7 +14,6 @@ import { AutoComplete, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { InputNumber } from 'primeng/inputnumber';
-import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
@@ -29,7 +28,6 @@ import { matchesEmployeeSearch } from '../utils/employee-search.utils';
     FormsModule,
     AutoComplete,
     Button,
-    InputText,
     DatePicker,
     Select,
     ToggleSwitch,

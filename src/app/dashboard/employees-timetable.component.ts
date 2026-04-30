@@ -1154,23 +1154,22 @@ export class EmployeesTimetableComponent implements OnInit {
       : false;
 
     const openForm = () => {
-      this.dialog
-        .open(EmployeeSchedulesFormComponent, {
-          header: 'Editar horario',
-          data: {
-            employee_id,
-            employee_schedule,
-            date,
-            branch: this.filterService.currentBranch(),
-            weekStart: this.start(),
-            weekEnd: this.end(),
-            employeeHasSchedulesInWeek,
-            isNewHire,
-          },
-          modal: true,
-          dismissableMask: true,
-        })
-        .onClose.subscribe(() => this.schedulesResource.reload());
+      const ref = this.dialog.open(EmployeeSchedulesFormComponent, {
+        header: 'Editar horario',
+        data: {
+          employee_id,
+          employee_schedule,
+          date,
+          branch: this.filterService.currentBranch(),
+          weekStart: this.start(),
+          weekEnd: this.end(),
+          employeeHasSchedulesInWeek,
+          isNewHire,
+        },
+        modal: true,
+        dismissableMask: true,
+      });
+      ref?.onClose?.subscribe(() => this.schedulesResource.reload());
     };
 
     if (this.permissionsService.isStoreManager() && !this.scheduleWarningShown) {
@@ -1383,25 +1382,24 @@ export class EmployeesTimetableComponent implements OnInit {
     }
 
     const isStoreManager = this.permissionsService.isStoreManager();
-    this.dialog
-      .open(AddEmployeeToBranchDialogComponent, {
-        header: isStoreManager ? 'Transferir empleado a tu tienda' : 'Añadir empleado a sucursal',
-        width: '500px',
-        data: {
-          branchId: targetBranch?.id || null,
-          branchName: targetBranch?.name || '',
-          canSelectBranch,
-          isStoreManager,
-        },
-        modal: true,
-        dismissableMask: true,
-      })
-      .onClose.subscribe((added) => {
-        if (added) {
-          this.store.employees.reloadItems();
-          this.schedulesResource.reload();
-        }
-      });
+    const ref = this.dialog.open(AddEmployeeToBranchDialogComponent, {
+      header: isStoreManager ? 'Transferir empleado a tu tienda' : 'Añadir empleado a sucursal',
+      width: '500px',
+      data: {
+        branchId: targetBranch?.id || null,
+        branchName: targetBranch?.name || '',
+        canSelectBranch,
+        isStoreManager,
+      },
+      modal: true,
+      dismissableMask: true,
+    });
+    ref?.onClose?.subscribe((added) => {
+      if (added) {
+        this.store.employees.reloadItems();
+        this.schedulesResource.reload();
+      }
+    });
   }
 
   // ========== Audit History ==========

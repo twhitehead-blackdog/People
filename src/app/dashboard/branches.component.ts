@@ -131,13 +131,13 @@ import { TooltipModule } from 'primeng/tooltip';
 })
 export class BranchesComponent {
   readonly store = inject(DashboardStore);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
   private dialogService = inject(DialogService);
   protected device = inject(DeviceService);
   public branches = computed(() => [...this.store.branches.entities()]);
 
   editBranch(branch?: Branch) {
-    this.ref = this.dialogService.open(BranchesFormComponent, {
+    this.ref = this.dialogService.open<any>(BranchesFormComponent, {
       width: '36rem',
       data: { branch },
       header: 'Sucursal',

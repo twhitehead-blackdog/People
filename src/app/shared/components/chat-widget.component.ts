@@ -1,7 +1,6 @@
 import { Component, inject, signal, ElementRef, viewChild, OnInit, input, Pipe, PipeTransform, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { NgClass } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '@auth0/auth0-angular';
 
@@ -44,7 +43,7 @@ function greeting(name?: string): string {
 @Component({
   selector: 'pt-chat-widget',
   standalone: true,
-  imports: [FormsModule, NgClass, MdPipe],
+  imports: [FormsModule, MdPipe],
   host: { '(document:click)': 'onDocClick($event)', '(document:keydown.escape)': 'onEsc()' },
   template: `
     <!-- Toggle button -->

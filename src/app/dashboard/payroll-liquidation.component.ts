@@ -11,7 +11,6 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { ConfirmDialog } from 'primeng/confirmdialog';
@@ -34,7 +33,7 @@ const STATUS_CONFIG: Record<LiquidationStatus, { label: string; severity: 'secon
   standalone: true,
   imports: [
     CurrencyPipe, DatePipe, FormsModule,
-    Button, Card, TableModule, Tag,
+    Button, TableModule, Tag,
     ConfirmDialog, Toast, ProgressSpinner,
   ],
   providers: [ConfirmationService, MessageService],

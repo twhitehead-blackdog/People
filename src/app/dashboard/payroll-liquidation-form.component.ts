@@ -11,12 +11,10 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { InputNumber } from 'primeng/inputnumber';
 import { Textarea } from 'primeng/textarea';
 import { DatePicker } from 'primeng/datepicker';
-import { Tag } from 'primeng/tag';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ApiUrlService } from '../services/api-url.service';
@@ -36,7 +34,7 @@ import {
   standalone: true,
   imports: [
     CurrencyPipe, DatePipe, FormsModule,
-    Button, Card, Select, InputNumber, Textarea, DatePicker, Tag, Toast,
+    Button, Select, InputNumber, Textarea, DatePicker, Toast,
   ],
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,

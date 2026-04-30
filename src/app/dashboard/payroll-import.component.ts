@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, JsonPipe } from '@angular/common';
+import { DatePipe, JsonPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -43,12 +42,10 @@ interface ImportTypeOption {
   selector: 'pt-payroll-import',
   standalone: true,
   imports: [
-    CurrencyPipe,
     DatePipe,
     JsonPipe,
     FormsModule,
     Button,
-    Card,
     Select,
     TableModule,
     Tag,

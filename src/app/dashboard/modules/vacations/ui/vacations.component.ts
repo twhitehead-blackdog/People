@@ -123,7 +123,6 @@ import { VacationRequest } from '../models/vacation-request.model';
           paginatorPosition="bottom"
           [scrollable]="true"
           scrollHeight="600px"
-          [responsive]="true"
           styleClass="p-datatable-sm p-datatable-striped"
         >
           <ng-template pTemplate="header">

@@ -1,8 +1,8 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
-import { DropdownModule } from 'primeng/dropdown';
+import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 
 export interface FilterStatusOption {
@@ -33,8 +33,8 @@ export interface FilterStatusOption {
   imports: [
     FormsModule,
     InputTextModule,
-    DropdownModule,
-    CalendarModule,
+    SelectModule,
+    DatePickerModule,
     ButtonModule,
   ],
   template: `
@@ -89,7 +89,7 @@ export interface FilterStatusOption {
             <label class="block text-xs font-medium text-gray-300 mb-1">
               <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Estado
             </label>
-            <p-dropdown
+            <p-select
               [options]="statusOptions"
               [ngModel]="selectedStatus()"
               (ngModelChange)="onStatusSelectChange($event)"
@@ -104,7 +104,7 @@ export interface FilterStatusOption {
               <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i>
               Rango de Fechas
             </label>
-            <p-calendar
+            <p-datepicker
               [ngModel]="dateRange()"
               (ngModelChange)="onDateRangeSelect($event)"
               selectionMode="range"

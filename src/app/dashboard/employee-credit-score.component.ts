@@ -6,14 +6,14 @@ import {
   signal,
   effect,
 } from '@angular/core';
-import { CurrencyPipe, DecimalPipe, NgClass } from '@angular/common';
+import { CurrencyPipe, NgClass } from '@angular/common';
 import { CreditScoreService, CreditScoreResult, CreditScoreFactor } from '../services/credit-score.service';
 import { Skeleton } from 'primeng/skeleton';
 
 @Component({
   selector: 'pt-employee-credit-score',
   standalone: true,
-  imports: [CurrencyPipe, DecimalPipe, NgClass, Skeleton],
+  imports: [CurrencyPipe, NgClass, Skeleton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {

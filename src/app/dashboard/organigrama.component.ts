@@ -10,7 +10,6 @@ import { NgTemplateOutlet, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { Select } from 'primeng/select';
@@ -45,7 +44,7 @@ interface ConfigEntry {
 @Component({
   selector: 'pt-organigrama',
   standalone: true,
-  imports: [Card, Button, ToastModule, Select, FormsModule, NgTemplateOutlet, TooltipModule, UpperCasePipe],
+  imports: [Button, ToastModule, Select, FormsModule, NgTemplateOutlet, TooltipModule, UpperCasePipe],
   providers: [MessageService],
   template: `
     <p-toast />

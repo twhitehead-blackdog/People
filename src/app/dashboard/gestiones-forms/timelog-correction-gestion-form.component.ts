@@ -15,7 +15,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -34,7 +34,7 @@ import { notifyBranchManagers } from '../../utils/manager-notification.utils';
     Button,
     DatePicker,
     FileUpload,
-    InputTextarea,
+    Textarea,
     Select,
     TooltipModule,
     TutorialStepDirective,

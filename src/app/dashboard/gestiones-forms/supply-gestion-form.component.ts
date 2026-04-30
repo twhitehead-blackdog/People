@@ -12,7 +12,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { firstValueFrom } from 'rxjs';
 import { Branch, Employee } from '../../models';
@@ -26,14 +26,14 @@ import { OrganizationService } from '../../services/organization.service';
     CommonModule,
     FormsModule,
     Button,
-    InputTextarea,
+    Textarea,
     Select,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-5">
       <!-- Banner de sucursal -->
-      @if (currentEmployee()?.branch) {
+      @if (currentEmployee().branch) {
       <div class="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-400/30 rounded-lg p-4">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">

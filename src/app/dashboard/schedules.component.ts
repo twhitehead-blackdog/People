@@ -178,7 +178,7 @@ export class SchedulesComponent {
   public schedules = computed(() => [...this.store.entities()]);
 
   public dialogService = inject(DialogService);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
   colorVariants = colorVariants;
   colors = Object.entries(colorVariants).map(([key, value]) => ({
     key,
@@ -212,7 +212,7 @@ export class SchedulesComponent {
       return;
     }
     
-    this.ref = this.dialogService.open(SchedulesFormComponent, {
+    this.ref = this.dialogService.open<any>(SchedulesFormComponent, {
       header: 'Editar horario',
       modal: true,
       dismissableMask: true, // Cerrar al hacer clic fuera

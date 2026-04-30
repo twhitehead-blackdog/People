@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { Tag } from 'primeng/tag';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
@@ -32,7 +32,7 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
 @Component({
   selector: 'pt-payroll-debts',
   providers: [DynamicDialogRef, DialogService],
-  imports: [TableModule, Button, CurrencyPipe, MultiSelect, FormsModule, Card, Tag, DatePipe, Tooltip],
+  imports: [TableModule, Button, CurrencyPipe, MultiSelect, FormsModule, Card, Tag, Tooltip],
   template: `<p-card>
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
@@ -348,23 +348,22 @@ export class PayrollDebtsComponent implements OnInit {
   }
 
   public editDebt(debt?: PayrollDebt) {
-    this.dialogService
-      .open(PayrollDebtsFormComponent, {
-        data: {
-          payrollId: this.payrollId(),
-          debt,
-        },
-        modal: true,
-        width: '70vw',
-        header: 'Detalles de deuda',
-        breakpoints: {
-          '960px': '75vw',
-          '640px': '90vw',
-        },
-      })
-      .onClose.subscribe(() => {
-        this.debts.reload();
-      });
+    const ref = this.dialogService.open(PayrollDebtsFormComponent, {
+      data: {
+        payrollId: this.payrollId(),
+        debt,
+      },
+      modal: true,
+      width: '70vw',
+      header: 'Detalles de deuda',
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw',
+      },
+    });
+    ref?.onClose?.subscribe(() => {
+      this.debts.reload();
+    });
   }
 
   public deleteDebt(debt: PayrollDebt) {

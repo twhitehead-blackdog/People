@@ -14,6 +14,7 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
+import { extractTemplate, matchOneToMany, DEFAULT_MATCH_THRESHOLD, HIGH_CONFIDENCE_THRESHOLD } from './src/server/dp-matcher';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -108,7 +109,9 @@ export function app(): express.Express {
   server.use(compression());
 
   // Middleware para parsear JSON
-  server.use(express.json());
+  // Límite 5 MB para soportar enrollments DP (4 muestras PNG base64 ~ 200 KB)
+  // y futuras subidas. Default de Express es 100 KB.
+  server.use(express.json({ limit: '5mb' }));
 
   // CORS middleware - restringido a dominios autorizados
   const allowedOrigins = [
@@ -636,7 +639,7 @@ export function app(): express.Express {
             userDisplayName: `${employee.first_name} ${employee.father_name}`.trim(),
             attestationType: 'none',
             authenticatorSelection: {
-              // cross-platform = roaming authenticators (USB like Kensington VeriMark)
+              // cross-platform = roaming authenticators (USB security keys)
               // Credential is stored ON the USB device, works on any PC with the reader
               authenticatorAttachment: 'cross-platform',
               userVerification: 'required',
@@ -697,7 +700,7 @@ export function app(): express.Express {
             credential_id: credential.id,
             public_key: Buffer.from(credential.publicKey).toString('base64url'),
             sign_count: credential.counter,
-            device_name: deviceName || 'Kensington VeriMark',
+            device_name: deviceName || 'WebAuthn',
             registered_by: registeredBy,
             replace_all: true, // admin replaces all previous credentials
           });
@@ -901,6 +904,409 @@ export function app(): express.Express {
         } catch (err: any) {
           res.status(500).json({ error: err.message });
         }
+      });
+    })();
+  }
+
+  // ============================================================
+  // DigitalPersona U.are.U 4500 — fingerprint enroll / 1:N identify / punch
+  // Templates extracted server-side via SourceAFIS from PNG samples shipped
+  // by the DP Lite Client. Matching is server-side; kiosks only need the
+  // Lite Client installed (no extra software).
+  // ============================================================
+  {
+    (function setupDpEndpoints() {
+      const SUPABASE_URL = process.env['ENV_SUPABASE_URL']!;
+      const SUPABASE_KEY =
+        process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+        process.env['ENV_SUPABASE_TOKEN'] ||
+        process.env['ENV_SUPABASE_API_KEY']!;
+      const sbHeaders = {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      };
+
+      async function fetchAllTemplates(): Promise<any[]> {
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?select=id,employee_id,finger_index,template_b64,quality`,
+          { headers: sbHeaders }
+        );
+        if (!r.ok) throw new Error(`Supabase fetch templates: ${r.status}`);
+        return await r.json();
+      }
+
+      async function fetchEmployeeBasic(employeeId: string): Promise<any | null> {
+        const r = await fetch(
+          `${SUPABASE_URL}/rest/v1/employees?id=eq.${employeeId}&select=id,first_name,father_name,mother_name,identification_id,is_active`,
+          { headers: sbHeaders }
+        );
+        if (!r.ok) return null;
+        const rows = await r.json();
+        return rows?.[0] || null;
+      }
+
+      // POST /api/dp/enroll  (admin)
+      // body: { employee_id, finger_index (0-9), samples_b64: string[], device_name? }
+      // The server picks the highest-quality sample from the batch and stores its template.
+      server.post('/api/dp/enroll', requireAuth, async (req, res) => {
+        try {
+          const { employee_id, finger_index, samples_b64, device_name, face_photo_b64 } = req.body as {
+            employee_id: string; finger_index: number; samples_b64: string[]; device_name?: string; face_photo_b64?: string;
+          };
+          if (!employee_id || finger_index == null || !Array.isArray(samples_b64) || !samples_b64.length) {
+            res.status(400).json({ error: 'employee_id, finger_index, samples_b64[] required' });
+            return;
+          }
+          if (finger_index < 0 || finger_index > 9) {
+            res.status(400).json({ error: 'finger_index must be 0-9' });
+            return;
+          }
+
+          // Try each sample; keep the first one that produces a valid template.
+          let templateB64: string | null = null;
+          let lastErr = '';
+          let attempts = 0;
+          for (const s of samples_b64) {
+            attempts++;
+            try {
+              const t = extractTemplate(s);
+              templateB64 = Buffer.from(t).toString('base64');
+              console.log(`[dp/enroll] template extracted on attempt ${attempts}/${samples_b64.length} (sample size=${s.length})`);
+              break;
+            } catch (e: any) {
+              lastErr = e?.message || String(e);
+              console.warn(`[dp/enroll] extract failed attempt ${attempts}: ${lastErr} (sample size=${s.length})`);
+            }
+          }
+          if (!templateB64) {
+            console.error(`[dp/enroll] all ${samples_b64.length} samples failed. Last err: ${lastErr}`);
+            res.status(400).json({ error: `No se pudo extraer template de ninguna muestra: ${lastErr || 'unknown'}` });
+            return;
+          }
+
+          // Upsert (employee_id, finger_index)
+          const upsertRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?on_conflict=employee_id,finger_index`,
+            {
+              method: 'POST',
+              headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=representation' },
+              body: JSON.stringify({
+                employee_id,
+                finger_index,
+                template_b64: templateB64,
+                format: 'DP_PROPRIETARY',
+                device_name: device_name || 'U.are.U 4500',
+                enrolled_by: (req as any).user?.email || null,
+                face_photo_b64: face_photo_b64 || null,
+                enrolled_at: new Date().toISOString(),
+              }),
+            }
+          );
+          if (!upsertRes.ok) {
+            const t = await upsertRes.text();
+            res.status(500).json({ error: `DB upsert failed: ${upsertRes.status} ${t}` });
+            return;
+          }
+          const rows = await upsertRes.json();
+          res.json({ success: true, template_id: rows?.[0]?.id });
+        } catch (err: any) {
+          console.error('[dp/enroll]', err);
+          res.status(500).json({ error: err.message || 'enroll failed' });
+        }
+      });
+
+      // POST /api/dp/verify  (public — kiosk, 1:1 verify by employee_id)
+      // body: { employee_id, sample_b64 }
+      // Returns { matched, score? } — matches the sample against THIS employee's stored templates only.
+      server.post('/api/dp/verify', async (req, res) => {
+        try {
+          const { employee_id, sample_b64 } = req.body as { employee_id: string; sample_b64: string };
+          if (!employee_id || !sample_b64) {
+            res.status(400).json({ matched: false, error: 'employee_id and sample_b64 required' });
+            return;
+          }
+          let probe: Buffer;
+          try { probe = extractTemplate(sample_b64); }
+          catch (e: any) {
+            res.status(400).json({ matched: false, error: `Bad sample: ${e?.message || 'extract failed'}` });
+            return;
+          }
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?employee_id=eq.${employee_id}&select=id,employee_id,finger_index,template_b64`,
+            { headers: sbHeaders }
+          );
+          if (!r.ok) { res.status(500).json({ matched: false, error: 'fetch templates failed' }); return; }
+          const candidates = await r.json();
+          if (!candidates?.length) {
+            res.json({ matched: false, error: 'Empleado sin huella registrada' });
+            return;
+          }
+          // Compute score for each candidate to log for debugging
+          const allScores = candidates.map((c: any) => {
+            try {
+              const t = Buffer.from(c.template_b64, 'base64');
+              const matcher = require('sourceafis-js').createMatcher(probe);
+              return require('sourceafis-js').matchWithMatcher(matcher, t);
+            } catch { return -1; }
+          });
+          console.log(`[dp/verify] employee=${employee_id} candidates=${candidates.length} scores=[${allScores.join(',')}] threshold=${DEFAULT_MATCH_THRESHOLD}`);
+
+          const best = matchOneToMany(probe, candidates, DEFAULT_MATCH_THRESHOLD);
+          if (!best) {
+            const maxScore = allScores.length ? Math.max(...allScores) : 0;
+            res.json({ matched: false, best_score: maxScore });
+            return;
+          }
+          fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?id=eq.${best.row.id}`,
+            { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ last_used_at: new Date().toISOString() }) }
+          ).catch(() => {});
+          // High confidence → accept directly. Borderline → require 2nd finger.
+          const confidence = best.score >= HIGH_CONFIDENCE_THRESHOLD ? 'high' : 'borderline';
+          res.json({
+            matched: true,
+            score: best.score,
+            confidence,
+            matched_finger_index: best.row.finger_index,
+          });
+        } catch (err: any) {
+          console.error('[dp/verify]', err);
+          res.status(500).json({ matched: false, error: err.message || 'verify failed' });
+        }
+      });
+
+      // POST /api/dp/enroll-self  (public — kiosk forces employee to enroll after PIN punch)
+      // Same as /enroll but no admin auth. Locked to: employee just authenticated by PIN/punch.
+      // We rely on the kiosk-mode trust + the data being templates-only (not destructive).
+      server.post('/api/dp/enroll-self', async (req, res) => {
+        try {
+          const { employee_id, finger_index, samples_b64, device_name, face_photo_b64 } = req.body as {
+            employee_id: string; finger_index: number; samples_b64: string[]; device_name?: string; face_photo_b64?: string;
+          };
+          if (!employee_id || finger_index == null || !Array.isArray(samples_b64) || !samples_b64.length) {
+            res.status(400).json({ error: 'employee_id, finger_index, samples_b64[] required' });
+            return;
+          }
+          if (finger_index < 0 || finger_index > 9) {
+            res.status(400).json({ error: 'finger_index must be 0-9' });
+            return;
+          }
+          let templateB64: string | null = null;
+          let lastErr = '';
+          for (const s of samples_b64) {
+            try {
+              const t = extractTemplate(s);
+              templateB64 = Buffer.from(t).toString('base64');
+              break;
+            } catch (e: any) { lastErr = e?.message || String(e); }
+          }
+          if (!templateB64) {
+            res.status(400).json({ error: `No se pudo extraer template: ${lastErr}` });
+            return;
+          }
+          const upsertRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?on_conflict=employee_id,finger_index`,
+            {
+              method: 'POST',
+              headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=representation' },
+              body: JSON.stringify({
+                employee_id, finger_index,
+                template_b64: templateB64,
+                format: 'DP_PROPRIETARY',
+                device_name: device_name || 'U.are.U 4500 (kiosk self)',
+                enrolled_by: 'kiosk-self',
+                face_photo_b64: face_photo_b64 || null,
+                enrolled_at: new Date().toISOString(),
+              }),
+            }
+          );
+          if (!upsertRes.ok) {
+            const t = await upsertRes.text();
+            res.status(500).json({ error: `DB upsert failed: ${t}` });
+            return;
+          }
+          const rows = await upsertRes.json();
+          res.json({ success: true, template_id: rows?.[0]?.id });
+        } catch (err: any) {
+          console.error('[dp/enroll-self]', err);
+          res.status(500).json({ error: err.message || 'enroll-self failed' });
+        }
+      });
+
+      // POST /api/dp/identify  (public — kiosk)
+      // body: { sample_b64 } — captured PNG sample
+      // Returns { matched, employee_id?, employee_name?, cedula?, score? }
+      server.post('/api/dp/identify', async (req, res) => {
+        try {
+          const { sample_b64 } = req.body as { sample_b64: string };
+          if (!sample_b64) { res.status(400).json({ error: 'sample_b64 required' }); return; }
+
+          let probe: Buffer;
+          try { probe = extractTemplate(sample_b64); }
+          catch (e: any) {
+            res.status(400).json({ matched: false, error: `Bad sample: ${e?.message || 'extract failed'}` });
+            return;
+          }
+
+          const candidates = await fetchAllTemplates();
+          if (!candidates.length) { res.json({ matched: false }); return; }
+
+          const best = matchOneToMany(probe, candidates, DEFAULT_MATCH_THRESHOLD);
+          if (!best) { res.json({ matched: false }); return; }
+
+          const emp = await fetchEmployeeBasic(best.row.employee_id);
+          if (!emp || emp.is_active === false) {
+            res.json({ matched: false });
+            return;
+          }
+
+          // Update last_used_at (fire and forget)
+          fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?id=eq.${best.row.id}`,
+            {
+              method: 'PATCH',
+              headers: sbHeaders,
+              body: JSON.stringify({ last_used_at: new Date().toISOString() }),
+            }
+          ).catch(() => {});
+
+          const fullName = [emp.first_name, emp.father_name, emp.mother_name].filter(Boolean).join(' ');
+          res.json({
+            matched: true,
+            employee_id: emp.id,
+            employee_name: fullName,
+            cedula: emp.identification_id,
+            score: best.score,
+          });
+        } catch (err: any) {
+          console.error('[dp/identify]', err);
+          res.status(500).json({ matched: false, error: err.message || 'identify failed' });
+        }
+      });
+
+      // POST /api/dp/punch  (public — kiosk)
+      // body: { employee_id, punch_type: 'entry'|'lunch_start'|'lunch_end'|'exit' }
+      server.post('/api/dp/punch', async (req, res) => {
+        try {
+          const { employee_id, punch_type } = req.body as {
+            employee_id: string; punch_type: 'entry' | 'lunch_start' | 'lunch_end' | 'exit';
+          };
+          if (!employee_id || !punch_type) {
+            res.status(400).json({ error: 'employee_id and punch_type required' });
+            return;
+          }
+          const allowed = ['entry', 'lunch_start', 'lunch_end', 'exit'];
+          if (!allowed.includes(punch_type)) {
+            res.status(400).json({ error: `punch_type must be one of ${allowed.join(', ')}` });
+            return;
+          }
+
+          const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/timelogs`, {
+            method: 'POST',
+            headers: { ...sbHeaders, Prefer: 'return=representation' },
+            body: JSON.stringify({
+              employee_id,
+              type: punch_type,
+              source: 'dp_kiosk',
+              created_at: new Date().toISOString(),
+            }),
+          });
+          if (!insertRes.ok) {
+            const t = await insertRes.text();
+            res.status(500).json({ error: `Punch insert failed: ${insertRes.status} ${t}` });
+            return;
+          }
+          const rows = await insertRes.json();
+          res.json({ success: true, timelog_id: rows?.[0]?.id });
+        } catch (err: any) {
+          console.error('[dp/punch]', err);
+          res.status(500).json({ error: err.message || 'punch failed' });
+        }
+      });
+
+      // GET /api/dp/has-enrollment/:employeeId  (public — kiosk needs to know if it should show fingerprint UI)
+      // Returns presence only; no template data.
+      server.get('/api/dp/has-enrollment/:employeeId', async (req, res) => {
+        try {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?employee_id=eq.${req.params['employeeId']}&select=finger_index`,
+            { headers: sbHeaders }
+          );
+          if (!r.ok) { res.status(500).json({ enrolled: false }); return; }
+          const rows = await r.json();
+          res.json({ enrolled: (rows || []).length > 0, count: (rows || []).length });
+        } catch {
+          res.json({ enrolled: false });
+        }
+      });
+
+      // GET /api/dp/fingers/:employeeId  (admin) — devuelve detalles + foto de cada dedo
+      server.get('/api/dp/fingers/:employeeId', requireAuth, async (req, res) => {
+        try {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?employee_id=eq.${req.params['employeeId']}&select=id,finger_index,face_photo_b64,enrolled_at,enrolled_by,device_name,created_at&order=finger_index.asc`,
+            { headers: sbHeaders }
+          );
+          if (!r.ok) { res.status(500).json({ error: 'fetch failed' }); return; }
+          const rows = await r.json();
+          res.json(rows || []);
+        } catch (err: any) {
+          res.status(500).json({ error: err.message || 'fetch failed' });
+        }
+      });
+
+      // GET /api/dp/enrollment-status/:employeeId  (admin)
+      server.get('/api/dp/enrollment-status/:employeeId', requireAuth, async (req, res) => {
+        try {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?employee_id=eq.${req.params['employeeId']}&select=finger_index`,
+            { headers: sbHeaders }
+          );
+          if (!r.ok) { res.status(500).json({ error: 'fetch failed' }); return; }
+          const rows = await r.json();
+          const fingers = (rows || []).map((x: any) => x.finger_index).sort((a: number, b: number) => a - b);
+          res.json({ enrolled: fingers.length > 0, fingers });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message || 'status failed' });
+        }
+      });
+
+      // DELETE /api/dp/templates/:employeeId/:fingerIndex  (admin)
+      server.delete('/api/dp/templates/:employeeId/:fingerIndex', requireAuth, async (req, res) => {
+        try {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?employee_id=eq.${req.params['employeeId']}&finger_index=eq.${req.params['fingerIndex']}`,
+            { method: 'DELETE', headers: sbHeaders }
+          );
+          if (!r.ok) { res.status(500).json({ error: 'delete failed' }); return; }
+          res.json({ success: true });
+        } catch (err: any) {
+          res.status(500).json({ error: err.message || 'delete failed' });
+        }
+      });
+
+      // GET /api/dp/lite-client-installer  (public)
+      server.get('/api/dp/lite-client-installer', async (_req, res) => {
+        const fs = await import('fs');
+        const installerPath = path.join(process.cwd(), 'installers', 'dp-lite-client.exe');
+        if (!fs.existsSync(installerPath)) {
+          res.status(404).json({ error: 'Installer not uploaded yet.' });
+          return;
+        }
+        res.download(installerPath, 'HID-Authentication-Device-Client.exe');
+      });
+
+      // GET /api/dp/driver  (public)
+      // Legacy DP4500 driver — install BEFORE the Lite Client on Windows kiosks.
+      server.get('/api/dp/driver', async (_req, res) => {
+        const fs = await import('fs');
+        const driverPath = path.join(process.cwd(), 'installers', 'dp4500-driver-legacy.zip');
+        if (!fs.existsSync(driverPath)) {
+          res.status(404).json({ error: 'Driver not uploaded yet.' });
+          return;
+        }
+        res.download(driverPath, 'DP4500-Driver-Legacy.zip');
       });
     })();
   }

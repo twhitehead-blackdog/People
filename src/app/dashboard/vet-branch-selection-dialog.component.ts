@@ -1,11 +1,10 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject, input, output, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { differenceInCalendarDays } from 'date-fns';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { SelectButton } from 'primeng/selectbutton';
 
 import { Employee } from '../models';
@@ -23,10 +22,9 @@ export interface VetBranchSelectionResult {
   standalone: true,
   imports: [
     DialogModule,
-    DropdownModule,
+    SelectModule,
     Button,
     FormsModule,
-    DatePipe,
     SelectButton,
     DatePicker,
   ],
@@ -110,7 +108,7 @@ export interface VetBranchSelectionResult {
           <label for="branch-select" class="block text-sm font-medium mb-2">
             Sucursal
           </label>
-          <p-dropdown
+          <p-select
             id="branch-select"
             [options]="branches()"
             optionLabel="name"

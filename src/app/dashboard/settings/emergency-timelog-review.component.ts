@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,7 +10,6 @@ import { HttpClient } from '@angular/common/http';
 import { formatInTimeZone } from 'date-fns-tz';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
@@ -27,7 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'pt-emergency-timelog-review',
-  imports: [CommonModule, Card, Button, Tag, ToastModule, DatePipe],
+  imports: [CommonModule, Button, Tag, ToastModule],
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -176,15 +175,36 @@ export class EmergencyTimelogReviewComponent implements OnInit {
         detail: `Marcación de ${item.employee_name} guardada en el servidor`,
         life: 4000,
       });
-    } catch {
+    } catch (err: any) {
+      // Diagnóstico real - antes era un toast genérico sin pista de la causa
+      const status = err?.status;
+      const code = err?.error?.code;
+      const serverMsg = err?.error?.message || err?.message || 'Sin detalle';
+      console.error('[EmergencyReview] Sync falló', {
+        status,
+        code,
+        message: serverMsg,
+        body: err?.error,
+        item: { id: item.id, type: item.type, employee: item.employee_name },
+      });
+
       this.pending.update(list =>
         list.map(t => t.id === item.id ? { ...t, syncing: false } : t)
       );
+
+      const reason =
+        status === 0
+          ? 'sin conexión al servidor'
+          : status >= 500
+            ? `error servidor (${status})`
+            : status >= 400
+              ? `rechazo servidor ${status}${code ? ' ' + code : ''}: ${serverMsg}`
+              : 'falla desconocida';
       this.message.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo sincronizar. Verifique la conexión al servidor.',
-        life: 6000,
+        summary: 'No se pudo sincronizar',
+        detail: reason,
+        life: 8000,
       });
     }
   }
@@ -209,7 +229,14 @@ export class EmergencyTimelogReviewComponent implements OnInit {
         );
         this.markSynced(item.id);
         successCount++;
-      } catch {
+      } catch (err: any) {
+        console.error('[EmergencyReview] syncAll: item falló', {
+          status: err?.status,
+          code: err?.error?.code,
+          message: err?.error?.message || err?.message,
+          body: err?.error,
+          item: { id: item.id, type: item.type, employee: item.employee_name },
+        });
         errorCount++;
       }
     }

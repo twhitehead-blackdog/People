@@ -46,6 +46,8 @@ import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { TimeclockPhrasesService } from '../services/timeclock-phrases.service';
 import { WebAuthnService } from '../services/webauthn.service';
+import { DpFingerprintService } from '../services/dp-fingerprint.service';
+import { firstValueFrom } from 'rxjs';
 import {
   initAudioContext,
   playFailureSound,
@@ -340,6 +342,76 @@ interface TimeclockInfoData {
               <span>Seleccione la sucursal y empleado</span>
             </div>
           </ng-template>
+          <!-- DP reader status chip -->
+          <div class="dp-status-wrap">
+            <button type="button" class="dp-status-chip"
+                    [class.dp-status-chip--off]="!dpReaderConnected()"
+                    [class.dp-status-chip--clickable]="!dpReaderConnected()"
+                    (click)="!dpReaderConnected() && openDpInstallHelp()">
+              <span class="dp-status-dot"></span>
+              <i class="pi pi-fingerprint"></i>
+              <span class="dp-status-text">{{ dpReaderConnected() ? 'Lector conectado' : 'Lector desconectado — Click para ayuda' }}</span>
+            </button>
+          </div>
+
+          <!-- DP install help dialog -->
+          @if (showDpHelp()) {
+            <div class="dp-help-overlay" (click)="showDpHelp.set(false)">
+              <div class="dp-help-modal" (click)="$event.stopPropagation()">
+                <button class="dp-help-close" (click)="showDpHelp.set(false)" type="button">
+                  <i class="pi pi-times"></i>
+                </button>
+                <div class="dp-help-header">
+                  <i class="pi pi-fingerprint dp-help-icon"></i>
+                  <h2>Configurar lector de huellas</h2>
+                  <p>Sigue estos pasos para activar el lector U.are.U 4500 en esta PC.</p>
+                </div>
+                <ol class="dp-help-steps">
+                  <li>
+                    <span class="step-num">1</span>
+                    <div>
+                      <strong>Conecta el lector U.are.U 4500</strong> al puerto USB.
+                    </div>
+                  </li>
+                  <li>
+                    <span class="step-num">2</span>
+                    <div>
+                      <strong>Descarga e instala el driver del lector.</strong><br>
+                      <button class="dp-help-btn" (click)="dpDownloadDriver()">
+                        <i class="pi pi-download"></i> Descargar driver
+                      </button>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="step-num">3</span>
+                    <div>
+                      <strong>Descarga e instala el DigitalPersona Lite Client.</strong><br>
+                      <button class="dp-help-btn" (click)="dpDownloadInstaller()">
+                        <i class="pi pi-download"></i> Descargar Lite Client
+                      </button>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="step-num">4</span>
+                    <div>
+                      <strong>Acepta el certificado</strong> en
+                      <a href="https://127.0.0.1:52181/get_connection" target="_blank" rel="noopener" class="dp-help-link">
+                        https://127.0.0.1:52181
+                      </a>
+                      (Chrome → "Configuración avanzada" → "Acceder a 127.0.0.1").
+                    </div>
+                  </li>
+                  <li>
+                    <span class="step-num">5</span>
+                    <div>
+                      <strong>Recarga esta página.</strong> El chip debería ponerse en verde.
+                    </div>
+                  </li>
+                </ol>
+                <button class="dp-help-cta" (click)="showDpHelp.set(false)" type="button">Entendido</button>
+              </div>
+            </div>
+          }
           <form
             [formGroup]="form"
             class="flex flex-col gap-3 md:gap-4 items-center w-full"
@@ -419,8 +491,8 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle: only when employee has NO fingerprint -->
-            @if (selectedEmployee() && !employeeHasFingerprint()) {
+            <!-- Auth Method Toggle: only when employee has NO fingerprint (WebAuthn or DP) -->
+            @if (selectedEmployee() && !employeeHasFingerprint() && !employeeHasDp()) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> Autenticador
@@ -431,8 +503,8 @@ interface TimeclockInfoData {
               </div>
             }
 
-            <!-- PIN Input Section -->
-            @if (authMethod() === 'pin') {
+            <!-- PIN Input Section: only available if employee has NO fingerprint -->
+            @if (authMethod() === 'pin' && !employeeHasFingerprint() && !employeeHasDp()) {
             <div
               class="w-full flex flex-col gap-0.5 items-center justify-center"
             >
@@ -460,12 +532,16 @@ interface TimeclockInfoData {
                 >
                   <i class="pi pi-clipboard"></i>
                 </button>
+                <!-- Numeric keypad toggle (icon only) -->
+                <button
+                  type="button"
+                  class="paste-btn"
+                  (click)="toggleKeypad()"
+                  [title]="showKeypadPanel() ? 'Ocultar teclado' : 'Teclado numérico'"
+                >
+                  <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-chevron-up' : 'pi-th-large'"></i>
+                </button>
               </div>
-              <!-- Keypad toggle + Teclado numérico -->
-              <button type="button" class="keypad-toggle-btn w-full" (click)="toggleKeypad()">
-                <i class="pi" [ngClass]="showKeypadPanel() ? 'pi-chevron-up' : 'pi-th-large'"></i>
-                {{ showKeypadPanel() ? 'Ocultar teclado' : 'Teclado numérico' }}
-              </button>
               @if (showKeypadPanel()) {
               <div class="keypad-grid w-full max-w-[280px] mx-auto" style="animation: slideDown 0.25s ease-out;">
                 <div class="grid grid-cols-3 gap-1.5">
@@ -516,36 +592,33 @@ interface TimeclockInfoData {
             </div>
             }
 
-            <!-- Fingerprint Section -->
-            @if (authMethod() === 'fingerprint') {
+            <!-- Fingerprint Section: auto-scan animation, no button -->
+            @if (authMethod() === 'fingerprint' || employeeHasFingerprint() || employeeHasDp()) {
               <div class="w-full flex flex-col items-center gap-3">
-                @if (employeeHasFingerprint()) {
-                  <button
-                    type="button"
-                    class="fingerprint-scan-btn"
-                    [class.fingerprint-scan-btn--processing]="isProcessing()"
-                    [disabled]="isProcessing() || !form.get('employee')?.value || !form.get('type')?.value"
-                    (click)="validateFingerprint()"
-                  >
-                    <i class="pi pi-fingerprint fingerprint-icon"></i>
-                    <span class="fingerprint-label">{{ isProcessing() ? 'Verificando...' : 'Iniciar verificación de huella' }}</span>
-                  </button>
+                @if (employeeHasFingerprint() || employeeHasDp()) {
+                  <div class="fp-scanner" [class.fp-scanner--scanning]="isProcessing()" [class.fp-scanner--ready]="!isProcessing()">
+                    <div class="fp-scanner__ring"></div>
+                    <div class="fp-scanner__ring fp-scanner__ring--2"></div>
+                    <div class="fp-scanner__beam"></div>
+                    <i class="pi pi-fingerprint fp-scanner__icon"></i>
+                  </div>
+                  <p class="fp-scanner__label">
+                    @if (isProcessing()) {
+                      Escaneando huella...
+                    } @else if (form.get('employee')?.value && form.get('type')?.value) {
+                      Coloca tu dedo en el lector
+                    } @else if (!form.get('employee')?.value) {
+                      Selecciona empleado
+                    } @else {
+                      Selecciona tipo de marcación
+                    }
+                  </p>
                 } @else {
-                  <!-- No credential on this device — offer self-registration -->
                   <div class="fingerprint-noreg-box">
                     <i class="pi pi-fingerprint" style="font-size:2rem;color:rgba(251,191,36,0.5)"></i>
                     <p style="font-size:0.85rem;color:rgba(255,255,255,0.55);text-align:center;margin:0">
-                      No hay huella registrada para este empleado en este dispositivo.
+                      No hay huella registrada. Solicita el registro a un administrador.
                     </p>
-                    <button
-                      type="button"
-                      class="fingerprint-register-here-btn"
-                      [disabled]="isProcessing()"
-                      (click)="selfRegisterFingerprint()"
-                    >
-                      <i class="pi" [ngClass]="isProcessing() ? 'pi-spin pi-spinner' : 'pi-plus-circle'"></i>
-                      {{ isProcessing() ? 'Registrando...' : 'Registrar huella en este dispositivo' }}
-                    </button>
                   </div>
                 }
               </div>
@@ -624,8 +697,15 @@ interface TimeclockInfoData {
     </div>`,
   styles: `
     :host {
-      display: block;
-      width: 100%;
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      z-index: 9999 !important;
+      background: radial-gradient(ellipse at top, #0a0e1a 0%, #06060a 60%) !important;
+      overflow: hidden;
+      margin: 0 !important;
     }
 
     @media (max-width: 767px) {
@@ -1249,6 +1329,220 @@ interface TimeclockInfoData {
       border-radius: 16px;
       border: 1px dashed rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.03);
+    }
+
+    /* DP reader status chip */
+    .dp-status-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .dp-status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px 5px 10px;
+      border-radius: 999px;
+      background: rgba(52,211,153,0.1);
+      border: 1px solid rgba(52,211,153,0.35);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      transition: all 0.2s;
+      cursor: default;
+      font-family: inherit;
+    }
+    .dp-status-chip--clickable { cursor: pointer; }
+    .dp-status-chip--clickable:hover {
+      background: rgba(251,191,36,0.15);
+      border-color: rgba(251,191,36,0.6);
+      color: #fbbf24;
+      transform: translateY(-1px);
+    }
+    .dp-status-chip--off.dp-status-chip--clickable:hover .dp-status-dot { background: #fbbf24; }
+    .dp-status-chip i { font-size: 12px; }
+    .dp-status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 0 0 rgba(52,211,153,0.7);
+      animation: dp-status-pulse 2s ease-out infinite;
+    }
+    @keyframes dp-status-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); }
+      70%, 100% { box-shadow: 0 0 0 7px rgba(52,211,153,0); }
+    }
+    .dp-status-chip--off {
+      background: rgba(148,163,184,0.08);
+      border-color: rgba(148,163,184,0.25);
+      color: #94a3b8;
+    }
+    .dp-status-chip--off .dp-status-dot {
+      background: #64748b;
+      animation: none;
+    }
+
+    /* DP install help modal */
+    .dp-help-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; animation: dp-help-fade 0.2s ease-out;
+    }
+    @keyframes dp-help-fade { from { opacity: 0; } to { opacity: 1; } }
+    .dp-help-modal {
+      position: relative; max-width: 520px; width: 100%; max-height: 90vh;
+      overflow-y: auto; padding: 28px 24px 20px;
+      border-radius: 18px;
+      background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(99,179,237,0.22);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+      color: #cbd5e1;
+    }
+    .dp-help-close {
+      position: absolute; top: 12px; right: 12px;
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
+      color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .dp-help-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .dp-help-header { text-align: center; margin-bottom: 20px; }
+    .dp-help-icon {
+      font-size: 2.5rem; color: #63b3ed;
+      filter: drop-shadow(0 0 12px rgba(99,179,237,0.5));
+    }
+    .dp-help-header h2 { margin: 8px 0 4px; font-size: 1.3rem; color: #fff; font-weight: 700; }
+    .dp-help-header p { margin: 0; font-size: 0.85rem; color: #94a3b8; }
+    .dp-help-steps {
+      list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;
+    }
+    .dp-help-steps li {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .dp-help-steps li > div { flex: 1; font-size: 0.85rem; line-height: 1.5; }
+    .dp-help-steps li strong { color: #fff; font-weight: 600; }
+    .step-num {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, #63b3ed, #4299e1);
+      color: white; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .dp-help-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; margin-top: 6px;
+      border: 1px solid rgba(99,179,237,0.4); border-radius: 8px;
+      background: rgba(99,179,237,0.1); color: #63b3ed;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+      font-family: inherit;
+    }
+    .dp-help-btn:hover { background: rgba(99,179,237,0.2); }
+    .dp-help-link { color: #63b3ed; text-decoration: underline; word-break: break-all; }
+    .dp-help-cta {
+      width: 100%; margin-top: 18px; padding: 12px;
+      border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #63b3ed, #4299e1);
+      color: white; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+      font-family: inherit;
+    }
+    .dp-help-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    /* Modern fingerprint scanner — compacto */
+    .fp-scanner {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0.25rem auto;
+    }
+    .fp-scanner__ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(99,179,237,0.25);
+      pointer-events: none;
+    }
+    .fp-scanner__ring--2 {
+      inset: 8px;
+      border-color: rgba(99,179,237,0.15);
+    }
+    .fp-scanner__icon {
+      font-size: 3.2rem;
+      color: #63b3ed;
+      filter: drop-shadow(0 0 8px rgba(99,179,237,0.5));
+      z-index: 2;
+      transition: color 0.3s, filter 0.3s;
+    }
+    .fp-scanner__beam {
+      position: absolute;
+      inset: 18px;
+      border-radius: 50%;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .fp-scanner__beam::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent 0%, rgba(99,179,237,0.9) 50%, transparent 100%);
+      box-shadow: 0 0 14px rgba(99,179,237,0.8);
+      top: 50%;
+      opacity: 0;
+    }
+    .fp-scanner--ready .fp-scanner__ring {
+      animation: fp-pulse-ring 2.4s ease-out infinite;
+    }
+    .fp-scanner--ready .fp-scanner__ring--2 {
+      animation: fp-pulse-ring 2.4s ease-out infinite;
+      animation-delay: 1.2s;
+    }
+    .fp-scanner--scanning .fp-scanner__icon {
+      color: #34d399;
+      filter: drop-shadow(0 0 18px rgba(52,211,153,0.7));
+    }
+    .fp-scanner--scanning .fp-scanner__ring {
+      border-color: rgba(52,211,153,0.5);
+      animation: fp-spin 2s linear infinite;
+      border-top-color: transparent;
+    }
+    .fp-scanner--scanning .fp-scanner__ring--2 {
+      border-color: rgba(52,211,153,0.3);
+      animation: fp-spin 2s linear infinite reverse;
+      border-bottom-color: transparent;
+    }
+    .fp-scanner--scanning .fp-scanner__beam::before {
+      animation: fp-scan-beam 1.6s ease-in-out infinite;
+    }
+    @keyframes fp-pulse-ring {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.15); opacity: 0; }
+    }
+    @keyframes fp-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fp-scan-beam {
+      0% { top: 0; opacity: 0; }
+      10%, 90% { opacity: 1; }
+      50% { top: 100%; opacity: 1; }
+      100% { top: 0; opacity: 0; }
+    }
+    .fp-scanner__label {
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.85);
+      margin: 0;
+      letter-spacing: 0.2px;
     }
     .fingerprint-register-here-btn {
       display: flex; align-items: center; gap: 0.5rem;
@@ -1988,6 +2282,8 @@ export class NazTimeclockComponent implements OnDestroy {
   private apiUrl = inject(ApiUrlService);
   private phrases = inject(TimeclockPhrasesService);
   private webAuthn = inject(WebAuthnService);
+  private dp = inject(DpFingerprintService);
+  public employeeHasDp = signal<boolean>(false);
 
   /** Employees that can mark from any IP address */
   private readonly IP_BYPASS_EMPLOYEE_IDS = new Set([
@@ -2047,6 +2343,12 @@ export class NazTimeclockComponent implements OnDestroy {
   private injector = inject(Injector);
   private timeInterval: any;
 
+  public dpReaderConnected = signal<boolean>(false);
+  public showDpHelp = signal<boolean>(false);
+  openDpInstallHelp() { this.showDpHelp.set(true); }
+  dpDownloadDriver() { window.open('/api/dp/driver', '_blank'); }
+  dpDownloadInstaller() { window.open('/api/dp/lite-client-installer', '_blank'); }
+
   // Update time every second
   constructor() {
     // Configurar organización como Naz para esta ruta
@@ -2054,6 +2356,10 @@ export class NazTimeclockComponent implements OnDestroy {
 
     // Inicializar contexto de audio para sonidos de marcación
     initAudioContext();
+
+    // Monitorear estado del lector DP (Lite Client + lector USB)
+    this.dp.startStatusPolling(5000);
+    this.dp.onConnectionChange((c) => this.dpReaderConnected.set(c));
 
     // Detectar si está en modo kiosko
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
@@ -2133,10 +2439,31 @@ export class NazTimeclockComponent implements OnDestroy {
       this.onEmployeeSelected(employee);
     });
 
+    // Auto-iniciar verificación de huella cuando el tipo de marcación cambia
+    this.form.get('type')?.valueChanges.subscribe(() => {
+      this.maybeAutoStartFingerprint();
+    });
+
     // Track selected branch for info modal / branch mismatch
     this.form.get('branch_id')?.valueChanges.subscribe((branchId) => {
       this.selectedBranchId.set(branchId || '');
     });
+  }
+
+  private autoFingerprintTimer: any = null;
+  /** Auto-arranca verificación cuando empleado + tipo + huella registrada listos. */
+  private maybeAutoStartFingerprint() {
+    if (this.autoFingerprintTimer) {
+      clearTimeout(this.autoFingerprintTimer);
+      this.autoFingerprintTimer = null;
+    }
+    if (this.isProcessing()) return;
+    if (this.authMethod() !== 'fingerprint') return;
+    const v = this.form.getRawValue();
+    if (!v.employee || !v.type || !v.branch_id) return;
+    if (!this.employeeHasFingerprint() && !this.employeeHasDp()) return;
+    // Pequeño delay para que el usuario vea su selección antes de pedir el dedo
+    this.autoFingerprintTimer = setTimeout(() => this.validateFingerprint(), 350);
   }
 
   /**
@@ -2603,14 +2930,29 @@ export class NazTimeclockComponent implements OnDestroy {
     this.selectedEmployee.set(employee);
     this.authMethod.set('pin');
     this.employeeHasFingerprint.set(false);
+    this.employeeHasDp.set(false);
     if (employee?.id) {
-      // Check fingerprint registration in background
-      this.webAuthn.getCredentialStatus(employee.id)
-        .then(s => {
-          this.employeeHasFingerprint.set(s.hasCredential);
-          if (s.hasCredential) this.authMethod.set('fingerprint');
-        })
-        .catch(() => this.employeeHasFingerprint.set(false));
+      // Esperamos AMBOS chequeos antes de elegir método y auto-disparar
+      Promise.all([
+        this.webAuthn.getCredentialStatus(employee.id).catch(() => ({ hasCredential: false } as any)),
+        this.dp.isLiteClientAvailable().then(async (liteOk) => {
+          if (!liteOk) return { enrolled: false };
+          try {
+            const r = await fetch(`/api/dp/has-enrollment/${employee.id}`);
+            if (!r.ok) return { enrolled: false };
+            return await r.json();
+          } catch { return { enrolled: false }; }
+        }),
+      ]).then(([waStatus, dpStatus]: any[]) => {
+        // DP tiene prioridad si el empleado lo tiene enrolado
+        this.employeeHasDp.set(!!dpStatus?.enrolled);
+        // WebAuthn solo si el empleado NO tiene DP (evita 404 del fallback)
+        this.employeeHasFingerprint.set(!dpStatus?.enrolled && !!waStatus?.hasCredential);
+        if (this.employeeHasDp() || this.employeeHasFingerprint()) {
+          this.authMethod.set('fingerprint');
+          this.maybeAutoStartFingerprint();
+        }
+      });
 
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
@@ -2845,6 +3187,20 @@ export class NazTimeclockComponent implements OnDestroy {
 
     this.isProcessing.set(true);
     try {
+      // Prefer DigitalPersona U.are.U 4500 if employee has DP huella AND this PC has Lite Client
+      if (this.employeeHasDp()) {
+        const verified = await this.verifyWithDp(employee.id);
+        if (!verified) {
+          playFailureSound();
+          this.message.add({ severity: 'error', summary: 'Error', detail: 'Huella no coincide. Intenta de nuevo.' });
+          return;
+        }
+        const name = `${employee.first_name} ${employee.father_name}`.trim();
+        this.processTimelog(employee.id, branch_id, company_id, type, name, employee.birth_date as any, 'webauthn');
+        return;
+      }
+
+      // Fallback: WebAuthn (Windows Hello / VeriMark)
       const verified = await this.webAuthn.authenticateFingerprint(employee.id);
       if (!verified) {
         playFailureSound();
@@ -2860,9 +3216,43 @@ export class NazTimeclockComponent implements OnDestroy {
         ? 'Verificación cancelada. Intente de nuevo.'
         : err?.status === 404
           ? 'No hay huella registrada para este empleado.'
-          : 'Error al leer la huella. Intente con PIN.';
+          : (err?.message || 'Error al leer la huella. Intenta de nuevo.');
       this.message.add({ severity: 'error', summary: 'Huella', detail, life: 6000 });
     }
+  }
+
+  private async verifyWithDp(employeeId: string): Promise<boolean> {
+    const state = await this.dp.init();
+    if (state !== 'ready') {
+      throw new Error(state === 'no-device' ? 'Lector no conectado' : 'Lite Client no disponible');
+    }
+    const sample1 = await this.dp.captureOne(30000);
+    const r1 = await fetch('/api/dp/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_id: employeeId, sample_b64: sample1 }),
+    });
+    if (!r1.ok) return false;
+    const j1 = await r1.json();
+    if (!j1?.matched) return false;
+    if (j1.confidence === 'high') return true;
+
+    this.message.add({
+      severity: 'info', summary: 'Confirmación', life: 8000,
+      detail: 'Score bajo. Coloca un segundo dedo (distinto al primero) para confirmar.',
+    });
+    const sample2 = await this.dp.captureOne(30000);
+    const r2 = await fetch('/api/dp/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_id: employeeId, sample_b64: sample2 }),
+    });
+    if (!r2.ok) return false;
+    const j2 = await r2.json();
+    if (!j2?.matched) return false;
+    if (j1.matched_finger_index === j2.matched_finger_index) {
+      this.message.add({ severity: 'warn', summary: 'Confirmación', detail: 'Usa un dedo distinto.', life: 5000 });
+      return false;
+    }
+    return true;
   }
 
   private processTimelog(

@@ -12,7 +12,6 @@ import { format } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { Checkbox } from 'primeng/checkbox';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
 import { Dialog } from 'primeng/dialog';
@@ -62,7 +61,6 @@ import { getEmployeePermission } from '../utils/permission.utils';
     MultiSelect,
     DatePicker,
     InputNumber,
-    Checkbox,
     ToggleSwitch,
     ConfirmDialog,
     DatePipe,

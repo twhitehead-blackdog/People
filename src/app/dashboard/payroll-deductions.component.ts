@@ -1,4 +1,4 @@
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -18,7 +18,7 @@ import { PayrollDeductionsFormComponent } from './payroll-deductions-form.compon
 
 @Component({
   selector: 'pt-payroll-deductions',
-  imports: [TableModule, Button, DecimalPipe, CurrencyPipe, Card, Tag],
+  imports: [TableModule, Button, DecimalPipe, Card, Tag],
   providers: [DynamicDialogRef, DialogService],
   template: `<p-card>
       <ng-template #title>
@@ -136,19 +136,18 @@ export class PayrollDeductionsComponent {
   public dialogService = inject(DialogService);
 
   public editDeduction(deduction?: PayrollDeduction) {
-    this.dialogService
-      .open(PayrollDeductionsFormComponent, {
-        data: {
-          payrollId: this.payrollId(),
-          deduction,
-        },
-        modal: true,
-        width: '48rem',
-        header: 'Deducción',
-      })
-      .onClose.subscribe(() => {
-        this.payrollDeductions.reload();
-      });
+    const ref = this.dialogService.open(PayrollDeductionsFormComponent, {
+      data: {
+        payrollId: this.payrollId(),
+        deduction,
+      },
+      modal: true,
+      width: '48rem',
+      header: 'Deducción',
+    });
+    ref?.onClose?.subscribe(() => {
+      this.payrollDeductions.reload();
+    });
   }
 
   public deleteDeduction(deduction: PayrollDeduction) {

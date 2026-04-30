@@ -228,7 +228,7 @@ export class PayrollPaymentsComponent {
       dismissableMask: true,
       closeOnEscape: true,
     });
-    ref.onClose.subscribe(() => {
+    ref?.onClose.subscribe(() => {
       this.payments.reload();
     });
   }

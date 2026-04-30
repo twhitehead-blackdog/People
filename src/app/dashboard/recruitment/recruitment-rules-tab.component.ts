@@ -16,7 +16,6 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
-import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -51,7 +50,6 @@ const EMPTY_FORM: RuleForm = {
     Tag,
     Button,
     InputText,
-    Textarea,
     Select,
     InputNumber,
     Checkbox,

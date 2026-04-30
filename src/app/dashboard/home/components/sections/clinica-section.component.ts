@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TooltipModule } from 'primeng/tooltip';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { HomeDataService, OdooSaleOrder } from '../../services/home-data.service';
 import { BranchesStore } from '../../../../stores/branches.store';
 import { HttpClient } from '@angular/common/http';
@@ -104,7 +104,7 @@ export type BranchClinicaRow = {
 @Component({
   selector: 'pt-clinica-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, TooltipModule, CalendarModule],
+  imports: [CommonModule, FormsModule, TooltipModule, DatePickerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- ========== DESKTOP ========== -->
@@ -118,7 +118,7 @@ export type BranchClinicaRow = {
           </h2>
           <div class="date-filter">
             <label class="date-filter-label">Ver fecha:</label>
-            <p-calendar
+            <p-datepicker
               [ngModel]="homeData.clinicaViewDate()"
               (ngModelChange)="onViewDateChange($event)"
               [showIcon]="true"
@@ -126,7 +126,7 @@ export type BranchClinicaRow = {
               [maxDate]="maxDate()"
               styleClass="clinica-date-picker"
               inputStyleClass="clinica-date-input"
-            ></p-calendar>
+            ></p-datepicker>
           </div>
         </div>
         <p class="section-subtitle">
@@ -291,7 +291,7 @@ export type BranchClinicaRow = {
         <p class="text-xs text-gray-400 mb-2">Veterinarios por tienda</p>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-xs text-gray-400">Fecha:</span>
-          <p-calendar
+          <p-datepicker
             [ngModel]="homeData.clinicaViewDate()"
             (ngModelChange)="onViewDateChange($event)"
             [showIcon]="true"
@@ -299,7 +299,7 @@ export type BranchClinicaRow = {
             [maxDate]="maxDate()"
             styleClass="clinica-date-picker"
             inputStyleClass="clinica-date-input"
-          ></p-calendar>
+          ></p-datepicker>
         </div>
         <p class="text-xs text-gray-500">{{ dateLabel() }}</p>
       </div>

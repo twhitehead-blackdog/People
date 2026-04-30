@@ -11,7 +11,7 @@ import {
   withState,
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { filter, of, pipe, switchMap } from 'rxjs';
+import { combineLatest, filter, map, of, pipe, switchMap } from 'rxjs';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { getEmployeePermission } from '../utils/permission.utils';
@@ -34,10 +34,16 @@ export const AuthStore = signalStore(
   withMethods(({ _auth, _http, _apiUrl, _orgService, ...state }) => ({
     getCurrentEmployee: rxMethod<void>(
       pipe(
-        switchMap(() => {
-          // Usar Auth0
-          return _auth.user$;
-        }),
+        switchMap(() =>
+          // Esperar a que Auth0 termine de procesar el callback antes de
+          // emitir el user. Sin esto, las peticiones a Supabase salen en
+          // paralelo con el redirect interno de Auth0 y se abortan
+          // (ERR_ABORTED), dejando los httpResource colgados en isLoading.
+          combineLatest([_auth.isLoading$, _auth.user$]).pipe(
+            filter(([isLoading]) => !isLoading),
+            map(([, user]) => user)
+          )
+        ),
         filter((user) => !!user),
         switchMap((user) => {
           // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas

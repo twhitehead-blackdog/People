@@ -5,7 +5,6 @@ import { MessageService } from 'primeng/api';
 import { filter, take } from 'rxjs';
 
 import { DialogModule } from 'primeng/dialog';
-import { Button } from 'primeng/button';
 import { OrganizationService } from './services/organization.service';
 import { DiagnosticPanelComponent } from './components/diagnostic-panel.component';
 import { DiagnosticService } from './services/diagnostic.service';
@@ -16,171 +15,40 @@ import { PwaService } from './services/pwa.service';
 import { DesignVersionService } from './services/design-version.service';
 
 @Component({
-  imports: [RouterOutlet, DiagnosticPanelComponent, DialogModule, Button],
+  imports: [RouterOutlet, DiagnosticPanelComponent, DialogModule],
   providers: [MessageService],
   selector: 'pt-root',
   template: `
     @if (showSkeleton()) {
-      @if (isPortal) {
-        <!-- Portal skeleton -->
-        <div class="sk-overlay portal-sk">
-          <div class="portal-sk-inner">
-            <div class="portal-sk-logo"></div>
-            <div class="portal-sk-spinner"></div>
-          </div>
-        </div>
-      } @else if (skeletonType() === 'launcher') {
-        <!-- Launcher skeleton: greeting + icon grid -->
-        <div class="sk-overlay">
-          <div class="sk-dash sk-dash--launcher">
-            <div class="sk-nav">
-              <div class="sk-nav-logo"></div>
-              <div class="sk-nav-links">
-                <div class="sk-nav-link" style="width:80px"></div>
-                <div class="sk-nav-link" style="width:100px"></div>
-                <div class="sk-nav-link" style="width:80px"></div>
-                <div class="sk-nav-link" style="width:110px"></div>
-              </div>
-              <div class="sk-nav-user">
-                <div class="sk-nav-uname"><div></div><div></div></div>
-                <div class="sk-nav-avatar"></div>
-              </div>
-            </div>
-            <div class="sk-launcher-content">
-              <div class="sk-launcher-greet">
-                <div class="sk-launcher-title"></div>
-                <div class="sk-launcher-subtitle"></div>
-              </div>
-              <div class="sk-sec-hdr"><div class="sk-sec-label"></div><div class="sk-sec-line"></div></div>
-              <div class="sk-mod-grid">
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-blue"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-violet"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-emerald"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-amber"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-rose"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-orange"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod"><div class="sk-mod-ic sk-ic-fuchsia"></div><div class="sk-mod-lbl"></div></div>
-              </div>
-              <div class="sk-sec-hdr" style="margin-top:1.5rem"><div class="sk-sec-label"></div><div class="sk-sec-line"></div></div>
-              <div class="sk-mod-grid sk-mod-grid--ext">
-                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-teal"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-indigo"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-slate"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-pink"></div><div class="sk-mod-lbl"></div></div>
-                <div class="sk-mod sk-mod--ext"><div class="sk-mod-ic sk-ic-purple"></div><div class="sk-mod-lbl"></div></div>
-              </div>
+      <div class="sk-overlay brutal-loader">
+        <div class="brutal-bg"></div>
+        <div class="brutal-stack">
+          <div class="brutal-logo-ring">
+            <div class="brutal-orbit brutal-orbit--1"></div>
+            <div class="brutal-orbit brutal-orbit--2"></div>
+            <div class="brutal-orbit brutal-orbit--3"></div>
+            <div class="brutal-core">
+              <span class="brutal-bd">BD</span>
             </div>
           </div>
+          <div class="brutal-bar"><div class="brutal-bar__fill"></div></div>
+          <div class="brutal-text">CARGANDO<span class="brutal-dots"><span>.</span><span>.</span><span>.</span></span></div>
         </div>
-      } @else if (skeletonType() === 'table') {
-        <!-- Table section skeleton: nav + sidebar + table rows -->
-        <div class="sk-overlay">
-          <div class="sk-dash">
-            <div class="sk-nav">
-              <div class="sk-nav-logo"></div>
-              <div class="sk-nav-links">
-                <div class="sk-nav-link" style="width:80px"></div>
-                <div class="sk-nav-link" style="width:100px"></div>
-                <div class="sk-nav-link" style="width:90px"></div>
-                <div class="sk-nav-link" style="width:110px"></div>
-              </div>
-              <div class="sk-nav-user">
-                <div class="sk-nav-uname"><div></div><div></div></div>
-                <div class="sk-nav-avatar"></div>
-              </div>
-            </div>
-            <div class="sk-body">
-              <div class="sk-side">
-                <div class="sk-si active"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-                <div class="sk-sep"></div>
-                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-                <div class="sk-si"><div class="sk-si-ic"></div><div class="sk-si-lb"></div></div>
-              </div>
-              <div class="sk-main sk-main--tbl">
-                <div class="sk-page-hdr">
-                  <div class="sk-page-title"></div>
-                  <div class="sk-page-actions">
-                    <div class="sk-page-btn"></div>
-                    <div class="sk-page-btn"></div>
-                  </div>
-                </div>
-                <div class="sk-filter-bar">
-                  <div class="sk-filter-chip" style="width:140px"></div>
-                  <div class="sk-filter-chip" style="width:110px"></div>
-                  <div class="sk-filter-chip" style="width:90px"></div>
-                </div>
-                <div class="sk-table">
-                  <div class="sk-table-hdr"></div>
-                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
-                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
-                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
-                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
-                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
-                  <div class="sk-row"><div class="sk-row-avatar"></div><div class="sk-row-body"><div class="sk-row-line"></div><div class="sk-row-sub"></div></div><div class="sk-row-badge"></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      } @else if (skeletonType() === 'timeclock') {
-        <!-- Timeclock skeleton: fullscreen clock -->
-        <div class="sk-overlay sk-overlay--tc">
-          <div class="sk-tc-inner">
-            <div class="sk-tc-logo"></div>
-            <div class="sk-tc-clock"></div>
-            <div class="sk-tc-date"></div>
-            <div class="sk-tc-name"></div>
-            <div class="sk-tc-btn"></div>
-          </div>
-        </div>
-      } @else if (skeletonType() === 'login') {
-        <!-- Login skeleton: centered form -->
-        <div class="sk-overlay sk-overlay--login">
-          <div class="sk-login-inner">
-            <div class="sk-login-logo"></div>
-            <div class="sk-login-title"></div>
-            <div class="sk-login-sub"></div>
-            <div class="sk-login-card"></div>
-            <div class="sk-login-card"></div>
-          </div>
-        </div>
-      } @else {
-        <!-- Fallback: spinner -->
-        <div class="sk-overlay portal-sk">
-          <div class="portal-sk-inner">
-            <div class="portal-sk-logo"></div>
-            <div class="portal-sk-spinner"></div>
-          </div>
-        </div>
-      }
+      </div>
     }
     <router-outlet />
     <pt-diagnostic-panel />
 
-    <!-- Version update countdown banner -->
+    <!-- Version update banner — estilo portal-empleados-app -->
     @if (versionCheck.updateAvailable()) {
       <div class="version-update-banner">
         <div class="version-update-content">
           <i class="pi pi-refresh version-update-icon"></i>
-          <span class="version-update-text">Nueva versión disponible — actualizando en</span>
-          <button
-            class="version-update-countdown"
-            [class.fast]="versionCheck.speedMultiplier() >= 5"
-            [class.urgent]="versionCheck.countdown() <= 10"
-            (click)="versionCheck.activateFastMode()"
-            title="Clic para acelerar"
-          >
-            <span class="countdown-number">{{ versionCheck.countdown() }}</span>
-            <span class="countdown-unit">s</span>
-            @if (versionCheck.speedMultiplier() > 1) {
-              <span class="speed-badge">{{ versionCheck.speedMultiplier() }}×</span>
-            }
-          </button>
+          <span class="version-update-text">
+            Nueva versi&oacute;n disponible &mdash; actualizando en {{ versionCheck.countdown() }}s
+          </span>
           <button class="version-update-now" (click)="reloadApp()">
-            Actualizar ahora
+            Ahora
           </button>
         </div>
       </div>
@@ -285,14 +153,40 @@ import { DesignVersionService } from './services/design-version.service';
     .sk-row-line{height:12px;width:45%;border-radius:3px;background:rgba(255,255,255,.07)}
     .sk-row-sub{height:10px;width:30%;border-radius:3px;background:rgba(255,255,255,.04)}
     .sk-row-badge{height:20px;width:60px;border-radius:20px;background:rgba(255,255,255,.04)}
-    /* ── Timeclock skeleton ── */
-    .sk-overlay--tc{display:flex;align-items:center;justify-content:center}
-    .sk-tc-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem}
-    .sk-tc-logo{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c)}
-    .sk-tc-clock{height:64px;width:260px;border-radius:12px;background:rgba(255,255,255,.07)}
-    .sk-tc-date{height:16px;width:180px;border-radius:5px;background:rgba(255,255,255,.04)}
-    .sk-tc-name{height:20px;width:140px;border-radius:6px;background:rgba(255,255,255,.06)}
-    .sk-tc-btn{height:48px;width:180px;border-radius:24px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.2)}
+    /* ══════════ BRUTAL LOADER ══════════ */
+    .brutal-loader{display:flex;align-items:center;justify-content:center;background:#000 !important}
+    .brutal-bg{position:absolute;inset:0;background:
+      radial-gradient(circle at 20% 30%, rgba(251,191,36,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(99,179,237,0.08) 0%, transparent 50%),
+      #06060a;
+      animation:brutal-bg 6s ease-in-out infinite}
+    @keyframes brutal-bg{0%,100%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(20deg) brightness(1.1)}}
+    .brutal-stack{position:relative;display:flex;flex-direction:column;align-items:center;gap:2rem;z-index:2}
+    .brutal-logo-ring{position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center}
+    .brutal-orbit{position:absolute;border-radius:50%;border:2px solid transparent;pointer-events:none}
+    .brutal-orbit--1{inset:0;border-top-color:#fbbf24;border-right-color:rgba(251,191,36,0.4);box-shadow:0 0 30px rgba(251,191,36,0.3);animation:brutal-spin 2.4s cubic-bezier(0.5,0,0.5,1) infinite}
+    .brutal-orbit--2{inset:18px;border-bottom-color:#63b3ed;border-left-color:rgba(99,179,237,0.4);box-shadow:0 0 24px rgba(99,179,237,0.3);animation:brutal-spin 1.8s cubic-bezier(0.5,0,0.5,1) infinite reverse}
+    .brutal-orbit--3{inset:36px;border-top-color:#34d399;border-left-color:rgba(52,211,153,0.4);box-shadow:0 0 18px rgba(52,211,153,0.3);animation:brutal-spin 1.2s cubic-bezier(0.5,0,0.5,1) infinite}
+    @keyframes brutal-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .brutal-core{
+      width:90px;height:90px;border-radius:50%;
+      background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 40px rgba(251,191,36,0.6),0 0 80px rgba(251,191,36,0.3),inset 0 -8px 16px rgba(0,0,0,0.3);
+      animation:brutal-pulse 2s ease-in-out infinite
+    }
+    @keyframes brutal-pulse{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(251,191,36,0.6),0 0 80px rgba(251,191,36,0.3),inset 0 -8px 16px rgba(0,0,0,0.3)}50%{transform:scale(0.92);box-shadow:0 0 30px rgba(251,191,36,0.4),0 0 60px rgba(251,191,36,0.2),inset 0 -8px 16px rgba(0,0,0,0.4)}}
+    .brutal-bd{font-family:'Orbitron',ui-monospace,monospace;font-weight:900;font-size:1.7rem;color:#1a1a1a;letter-spacing:0.04em;text-shadow:0 1px 0 rgba(255,255,255,0.3)}
+    .brutal-bar{width:200px;height:3px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;position:relative}
+    .brutal-bar__fill{position:absolute;height:100%;width:40%;background:linear-gradient(90deg,transparent,#fbbf24,transparent);border-radius:999px;animation:brutal-bar 1.4s cubic-bezier(0.4,0,0.2,1) infinite;box-shadow:0 0 12px rgba(251,191,36,0.6)}
+    @keyframes brutal-bar{0%{left:-40%}100%{left:100%}}
+    .brutal-text{font-family:'Orbitron',ui-monospace,monospace;font-size:0.85rem;font-weight:700;letter-spacing:0.45em;color:rgba(255,255,255,0.7);display:flex;align-items:center}
+    .brutal-dots{display:inline-flex;margin-left:0.3em;gap:2px}
+    .brutal-dots span{animation:brutal-dot 1.4s ease-in-out infinite;opacity:0}
+    .brutal-dots span:nth-child(1){animation-delay:0s}
+    .brutal-dots span:nth-child(2){animation-delay:0.2s}
+    .brutal-dots span:nth-child(3){animation-delay:0.4s}
+    @keyframes brutal-dot{0%,80%,100%{opacity:0}40%{opacity:1}}
     /* ── Login skeleton ── */
     .sk-overlay--login{display:flex;align-items:center;justify-content:center}
     .sk-login-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem;width:100%;max-width:360px;padding:0 1rem}
@@ -327,23 +221,43 @@ import { DesignVersionService } from './services/design-version.service';
     .pwa-banner-close{background:none;border:none;color:#78716c;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:.875rem}
     @keyframes pwa-slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 
-    /* Version update banner */
-    .version-update-banner{position:fixed;top:0;left:0;right:0;z-index:10001;padding:10px 16px;background:linear-gradient(90deg,#1a1200,#2d1f00,#1a1200);border-bottom:1px solid rgba(251,191,36,.3);animation:vu-slideDown .4s cubic-bezier(.4,0,.2,1)}
+    /* Version update banner — copia exacta de portal-empleados-app */
+    .version-update-banner{
+      position:fixed;top:0;left:0;right:0;z-index:9999;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:10px 16px;
+      background:rgba(251,191,36,0.97);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      animation:vu-slideDown .4s cubic-bezier(.4,0,.2,1)
+    }
     @keyframes vu-slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
-    .version-update-content{display:flex;align-items:center;gap:10px;max-width:700px;margin:0 auto;flex-wrap:wrap}
-    .version-update-icon{color:#fbbf24;font-size:1.1rem;animation:vu-spin 2s linear infinite}
+    .version-update-content{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      width:100%;min-width:0
+    }
+    .version-update-icon{
+      color:#000;font-size:.85rem;
+      animation:vu-spin 2s linear infinite;
+      flex-shrink:0
+    }
     @keyframes vu-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    .version-update-text{color:#d4a21a;font-size:.8rem;font-weight:500;flex:1;min-width:120px}
-    .version-update-countdown{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:64px;height:40px;padding:0 12px;border-radius:12px;border:2px solid rgba(251,191,36,.4);background:rgba(251,191,36,.08);cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;animation:vu-pulse 1s ease-in-out infinite}
-    @keyframes vu-pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.3)}50%{box-shadow:0 0 0 6px rgba(251,191,36,.0)}}
-    .version-update-countdown.urgent{border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.12);animation:vu-pulse-red 0.5s ease-in-out infinite}
-    @keyframes vu-pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,.0)}}
-    .version-update-countdown.fast{border-color:rgba(251,191,36,.8);background:rgba(251,191,36,.15)}
-    .countdown-number{color:#fbbf24;font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
-    .countdown-unit{color:#a16207;font-size:.65rem;font-weight:600}
-    .speed-badge{position:absolute;top:-8px;right:-6px;background:#fbbf24;color:#0a0a0a;font-size:.55rem;font-weight:800;padding:1px 4px;border-radius:4px}
-    .version-update-now{background:#fbbf24;color:#0a0a0a;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:.75rem;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .15s}
-    .version-update-now:hover{background:#f59e0b}
+    .version-update-text{
+      color:#000;font-size:.78rem;font-weight:700;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      flex:1;min-width:0;
+      letter-spacing:.01em
+    }
+    .version-update-now{
+      flex-shrink:0;
+      background:rgba(0,0,0,0.18);color:#000;
+      border:none;border-radius:8px;padding:5px 12px;
+      font-weight:700;font-size:.75rem;
+      cursor:pointer;white-space:nowrap;
+      -webkit-tap-highlight-color:transparent;
+      transition:background .15s
+    }
+    .version-update-now:hover{background:rgba(0,0,0,0.28)}
 
     /* Notification Prompt */
     .notif-prompt{position:fixed;top:20px;right:20px;z-index:10000;animation:notif-slideIn .4s cubic-bezier(.4,0,.2,1)}
@@ -445,31 +359,22 @@ export class AppComponent implements OnInit {
         });
     }
 
-    // Skeleton en navegación entre secciones (solo si tarda > 250ms)
+    // Skeleton de navegación: solo mostramos un loader corto si tarda >800ms.
+    // Antes mostraba un layout completo con navbar/sidebar oscuro que se quedaba pegado.
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
-        // No mostrar skeleton para /login: Auth0 redirige el browser completo
-        // y NavigationEnd nunca llega, dejando el skeleton colgado.
         if (event.url === '/login' || event.url.startsWith('/login')) {
-          if (this.skeletonTimer) {
-            clearTimeout(this.skeletonTimer);
-            this.skeletonTimer = null;
-          }
+          if (this.skeletonTimer) { clearTimeout(this.skeletonTimer); this.skeletonTimer = null; }
           this.showSkeleton.set(false);
           return;
         }
         const type = this.getSkeletonType(event.url);
         this.skeletonType.set(type);
-        // Solo mostrar skeleton si la navegación tarda más de 250ms
-        this.skeletonTimer = setTimeout(() => {
-          this.showSkeleton.set(true);
-        }, 250);
+        // Mostrar loader solo si tarda >800ms (no para tránsitos rápidos típicos)
+        this.skeletonTimer = setTimeout(() => this.showSkeleton.set(true), 800);
       }
       if (event instanceof NavigationEnd) {
-        if (this.skeletonTimer) {
-          clearTimeout(this.skeletonTimer);
-          this.skeletonTimer = null;
-        }
+        if (this.skeletonTimer) { clearTimeout(this.skeletonTimer); this.skeletonTimer = null; }
         this.showSkeleton.set(false);
       }
     });

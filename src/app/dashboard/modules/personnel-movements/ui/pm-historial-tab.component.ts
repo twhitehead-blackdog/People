@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Employee } from '../../../../models';
 import { BranchHistoryEntry } from '../models/personnel-movements.model';
@@ -8,13 +8,13 @@ import { BranchHistoryEntry } from '../models/personnel-movements.model';
 @Component({
   selector: 'pt-pm-historial-tab',
   standalone: true,
-  imports: [FormsModule, TableModule, DropdownModule],
+  imports: [FormsModule, TableModule, SelectModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-3">
       <div class="flex items-center gap-2">
         <label class="text-sm text-gray-300">Colaborador:</label>
-        <p-dropdown
+        <p-select
           [options]="employeeOptions"
           optionLabel="label"
           optionValue="value"

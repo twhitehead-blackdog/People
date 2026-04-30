@@ -92,7 +92,7 @@ import { isManagerPosition } from './services/schedule-manager-rules';
           [min]="0"
           [max]="60"
           showButtons
-          step="5"
+          [step]="5"
           [disabled]="!!form.get('no_tolerance')?.value"
         />
       </div>

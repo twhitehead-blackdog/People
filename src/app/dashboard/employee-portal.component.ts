@@ -5,7 +5,6 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
-import { TabViewModule } from 'primeng/tabview';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 
@@ -25,7 +24,6 @@ import { EmployeePortalTimelogsTabComponent } from './employee-portal/tabs/emplo
     ButtonModule,
     CardModule,
     TabsModule,
-    TabViewModule,
     ToastModule,
     TooltipModule,
     EmployeePortalDashboardTabComponent,
@@ -98,87 +96,91 @@ import { EmployeePortalTimelogsTabComponent } from './employee-portal/tabs/emplo
       <!-- Main Content Area with Tabs -->
       <main class="flex-1 overflow-hidden relative z-0">
         <div class="h-full flex flex-col max-w-7xl mx-auto w-full">
-          <p-tabView
-            [(activeIndex)]="activeTabIndex"
-            (onChange)="onTabChange($event)"
+          <p-tabs
+            [value]="activeTabIndex()"
+            (valueChange)="onTabChange($event)"
             styleClass="flex flex-col h-full bg-transparent"
             [scrollable]="true"
           >
-            <!-- Tab 0: Dashboard -->
-            <p-tabPanel header="Dashboard" [disabled]="false">
-              <ng-template pTemplate="header">
+            <p-tablist>
+              <p-tab [value]="0">
                 <div class="flex items-center gap-2 px-1 py-1">
                   <i class="pi pi-home"></i>
                   <span class="font-medium">Inicio</span>
                 </div>
-              </ng-template>
-              <div
-                class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
-              >
-                <pt-employee-portal-dashboard-tab />
-              </div>
-            </p-tabPanel>
-
-            <!-- Tab 1: Gestiones -->
-            <p-tabPanel header="Gestiones">
-              <ng-template pTemplate="header">
+              </p-tab>
+              <p-tab [value]="1">
                 <div class="flex items-center gap-2 px-1 py-1">
                   <i class="pi pi-briefcase"></i>
                   <span class="font-medium">Gestiones</span>
                 </div>
-              </ng-template>
-              <div
-                class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
-              >
-                <pt-employee-portal-gestiones-tab />
-              </div>
-            </p-tabPanel>
-
-            <!-- Tab 2: Mi Perfil -->
-            <p-tabPanel header="Perfil">
-              <ng-template pTemplate="header">
+              </p-tab>
+              <p-tab [value]="2">
                 <div class="flex items-center gap-2 px-1 py-1">
                   <i class="pi pi-user"></i>
                   <span class="font-medium">Mi Perfil</span>
                 </div>
-              </ng-template>
-              <div
-                class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
-              >
-                <pt-employee-portal-profile-tab />
-              </div>
-            </p-tabPanel>
-
-            <!-- Tab 3: Marcaciones -->
-            <p-tabPanel header="Marcaciones">
-              <ng-template pTemplate="header">
+              </p-tab>
+              <p-tab [value]="3">
                 <div class="flex items-center gap-2 px-1 py-1">
                   <i class="pi pi-clock"></i>
                   <span class="font-medium">Marcaciones</span>
                 </div>
-              </ng-template>
-              <div
-                class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
-              >
-                <pt-employee-portal-timelogs-tab />
-              </div>
-            </p-tabPanel>
-
-            <!-- Tab 4: Tardanzas -->
-            <p-tabPanel header="Tardanzas">
-              <ng-template pTemplate="header">
+              </p-tab>
+              <p-tab [value]="4">
                 <div class="flex items-center gap-2 px-1 py-1">
                   <i class="pi pi-exclamation-circle"></i>
                   <span class="font-medium">Tardanzas</span>
                 </div>
-              </ng-template>
-              <div
-                class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
-              >
-                <pt-employee-portal-lates-tab />
-              </div>
-            </p-tabPanel>
-          </p-tabView>
+              </p-tab>
+            </p-tablist>
+            <p-tabpanels>
+              <!-- Tab 0: Dashboard -->
+              <p-tabpanel [value]="0">
+                <div
+                  class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
+                >
+                  <pt-employee-portal-dashboard-tab />
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 1: Gestiones -->
+              <p-tabpanel [value]="1">
+                <div
+                  class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
+                >
+                  <pt-employee-portal-gestiones-tab />
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 2: Mi Perfil -->
+              <p-tabpanel [value]="2">
+                <div
+                  class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
+                >
+                  <pt-employee-portal-profile-tab />
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 3: Marcaciones -->
+              <p-tabpanel [value]="3">
+                <div
+                  class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
+                >
+                  <pt-employee-portal-timelogs-tab />
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 4: Tardanzas -->
+              <p-tabpanel [value]="4">
+                <div
+                  class="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
+                >
+                  <pt-employee-portal-lates-tab />
+                </div>
+              </p-tabpanel>
+            </p-tabpanels>
+          </p-tabs>
         </div>
       </main>
 
@@ -293,8 +295,8 @@ export class EmployeePortalComponent implements OnInit {
     });
   }
 
-  public onTabChange(event: any) {
-    const index = event.index;
+  public onTabChange(value: any) {
+    const index = typeof value === 'number' ? value : value?.index ?? 0;
     this.activeTabIndex.set(index);
 
     let fragment = 'dashboard';

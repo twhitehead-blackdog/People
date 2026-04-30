@@ -17,7 +17,6 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Dialog } from 'primeng/dialog';
-import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { Tooltip } from 'primeng/tooltip';
 import {
@@ -60,7 +59,6 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
     CommonModule,
     Button,
     Card,
-    Tag,
     ToastModule,
     Dialog,
     Tooltip,

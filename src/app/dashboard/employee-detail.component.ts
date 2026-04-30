@@ -12,7 +12,6 @@ import { Button } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MenuModule } from 'primeng/menu';
-import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { Tooltip } from 'primeng/tooltip';
 
@@ -38,6 +37,8 @@ import { EmployeeSchedulesComponent } from './employee-schedules.component';
 import { TerminationFormComponent } from './termination-form.component';
 import { TimeOffsComponent } from './time-offs.component';
 import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../services/webauthn.service';
+import { DpFingerprintService } from '../services/dp-fingerprint.service';
+import { DpEnrollDialogComponent } from '../components/dp-enroll-dialog.component';
 
 @Component({
   selector: 'pt-employee-detail',
@@ -52,11 +53,11 @@ import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../service
     EmployeeCreditScoreComponent,
     EmployeeSchedulesComponent,
     Skeleton,
-    Tag,
     ToastModule,
     ConfirmDialogModule,
     RouterLink,
     Tooltip,
+    DpEnrollDialogComponent,
   ],
   providers: [
     DynamicDialogRef,
@@ -67,6 +68,12 @@ import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../service
   template: `
     <p-toast />
     <p-confirmDialog />
+    <app-dp-enroll-dialog
+      [employeeId]="employee_id()"
+      [show]="dpDialogVisible()"
+      (saved)="onDpEnrolled()"
+      (closed)="dpDialogVisible.set(false)"
+    />
     <div class="ed">
     <!-- ========== HEADER ========== -->
     <header class="ed-header">
@@ -84,7 +91,7 @@ import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../service
       </div>
       @if (currentEmployee(); as emp) {
         <div class="ed-identity">
-          <div class="ed-avatar">{{ emp.first_name?.charAt(0) }}{{ emp.father_name?.charAt(0) }}</div>
+          <div class="ed-avatar">{{ emp.first_name.charAt(0) }}{{ emp.father_name.charAt(0) }}</div>
           <div class="ed-identity__info">
             <h1 class="ed-name">{{ emp.first_name }} {{ emp.father_name }}</h1>
             <p class="ed-subtitle">{{ emp.position?.name || 'Sin cargo' }} · {{ emp.branch?.name || '' }}</p>
@@ -309,7 +316,18 @@ import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../service
               @if (fingerprintStatusLoading()) {
                 <p-skeleton height="4rem" /><p-skeleton height="4rem" styleClass="mt-2" />
               } @else {
-                <!-- Dispositivos registrados -->
+                <!-- Estado general (vacío solo si DP y WebAuthn están vacíos) -->
+                @if (!dpStatus()?.enrolled && !fingerprintStatus()?.credentials?.length) {
+                  <div class="ed-portal-status">
+                    <div class="ed-portal-icon"><i class="pi pi-fingerprint"></i></div>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-semibold text-white text-sm m-0">Sin huellas registradas</p>
+                      <p class="text-xs text-gray-400 m-0 mt-0.5">El empleado no puede marcar con huella aún.</p>
+                    </div>
+                  </div>
+                }
+
+                <!-- Credenciales WebAuthn legacy (si existen) -->
                 @if (fingerprintStatus()?.credentials?.length) {
                   <div class="space-y-2">
                     @for (cred of fingerprintStatus()!.credentials!; track cred.id) {
@@ -328,45 +346,68 @@ import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../service
                       </div>
                     }
                   </div>
-                } @else {
-                  <div class="ed-portal-status">
-                    <div class="ed-portal-icon"><i class="pi pi-fingerprint"></i></div>
-                    <div class="flex-1 min-w-0">
-                      <p class="font-semibold text-white text-sm m-0">Sin huellas registradas</p>
-                      <p class="text-xs text-gray-400 m-0 mt-0.5">El empleado no puede marcar con huella aún.</p>
-                    </div>
-                  </div>
                 }
 
-                <!-- Acción: registrar desde este equipo (Kensington) -->
-                <div class="fp-action-card">
-                  <div class="fp-action-icon"><i class="pi pi-desktop"></i></div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-white m-0">Registrar desde este equipo</p>
-                    <p class="text-xs text-gray-400 m-0 mt-0.5">Requiere lector Kensington VeriMark conectado y Windows Hello activo.</p>
-                  </div>
-                  <p-button
-                    label="Registrar"
-                    icon="pi pi-fingerprint"
-                    severity="success"
-                    size="small"
-                    [loading]="registeringFingerprint()"
-                    [disabled]="registeringFingerprint() || deletingFingerprint()"
-                    (onClick)="registerFingerprint()"
-                  />
-                </div>
-
-                <!-- Instrucción registro móvil -->
+                <!-- DigitalPersona U.are.U 4500 (kiosko) -->
                 <div class="fp-action-card" style="border-color: rgba(99,179,237,0.25); background: rgba(99,179,237,0.05);">
-                  <div class="fp-action-icon" style="background:rgba(99,179,237,0.1);color:#63b3ed"><i class="pi pi-mobile"></i></div>
+                  <div class="fp-action-icon" style="background:rgba(99,179,237,0.1);color:#63b3ed"><i class="pi pi-id-card"></i></div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-white m-0">Registrar desde móvil</p>
+                    <p class="text-sm font-semibold text-white m-0">DigitalPersona U.are.U 4500 (kiosko)</p>
                     <p class="text-xs text-gray-400 m-0 mt-0.5">
-                      En el teléfono, ir al reloj de marcación → seleccionar empleado →
-                      tab <strong class="text-blue-300">Huella</strong> → "Registrar huella en este dispositivo".
+                      @if (dpStatus()?.enrolled) {
+                        <span class="text-green-300">{{ dpStatus()?.fingers?.length }} dedo(s) registrado(s)</span>.
+                      } @else {
+                        Captura 4 muestras del mismo dedo. Requiere lector U.are.U 4500 conectado.
+                      }
                     </p>
                   </div>
+                  <div class="flex gap-2">
+                    <p-button
+                      [label]="dpStatus()?.enrolled ? 'Agregar dedo' : 'Registrar'"
+                      icon="pi pi-id-card"
+                      severity="info"
+                      size="small"
+                      (onClick)="openDpEnroll()"
+                    />
+                    @if (dpStatus()?.enrolled) {
+                      <p-button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        size="small"
+                        [outlined]="true"
+                        (onClick)="confirmDeleteAllDp()"
+                        pTooltip="Eliminar todas las huellas DP"
+                      />
+                    }
+                  </div>
                 </div>
+
+                <!-- Lista de dedos DP enrolados con opción individual de borrar -->
+                @if (dpStatus()?.enrolled && dpFingerDetails().length) {
+                  <div class="dp-fingers-list">
+                    @for (f of dpFingerDetails(); track f.finger_index) {
+                      <div class="dp-finger-row">
+                        <div class="dp-finger-info">
+                          @if (f.face_photo_b64) {
+                            <img [src]="'data:image/jpeg;base64,' + f.face_photo_b64" class="dp-finger-photo" />
+                          } @else {
+                            <div class="dp-finger-photo dp-finger-photo--placeholder"><i class="pi pi-user"></i></div>
+                          }
+                          <div>
+                            <p class="m-0 font-semibold text-white text-sm">{{ fingerLabel(f.finger_index) }}</p>
+                            <p class="m-0 text-xs text-gray-400">
+                              {{ f.enrolled_at ? (f.enrolled_at | date:'dd/MM/yyyy HH:mm') : 'sin fecha' }}
+                              · {{ f.enrolled_by || 'sistema' }}
+                            </p>
+                          </div>
+                        </div>
+                        <button class="fp-delete-btn" [disabled]="deletingDpFinger()" (click)="confirmDeleteDpFinger(f.finger_index)" title="Eliminar este dedo">
+                          <i class="pi pi-trash"></i>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
 
                 <!-- Eliminar todo -->
                 @if (fingerprintStatus()?.credentials?.length) {
@@ -545,6 +586,15 @@ import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../service
     }
     .fp-delete-btn:hover:not(:disabled) { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.5); }
     .fp-delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .dp-fingers-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .dp-finger-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .dp-finger-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .dp-finger-photo { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1.5px solid rgba(99,179,237,0.4); flex-shrink: 0; }
+    .dp-finger-photo--placeholder { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); color: #64748b; }
     .fp-action-card {
       display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem;
       background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
@@ -634,8 +684,19 @@ export class EmployeeDetailComponent implements OnInit {
   private qrService = inject(QrService);
   private apiUrl = inject(ApiUrlService);
   private webAuthnService = inject(WebAuthnService);
+  private dpService = inject(DpFingerprintService);
 
   public webAuthnSupported = this.webAuthnService.isSupported();
+  public dpStatus = signal<{ enrolled: boolean; fingers: number[] } | null>(null);
+  public dpDialogVisible = signal(false);
+  public dpFingerDetails = signal<Array<{ id: string; finger_index: number; face_photo_b64?: string; enrolled_at?: string; enrolled_by?: string; device_name?: string }>>([]);
+  public deletingDpFinger = signal(false);
+
+  fingerLabel(idx: number): string {
+    const labels = ['Pulgar derecho', 'Índice derecho', 'Medio derecho', 'Anular derecho', 'Meñique derecho',
+                    'Pulgar izquierdo', 'Índice izquierdo', 'Medio izquierdo', 'Anular izquierdo', 'Meñique izquierdo'];
+    return labels[idx] || `Dedo ${idx}`;
+  }
   public employee_id = signal<string | null>(null);
   public inviting = signal(false);
   public regeneratingQr = signal(false);
@@ -783,7 +844,7 @@ export class EmployeeDetailComponent implements OnInit {
     return baseItems;
   });
   private dialog = inject(DialogService);
-  private ref = inject(DynamicDialogRef);
+  private ref!: DynamicDialogRef<any> | null;
 
   ngOnInit(): void {
     const employeeId = this.route.snapshot.paramMap.get('employee_id');
@@ -1079,7 +1140,90 @@ export class EmployeeDetailComponent implements OnInit {
 
   onTabClick(index: number): void {
     this.activeTab.set(index);
-    if (index === 8) this.loadFingerprintStatus();
+    if (index === 8) {
+      this.loadFingerprintStatus();
+      this.loadDpStatus();
+    }
+  }
+
+  async loadDpStatus(): Promise<void> {
+    const id = this.employee_id();
+    if (!id) return;
+    // Status (enrolled + finger indexes) — primary signal
+    try {
+      const s = await this.dpService.getEnrollmentStatus(id);
+      this.dpStatus.set(s);
+    } catch {
+      this.dpStatus.set({ enrolled: false, fingers: [] });
+    }
+    // Detalles (foto/fecha) — separado: si falla, no bota el status
+    if (this.dpStatus()?.enrolled) {
+      try {
+        const r = await firstValueFrom(this.http.get<any[]>(`/api/dp/fingers/${id}`));
+        this.dpFingerDetails.set(r || []);
+      } catch {
+        this.dpFingerDetails.set([]);
+      }
+    } else {
+      this.dpFingerDetails.set([]);
+    }
+  }
+
+  openDpEnroll(): void { this.dpDialogVisible.set(true); }
+  onDpEnrolled(): void { this.loadDpStatus(); }
+
+  confirmDeleteDpFinger(fingerIndex: number): void {
+    const label = this.fingerLabel(fingerIndex);
+    this.confirmationService.confirm({
+      message: `¿Eliminar la huella de "${label}"?`,
+      header: 'Eliminar huella',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: async () => {
+        const id = this.employee_id();
+        if (!id) return;
+        this.deletingDpFinger.set(true);
+        try {
+          await this.dpService.deleteFinger(id, fingerIndex);
+          this.messageService.add({ severity: 'success', summary: 'Huella eliminada', detail: label });
+          await this.loadDpStatus();
+        } catch (e: any) {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo eliminar' });
+        } finally {
+          this.deletingDpFinger.set(false);
+        }
+      },
+    });
+  }
+
+  confirmDeleteAllDp(): void {
+    const id = this.employee_id();
+    if (!id) return;
+    this.confirmationService.confirm({
+      message: '¿Eliminar TODAS las huellas DigitalPersona de este empleado?',
+      header: 'Eliminar todas las huellas',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar todas',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: async () => {
+        this.deletingDpFinger.set(true);
+        try {
+          const fingers = this.dpStatus()?.fingers || [];
+          for (const idx of fingers) {
+            await this.dpService.deleteFinger(id, idx);
+          }
+          this.messageService.add({ severity: 'success', summary: 'Huellas eliminadas', detail: `${fingers.length} dedos borrados` });
+          await this.loadDpStatus();
+        } catch (e: any) {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudieron borrar todas' });
+        } finally {
+          this.deletingDpFinger.set(false);
+        }
+      },
+    });
   }
 
   async loadFingerprintStatus(): Promise<void> {

@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
+    <script type="importmap">
+      {
+        "imports": {
+          "WebSdk": "/assets/dp/websdk-shim.js"
+        }
+      }
+    </script>
     <script>
       // Desregistrar SOLO service workers viejos de Angular PWA (ngsw-worker.js),
       // no el nuevo /sw.js. Se ejecuta una sola vez y limpia cache stale del build anterior.
@@ -182,8 +189,8 @@
     <!-- Google Fonts (async load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap" /></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&family=Orbitron:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&family=Orbitron:wght@500;600;700;800;900&display=swap" /></noscript>
     <script>
       // Forzar modo oscuro siempre
       document.documentElement.classList.add('dark');
@@ -288,80 +295,7 @@
           .sk-bottom{grid-template-columns:1fr}
         }
       </style>
-      <div class="sk" id="dashboard-skeleton">
-        <!-- Top Navbar -->
-        <div class="sk-nav sk-pulse">
-          <div class="sk-nav-logo"></div>
-          <div class="sk-nav-links">
-            <div class="sk-nav-link" style="width:70px"></div>
-            <div class="sk-nav-link" style="width:110px"></div>
-            <div class="sk-nav-link" style="width:80px"></div>
-            <div class="sk-nav-link" style="width:120px"></div>
-            <div class="sk-nav-link" style="width:80px"></div>
-          </div>
-          <div class="sk-nav-user">
-            <div class="sk-nav-name"><div></div><div></div></div>
-            <div class="sk-nav-avatar"></div>
-          </div>
-        </div>
-        <div class="sk-body">
-          <!-- Sidebar -->
-          <div class="sk-side sk-pulse">
-            <div class="sk-side-item active"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-            <div class="sk-side-sep"></div>
-            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
-          </div>
-          <!-- Main Content -->
-          <div class="sk-main sk-pulse">
-            <!-- Hero Row: 3 cards -->
-            <div class="sk-hero">
-              <div class="sk-hero-card">
-                <div class="sk-hero-top"><div class="sk-hero-title"></div><div class="sk-hero-badge"></div></div>
-                <div class="sk-hero-number"></div>
-                <div class="sk-hero-chart"></div>
-              </div>
-              <div class="sk-hero-card">
-                <div class="sk-hero-top"><div class="sk-hero-title"></div></div>
-                <div class="sk-hero-chart" style="height:80px;border-radius:50%;width:80px;margin:.5rem auto"></div>
-                <div class="sk-hero-title" style="width:60%;margin:0 auto"></div>
-              </div>
-              <div class="sk-hero-card">
-                <div class="sk-hero-top"><div class="sk-hero-title"></div></div>
-                <div class="sk-hero-number"></div>
-                <div class="sk-hero-chart"></div>
-              </div>
-            </div>
-            <!-- KPI Grid: 3x3 -->
-            <div class="sk-kpi">
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-orange"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-red"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-green"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-teal"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-pink"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-emerald"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-purple"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-blue"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-cyan"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
-            </div>
-            <!-- Bottom Row: 8 small cards -->
-            <div class="sk-bottom">
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-purple"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-blue"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-green"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-pink"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-red"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-orange"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-yellow"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-rose"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
+<!-- Skeleton SSR removido: se quedaba pegado mostrando barras negras -->
     </pt-root>
     <!-- Service Worker registration handled by main.ts -->
   </body>

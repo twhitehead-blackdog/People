@@ -27,7 +27,6 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
-import { Tag } from 'primeng/tag';
 // Registrar locale español para Angular
 registerLocaleData(esLocale);
 
@@ -50,7 +49,6 @@ type VetWithAssignments = {
     TableModule,
     Button,
     FormsModule,
-    Tag,
     DatePipe,
     VetBranchCellComponent,
     VetBranchSelectionDialogComponent,

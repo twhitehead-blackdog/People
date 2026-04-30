@@ -10,7 +10,7 @@ import {
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { FormsModule } from '@angular/forms';
 import { DeviceService } from '../../services/device.service';
@@ -22,7 +22,7 @@ import { DeviceService } from '../../services/device.service';
     CommonModule,
     FormsModule,
     DatePicker,
-    InputTextarea,
+    Textarea,
     FileUpload,
     Button,
     TooltipModule],

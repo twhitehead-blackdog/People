@@ -14,7 +14,6 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { AvatarModule } from 'primeng/avatar';
-import { Button } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
@@ -75,7 +74,6 @@ type NavSection = {
     MenuModule,
     AvatarModule,
     AsyncPipe,
-    Button,
     TooltipModule,
     NotificationsDropdownComponent,
     MobileBottomNavComponent,

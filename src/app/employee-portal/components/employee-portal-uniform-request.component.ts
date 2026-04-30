@@ -10,7 +10,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { InputNumber } from 'primeng/inputnumber';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { DeviceService } from '../../services/device.service';
@@ -26,7 +26,7 @@ type SelectOption = {
   imports: [
     CommonModule,
     FormsModule,
-    InputTextarea,
+    Textarea,
     InputNumber,
     Button,
     Select,

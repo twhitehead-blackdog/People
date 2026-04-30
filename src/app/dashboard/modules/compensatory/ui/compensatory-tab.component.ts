@@ -21,10 +21,10 @@ import {
 } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
@@ -89,8 +89,8 @@ export interface CompensatoryRequest {
     TooltipModule,
     InputTextModule,
     TextareaModule,
-    DropdownModule,
-    CalendarModule,
+    SelectModule,
+    DatePickerModule,
     ToastModule,
     ConfirmDialogModule,
     DialogModule,
@@ -139,14 +139,14 @@ export interface CompensatoryRequest {
       border-color: #4b5563 !important;
       color: white !important;
     }
-    ::ng-deep .p-dropdown {
+    ::ng-deep .p-select {
       background: rgba(17, 24, 39, 0.5) !important;
       border-color: #4b5563 !important;
     }
-    ::ng-deep .p-dropdown .p-dropdown-label {
+    ::ng-deep .p-select .p-select-label {
       color: white !important;
     }
-    ::ng-deep .p-calendar .p-inputtext {
+    ::ng-deep .p-datepicker .p-inputtext {
       background: rgba(17, 24, 39, 0.5) !important;
       border-color: #4b5563 !important;
       color: white !important;
@@ -260,14 +260,14 @@ export interface CompensatoryRequest {
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Estado
               </label>
-              <p-dropdown [options]="statusOptions" [(ngModel)]="selectedStatus"
+              <p-select [options]="statusOptions" [(ngModel)]="selectedStatus"
                 placeholder="Todos" [showClear]="true" class="w-full text-sm" [style]="{ height: '32px' }" />
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i>Rango de Fechas
               </label>
-              <p-calendar [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
+              <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
                 dateFormat="dd/mm/yy" placeholder="Seleccionar" [showClear]="true"
                 class="w-full text-sm" [inputStyle]="{ height: '32px', padding: '0.375rem' }" />
             </div>
@@ -448,9 +448,9 @@ export interface CompensatoryRequest {
         <div class="grid grid-cols-1 gap-2 p-2 bg-neutral-800/80 rounded-lg border border-neutral-700/50">
           <input type="text" pInputText placeholder="Empleado, motivo..." [(ngModel)]="searchText"
             class="w-full text-sm py-2 bg-neutral-900/50 border-neutral-600 rounded" />
-          <p-dropdown [options]="statusOptions" [(ngModel)]="selectedStatus"
+          <p-select [options]="statusOptions" [(ngModel)]="selectedStatus"
             placeholder="Estado" [showClear]="true" class="w-full" styleClass="w-full" />
-          <p-calendar [(ngModel)]="dateRange" selectionMode="range" dateFormat="dd/mm/yy"
+          <p-datepicker [(ngModel)]="dateRange" selectionMode="range" dateFormat="dd/mm/yy"
             placeholder="Rango fechas" [showClear]="true" class="w-full" [inputStyle]="{ width: '100%' }" />
           <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [outlined]="true"
             severity="secondary" size="small" (onClick)="clearFilters()" [disabled]="!hasActiveFilters()" />
