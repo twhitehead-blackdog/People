@@ -1256,8 +1256,10 @@ export function app(): express.Express {
         }
       });
 
-      // GET /api/dp/enrollment-status/:employeeId  (admin)
-      server.get('/api/dp/enrollment-status/:employeeId', requireAuth, async (req, res) => {
+      // GET /api/dp/enrollment-status/:employeeId  (public — kiosk
+      // self-enroll dialog necesita saber que dedos faltan; solo devuelve
+      // indices de dedos, ningun template biometrico)
+      server.get('/api/dp/enrollment-status/:employeeId', async (req, res) => {
         try {
           const r = await fetch(
             `${SUPABASE_URL}/rest/v1/dp_fingerprint_templates?employee_id=eq.${req.params['employeeId']}&select=finger_index`,
