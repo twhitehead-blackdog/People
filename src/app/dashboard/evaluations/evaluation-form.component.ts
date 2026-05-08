@@ -826,22 +826,6 @@ import {
         </div>
       </div>
 
-      <!-- Firmas -->
-      <div class="doc-section">
-        <div class="section-header">
-          <div class="section-title" style="margin-left: 0;">Firmas</div>
-        </div>
-        <div class="signature-grid">
-          <div class="signature-field">
-            <label>Firma del evaluador</label>
-            <input pInputText [(ngModel)]="evaluatorSignature" placeholder="Nombre y firma" class="signature-input" />
-          </div>
-          <div class="signature-field">
-            <label>Firma del colaborador</label>
-            <input pInputText [(ngModel)]="employeeSignature" placeholder="Nombre y firma" class="signature-input" />
-          </div>
-        </div>
-      </div>
 
       <div class="doc-footer">Documento confidencial · BlackDog Panamá</div>
 
