@@ -81,6 +81,7 @@ const ADMIN_SECTIONS: readonly Section[] = [
       { id: 'hr-time',         label: 'Tiempo RRHH',            description: 'Dashboard de tiempo',                  icon: 'pi-calendar',  route: '/admin/hr/time-dashboard', moduleId: 'hr',    subModuleId: 'hr_time_dashboard', accent: 'fuchsia' },
       { id: 'hr-disabilities', label: 'Gestiones de Empleados', description: 'Vacaciones, incapacidades y permisos', icon: 'pi-heart',     route: '/admin/hr/disabilities',   moduleId: 'hr',    subModuleId: 'hr_disabilities',   accent: 'pink'    },
       { id: 'surveys',         label: 'Encuestas',              description: 'Encuestas y sondeos',                  icon: 'pi-comment',   route: '/admin/surveys',           moduleId: 'hr',    subModuleId: 'hr_surveys',        accent: 'teal'    },
+      { id: 'hr-evaluations',  label: 'Evaluaciones',           description: 'Evaluaciones de desempeño',            icon: 'pi-star',      route: '/admin/hr/evaluations',    moduleId: 'hr',    subModuleId: 'hr_evaluations',    accent: 'amber'   },
       { id: 'complaints',      label: 'Quejas',                 description: 'Buzón de quejas y sugerencias',        icon: 'pi-inbox',     route: '/admin/complaints-inbox',  moduleId: 'admin', subModuleId: 'complaints',        accent: 'amber'   },
       { id: 'job-apps',        label: 'Feria de Empleo',        description: 'Solicitudes y postulaciones',          icon: 'pi-file-edit', route: '/admin/job-applications',  moduleId: 'admin', subModuleId: 'job_applications',  accent: 'lime'    },
     ],

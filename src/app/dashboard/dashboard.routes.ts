@@ -162,6 +162,14 @@ export const DASHBOARD_ROUTES: Routes = [
                     (x) => x.HRDisabilitiesComponent
                   ),
               },
+              {
+                path: 'evaluations',
+                canActivate: [modulePermissionGuard('hr', 'hr_evaluations')],
+                loadChildren: () =>
+                  import('./evaluations/evaluations.routes').then(
+                    (m) => m.EVALUATIONS_ROUTES
+                  ),
+              },
               { path: '', redirectTo: 'time-dashboard', pathMatch: 'full' },
             ],
           },

@@ -98,6 +98,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'hr_time_dashboard', label: 'Dashboard de Tiempo', description: 'Panel de control de asistencia', icon: 'pi pi-chart-bar', route: 'time-dashboard' },
       { id: 'hr_disabilities', label: 'Incapacidades', description: 'Gestión de incapacidades', icon: 'pi pi-file-o', route: 'disabilities' },
       { id: 'hr_surveys', label: 'Encuestas', description: 'Gestión de encuestas de RRHH', icon: 'pi pi-chart-bar', route: 'surveys' },
+      { id: 'hr_evaluations', label: 'Evaluaciones', description: 'Evaluaciones de desempeño', icon: 'pi pi-star', route: 'evaluations' },
     ],
   },
   {
