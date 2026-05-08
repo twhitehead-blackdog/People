@@ -39,19 +39,27 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
   providers: [MessageService, ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
+    .header-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .filters-row { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; }
+    .filters-row > * { flex: 1; min-width: 140px; }
     @media (max-width: 768px) {
-      .desktop-table { display: none; }
+      .desktop-table, .desktop-only { display: none !important; }
       .mobile-cards { display: block; }
       :host ::ng-deep .p-card-subtitle { display: none; }
       .filters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+      .filters-row > * { flex: none; min-width: 0; }
       .search-row { width: 100%; }
-      .header-actions { display: flex; align-items: center; gap: 0.5rem; }
-      .new-btn-mobile { flex-shrink: 0; }
+      :host ::ng-deep .new-btn-mobile { flex-shrink: 0; }
+      :host ::ng-deep .new-btn-mobile .p-button {
+        background: #f59e0b !important; color: #000 !important;
+        border-color: #f59e0b !important;
+        width: 2.5rem; height: 2.5rem; padding: 0;
+      }
     }
     @media (min-width: 769px) {
       .desktop-table { display: block; }
       .mobile-cards { display: none; }
-      .new-btn-mobile { display: none; }
+      :host ::ng-deep .new-btn-mobile { display: none !important; }
     }
     .eval-card {
       background: rgba(38, 38, 38, 0.4); border: 1px solid #262626;
@@ -122,12 +130,13 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
               styleClass="w-full"
             />
           </div>
-          <p-button
-            label="Nueva evaluación"
-            icon="pi pi-plus"
-            (onClick)="openNew()"
-            styleClass="hidden md:inline-flex"
-          />
+          <div class="desktop-only">
+            <p-button
+              label="Nueva evaluación"
+              icon="pi pi-plus"
+              (onClick)="openNew()"
+            />
+          </div>
         </div>
       </p-card>
 
