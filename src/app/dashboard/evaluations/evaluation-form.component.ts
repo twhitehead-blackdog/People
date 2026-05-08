@@ -53,7 +53,7 @@ import {
     .doc-page { max-width: 920px; margin: 0 auto; padding: 1.5rem; color: #e5e5e5; }
     /* Mobile: rediseño completo de cards, ratings y secciones */
     @media (max-width: 768px) {
-      .doc-page { padding: 0.5rem; padding-bottom: 6rem; }
+      .doc-page { padding: 0.85rem 0.85rem 9rem; }
 
       /* Ocultar header branded en mobile - ya está en el header de la app */
       .doc-header { display: none; }
@@ -130,21 +130,48 @@ import {
       /* Footer */
       .doc-footer { font-size: 0.6rem; padding: 0.75rem 0; }
 
-      /* Action bar fija abajo, full-width, con botones grandes */
+      /* Action bar fija abajo: principal completa + secundarios chicos */
       .actions-bar {
         position: fixed; bottom: 0; left: 0; right: 0;
         margin: 0; border-radius: 0;
         border-bottom: 0; border-left: 0; border-right: 0;
         border-top: 1px solid #262626;
-        padding: 0.6rem 0.75rem;
-        flex-wrap: wrap; gap: 0.4rem;
-        background: rgba(10, 10, 10, 0.97);
+        padding: 0.75rem 1rem 0.85rem;
+        flex-direction: column; gap: 0.5rem;
+        background: rgba(10, 10, 10, 0.98);
+        backdrop-filter: blur(12px);
       }
+      /* Botón principal full-width grande */
       .actions-bar ::ng-deep .p-button {
-        flex: 1 1 calc(50% - 0.2rem); min-width: 0; font-size: 0.78rem;
-        padding: 0.55rem 0.4rem;
+        width: 100%; font-size: 0.95rem;
+        padding: 0.85rem 1rem; min-height: 3rem;
       }
-      .actions-bar ::ng-deep .p-button-label { font-size: 0.78rem; }
+      .actions-bar ::ng-deep .p-button-label { font-size: 0.95rem; font-weight: 600; }
+      /* Auto-save status pill */
+      .autosave-pill {
+        position: fixed; top: 0.6rem; right: 0.6rem;
+        background: rgba(0, 0, 0, 0.85);
+        border: 1px solid #262626;
+        border-radius: 1rem; padding: 0.3rem 0.65rem;
+        font-size: 0.65rem; color: #a3a3a3;
+        display: flex; align-items: center; gap: 0.3rem;
+        z-index: 50;
+      }
+      .autosave-pill.saving { color: #fbbf24; border-color: rgba(245,158,11,0.3); }
+      .autosave-pill.saved { color: #4ade80; border-color: rgba(45,106,79,0.3); }
+    }
+    /* Pill desktop: top-right de la página */
+    @media (min-width: 769px) {
+      .autosave-pill {
+        margin-left: auto;
+        background: rgba(38, 38, 38, 0.5);
+        border: 1px solid #262626;
+        border-radius: 1rem; padding: 0.3rem 0.7rem;
+        font-size: 0.7rem; color: #a3a3a3;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+      }
+      .autosave-pill.saving { color: #fbbf24; }
+      .autosave-pill.saved { color: #4ade80; }
     }
 
     /* Dispositivos muy chicos */
@@ -413,8 +440,17 @@ import {
   template: `
     <p-toast />
     <div class="doc-page">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between mb-3 gap-2">
         <p-button icon="pi pi-arrow-left" label="Volver" [text]="true" size="small" (onClick)="back()" />
+        @if (autosaveState() !== 'idle' && !isReadOnly()) {
+          <div class="autosave-pill" [class.saving]="autosaveState() === 'saving' || autosaveState() === 'pending'" [class.saved]="autosaveState() === 'saved'">
+            @switch (autosaveState()) {
+              @case ('pending') { <i class="pi pi-clock"></i> Cambios pendientes… }
+              @case ('saving') { <i class="pi pi-spin pi-spinner"></i> Guardando borrador… }
+              @case ('saved') { <i class="pi pi-check"></i> Borrador guardado }
+            }
+          </div>
+        }
         <div class="text-xs text-gray-500">{{ isNew() ? 'Nueva evaluación' : 'Editar evaluación' }}</div>
       </div>
 
@@ -756,33 +792,26 @@ import {
       <div class="doc-footer">Documento confidencial · BlackDog Panamá</div>
 
       <div class="actions-bar no-print">
-        <p-button label="Volver" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" />
         @if (!isReadOnly()) {
-        <p-button
-          label="Guardar borrador"
-          icon="pi pi-save"
-          severity="info"
-          [outlined]="true"
-          [loading]="saving()"
-          (onClick)="save('draft')"
-        />
-        <p-button
-          label="Marcar como completada"
-          icon="pi pi-check"
-          severity="success"
-          [loading]="saving()"
-          [disabled]="progressPct() < 100"
-          (onClick)="save('completed')"
-        />
-        }
-        @if (!isNew()) {
-        <p-button
-          label="Imprimir / PDF"
-          icon="pi pi-print"
-          severity="info"
-          [outlined]="true"
-          (onClick)="generateSummary()"
-        />
+          <p-button
+            [label]="progressPct() === 100 ? 'Marcar como completada' : 'Continuar — ' + progressPct() + '% completado'"
+            [icon]="progressPct() === 100 ? 'pi pi-check' : 'pi pi-save'"
+            [severity]="progressPct() === 100 ? 'success' : 'info'"
+            [loading]="saving()"
+            [disabled]="progressPct() < 100"
+            (onClick)="save('completed')"
+          />
+          <div class="flex gap-2 w-full">
+            <p-button label="Volver" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" styleClass="flex-1" />
+            <p-button label="Guardar borrador" icon="pi pi-save" severity="info" [text]="true" [loading]="saving()" (onClick)="save('draft')" styleClass="flex-1" />
+          </div>
+        } @else {
+          <div class="flex gap-2 w-full">
+            <p-button label="Volver" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" styleClass="flex-1" />
+            @if (!isNew()) {
+              <p-button label="Imprimir / PDF" icon="pi pi-print" severity="info" [outlined]="true" (onClick)="generateSummary()" styleClass="flex-1" />
+            }
+          </div>
         }
       </div>
       } @else if (loadingType()) {
@@ -831,6 +860,9 @@ export class EvaluationFormComponent {
   public isPrintMode = signal<boolean>(this.route.snapshot.queryParamMap.get('print') === '1');
   public isReadOnly = computed(() => this.currentStatus() === 'completed' || this.isPrintMode());
   public showMobileMeta = signal<boolean>(false);
+  public autosaveState = signal<'idle' | 'pending' | 'saving' | 'saved'>('idle');
+  private autosaveTimer: any = null;
+  private hasUserInteracted = false;
 
   public saving = signal(false);
 
@@ -1039,6 +1071,65 @@ export class EvaluationFormComponent {
       }
       this.responses.set(map);
     });
+
+    // Auto-save: cada vez que cambia algo relevante, guarda como borrador 2s después
+    effect(() => {
+      // Suscribirse a todos los signals que importan
+      this.responses();
+      this.periodLabel();
+      this.evaluatorName();
+      this.evaluatorPosition();
+      this.strengths();
+      this.areasToImprove();
+      this.employeeComments();
+      this.evaluatorSignature();
+      this.employeeSignature();
+      this.verdict();
+      this.selectedEvaluatorId();
+      this.selectedTypeId();
+      this.selectedEmployeeId();
+      // Solo después de la primera interacción real
+      if (!this.hasUserInteracted) {
+        this.hasUserInteracted = true;
+        return;
+      }
+      if (this.isReadOnly()) return;
+      if (!this.selectedTypeId() || !this.selectedEmployeeId()) return;
+      this.scheduleAutosave();
+    });
+
+    // Beforeunload: si hay cambios sin guardar, advertir al usuario
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', this.handleBeforeUnload);
+    }
+  }
+
+  private handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (this.autosaveState() === 'pending' || this.autosaveState() === 'saving') {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+
+  private scheduleAutosave() {
+    this.autosaveState.set('pending');
+    if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
+    this.autosaveTimer = setTimeout(() => this.doAutosave(), 1500);
+  }
+
+  private async doAutosave() {
+    if (this.isReadOnly()) return;
+    if (!this.selectedTypeId() || !this.selectedEmployeeId()) return;
+    this.autosaveState.set('saving');
+    try {
+      await this.save('draft', /*silent*/ true);
+      this.autosaveState.set('saved');
+      setTimeout(() => {
+        if (this.autosaveState() === 'saved') this.autosaveState.set('idle');
+      }, 2500);
+    } catch {
+      this.autosaveState.set('idle');
+    }
   }
 
   public getResponse(questionId: string): EvaluationResponse {
@@ -1086,12 +1177,12 @@ export class EvaluationFormComponent {
     this.router.navigate(['/admin/hr/evaluations']);
   }
 
-  public async save(status: 'draft' | 'completed') {
+  public async save(status: 'draft' | 'completed', silent = false) {
     if (!this.selectedTypeId() || !this.selectedEmployeeId()) {
-      this.message.add({ severity: 'warn', summary: 'Faltan datos', detail: 'Selecciona el tipo y el colaborador' });
+      if (!silent) this.message.add({ severity: 'warn', summary: 'Faltan datos', detail: 'Selecciona el tipo y el colaborador' });
       return;
     }
-    this.saving.set(true);
+    if (!silent) this.saving.set(true);
     try {
       const companyId = this.orgService.getCurrentCompanyId();
       const currentEmpId = this.dashboardStore.currentEmployee()?.id;
@@ -1166,19 +1257,29 @@ export class EvaluationFormComponent {
         );
       }
 
-      this.message.add({ severity: 'success', summary: status === 'completed' ? 'Evaluación completada' : 'Borrador guardado' });
+      if (!silent) this.message.add({ severity: 'success', summary: status === 'completed' ? 'Evaluación completada' : 'Borrador guardado' });
       if (status === 'completed') {
         setTimeout(() => this.router.navigate(['/admin/hr/evaluations']), 800);
       }
     } catch (err: any) {
       console.error('Error saving evaluation', err);
-      this.message.add({
-        severity: 'error',
-        summary: 'Error al guardar',
-        detail: err?.error?.message || err?.message || 'Intenta de nuevo',
-      });
+      if (!silent) {
+        this.message.add({
+          severity: 'error',
+          summary: 'Error al guardar',
+          detail: err?.error?.message || err?.message || 'Intenta de nuevo',
+        });
+      }
+      throw err;
     } finally {
-      this.saving.set(false);
+      if (!silent) this.saving.set(false);
+    }
+  }
+
+  public ngOnDestroy() {
+    if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', this.handleBeforeUnload);
     }
   }
 
