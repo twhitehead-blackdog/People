@@ -38,6 +38,31 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
   ],
   providers: [MessageService, ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    @media (max-width: 768px) {
+      .desktop-table { display: none; }
+      .mobile-cards { display: block; }
+    }
+    @media (min-width: 769px) {
+      .desktop-table { display: block; }
+      .mobile-cards { display: none; }
+    }
+    .eval-card {
+      background: rgba(38, 38, 38, 0.4); border: 1px solid #262626;
+      border-radius: 0.6rem; padding: 0.85rem; margin-bottom: 0.6rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .eval-card:hover { background: rgba(64, 64, 64, 0.4); }
+    .eval-card-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+    .eval-card-name { font-weight: 600; color: white; font-size: 0.95rem; line-height: 1.2; }
+    .eval-card-type { font-size: 0.7rem; color: #f59e0b; margin-top: 0.15rem; }
+    .eval-card-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 0.85rem; margin-top: 0.5rem; font-size: 0.7rem; color: #a3a3a3; }
+    .eval-card-meta i { margin-right: 0.2rem; }
+    .eval-card-score {
+      font-size: 1.4rem; font-weight: 800; line-height: 1;
+      flex-shrink: 0; min-width: 2.5rem; text-align: right;
+    }
+  `],
   template: `
     <p-toast />
     <p-confirmDialog />
@@ -108,7 +133,8 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
           <p>No hay evaluaciones registradas. Click "Nueva evaluación" para empezar.</p>
         </div>
         } @else {
-        <div class="overflow-x-auto">
+        <!-- Desktop: tabla -->
+        <div class="desktop-table overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-neutral-700 text-left text-gray-400">
@@ -160,6 +186,41 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
               }
             </tbody>
           </table>
+        </div>
+
+        <!-- Mobile: cards -->
+        <div class="mobile-cards">
+          @for (e of filtered(); track e.id) {
+          <div class="eval-card" (click)="open(e.id)">
+            <div class="eval-card-row">
+              <div class="flex-1 min-w-0">
+                <div class="eval-card-name">{{ e.employee?.first_name }} {{ e.employee?.father_name }}</div>
+                <div class="eval-card-type">{{ e.evaluation_type?.name }}</div>
+              </div>
+              @if (e.overall_score != null) {
+                <div class="eval-card-score" [style.color]="scoreColor(e.overall_score)">
+                  {{ e.overall_score | number:'1.1-1' }}
+                </div>
+              }
+            </div>
+            <div class="eval-card-meta">
+              <span><i class="pi pi-calendar"></i>{{ e.evaluation_date | date:'dd/MM/yyyy' }}</span>
+              @if (e.evaluator_name) { <span><i class="pi pi-user"></i>{{ e.evaluator_name }}</span> }
+              @if (e.period_label) { <span><i class="pi pi-clock"></i>{{ e.period_label }}</span> }
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <p-tag [value]="statusLabel(e.status)" [severity]="statusSeverity(e.status)" />
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                [rounded]="true"
+                size="small"
+                (onClick)="$event.stopPropagation(); confirmDelete(e)"
+              />
+            </div>
+          </div>
+          }
         </div>
         }
       </p-card>

@@ -162,23 +162,19 @@ import {
       /* Footer */
       .doc-footer { font-size: 0.6rem; padding: 0.75rem 0; }
 
-      /* Action bar fija abajo: principal completa + secundarios chicos */
+      /* Action bar fija abajo en mobile */
       .actions-bar {
         position: fixed; bottom: 0; left: 0; right: 0;
         margin: 0; border-radius: 0;
-        border-bottom: 0; border-left: 0; border-right: 0;
-        border-top: 1px solid #262626;
-        padding: 0.75rem 1rem 0.85rem;
-        flex-direction: column; gap: 0.5rem;
+        border: none; border-top: 1px solid #262626;
+        padding: 0.75rem 0.85rem calc(0.85rem + env(safe-area-inset-bottom));
         background: rgba(10, 10, 10, 0.98);
         backdrop-filter: blur(12px);
       }
-      /* Botón principal full-width grande */
-      .actions-bar ::ng-deep .p-button {
-        width: 100%; font-size: 0.95rem;
-        padding: 0.85rem 1rem; min-height: 3rem;
-      }
-      .actions-bar ::ng-deep .p-button-label { font-size: 0.95rem; font-weight: 600; }
+      .ab-primary { font-size: 0.92rem; padding: 0.85rem 1rem; }
+      .ab-secondary { font-size: 0.82rem; padding: 0.6rem 0.75rem; }
+      /* Footer redundante en mobile */
+      .doc-footer { display: none; }
       /* Auto-save status pill */
       .autosave-pill {
         position: fixed; top: 0.6rem; right: 0.6rem;
@@ -465,9 +461,37 @@ import {
       position: sticky; bottom: 0; z-index: 10;
       background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(8px);
       padding: 0.85rem; border-radius: 0.75rem; border: 1px solid #262626;
-      display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;
+      display: flex; flex-direction: column; gap: 0.6rem;
       margin-top: 1rem;
     }
+    /* Botón principal grande */
+    .ab-primary {
+      width: 100%; padding: 0.95rem 1.25rem;
+      border-radius: 0.5rem; border: none;
+      font-size: 1rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .ab-primary:disabled { cursor: not-allowed; opacity: 0.7; }
+    .ab-primary.ab-success { background: #15803d; color: white; }
+    .ab-primary.ab-success:hover:not(:disabled) { background: #166534; }
+    .ab-primary.ab-progress {
+      background: #1f2937; color: #9ca3af;
+      border: 1px dashed #374151;
+    }
+    .ab-secondary-row { display: flex; gap: 0.5rem; }
+    .ab-secondary {
+      flex: 1; padding: 0.7rem 1rem;
+      background: transparent; color: #d4d4d4;
+      border: 1px solid #404040; border-radius: 0.5rem;
+      font-size: 0.9rem; font-weight: 500;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .ab-secondary:hover:not(:disabled) { background: rgba(64, 64, 64, 0.4); }
+    .ab-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ab-secondary.ab-info { color: #60a5fa; border-color: rgba(96, 165, 250, 0.3); }
+    .ab-secondary.ab-info:hover:not(:disabled) { background: rgba(96, 165, 250, 0.1); }
   `],
   template: `
     <p-toast />
@@ -831,23 +855,32 @@ import {
 
       <div class="actions-bar no-print">
         @if (!isReadOnly()) {
-          <p-button
-            [label]="progressPct() === 100 ? 'Marcar como completada' : 'Continuar — ' + progressPct() + '% completado'"
-            [icon]="progressPct() === 100 ? 'pi pi-check' : 'pi pi-save'"
-            [severity]="progressPct() === 100 ? 'success' : 'info'"
-            [loading]="saving()"
-            [disabled]="progressPct() < 100"
-            (onClick)="save('completed')"
-          />
-          <div class="flex gap-2 w-full">
-            <p-button label="Volver" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" styleClass="flex-1" />
-            <p-button label="Guardar borrador" icon="pi pi-save" severity="info" [text]="true" [loading]="saving()" (onClick)="save('draft')" styleClass="flex-1" />
+          @if (progressPct() === 100) {
+            <button type="button" class="ab-primary ab-success" [disabled]="saving()" (click)="save('completed')">
+              <i class="pi pi-check"></i> Marcar como completada
+            </button>
+          } @else {
+            <button type="button" class="ab-primary ab-progress" disabled>
+              <i class="pi pi-clock"></i> Falta {{ 100 - progressPct() }}% — completa todos los criterios
+            </button>
+          }
+          <div class="ab-secondary-row">
+            <button type="button" class="ab-secondary" (click)="back()">
+              <i class="pi pi-arrow-left"></i> Salir
+            </button>
+            <button type="button" class="ab-secondary ab-info" [disabled]="saving()" (click)="save('draft')">
+              <i class="pi pi-save"></i> Guardar borrador
+            </button>
           </div>
         } @else {
-          <div class="flex gap-2 w-full">
-            <p-button label="Volver" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" styleClass="flex-1" />
+          <div class="ab-secondary-row">
+            <button type="button" class="ab-secondary" (click)="back()">
+              <i class="pi pi-arrow-left"></i> Volver
+            </button>
             @if (!isNew()) {
-              <p-button label="Imprimir / PDF" icon="pi pi-print" severity="info" [outlined]="true" (onClick)="generateSummary()" styleClass="flex-1" />
+              <button type="button" class="ab-secondary ab-info" (click)="generateSummary()">
+                <i class="pi pi-print"></i> Imprimir / PDF
+              </button>
             }
           </div>
         }
