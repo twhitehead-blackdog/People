@@ -49,64 +49,166 @@ import {
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
+    :host { display: block; }
+    .doc-page { max-width: 920px; margin: 0 auto; padding: 1.5rem; color: #e5e5e5; }
+    .doc-header {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 1rem; padding: 2rem; margin-bottom: 1rem;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .doc-header::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #2D6A4F, #C8860A, #E08C00, #A32D2D);
+    }
+    .doc-brand { font-size: 0.7rem; letter-spacing: 0.3rem; color: #f59e0b; font-weight: 700; margin-bottom: 0.5rem; }
+    .doc-title { font-size: 1.6rem; font-weight: 700; color: white; margin-bottom: 0.3rem; }
+    .doc-subtitle { font-size: 1.1rem; color: #d4d4d4; margin-bottom: 0.5rem; }
+    .doc-confidential { font-size: 0.7rem; color: #737373; letter-spacing: 0.1rem; text-transform: uppercase; }
+    .doc-section {
+      background: #171717; border: 1px solid #262626; border-radius: 0.75rem;
+      padding: 1.5rem; margin-bottom: 1rem;
+    }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .info-field label {
+      display: block; font-size: 0.7rem; color: #737373; text-transform: uppercase;
+      letter-spacing: 0.05rem; margin-bottom: 0.3rem; font-weight: 600;
+    }
+    .info-field input, .info-field .p-select, .info-field .p-datepicker {
+      width: 100%; background: #0a0a0a; border: 1px solid #262626; color: white;
+    }
+    .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #262626; }
+    .section-roman {
+      width: 2rem; height: 2rem; border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000; font-weight: 800; font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .section-title { font-size: 1.1rem; font-weight: 700; color: white; }
+    .section-desc { font-size: 0.8rem; color: #a3a3a3; margin-top: 0.2rem; }
+    .scale-legend {
+      background: rgba(38, 38, 38, 0.4); border: 1px solid #262626;
+      padding: 0.6rem 0.8rem; border-radius: 0.5rem; font-size: 0.75rem;
+      margin-bottom: 0.85rem; color: #a3a3a3;
+    }
+    .scale-legend strong { color: white; }
+    .question-card {
+      background: rgba(23, 23, 23, 0.6); border: 1px solid #262626;
+      border-radius: 0.6rem; padding: 1rem; margin-bottom: 0.75rem;
+    }
+    .question-card:hover { border-color: #404040; }
+    .question-head { display: flex; gap: 0.85rem; margin-bottom: 0.75rem; }
+    .question-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+    .valor-badge {
+      display: inline-block; font-size: 0.65rem; color: #fbbf24;
+      background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 0.1rem 0.5rem; border-radius: 0.25rem; margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+    .question-name { font-weight: 600; color: white; font-size: 0.95rem; }
+    .question-desc { font-size: 0.78rem; color: #a3a3a3; margin-top: 0.25rem; line-height: 1.5; }
+    .rating-row { display: flex; gap: 0.5rem; }
     .rating-option {
       flex: 1; min-width: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 0.6rem 0.4rem; border-radius: 0.5rem;
+      padding: 0.65rem 0.4rem; border-radius: 0.5rem;
       background: rgba(38, 38, 38, 0.5);
       border: 1px solid rgba(82, 82, 82, 0.4);
       cursor: pointer; transition: all 0.15s ease;
     }
-    .rating-option:hover { background: rgba(64, 64, 64, 0.6); }
-    .rating-option.sel { background: rgba(38, 38, 38, 0.95); border-width: 2px; }
-    .rating-num { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .rating-option:hover { background: rgba(64, 64, 64, 0.6); transform: translateY(-1px); }
+    .rating-option.sel { background: rgba(15, 15, 15, 0.95); border-width: 2px; }
+    .rating-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
     .rating-text { font-size: 0.7rem; color: #a3a3a3; margin-top: 0.2rem; }
-    .yn-option {
-      flex: 1; padding: 0.75rem 1rem; border-radius: 0.5rem;
-      border: 1px solid rgba(82, 82, 82, 0.4); cursor: pointer;
-      display: flex; align-items: center; gap: 0.5rem;
-      background: rgba(38, 38, 38, 0.5); transition: all 0.15s;
+    .comment-input {
+      width: 100%; margin-top: 0.6rem; padding: 0.5rem 0.75rem;
+      background: rgba(10, 10, 10, 0.6); border: 1px solid #262626;
+      border-radius: 0.4rem; color: white; font-size: 0.85rem; resize: vertical; min-height: 2rem;
     }
-    .yn-option.sel-yes { background: rgba(45, 106, 79, 0.2); border-color: #2D6A4F; color: #4ade80; }
-    .yn-option.sel-no { background: rgba(163, 45, 45, 0.2); border-color: #A32D2D; color: #f87171; }
+    .yn-row { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
+    .yn-option {
+      flex: 1; padding: 0.85rem 1rem; border-radius: 0.5rem;
+      border: 1px solid rgba(82, 82, 82, 0.4); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      background: rgba(38, 38, 38, 0.5); transition: all 0.15s;
+      font-weight: 600; font-size: 0.9rem;
+    }
+    .yn-option:hover { background: rgba(64, 64, 64, 0.6); }
+    .yn-option.sel-yes { background: rgba(45, 106, 79, 0.25); border-color: #2D6A4F; color: #4ade80; }
+    .yn-option.sel-no { background: rgba(163, 45, 45, 0.25); border-color: #A32D2D; color: #f87171; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; }
+    .summary-cell {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02));
+      border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 0.6rem;
+      padding: 1rem; text-align: center;
+    }
+    .summary-value { font-size: 1.8rem; font-weight: 800; color: #fbbf24; line-height: 1; }
+    .summary-label { font-size: 0.7rem; color: #a3a3a3; margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05rem; }
+    .progress-bar-bg { height: 0.5rem; background: #262626; border-radius: 1rem; overflow: hidden; margin-top: 0.5rem; }
+    .progress-bar-fill {
+      height: 100%; background: linear-gradient(90deg, #f59e0b, #d97706);
+      transition: width 0.3s ease;
+    }
+    .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+    .signature-box {
+      border-top: 1px solid #525252; padding-top: 0.6rem; text-align: center;
+      font-size: 0.75rem; color: #a3a3a3;
+    }
+    .signature-box input { background: transparent; border: none; color: white; text-align: center; width: 100%; padding: 0.3rem; font-size: 0.85rem; }
+    .doc-footer {
+      text-align: center; font-size: 0.7rem; color: #525252;
+      letter-spacing: 0.1rem; margin-top: 1.5rem; padding-top: 1rem;
+      border-top: 1px solid #262626; text-transform: uppercase;
+    }
+    .conclusion-field { margin-top: 0.85rem; }
+    .conclusion-field label { display: block; font-size: 0.8rem; color: #d4d4d4; margin-bottom: 0.3rem; font-weight: 600; }
+    .conclusion-field textarea {
+      width: 100%; background: rgba(10, 10, 10, 0.6); border: 1px solid #262626;
+      border-radius: 0.4rem; padding: 0.6rem 0.75rem; color: white; font-size: 0.85rem;
+      min-height: 4rem; resize: vertical;
+    }
+    .actions-bar {
+      position: sticky; bottom: 0; z-index: 10;
+      background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(8px);
+      padding: 0.85rem; border-radius: 0.75rem; border: 1px solid #262626;
+      display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;
+      margin-top: 1rem;
+    }
   `],
   template: `
     <p-toast />
-    <div class="space-y-4 p-4 max-w-5xl mx-auto">
-      <!-- Header -->
-      <p-card>
-        <ng-template #title>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <i class="pi pi-star text-amber-400"></i>
-              <span>{{ isNew() ? 'Nueva Evaluación' : 'Evaluación de Desempeño' }}</span>
-            </div>
-            <p-button
-              icon="pi pi-arrow-left"
-              label="Volver"
-              [text]="true"
-              size="small"
-              (onClick)="back()"
-            />
-          </div>
-        </ng-template>
+    <div class="doc-page">
+      <div class="flex items-center justify-between mb-3">
+        <p-button icon="pi pi-arrow-left" label="Volver" [text]="true" size="small" (onClick)="back()" />
+        <div class="text-xs text-gray-500">{{ isNew() ? 'Nueva evaluación' : 'Editar evaluación' }}</div>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Tipo de evaluación *</label>
+      <!-- Document Header (BlackDog branded) -->
+      <div class="doc-header">
+        <div class="doc-brand">BLACKDOG</div>
+        <div class="doc-title">Evaluación de Desempeño</div>
+        <div class="doc-subtitle">{{ currentType()?.name || 'Selecciona el tipo' }}</div>
+        <div class="doc-confidential">Evaluación confidencial · Uso interno</div>
+      </div>
+
+      <!-- Type & Employee selectors (only when new) -->
+      @if (isNew()) {
+      <div class="doc-section">
+        <div class="info-grid">
+          <div class="info-field">
+            <label>Tipo de evaluación *</label>
             <p-select
               [options]="typeOptions()"
               [(ngModel)]="selectedTypeId"
               optionLabel="label"
               optionValue="value"
-              [disabled]="!isNew()"
               placeholder="Seleccionar tipo…"
               styleClass="w-full"
               appendTo="body"
             />
           </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Colaborador *</label>
+          <div class="info-field">
+            <label>Colaborador *</label>
             <p-select
               [options]="employeeOptions()"
               [(ngModel)]="selectedEmployeeId"
@@ -114,169 +216,193 @@ import {
               optionValue="value"
               [filter]="true"
               filterBy="label"
-              [disabled]="!isNew()"
               placeholder="Buscar empleado…"
               styleClass="w-full"
               appendTo="body"
             />
           </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Período evaluado</label>
-            <input
-              pInputText
-              [(ngModel)]="periodLabel"
-              placeholder="Ej. Ene – Jun 2026"
-              class="w-full"
-            />
+        </div>
+      </div>
+      }
+
+      <!-- Header Info -->
+      @if (currentType()) {
+      <div class="doc-section">
+        <div class="info-grid">
+          <div class="info-field">
+            <label>Nombre del colaborador</label>
+            <input pInputText readonly [value]="selectedEmployeeName()" placeholder="Selecciona empleado" class="w-full" />
           </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Fecha de evaluación</label>
-            <p-datepicker
-              [(ngModel)]="evaluationDate"
-              dateFormat="dd/mm/yy"
-              [showIcon]="true"
+          <div class="info-field">
+            <label>Tienda / Sede</label>
+            <input pInputText readonly [value]="selectedEmployeeBranch()" placeholder="—" class="w-full" />
+          </div>
+          <div class="info-field">
+            <label>Período evaluado</label>
+            <input pInputText [(ngModel)]="periodLabel" placeholder="Ej. Ene – Jun 2026" class="w-full" />
+          </div>
+          <div class="info-field">
+            <label>Fecha de evaluación</label>
+            <p-datepicker [(ngModel)]="evaluationDate" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" appendTo="body" />
+          </div>
+          <div class="info-field">
+            <label>Evaluado por *</label>
+            <p-select
+              [options]="evaluatorOptions()"
+              [(ngModel)]="selectedEvaluatorId"
+              (onChange)="onEvaluatorChange($event)"
+              optionLabel="name"
+              optionValue="value"
+              [filter]="true"
+              filterBy="name"
+              placeholder="Seleccionar evaluador (Administración)"
               styleClass="w-full"
               appendTo="body"
             />
           </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Evaluado por</label>
-            <input pInputText [(ngModel)]="evaluatorName" placeholder="Nombre del evaluador" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Cargo del evaluador</label>
-            <input pInputText [(ngModel)]="evaluatorPosition" placeholder="Ej. Gerente de RRHH" class="w-full" />
+          <div class="info-field">
+            <label>Cargo del evaluador</label>
+            <input pInputText readonly [value]="evaluatorPosition()" placeholder="Se llena automáticamente" class="w-full" />
           </div>
         </div>
-      </p-card>
+      </div>
 
-      @if (currentType(); as type) {
       <!-- Sections -->
-      @for (section of (type.sections || []); track section.id) {
-      <p-card>
-        <ng-template #title>
-          <div class="flex items-center gap-2">
-            <span class="bg-amber-500/20 text-amber-300 text-xs font-semibold px-2 py-1 rounded">{{ romanNumeral($index + 1) }}</span>
-            <span>{{ section.name }}</span>
+      @for (section of (currentType()!.sections || []); track section.id; let secIdx = $index) {
+      <div class="doc-section">
+        <div class="section-header">
+          <div class="section-roman">{{ romanNumeral(secIdx + 1) }}</div>
+          <div>
+            <div class="section-title">{{ section.name }}</div>
+            @if (section.description) {
+            <div class="section-desc">{{ section.description }}</div>
+            }
           </div>
-        </ng-template>
-        <ng-template #subtitle>{{ section.description }}</ng-template>
+        </div>
 
-        @if (section.question_type === 'rating') {
-        <div class="text-xs text-gray-400 mb-3 p-2 rounded bg-neutral-800/40 border border-neutral-700/40">
-          <strong>Escala:</strong>
-          @for (lbl of type.rating_labels; track $index) {
+        @if (section.question_type === 'rating' && currentType()) {
+        <div class="scale-legend">
+          <strong>Escala de desempeño:</strong>
+          @for (lbl of currentType()!.rating_labels; track $index) {
             <span class="ml-2">
-              <span class="font-bold" [style.color]="type.rating_colors[$index]">{{ $index + 1 }}</span> – {{ lbl }}
+              <span class="font-bold" [style.color]="currentType()!.rating_colors[$index]">{{ $index + 1 }}</span> – {{ lbl }}
             </span>
           }
         </div>
+        } @else if (section.question_type === 'yes_no') {
+        <div class="scale-legend"><strong>Sí / No</strong></div>
         }
 
-        <div class="space-y-3">
-          @for (q of (section.questions || []); track q.id) {
-          <div class="p-3 rounded-lg bg-neutral-800/40 border border-neutral-700/40">
-            <div class="flex gap-3 mb-2">
-              <div class="text-2xl flex-shrink-0">{{ q.icon || '•' }}</div>
-              <div class="flex-1 min-w-0">
-                @if (q.valor_label) {
-                  <div class="text-xs text-amber-400 font-semibold mb-0.5">Valor · {{ q.valor_label }}</div>
-                }
-                <div class="font-semibold text-white">{{ q.name }}</div>
-                <div class="text-xs text-gray-400 mt-1">{{ q.description }}</div>
-              </div>
-            </div>
-
-            @if (section.question_type === 'rating') {
-            <div class="flex gap-2 mt-2">
-              @for (lbl of type.rating_labels; track $index; let ri = $index) {
-                <div
-                  class="rating-option"
-                  [class.sel]="getResponse(q.id).rating === ri + 1"
-                  [style.border-color]="getResponse(q.id).rating === ri + 1 ? type.rating_colors[ri] : ''"
-                  (click)="setRating(q.id, ri + 1)"
-                >
-                  <div class="rating-num" [style.color]="type.rating_colors[ri]">{{ ri + 1 }}</div>
-                  <div class="rating-text">{{ lbl }}</div>
-                </div>
+        @for (q of (section.questions || []); track q.id) {
+        <div class="question-card">
+          <div class="question-head">
+            <div class="question-icon">{{ q.icon || '•' }}</div>
+            <div class="flex-1 min-w-0">
+              @if (q.valor_label) {
+                <div class="valor-badge">Valor · {{ q.valor_label }}</div>
               }
+              <div class="question-name">{{ q.name }}</div>
+              <div class="question-desc">{{ q.description }}</div>
             </div>
-            <textarea
-              pInputTextarea
-              rows="1"
-              placeholder="Comentario opcional…"
-              class="w-full mt-2 text-sm"
-              [ngModel]="getResponse(q.id).comment || ''"
-              (ngModelChange)="setComment(q.id, $event)"
-            ></textarea>
-            } @else if (section.question_type === 'yes_no') {
-            <div class="flex gap-2 mt-2">
+          </div>
+
+          @if (section.question_type === 'rating' && currentType()) {
+          <div class="rating-row">
+            @for (lbl of currentType()!.rating_labels; track $index; let ri = $index) {
               <div
-                class="yn-option"
-                [class.sel-yes]="getResponse(q.id).yes_no === true"
-                (click)="setYesNo(q.id, true)"
+                class="rating-option"
+                [class.sel]="getResponse(q.id).rating === ri + 1"
+                [style.border-color]="getResponse(q.id).rating === ri + 1 ? currentType()!.rating_colors[ri] : ''"
+                (click)="setRating(q.id, ri + 1)"
               >
-                <i class="pi pi-check"></i> Sí — Cumple
+                <div class="rating-num" [style.color]="currentType()!.rating_colors[ri]">{{ ri + 1 }}</div>
+                <div class="rating-text">{{ lbl }}</div>
               </div>
-              <div
-                class="yn-option"
-                [class.sel-no]="getResponse(q.id).yes_no === false"
-                (click)="setYesNo(q.id, false)"
-              >
-                <i class="pi pi-times"></i> No — No cumple
-              </div>
-            </div>
-            } @else if (section.question_type === 'text') {
-            <textarea
-              pInputTextarea
-              rows="3"
-              placeholder="Escribe la respuesta…"
-              class="w-full mt-2"
-              [ngModel]="getResponse(q.id).text_response || ''"
-              (ngModelChange)="setText(q.id, $event)"
-            ></textarea>
             }
           </div>
+          <textarea
+            class="comment-input"
+            rows="1"
+            placeholder="Comentarios opcionales…"
+            [ngModel]="getResponse(q.id).comment || ''"
+            (ngModelChange)="setComment(q.id, $event)"
+          ></textarea>
+          } @else if (section.question_type === 'yes_no') {
+          <div class="yn-row">
+            <div
+              class="yn-option"
+              [class.sel-yes]="getResponse(q.id).yes_no === true"
+              (click)="setYesNo(q.id, true)"
+            >
+              <i class="pi pi-check"></i> Sí — Cumple
+            </div>
+            <div
+              class="yn-option"
+              [class.sel-no]="getResponse(q.id).yes_no === false"
+              (click)="setYesNo(q.id, false)"
+            >
+              <i class="pi pi-times"></i> No — No cumple
+            </div>
+          </div>
+          } @else if (section.question_type === 'text') {
+          <textarea
+            class="comment-input"
+            rows="3"
+            placeholder="Escribe la respuesta…"
+            [ngModel]="getResponse(q.id).text_response || ''"
+            (ngModelChange)="setText(q.id, $event)"
+          ></textarea>
           }
         </div>
-      </p-card>
+        }
+      </div>
       }
 
       <!-- Resumen -->
-      <p-card>
-        <ng-template #title>Resumen</ng-template>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
-          <div class="p-3 rounded bg-neutral-800/50">
-            <div class="text-2xl font-bold text-amber-300">{{ valuesAvg() ?? '—' }}</div>
-            <div class="text-xs text-gray-400 mt-1">Prom. Valores</div>
+      <div class="doc-section">
+        <div class="section-header">
+          <div class="section-title" style="margin-left: 0;">Resumen de Evaluación</div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-cell">
+            <div class="summary-value">{{ valuesAvg() ?? '—' }}</div>
+            <div class="summary-label">Prom. Valores</div>
           </div>
-          <div class="p-3 rounded bg-neutral-800/50">
-            <div class="text-2xl font-bold text-amber-300">{{ competenciesAvg() ?? '—' }}</div>
-            <div class="text-xs text-gray-400 mt-1">Prom. Competencias</div>
+          <div class="summary-cell">
+            <div class="summary-value">{{ competenciesAvg() ?? '—' }}</div>
+            <div class="summary-label">Prom. Competencias</div>
           </div>
-          <div class="p-3 rounded bg-neutral-800/50">
-            <div class="text-2xl font-bold text-amber-300">{{ suitabilityCount() || '—' }}</div>
-            <div class="text-xs text-gray-400 mt-1">Aprobados Idoneidad</div>
+          <div class="summary-cell">
+            <div class="summary-value">{{ suitabilityCount() || '—' }}</div>
+            <div class="summary-label">Aprobados P.III</div>
           </div>
-          <div class="p-3 rounded bg-neutral-800/50">
-            <div class="text-2xl font-bold text-amber-300">{{ progressDone() }}/{{ totalQuestions() }}</div>
-            <div class="text-xs text-gray-400 mt-1">Criterios evaluados</div>
+          <div class="summary-cell">
+            <div class="summary-value">{{ progressDone() }}/{{ totalQuestions() }}</div>
+            <div class="summary-label">Criterios evaluados</div>
           </div>
         </div>
         <div class="mt-3">
-          <div class="flex justify-between text-xs mb-1"><span>Progreso</span><span>{{ progressPct() }}%</span></div>
-          <div class="h-2 bg-neutral-800 rounded overflow-hidden">
-            <div class="h-full bg-amber-400 transition-all" [style.width.%]="progressPct()"></div>
+          <div class="flex justify-between text-xs mb-1 text-gray-400">
+            <span>Progreso</span><span>{{ progressPct() }}%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" [style.width.%]="progressPct()"></div>
           </div>
         </div>
-      </p-card>
+      </div>
 
       <!-- Conclusiones -->
-      <p-card>
-        <ng-template #title>Conclusiones y Plan de Acción</ng-template>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="doc-section">
+        <div class="section-header">
+          <div class="section-roman">IV</div>
           <div>
-            <label class="text-xs text-gray-400 block mb-1">Veredicto general</label>
+            <div class="section-title">Conclusiones y Plan de Acción</div>
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-field">
+            <label>Veredicto general</label>
             <p-select
               [options]="verdictOptions"
               [(ngModel)]="verdict"
@@ -287,34 +413,43 @@ import {
               appendTo="body"
             />
           </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Próxima revisión</label>
-            <p-datepicker
-              [(ngModel)]="nextReviewDate"
-              dateFormat="dd/mm/yy"
-              [showIcon]="true"
-              styleClass="w-full"
-              appendTo="body"
-            />
+          <div class="info-field">
+            <label>Próxima revisión</label>
+            <p-datepicker [(ngModel)]="nextReviewDate" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" appendTo="body" />
           </div>
         </div>
 
-        <div class="mt-4">
-          <label class="text-xs text-gray-400 block mb-1">Fortalezas destacadas</label>
-          <textarea pInputTextarea [(ngModel)]="strengths" rows="3" placeholder="Áreas donde sobresale…" class="w-full"></textarea>
+        <div class="conclusion-field">
+          <label>Fortalezas destacadas</label>
+          <textarea [(ngModel)]="strengths" rows="3" placeholder="Describe las áreas donde el colaborador sobresale…"></textarea>
         </div>
-        <div class="mt-3">
-          <label class="text-xs text-gray-400 block mb-1">Áreas de mejora y compromisos</label>
-          <textarea pInputTextarea [(ngModel)]="areasToImprove" rows="3" placeholder="Aspectos a desarrollar y acciones acordadas…" class="w-full"></textarea>
+        <div class="conclusion-field">
+          <label>Áreas de mejora y compromisos</label>
+          <textarea [(ngModel)]="areasToImprove" rows="3" placeholder="Detalla los aspectos a desarrollar y las acciones concretas acordadas…"></textarea>
         </div>
-        <div class="mt-3">
-          <label class="text-xs text-gray-400 block mb-1">Comentarios del colaborador</label>
-          <textarea pInputTextarea [(ngModel)]="employeeComments" rows="3" placeholder="Perspectiva del colaborador sobre la evaluación…" class="w-full"></textarea>
+        <div class="conclusion-field">
+          <label>Comentarios del colaborador</label>
+          <textarea [(ngModel)]="employeeComments" rows="3" placeholder="Espacio para que el colaborador exprese su perspectiva sobre la evaluación…"></textarea>
         </div>
-      </p-card>
+      </div>
 
-      <!-- Actions -->
-      <div class="flex flex-wrap gap-2 justify-end sticky bottom-0 bg-neutral-900/95 backdrop-blur p-3 rounded-lg border border-neutral-700/50">
+      <!-- Firmas -->
+      <div class="doc-section">
+        <div class="signature-grid">
+          <div>
+            <input pInputText [(ngModel)]="evaluatorSignature" placeholder="Nombre y firma" />
+            <div class="signature-box">Firma del evaluador</div>
+          </div>
+          <div>
+            <input pInputText [(ngModel)]="employeeSignature" placeholder="Nombre y firma" />
+            <div class="signature-box">Firma del colaborador</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-footer">Documento confidencial · BlackDog Panamá</div>
+
+      <div class="actions-bar">
         <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="back()" />
         <p-button
           label="Guardar borrador"
@@ -332,14 +467,23 @@ import {
           [disabled]="progressPct() < 100"
           (onClick)="save('completed')"
         />
+        @if (!isNew()) {
+        <p-button
+          label="Generar resumen"
+          icon="pi pi-external-link"
+          severity="warn"
+          [outlined]="true"
+          (onClick)="generateSummary()"
+        />
+        }
       </div>
       } @else if (loadingType()) {
-      <p-card>
+      <div class="doc-section">
         <div class="flex items-center gap-2 text-gray-400 p-4">
           <i class="pi pi-spin pi-spinner"></i>
           <span>Cargando plantilla…</span>
         </div>
-      </p-card>
+      </div>
       }
     </div>
   `,
@@ -370,6 +514,9 @@ export class EvaluationFormComponent {
   public strengths = signal<string>('');
   public areasToImprove = signal<string>('');
   public employeeComments = signal<string>('');
+  public evaluatorSignature = signal<string>('');
+  public employeeSignature = signal<string>('');
+  public selectedEvaluatorId = signal<string | null>(null);
   public responses = signal<Map<string, EvaluationResponse>>(new Map());
 
   public saving = signal(false);
@@ -431,11 +578,49 @@ export class EvaluationFormComponent {
   public employeeOptions = computed(() =>
     (this.dashboardStore.employees.entities() as Employee[])
       .filter((e: any) => e.is_active)
-      .map((e: any) => ({
-        value: e.id,
-        label: `${e.first_name} ${e.father_name || ''} (${e.employee_number || '—'})`.trim(),
-      }))
+      .map((e: any) => {
+        const name = `${e.first_name} ${e.father_name || ''}`.trim();
+        const num = e.employee_number ? ` (${e.employee_number})` : '';
+        return { value: e.id, label: `${name}${num}` };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label))
   );
+
+  // Evaluadores: solo personal del departamento Administración
+  public evaluatorOptions = computed(() =>
+    (this.dashboardStore.employees.entities() as any[])
+      .filter((e) => e.is_active)
+      .filter((e) => {
+        const dept = (e.department?.name || '').toLowerCase();
+        return dept.includes('administr');
+      })
+      .map((e) => {
+        const name = `${e.first_name} ${e.father_name || ''}`.trim();
+        return {
+          value: e.id,
+          label: `${name}${e.position?.name ? ' — ' + e.position.name : ''}`,
+          name,
+          position: e.position?.name || '',
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+  );
+
+  public selectedEmployee = computed(() => {
+    const id = this.selectedEmployeeId();
+    if (!id) return null;
+    return (this.dashboardStore.employees.entities() as any[]).find((e) => e.id === id) || null;
+  });
+
+  public selectedEmployeeName = computed(() => {
+    const e = this.selectedEmployee();
+    if (!e) return '';
+    return `${e.first_name} ${e.father_name || ''} ${e.mother_name || ''}`.trim();
+  });
+
+  public selectedEmployeeBranch = computed(() => {
+    return this.selectedEmployee()?.branch?.name || '';
+  });
 
   // Compute summaries
   private allRatingResponsesByType(qType: 'rating' | 'yes_no') {
@@ -522,6 +707,9 @@ export class EvaluationFormComponent {
       this.strengths.set(e.strengths || '');
       this.areasToImprove.set(e.areas_to_improve || '');
       this.employeeComments.set(e.employee_comments || '');
+      this.evaluatorSignature.set(e.evaluator_signature || '');
+      this.employeeSignature.set(e.employee_signature || '');
+      this.selectedEvaluatorId.set(e.evaluator_id || null);
       const map = new Map<string, EvaluationResponse>();
       for (const r of e.responses || []) {
         map.set(r.question_id, r);
@@ -557,6 +745,21 @@ export class EvaluationFormComponent {
     return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][n - 1] ?? `${n}`;
   }
 
+  public onEvaluatorChange(event: { value: string }) {
+    const opts = this.evaluatorOptions();
+    const sel = opts.find((o) => o.value === event.value);
+    if (sel) {
+      this.evaluatorName.set(sel.name);
+      this.evaluatorPosition.set(sel.position);
+    }
+  }
+
+  public generateSummary() {
+    const id = this.id();
+    if (!id) return;
+    window.open(`/admin/hr/evaluations/${id}?print=1`, '_blank');
+  }
+
   public back() {
     this.router.navigate(['/admin/hr/evaluations']);
   }
@@ -573,7 +776,7 @@ export class EvaluationFormComponent {
       const payload: Partial<EmployeeEvaluation> = {
         employee_id: this.selectedEmployeeId()!,
         evaluation_type_id: this.selectedTypeId()!,
-        evaluator_id: currentEmpId || null,
+        evaluator_id: this.selectedEvaluatorId() || currentEmpId || null,
         evaluator_name: this.evaluatorName(),
         evaluator_position: this.evaluatorPosition(),
         period_label: this.periodLabel(),
@@ -583,6 +786,8 @@ export class EvaluationFormComponent {
         strengths: this.strengths(),
         areas_to_improve: this.areasToImprove(),
         employee_comments: this.employeeComments(),
+        evaluator_signature: this.evaluatorSignature(),
+        employee_signature: this.employeeSignature(),
         status,
         values_avg: this.valuesAvg() != null ? Number(this.valuesAvg()) : undefined,
         competencies_avg: this.competenciesAvg() != null ? Number(this.competenciesAvg()) : undefined,
