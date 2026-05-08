@@ -694,7 +694,18 @@ export class ManualTimelogComponent {
     };
 
     try {
-      await firstValueFrom(this.http.post(this.apiUrl.build('rest/v1/timelogs'), payload));
+      // Usamos el RPC seguro: valida motivo, marca is_manual=true, registra alerta
+      await firstValueFrom(
+        this.http.post(this.apiUrl.build('rest/v1/rpc/insert_manual_timelog'), {
+          p_employee_id: employeeId,
+          p_company_id: companyId,
+          p_branch_id: branchId || null,
+          p_type: type,
+          p_punched_at: punchedAt.toISOString(),
+          p_reason: reason || '',
+          p_created_by: currentEmployee?.id || null,
+        })
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -763,11 +774,14 @@ export class ManualTimelogComponent {
     punchedAt = set(punchedAt, { hours: parsed.hours, minutes: parsed.minutes, seconds: 0, milliseconds: 0 });
 
     try {
+      const reasonForEdit = (this.reason() || '').trim() || `Corrección manual a ${format(punchedAt, 'h:mm a')}`;
       await firstValueFrom(
-        this.http.patch(
-          this.apiUrl.build('rest/v1/timelogs', { id: `eq.${id}` }),
-          { punched_at: punchedAt.toISOString(), created_at: punchedAt.toISOString() }
-        )
+        this.http.post(this.apiUrl.build('rest/v1/rpc/update_manual_timelog'), {
+          p_timelog_id: id,
+          p_punched_at: punchedAt.toISOString(),
+          p_reason: reasonForEdit,
+          p_edited_by: this.dashboardStore.currentEmployee()?.id ?? null,
+        })
       );
 
       this.messageService.add({
@@ -810,8 +824,13 @@ export class ManualTimelogComponent {
     const typeLabel = this.editingPunchTypeLabel();
     this.savingEdit.set(true);
     try {
+      const reasonForDelete = (this.reason() || '').trim() || `Eliminación manual de ${typeLabel}`;
       await firstValueFrom(
-        this.http.delete(this.apiUrl.build('rest/v1/timelogs', { id: `eq.${id}` }))
+        this.http.post(this.apiUrl.build('rest/v1/rpc/delete_manual_timelog'), {
+          p_timelog_id: id,
+          p_reason: reasonForDelete,
+          p_deleted_by: this.dashboardStore.currentEmployee()?.id ?? null,
+        })
       );
       this.messageService.add({
         severity: 'success',
