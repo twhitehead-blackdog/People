@@ -4,10 +4,16 @@ import { isToday as dateFnsIsToday } from 'date-fns';
 import { TableModule } from 'primeng/table';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
+type SalonAssignment = {
+  branch_id: string;
+  branch?: { id: string; name: string; short_name: string };
+};
+
 type EmployeeWithDays = {
   id: string;
   first_name: string;
   father_name: string;
+  branch_id?: string | null;
   position: { name: string };
   isNewHire?: boolean;
   days: Array<{
@@ -15,6 +21,7 @@ type EmployeeWithDays = {
     day: number;
     shift?: any;
     scheduleWarning?: string | null;
+    assignment?: SalonAssignment | null;
   }>;
 };
 
@@ -81,6 +88,10 @@ type EmployeeWithDays = {
                 [isStoreManager]="isStoreManager()"
                 [isLocked]="!employee.isNewHire && lockedPositions().has(employee.position.name || '')"
                 [scheduleWarning]="day.scheduleWarning ?? null"
+                [assignment]="day.assignment ?? null"
+                [managerBranchId]="managerBranchId()"
+                [strictMode]="strictMode()"
+                [employeeBranchId]="employee.branch_id ?? null"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
                 (approve)="onApproveShift($event)"
@@ -179,6 +190,10 @@ type EmployeeWithDays = {
                 [isStoreManager]="isStoreManager()"
                 [isLocked]="!item.isNewHire && lockedPositions().has(item.position.name || '')"
                 [scheduleWarning]="day.scheduleWarning ?? null"
+                [assignment]="day.assignment ?? null"
+                [managerBranchId]="managerBranchId()"
+                [strictMode]="strictMode()"
+                [employeeBranchId]="item.branch_id ?? null"
                 (edit)="onEditShift($event)"
                 (delete)="onDeleteShift($event)"
                 (approve)="onApproveShift($event)"
@@ -226,6 +241,12 @@ export class TimetableGridComponent {
   // Posiciones bloqueadas (calculadas por el padre según ciclo biweekly + posición del empleado)
   public lockedPositions = input<Set<string>>(new Set());
 
+  /** Sucursal del gerente actual (para diferenciar entre días asignados a su tienda vs otra) */
+  public managerBranchId = input<string | null>(null);
+
+  /** Modo estricto: gerentes solo pueden agregar horarios desde salon-schedule */
+  public strictMode = input<boolean>(false);
+
   // Deshabilitar paginación (cuando se filtra por sucursal)
   public disablePagination = input<boolean>(false);
 
@@ -241,7 +262,7 @@ export class TimetableGridComponent {
   }>();
   public deleteShift = output<{ shift: any; date?: Date }>();
   public approveShift = output<string>();
-  public addShift = output<{ employee_id: string; date: Date }>();
+  public addShift = output<{ employee_id: string; date: Date; branchId?: string }>();
   public viewAudit = output<{ employeeId: string; date: Date }>();
   public toggleSelection = output<{ shiftId: string; date: Date }>();
   public lockedShift = output<void>();
@@ -262,8 +283,8 @@ export class TimetableGridComponent {
     this.approveShift.emit(shiftId);
   }
 
-  public onAddShift(event: { employeeId: string; date: Date }): void {
-    this.addShift.emit({ employee_id: event.employeeId, date: event.date });
+  public onAddShift(event: { employeeId: string; date: Date; branchId?: string }): void {
+    this.addShift.emit({ employee_id: event.employeeId, date: event.date, branchId: event.branchId });
   }
 
   public onViewAudit(event: { employeeId: string; date: Date }): void {
