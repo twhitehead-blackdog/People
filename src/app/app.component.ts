@@ -22,7 +22,7 @@ import { DesignVersionService } from './services/design-version.service';
     @if (showSkeleton()) {
       <div class="sk-overlay minimal-loader">
         <div class="ml-stack">
-          <span class="ml-mark">BD</span>
+          <img class="ml-logo" src="images/blackdog.png" alt="Black Dog" />
           <div class="ml-bar"><div class="ml-bar__fill"></div></div>
         </div>
       </div>
@@ -146,8 +146,9 @@ import { DesignVersionService } from './services/design-version.service';
     .sk-row-badge{height:20px;width:60px;border-radius:20px;background:rgba(255,255,255,.04)}
     /* ── Minimal loader ── */
     .minimal-loader{display:flex;align-items:center;justify-content:center;background:#0a0a0a !important;animation:none}
-    .ml-stack{display:flex;flex-direction:column;align-items:center;gap:1.5rem}
-    .ml-mark{font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:1.5rem;letter-spacing:0.5em;color:rgba(255,255,255,0.55);padding-left:0.5em}
+    .ml-stack{display:flex;flex-direction:column;align-items:center;gap:1.75rem}
+    .ml-logo{width:120px;height:auto;opacity:0.85;filter:drop-shadow(0 0 24px rgba(0,0,0,0.4));animation:ml-fade 2.4s ease-in-out infinite}
+    @keyframes ml-fade{0%,100%{opacity:0.85}50%{opacity:0.55}}
     .ml-bar{width:120px;height:1px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative}
     .ml-bar__fill{position:absolute;top:0;height:100%;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:ml-shimmer 1.6s ease-in-out infinite}
     @keyframes ml-shimmer{0%{left:-40%}100%{left:100%}}
