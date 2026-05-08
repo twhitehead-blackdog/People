@@ -31,9 +31,9 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       [ngClass]="{
         'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
         'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !isStoreManager(),
-        'ring-2 ring-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.7)] animate-pulse': !shiftValue?.approved && isStoreManager(),
-        'cursor-pointer hover:scale-105 hover:shadow-md': !isStoreManager() || isLocked() || !shiftValue?.approved,
-        'cursor-default': isStoreManager() && !isLocked() && shiftValue?.approved,
+        'ring-2 ring-yellow-400/80 animate-pulse': !!shiftValue?.migrated_from_branch_id,
+        'cursor-pointer hover:scale-105 hover:shadow-md': !isStoreManager() || isLocked() || !!shiftValue?.migrated_from_branch_id,
+        'cursor-default': isStoreManager() && !isLocked() && !shiftValue?.migrated_from_branch_id,
         'ring-1 ring-amber-600/70 border-amber-600/70 bg-amber-100/20': isLocked() && isStoreManager()
       }"
       [pTooltip]="isLocked() && isStoreManager() ? 'Turno bloqueado — solicita el cambio desde Gestiones' : tooltipContent"
@@ -49,15 +49,19 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       <span class="truncate font-semibold leading-tight min-w-0">
         {{ shiftValue?.schedule?.name }}
       </span>
-        @if (shiftValue?.approved) {
+        @if (shiftValue?.migrated_from_branch_id) {
+        <i
+          class="pi pi-exclamation-circle text-yellow-300 text-[9px] flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+          pTooltip="Empleado nuevo en tu sucursal — revisa o reasigna este horario"
+          tooltipPosition="top"
+        ></i>
+        } @else if (shiftValue?.approved) {
         <i
           class="pi pi-check-circle text-green-400 text-[9px] flex-shrink-0"
         ></i>
-        } @else {
+        } @else if (!isStoreManager()) {
         <i
           class="pi pi-exclamation-circle text-yellow-200 text-[9px] animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
-          [pTooltip]="isStoreManager() ? 'Pendiente de tu revisión — clic para editar o aprobar' : 'Pendiente por aprobación'"
-          tooltipPosition="top"
         ></i>
         }
     </div>
@@ -76,13 +80,13 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         @if (scheduleWarning(); as warn) {
           <span class="text-amber-300 text-xs block mt-1">{{ warn }}</span>
         }
-        @if (shiftValue?.approved) {
+        @if (shiftValue?.migrated_from_branch_id) {
+          <span class="text-yellow-300 font-bold block mt-1">Empleado migrado de otra sucursal</span>
+          <span class="italic text-xs">Pendiente de revisión del gerente — clic para editar o reasignar</span>
+        } @else if (shiftValue?.approved) {
           <span class="font-bold">Aprobado por {{ shiftValue?.approved_by_employee?.first_name ? (shiftValue.approved_by_employee!.first_name + ' ' + shiftValue.approved_by_employee!.father_name) : 'RRHH' }}</span>
-        } @else if (isStoreManager()) {
-          <span class="text-yellow-300 font-bold block mt-1">⚠ Pendiente de tu revisión</span>
-          <span class="italic text-xs">Clic para editar, eliminar o aprobar</span>
         } @else {
-          <span class="italic">Pendiente por aprobacion</span>
+          <span class="italic">Pendiente por aprobación de RRHH</span>
         }
       </div>
     </ng-template>

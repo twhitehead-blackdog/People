@@ -49,6 +49,8 @@ export function buildShiftIntervalsByEmployeeId(
       approved: (s as any).approved,
       created_at: (s as any).created_at,
       time_off_type: (s as any).time_off_type ?? null,
+      migrated_from_branch_id: (s as any).migrated_from_branch_id ?? null,
+      migrated_at: (s as any).migrated_at ?? null,
     };
 
     const start = startOfDay(

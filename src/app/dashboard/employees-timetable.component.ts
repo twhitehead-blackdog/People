@@ -382,6 +382,8 @@ import {
         [selectedKeys]="selectedSelectionKeys()"
         [isStoreManager]="permissionsService.isStoreManager()"
         [lockedPositions]="lockedPositions()"
+        [managerBranchId]="managerBranchId()"
+        [strictMode]="isStrictMode()"
         [disablePagination]="!!filterService.currentBranch()"
         (editShift)="editSchedule($event)"
         (deleteShift)="deleteSchedule($event.shift, $event.date)"
@@ -753,6 +755,80 @@ export class EmployeesTimetableComponent implements OnInit {
     return weeks.map((w) => ({ label: 'Semana ' + w, value: w }));
   });
 
+  // ========== Salon Branch Assignments Resource (linked to salon-schedule) ==========
+
+  public assignmentsResource = httpResource<Array<{
+    id: string;
+    employee_id: string;
+    branch_id: string;
+    date: string;
+    branch?: { id: string; name: string; short_name: string };
+  }>>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const startDate = format(this.start(), 'yyyy-MM-dd');
+    const endDate = format(this.end(), 'yyyy-MM-dd');
+    return {
+      url: this.apiUrl.build('rest/v1/groomer_branch_assignments', {
+        and: `(date.gte.${startDate},date.lte.${endDate})`,
+        ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+        select: 'id,employee_id,branch_id,date,branch:branches(id,name,short_name)',
+      }),
+      method: 'GET',
+    };
+  });
+
+  /** Paleta de colores por sucursal — debe coincidir con salon-schedule */
+  private readonly branchColorPalette = [
+    '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B',
+    '#EF4444', '#06B6D4', '#EC4899', '#84CC16',
+    '#F97316', '#14B8A6', '#A855F7', '#EAB308',
+    '#22C55E', '#E11D48', '#0EA5E9', '#D946EF',
+    '#6366F1', '#78716C', '#64748B', '#0D9488',
+  ];
+
+  private branchColorByShortName = computed((): Map<string, string> => {
+    const branches = this.store.branches.entities()
+      .filter((b: any) => b.short_name)
+      .sort((a: any, b: any) => (a.short_name ?? '').localeCompare(b.short_name ?? ''));
+    const map = new Map<string, string>();
+    branches.forEach((b: any, i: number) => {
+      map.set(b.short_name!, this.branchColorPalette[i % this.branchColorPalette.length]);
+    });
+    return map;
+  });
+
+  /** Map "<employeeId>|YYYY-MM-DD" → assignment con color */
+  public assignmentsByEmployeeDate = computed((): Map<string, { branch_id: string; branch?: { id: string; name: string; short_name: string }; color?: string }> => {
+    const map = new Map<string, { branch_id: string; branch?: { id: string; name: string; short_name: string }; color?: string }>();
+    const colorMap = this.branchColorByShortName();
+    for (const a of this.assignmentsResource.value() ?? []) {
+      const dateKey = (a.date ?? '').slice(0, 10);
+      const color = a.branch?.short_name ? colorMap.get(a.branch.short_name) : undefined;
+      map.set(`${a.employee_id}|${dateKey}`, { branch_id: a.branch_id, branch: a.branch, color });
+    }
+    return map;
+  });
+
+  /** Sucursal del gerente actual (si aplica) */
+  public managerBranchId = computed((): string | null => {
+    if (!this.permissionsService.isStoreManager()) return null;
+    return this.store.currentEmployee()?.branch_id ?? null;
+  });
+
+  /** Setting global: si true, gerentes solo pueden agregar horarios desde salon-schedule (en espera) */
+  public strictAssignmentMode = httpResource<any[]>(() => ({
+    url: this.apiUrl.build('rest/v1/settings', {
+      key: 'eq.salon_strict_assignment',
+      select: 'value',
+    }),
+    method: 'GET',
+  }));
+
+  public isStrictMode = computed((): boolean => {
+    const rows = this.strictAssignmentMode.value();
+    return Array.isArray(rows) && rows.length > 0 && rows[0]?.value === 'true';
+  });
+
   // ========== Schedule Resource ==========
 
   public schedulesResource = httpResource<EmployeeSchedule[]>(() => {
@@ -763,7 +839,7 @@ export class EmployeesTimetableComponent implements OnInit {
     return {
       url: this.apiUrl.build('rest/v1/employee_schedules', {
         select:
-          'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
+          'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,migrated_from_branch_id,migrated_at,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
         start_date: `lte.${endDate}`,
         end_date: `gte.${startDate}`,
         ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
@@ -774,12 +850,48 @@ export class EmployeesTimetableComponent implements OnInit {
 
   // ========== Computed: Employee + Schedule Mapping ==========
 
-  public currentEmployees = computed(() =>
-    this.filterService.filteredEmployees().map((employee) => ({
+  /** Empleados "invitados" para gerentes: peluqueros de otras sucursales con
+   * al menos un día de salon-schedule asignado a la sucursal del gerente
+   * dentro del periodo visible. Solo lectura excepto en sus días asignados.
+   */
+  private guestEmployees = computed(() => {
+    const mgrBranchId = this.managerBranchId();
+    if (!mgrBranchId) return [];
+
+    const baseIds = new Set(this.filterService.filteredEmployees().map((e) => e.id));
+    const assignments = this.assignmentsResource.value() ?? [];
+
+    const guestIds = new Set<string>();
+    for (const a of assignments) {
+      if (a.branch_id === mgrBranchId && !baseIds.has(a.employee_id)) {
+        guestIds.add(a.employee_id);
+      }
+    }
+    if (guestIds.size === 0) return [];
+
+    const allEmployees = this.store.employees.employeesList()
+      .filter((e: any) => e.is_active && guestIds.has(e.id));
+
+    return allEmployees.map((e: any) => ({
+      id: e.id,
+      first_name: e.first_name,
+      father_name: e.father_name,
+      branch: e.branch,
+      branch_id: e.branch_id,
+      position: e.position,
+      position_id: e.position_id,
+      start_date: e.start_date,
+    }));
+  });
+
+  public currentEmployees = computed(() => {
+    const base = this.filterService.filteredEmployees();
+    const guests = this.guestEmployees();
+    return [...base, ...guests].map((employee) => ({
       ...employee,
       days: this.days(),
-    }))
-  );
+    }));
+  });
 
   public shifts = computed(() =>
     this.schedulesResource
@@ -840,6 +952,7 @@ export class EmployeesTimetableComponent implements OnInit {
       id: employee.id,
       first_name: employee.first_name,
       father_name: employee.father_name,
+      branch_id: (employee as any).branch_id ?? null,
       position_id: employee.position_id,
       position: employee.position
         ? { id: (employee.position as any).id, name: employee.position.name }
@@ -859,7 +972,9 @@ export class EmployeesTimetableComponent implements OnInit {
           pelConflicts,
           asistenteMin
         );
-        return { ...day, shift, scheduleWarning };
+        const dateKey = format(day.date, 'yyyy-MM-dd');
+        const assignment = this.assignmentsByEmployeeDate().get(`${employee.id}|${dateKey}`) ?? null;
+        return { ...day, shift, scheduleWarning, assignment };
       }),
     }));
   });
@@ -1103,10 +1218,12 @@ export class EmployeesTimetableComponent implements OnInit {
     employee_id,
     employee_schedule,
     date,
+    branchId,
   }: {
     employee_id?: string;
     employee_schedule?: EmployeeSchedule;
     date?: Date;
+    branchId?: string;
   } = {}): void {
     if (!this.store.canManageSchedules()) {
       this.message.add({
@@ -1160,7 +1277,7 @@ export class EmployeesTimetableComponent implements OnInit {
           employee_id,
           employee_schedule,
           date,
-          branch: this.filterService.currentBranch(),
+          branch: branchId ?? this.filterService.currentBranch(),
           weekStart: this.start(),
           weekEnd: this.end(),
           employeeHasSchedulesInWeek,

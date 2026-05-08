@@ -46,6 +46,8 @@ export type EmployeeSchedule = {
   compensatory_hours_amount?: number | null;
   approved_by?: string;
   approved_by_employee?: { id: string; first_name: string; father_name: string };
+  migrated_from_branch_id?: string | null;
+  migrated_at?: string | null;
 };
 
 export type VetBranchAssignment = {
