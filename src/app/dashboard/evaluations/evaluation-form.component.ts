@@ -186,6 +186,26 @@ import {
     .summary-value { font-size: 1.8rem; font-weight: 800; color: #fbbf24; line-height: 1; }
     .summary-label { font-size: 0.7rem; color: #a3a3a3; margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05rem; }
     .progress-bar-bg { height: 0.5rem; background: #262626; border-radius: 1rem; overflow: hidden; margin-top: 0.5rem; }
+    .final-score-block {
+      display: flex; align-items: center; gap: 1.5rem;
+      background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(255,255,255,0.02));
+      border: 2px solid var(--accent, #f59e0b);
+      border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    }
+    .final-score-num {
+      font-size: 3.5rem; font-weight: 800; line-height: 1;
+      color: var(--accent, #f59e0b); flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .final-score-info { flex: 1; }
+    .final-score-label { font-size: 1.3rem; font-weight: 700; }
+    .final-score-pct { font-size: 0.8rem; color: #a3a3a3; margin-top: 0.3rem; letter-spacing: 0.03rem; }
+    @media (max-width: 640px) {
+      .final-score-block { padding: 1rem; gap: 1rem; }
+      .final-score-num { font-size: 2.5rem; }
+      .final-score-label { font-size: 1rem; }
+      .final-score-pct { font-size: 0.7rem; }
+    }
     .progress-bar-fill {
       height: 100%; background: linear-gradient(90deg, #f59e0b, #d97706);
       transition: width 0.3s ease;
@@ -337,7 +357,7 @@ import {
         @for (q of (section.questions || []); track q.id) {
         <div class="question-card">
           <div class="question-head">
-            <div class="question-icon">{{ q.icon || '•' }}</div>
+            <div class="question-icon"><i [class]="q.icon || 'pi pi-circle-fill'"></i></div>
             <div class="flex-1 min-w-0">
               @if (q.valor_label) {
                 <div class="valor-badge">Valor · {{ q.valor_label }}</div>
@@ -399,11 +419,22 @@ import {
       </div>
       }
 
-      <!-- Resumen -->
-      <div class="doc-section">
+      <!-- Resumen + Score Final -->
+      <div class="doc-section final-summary">
         <div class="section-header">
           <div class="section-title" style="margin-left: 0;">Resumen de Evaluación</div>
         </div>
+
+        @if (finalScore() != null && finalLabel(); as lbl) {
+        <div class="final-score-block" [style.--accent]="lbl.color">
+          <div class="final-score-num">{{ finalScore() }}</div>
+          <div class="final-score-info">
+            <div class="final-score-label" [style.color]="lbl.color">{{ lbl.text }}</div>
+            <div class="final-score-pct">{{ finalScorePct() }}%  ·  Score final ponderado</div>
+          </div>
+        </div>
+        }
+
         <div class="summary-grid">
           <div class="summary-cell">
             <div class="summary-value">{{ valuesAvg() ?? '—' }}</div>
@@ -415,7 +446,7 @@ import {
           </div>
           <div class="summary-cell">
             <div class="summary-value">{{ suitabilityCount() || '—' }}</div>
-            <div class="summary-label">Aprobados P.III</div>
+            <div class="summary-label">Aprobados Idoneidad</div>
           </div>
           <div class="summary-cell">
             <div class="summary-value">{{ progressDone() }}/{{ totalQuestions() }}</div>
@@ -927,9 +958,41 @@ export class EvaluationFormComponent {
   }
 
   private computeOverall(): number | undefined {
-    const v = this.valuesAvg() != null ? Number(this.valuesAvg()) : null;
-    const c = this.competenciesAvg() != null ? Number(this.competenciesAvg()) : null;
-    if (v != null && c != null) return Number(((v + c) / 2).toFixed(2));
-    return v ?? c ?? undefined;
+    return this.finalScore() ?? undefined;
   }
+
+  // Score final unificado: promedio simple de TODAS las preguntas de rating
+  // (todas valen igual). Idoneidad acta como gate adicional via finalLabel.
+  public finalScore = computed<number | null>(() => {
+    const sections = this.currentType()?.sections || [];
+    const ratings: number[] = [];
+    for (const s of sections) {
+      if (s.question_type !== 'rating') continue;
+      for (const q of s.questions || []) {
+        const r = this.responses().get(q.id)?.rating;
+        if (r != null) ratings.push(r);
+      }
+    }
+    if (!ratings.length) return null;
+    return Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2));
+  });
+
+  // 1 = peor, scale = mejor. Conversión a 0-100 donde mayor = mejor.
+  public finalScorePct = computed<number | null>(() => {
+    const score = this.finalScore();
+    if (score == null) return null;
+    const scale = this.currentType()?.rating_scale || 4;
+    // 1 → 0%, scale → 100%
+    return Math.round(((score - 1) / (scale - 1)) * 100);
+  });
+
+  public finalLabel = computed<{ text: string; color: string } | null>(() => {
+    const s = this.finalScore();
+    if (s == null) return null;
+    const colors = this.currentType()?.rating_colors || ['#A32D2D', '#E08C00', '#C8860A', '#2D6A4F'];
+    const labels = this.currentType()?.rating_labels || ['No cumple', 'Debe mejorar', 'Cumple', 'Excede'];
+    // 1 → idx 0, ..., 4 → idx 3 (redondeo al más cercano)
+    const idx = Math.min(Math.max(Math.round(s) - 1, 0), labels.length - 1);
+    return { text: labels[idx], color: colors[idx] };
+  });
 }
