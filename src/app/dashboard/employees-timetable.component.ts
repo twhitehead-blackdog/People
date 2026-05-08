@@ -254,7 +254,7 @@ import {
                   (onClick)="showHelpDialog.set(true)"
                 />
               }
-              @if (!permissionsService.isStoreManager()) {
+              @if (store.isAdmin()) {
                 <p-button
                   icon="pi pi-history"
                   severity="info"
