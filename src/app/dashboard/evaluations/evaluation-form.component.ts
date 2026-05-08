@@ -51,6 +51,22 @@ import {
   styles: [`
     :host { display: block; }
     .doc-page { max-width: 920px; margin: 0 auto; padding: 1.5rem; color: #e5e5e5; }
+    /* Read-only mode: deshabilita interacción en cards y inputs */
+    .doc-page.read-only .question-card { pointer-events: none; }
+    .doc-page.read-only .rating-option,
+    .doc-page.read-only .yn-option { cursor: default !important; opacity: 0.85; }
+    .doc-page.read-only .rating-option:hover,
+    .doc-page.read-only .yn-option:hover { transform: none !important; background: inherit !important; }
+    .doc-page.read-only textarea,
+    .doc-page.read-only input:not([readonly]) { pointer-events: none; opacity: 0.85; }
+    .doc-page.read-only .comment-input { pointer-events: none; }
+    .read-only-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(34, 197, 94, 0.12); color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      padding: 0.35rem 0.75rem; border-radius: 1rem;
+      font-size: 0.75rem; font-weight: 600;
+    }
     /* Mobile: rediseño completo de cards, ratings y secciones */
     @media (max-width: 768px) {
       .doc-page { padding: 0.85rem 0.85rem 9rem; }
@@ -495,9 +511,12 @@ import {
   `],
   template: `
     <p-toast />
-    <div class="doc-page">
-      <div class="flex items-center justify-between mb-3 gap-2">
+    <div class="doc-page" [class.read-only]="isReadOnly()">
+      <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <p-button icon="pi pi-arrow-left" label="Volver" [text]="true" size="small" (onClick)="back()" />
+        @if (isReadOnly() && currentStatus() === 'completed') {
+          <span class="read-only-badge"><i class="pi pi-lock"></i> Evaluación completada — solo lectura</span>
+        }
         @if (autosaveState() !== 'idle' && !isReadOnly()) {
           <div class="autosave-pill" [class.saving]="autosaveState() === 'saving' || autosaveState() === 'pending'" [class.saved]="autosaveState() === 'saved'">
             @switch (autosaveState()) {
@@ -1214,15 +1233,19 @@ export class EvaluationFormComponent {
   }
 
   public setRating(questionId: string, rating: number) {
+    if (this.isReadOnly()) return;
     this.updateResponse(questionId, { rating });
   }
   public setYesNo(questionId: string, val: boolean) {
+    if (this.isReadOnly()) return;
     this.updateResponse(questionId, { yes_no: val });
   }
   public setText(questionId: string, val: string) {
+    if (this.isReadOnly()) return;
     this.updateResponse(questionId, { text_response: val });
   }
   public setComment(questionId: string, val: string) {
+    if (this.isReadOnly()) return;
     this.updateResponse(questionId, { comment: val });
   }
 
