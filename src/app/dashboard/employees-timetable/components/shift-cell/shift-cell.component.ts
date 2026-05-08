@@ -32,8 +32,8 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
         'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !isStoreManager(),
         '!border-2 !border-yellow-400 !shadow-[0_0_0_2px_rgba(250,204,21,0.6),0_0_8px_rgba(250,204,21,0.5)] animate-pulse': !!shiftValue?.migrated_from_branch_id,
-        'cursor-pointer hover:scale-105 hover:shadow-md': !isStoreManager() || isLocked() || !!shiftValue?.migrated_from_branch_id,
-        'cursor-default': isStoreManager() && !isLocked() && !shiftValue?.migrated_from_branch_id,
+        'cursor-pointer hover:scale-105 hover:shadow-md': canManageSchedules() || isLocked(),
+        'cursor-default': !canManageSchedules() && !isLocked(),
         'ring-1 ring-amber-600/70 border-amber-600/70 bg-amber-100/20': isLocked() && isStoreManager()
       }"
       [pTooltip]="isLocked() && isStoreManager() ? 'Turno bloqueado — solicita el cambio desde Gestiones' : tooltipContent"
