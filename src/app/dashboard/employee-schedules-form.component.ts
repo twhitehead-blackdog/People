@@ -269,26 +269,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private readonly COMPENSATORY_SCHEDULE_ID =
     'f2d92995-96a0-414f-b64a-9823db776745';
 
-  // Turnos permitidos para gerentes de tienda (schedule_admin pero no admin)
-  private readonly ALLOWED_STORE_MANAGER_SHIFTS = [
-    'CM',
-    'Incapacidad',
-    '7:00 AM - 4:00 PM',
-    '8:00 AM - 5:00 PM', // Solo domingos - mostrar confirmación si no es domingo
-    'Lactancia 1',
-    'Lactancia 2',
-    '10:30 AM - 7:00 PM', // Solo domingos - mostrar confirmación si no es domingo
-    'Dia Libre',
-    '11:30 AM - 8:00 PM',
-    '12:30 PM - 9:00 PM',
-    'A. Injus',
-    'Licencia maternidad',
-    'Permiso',
-    'Vacaciones',
-    'Inventario 2',
-    'Entrenamiento',
-  ];
-
   // IDs de horarios que solo deben usarse en domingos para gerentes
   private readonly SUNDAY_ONLY_SCHEDULES = [
     'af7ede83-ffc9-4b98-b481-665ee9dea624', // 10:30 AM - 7:00 PM
@@ -445,10 +425,14 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         if (this.HIDDEN_FOR_STORE_MANAGERS.includes(schedule?.id)) {
           return false;
         }
-        const scheduleName = String(schedule?.name ?? '').toUpperCase();
-        return this.ALLOWED_STORE_MANAGER_SHIFTS.some(
-          (allowed) => scheduleName === allowed.toUpperCase()
-        );
+        if (schedule?.id === this.COMPENSATORY_SCHEDULE_ID) {
+          return false;
+        }
+        const scheduleName = String(schedule?.name ?? '').toLowerCase();
+        if (scheduleName.includes('compensatorio')) {
+          return false;
+        }
+        return true;
       });
       return filterByGender(filteredByRole);
     }

@@ -206,12 +206,13 @@
   <body class="dark">
     <pt-root>
       <style>
-        /* Portal skeleton */
-        .portal-sk-wrap{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:9999}
-        .portal-sk-wrap .psk-inner{display:flex;flex-direction:column;align-items:center;gap:2rem}
-        .portal-sk-wrap .psk-logo{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c);animation:sk-p 1.8s ease-in-out infinite}
-        .portal-sk-wrap .psk-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.1);border-top-color:rgba(251,191,36,.6);border-radius:50%;animation:psk-r 0.8s linear infinite}
-        @keyframes psk-r{to{transform:rotate(360deg)}}
+        /* Portal skeleton — minimal */
+        .portal-sk-wrap{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:Inter,system-ui,sans-serif}
+        .portal-sk-wrap .psk-inner{display:flex;flex-direction:column;align-items:center;gap:1.5rem}
+        .portal-sk-wrap .psk-mark{font-weight:300;font-size:1.5rem;letter-spacing:0.5em;color:rgba(255,255,255,0.55);padding-left:0.5em}
+        .portal-sk-wrap .psk-bar{width:120px;height:1px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative}
+        .portal-sk-wrap .psk-bar i{position:absolute;top:0;height:100%;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:psk-sh 1.6s ease-in-out infinite}
+        @keyframes psk-sh{0%{left:-40%}100%{left:100%}}
         /* Ocultar dashboard skeleton cuando estamos en portal */
         .is-portal .sk{display:none!important}
       </style>
@@ -219,7 +220,7 @@
         // Mostrar skeleton portal o dashboard según dominio
         if (location.hostname === 'portal.blackdogpanama.com') {
           document.body.classList.add('is-portal');
-          document.write('<div class="portal-sk-wrap"><div class="psk-inner"><div class="psk-logo"></div><div class="psk-spin"></div></div></div>');
+          document.write('<div class="portal-sk-wrap"><div class="psk-inner"><span class="psk-mark">BD</span><div class="psk-bar"><i></i></div></div></div>');
         }
       </script>
       <style>

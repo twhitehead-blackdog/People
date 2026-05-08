@@ -20,19 +20,10 @@ import { DesignVersionService } from './services/design-version.service';
   selector: 'pt-root',
   template: `
     @if (showSkeleton()) {
-      <div class="sk-overlay brutal-loader">
-        <div class="brutal-bg"></div>
-        <div class="brutal-stack">
-          <div class="brutal-logo-ring">
-            <div class="brutal-orbit brutal-orbit--1"></div>
-            <div class="brutal-orbit brutal-orbit--2"></div>
-            <div class="brutal-orbit brutal-orbit--3"></div>
-            <div class="brutal-core">
-              <span class="brutal-bd">BD</span>
-            </div>
-          </div>
-          <div class="brutal-bar"><div class="brutal-bar__fill"></div></div>
-          <div class="brutal-text">CARGANDO<span class="brutal-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div class="sk-overlay minimal-loader">
+        <div class="ml-stack">
+          <span class="ml-mark">BD</span>
+          <div class="ml-bar"><div class="ml-bar__fill"></div></div>
         </div>
       </div>
     }
@@ -153,40 +144,13 @@ import { DesignVersionService } from './services/design-version.service';
     .sk-row-line{height:12px;width:45%;border-radius:3px;background:rgba(255,255,255,.07)}
     .sk-row-sub{height:10px;width:30%;border-radius:3px;background:rgba(255,255,255,.04)}
     .sk-row-badge{height:20px;width:60px;border-radius:20px;background:rgba(255,255,255,.04)}
-    /* ══════════ BRUTAL LOADER ══════════ */
-    .brutal-loader{display:flex;align-items:center;justify-content:center;background:#000 !important}
-    .brutal-bg{position:absolute;inset:0;background:
-      radial-gradient(circle at 20% 30%, rgba(251,191,36,0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(99,179,237,0.08) 0%, transparent 50%),
-      #06060a;
-      animation:brutal-bg 6s ease-in-out infinite}
-    @keyframes brutal-bg{0%,100%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(20deg) brightness(1.1)}}
-    .brutal-stack{position:relative;display:flex;flex-direction:column;align-items:center;gap:2rem;z-index:2}
-    .brutal-logo-ring{position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center}
-    .brutal-orbit{position:absolute;border-radius:50%;border:2px solid transparent;pointer-events:none}
-    .brutal-orbit--1{inset:0;border-top-color:#fbbf24;border-right-color:rgba(251,191,36,0.4);box-shadow:0 0 30px rgba(251,191,36,0.3);animation:brutal-spin 2.4s cubic-bezier(0.5,0,0.5,1) infinite}
-    .brutal-orbit--2{inset:18px;border-bottom-color:#63b3ed;border-left-color:rgba(99,179,237,0.4);box-shadow:0 0 24px rgba(99,179,237,0.3);animation:brutal-spin 1.8s cubic-bezier(0.5,0,0.5,1) infinite reverse}
-    .brutal-orbit--3{inset:36px;border-top-color:#34d399;border-left-color:rgba(52,211,153,0.4);box-shadow:0 0 18px rgba(52,211,153,0.3);animation:brutal-spin 1.2s cubic-bezier(0.5,0,0.5,1) infinite}
-    @keyframes brutal-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    .brutal-core{
-      width:90px;height:90px;border-radius:50%;
-      background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);
-      display:flex;align-items:center;justify-content:center;
-      box-shadow:0 0 40px rgba(251,191,36,0.6),0 0 80px rgba(251,191,36,0.3),inset 0 -8px 16px rgba(0,0,0,0.3);
-      animation:brutal-pulse 2s ease-in-out infinite
-    }
-    @keyframes brutal-pulse{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(251,191,36,0.6),0 0 80px rgba(251,191,36,0.3),inset 0 -8px 16px rgba(0,0,0,0.3)}50%{transform:scale(0.92);box-shadow:0 0 30px rgba(251,191,36,0.4),0 0 60px rgba(251,191,36,0.2),inset 0 -8px 16px rgba(0,0,0,0.4)}}
-    .brutal-bd{font-family:'Orbitron',ui-monospace,monospace;font-weight:900;font-size:1.7rem;color:#1a1a1a;letter-spacing:0.04em;text-shadow:0 1px 0 rgba(255,255,255,0.3)}
-    .brutal-bar{width:200px;height:3px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;position:relative}
-    .brutal-bar__fill{position:absolute;height:100%;width:40%;background:linear-gradient(90deg,transparent,#fbbf24,transparent);border-radius:999px;animation:brutal-bar 1.4s cubic-bezier(0.4,0,0.2,1) infinite;box-shadow:0 0 12px rgba(251,191,36,0.6)}
-    @keyframes brutal-bar{0%{left:-40%}100%{left:100%}}
-    .brutal-text{font-family:'Orbitron',ui-monospace,monospace;font-size:0.85rem;font-weight:700;letter-spacing:0.45em;color:rgba(255,255,255,0.7);display:flex;align-items:center}
-    .brutal-dots{display:inline-flex;margin-left:0.3em;gap:2px}
-    .brutal-dots span{animation:brutal-dot 1.4s ease-in-out infinite;opacity:0}
-    .brutal-dots span:nth-child(1){animation-delay:0s}
-    .brutal-dots span:nth-child(2){animation-delay:0.2s}
-    .brutal-dots span:nth-child(3){animation-delay:0.4s}
-    @keyframes brutal-dot{0%,80%,100%{opacity:0}40%{opacity:1}}
+    /* ── Minimal loader ── */
+    .minimal-loader{display:flex;align-items:center;justify-content:center;background:#0a0a0a !important;animation:none}
+    .ml-stack{display:flex;flex-direction:column;align-items:center;gap:1.5rem}
+    .ml-mark{font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:1.5rem;letter-spacing:0.5em;color:rgba(255,255,255,0.55);padding-left:0.5em}
+    .ml-bar{width:120px;height:1px;background:rgba(255,255,255,0.06);overflow:hidden;position:relative}
+    .ml-bar__fill{position:absolute;top:0;height:100%;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:ml-shimmer 1.6s ease-in-out infinite}
+    @keyframes ml-shimmer{0%{left:-40%}100%{left:100%}}
     /* ── Login skeleton ── */
     .sk-overlay--login{display:flex;align-items:center;justify-content:center}
     .sk-login-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem;width:100%;max-width:360px;padding:0 1rem}
