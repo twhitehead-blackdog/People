@@ -157,12 +157,36 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
                   </a>
                   @if(activeDropdown() === 'services') {
                   <div class="dd-panel">
+                    @if(canAccessLive()) {
                     <a (click)="navigateTo('live'); closeDropdown()" class="dd-item" [class.dd-active]="isLiveActive()">
                       <i class="pi pi-objects-column text-xs opacity-60"></i>Asistencia en vivo
                     </a>
+                    }
+                    @if(canAccessAnalytics()) {
                     <a (click)="navigateTo('analytics'); closeDropdown()" class="dd-item">
                       <i class="pi pi-chart-line text-xs opacity-60"></i>Analytics
                     </a>
+                    }
+                    @if(canAccessMetas()) {
+                    <a (click)="navigateTo('metas'); closeDropdown()" class="dd-item">
+                      <i class="pi pi-flag text-xs opacity-60"></i>Metas
+                    </a>
+                    }
+                    @if(canAccessStock()) {
+                    <a (click)="navigateTo('stock'); closeDropdown()" class="dd-item">
+                      <i class="pi pi-box text-xs opacity-60"></i>Stock
+                    </a>
+                    }
+                    @if(canAccessRespond()) {
+                    <a (click)="navigateTo('respond'); closeDropdown()" class="dd-item">
+                      <i class="pi pi-comments text-xs opacity-60"></i>Respond
+                    </a>
+                    }
+                    @if(canAccessScorecard()) {
+                    <a (click)="navigateTo('scorecard'); closeDropdown()" class="dd-item">
+                      <i class="pi pi-trophy text-xs opacity-60"></i>Scorecard
+                    </a>
+                    }
                   </div>
                   }
                 </div>
@@ -379,6 +403,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
                     <span class="dd-col-label">Auditoría</span>
                     <a (click)="navigateAbsolute('admin/audit-tasks'); closeDropdown()" class="dd-item"><i class="pi pi-list-check"></i>Tareas de Auditoría</a>
                     <a (click)="navigateAbsolute('admin/performance'); closeDropdown()" class="dd-item"><i class="pi pi-star"></i>Performance 360</a>
+                    <a (click)="navigateAbsolute('admin/hr/evaluations'); closeDropdown()" class="dd-item"><i class="pi pi-star-fill"></i>Evaluaciones</a>
                   </div>
                   @if(canAccessCompras()) {
                   <div class="dd-col-sep"></div>
@@ -460,8 +485,24 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
               @if(activeDropdown() === 'services') {
               <div class="dd-menu">
                 <div class="dd-menu-inner">
+                  @if(canAccessLive()) {
                   <a (click)="navigateTo('live'); closeDropdown()" class="dd-item" [class.dd-active]="isLiveActive()"><i class="pi pi-objects-column"></i>Asistencia en vivo</a>
+                  }
+                  @if(canAccessAnalytics()) {
                   <a (click)="navigateTo('analytics'); closeDropdown()" class="dd-item"><i class="pi pi-chart-line"></i>Analytics</a>
+                  }
+                  @if(canAccessMetas()) {
+                  <a (click)="navigateTo('metas'); closeDropdown()" class="dd-item"><i class="pi pi-flag"></i>Metas</a>
+                  }
+                  @if(canAccessStock()) {
+                  <a (click)="navigateTo('stock'); closeDropdown()" class="dd-item"><i class="pi pi-box"></i>Stock</a>
+                  }
+                  @if(canAccessRespond()) {
+                  <a (click)="navigateTo('respond'); closeDropdown()" class="dd-item"><i class="pi pi-comments"></i>Respond</a>
+                  }
+                  @if(canAccessScorecard()) {
+                  <a (click)="navigateTo('scorecard'); closeDropdown()" class="dd-item"><i class="pi pi-trophy"></i>Scorecard</a>
+                  }
                 </div>
               </div>
               }
@@ -576,10 +617,42 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
             </a>
             }
             @if(canAccessServices()) {
+            @if(canAccessLive()) {
             <a (click)="navigateTo('live'); toggleMenu()" [class.bg-gray-700]="isLiveActive()" [class.text-white]="isLiveActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
               <i class="pi pi-objects-column text-lg"></i><span>Asistencia en vivo</span>
             </a>
+            }
+            @if(canAccessAnalytics()) {
+            <a (click)="navigateTo('analytics'); toggleMenu()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-chart-line text-lg"></i><span>Analytics</span>
+            </a>
+            }
+            @if(canAccessMetas()) {
+            <a (click)="navigateTo('metas'); toggleMenu()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-flag text-lg"></i><span>Metas</span>
+            </a>
+            }
+            @if(canAccessStock()) {
+            <a (click)="navigateTo('stock'); toggleMenu()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-box text-lg"></i><span>Stock</span>
+            </a>
+            }
+            @if(canAccessRespond()) {
+            <a (click)="navigateTo('respond'); toggleMenu()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-comments text-lg"></i><span>Respond</span>
+            </a>
+            }
+            @if(canAccessScorecard()) {
+            <a (click)="navigateTo('scorecard'); toggleMenu()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation">
+              <i class="pi pi-trophy text-lg"></i><span>Scorecard</span>
+            </a>
+            }
             }
             @if(canAccessTimeclock()) {
             <a (click)="navigateTo('timeclock'); toggleMenu()" [class.bg-gray-700]="isTimeclockActive()" [class.text-white]="isTimeclockActive()"
@@ -1189,6 +1262,21 @@ export class DashboardComponent {
   );
   public canAccessAnalytics = computed(() =>
     this.permissionsService.canAccessSubModule('services', 'analytics_access')
+  );
+  public canAccessLive = computed(() =>
+    this.permissionsService.canAccessSubModule('services', 'live_access')
+  );
+  public canAccessMetas = computed(() =>
+    this.permissionsService.canAccessSubModule('services', 'metas_access')
+  );
+  public canAccessStock = computed(() =>
+    this.permissionsService.canAccessSubModule('services', 'stock_access')
+  );
+  public canAccessRespond = computed(() =>
+    this.permissionsService.canAccessSubModule('services', 'respond_access')
+  );
+  public canAccessScorecard = computed(() =>
+    this.permissionsService.canAccessSubModule('services', 'scorecard_access')
   );
 
   // Manager view: not admin, but has time_management or branch_manager access
