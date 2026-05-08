@@ -85,14 +85,26 @@ import {
       .question-name { font-size: 0.88rem; line-height: 1.25; }
       .question-desc { font-size: 0.7rem; line-height: 1.45; margin-top: 0.2rem; }
 
-      /* Rating buttons: stack en grid 2x2 o 1 columna para que sean grandes */
-      .rating-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; }
+      /* Rating buttons: solo el número grande, label solo en seleccionado */
+      .rating-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; }
       .rating-option {
-        padding: 0.55rem 0.15rem; min-height: 3rem;
-        flex-direction: column; gap: 0.1rem;
+        padding: 0.6rem 0.2rem; min-height: 2.75rem;
+        flex-direction: column; gap: 0;
+        background: #1a1a1a; border-color: #404040;
       }
-      .rating-num { font-size: 1.1rem; }
-      .rating-text { font-size: 0.55rem; line-height: 1; text-align: center; word-break: break-word; }
+      .rating-num { font-size: 1.25rem; line-height: 1; }
+      .rating-text { display: none; }
+      .rating-option.sel { transform: scale(1.05); }
+      .rating-option.sel .rating-num { font-size: 1.4rem; }
+      /* Label del rating seleccionado abajo de la fila */
+      .rating-selected-label {
+        display: block; text-align: center; font-size: 0.78rem;
+        font-weight: 600; margin-top: 0.5rem; padding: 0.3rem 0.6rem;
+        border-radius: 0.4rem; background: rgba(38, 38, 38, 0.5);
+      }
+      .rating-selected-label.empty {
+        color: #525252; background: transparent; font-weight: normal; font-size: 0.7rem;
+      }
 
       /* Yes/No: stacked grandes */
       .yn-row { flex-direction: column; gap: 0.5rem; }
@@ -121,11 +133,31 @@ import {
       .conclusion-field label { font-size: 0.75rem; }
       .conclusion-field textarea { font-size: 0.85rem; padding: 0.55rem; min-height: 3.5rem; }
 
-      /* Scale legend más compacto y vertical */
-      .scale-legend {
-        font-size: 0.65rem; padding: 0.5rem 0.6rem; line-height: 1.5;
+      /* Scale legend en mobile: oculta porque labels ya van debajo de cada rating */
+      .scale-legend { display: none; }
+      .scale-legend.mobile-show { display: block; }
+      .scale-chips {
+        display: flex; flex-wrap: wrap; gap: 0.3rem;
+        margin-bottom: 0.85rem; padding: 0.5rem;
+        background: rgba(38, 38, 38, 0.3);
+        border: 1px solid #262626; border-radius: 0.5rem;
       }
-      .scale-legend span { display: block; margin-left: 0 !important; padding: 0.05rem 0; }
+      .scale-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-size: 0.65rem; color: #d4d4d4;
+        padding: 0.15rem 0.45rem 0.15rem 0.15rem; border-radius: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+      }
+      .scale-chip-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 1.1rem; height: 1.1rem; border-radius: 50%;
+        background: var(--c, #f59e0b); color: #fff;
+        font-weight: 700; font-size: 0.65rem;
+      }
+    }
+    @media (min-width: 769px) {
+      .scale-chips { display: none; }
+      .rating-selected-label { display: none; }
 
       /* Footer */
       .doc-footer { font-size: 0.6rem; padding: 0.75rem 0; }
@@ -609,11 +641,20 @@ import {
         </div>
 
         @if (section.question_type === 'rating' && currentType()) {
+        <!-- Desktop: leyenda inline -->
         <div class="scale-legend">
           <strong>Escala de desempeño:</strong>
           @for (lbl of currentType()!.rating_labels; track $index) {
             <span class="ml-2">
               <span class="font-bold" [style.color]="currentType()!.rating_colors[$index]">{{ $index + 1 }}</span> – {{ lbl }}
+            </span>
+          }
+        </div>
+        <!-- Mobile: leyenda en chips coloridos -->
+        <div class="scale-chips md:hidden">
+          @for (lbl of currentType()!.rating_labels; track $index) {
+            <span class="scale-chip" [style.--c]="currentType()!.rating_colors[$index]">
+              <span class="scale-chip-num">{{ $index + 1 }}</span>{{ lbl }}
             </span>
           }
         </div>
@@ -641,11 +682,24 @@ import {
                 class="rating-option"
                 [class.sel]="getResponse(q.id).rating === ri + 1"
                 [style.border-color]="getResponse(q.id).rating === ri + 1 ? currentType()!.rating_colors[ri] : ''"
+                [style.background]="getResponse(q.id).rating === ri + 1 ? currentType()!.rating_colors[ri] + '22' : ''"
                 (click)="setRating(q.id, ri + 1)"
               >
                 <div class="rating-num" [style.color]="currentType()!.rating_colors[ri]">{{ ri + 1 }}</div>
                 <div class="rating-text">{{ lbl }}</div>
               </div>
+            }
+          </div>
+          <div
+            class="rating-selected-label md:hidden"
+            [class.empty]="getResponse(q.id).rating == null"
+            [style.color]="getResponse(q.id).rating != null ? currentType()!.rating_colors[(getResponse(q.id).rating || 1) - 1] : ''"
+            [style.background]="getResponse(q.id).rating != null ? currentType()!.rating_colors[(getResponse(q.id).rating || 1) - 1] + '1a' : ''"
+          >
+            @if (getResponse(q.id).rating != null) {
+              {{ currentType()!.rating_labels[(getResponse(q.id).rating || 1) - 1] }}
+            } @else {
+              Toca un número para calificar
             }
           </div>
           <textarea
