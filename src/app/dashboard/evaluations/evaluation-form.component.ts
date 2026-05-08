@@ -51,46 +51,185 @@ import {
   styles: [`
     :host { display: block; }
     .doc-page { max-width: 920px; margin: 0 auto; padding: 1.5rem; color: #e5e5e5; }
-    @media (max-width: 640px) {
-      .doc-page { padding: 0.75rem; }
-      .doc-header { padding: 1.25rem; border-radius: 0.75rem; }
-      .doc-title { font-size: 1.25rem; }
-      .doc-subtitle { font-size: 0.95rem; }
-      .doc-section { padding: 1rem; border-radius: 0.6rem; }
-      .info-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-      .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
-      .summary-value { font-size: 1.4rem; }
-      .summary-cell { padding: 0.7rem; }
-      .signature-grid { grid-template-columns: 1fr; gap: 1rem; }
-      .question-card { padding: 0.75rem; }
-      .question-icon { font-size: 1.4rem; }
-      .question-name { font-size: 0.9rem; }
-      .question-desc { font-size: 0.75rem; }
-      .rating-row { gap: 0.3rem; }
-      .rating-option { padding: 0.55rem 0.25rem; }
-      .rating-num { font-size: 1.15rem; }
-      .rating-text { font-size: 0.6rem; }
+    /* Mobile: rediseño completo de cards, ratings y secciones */
+    @media (max-width: 768px) {
+      .doc-page { padding: 0.5rem; padding-bottom: 6rem; }
+
+      /* Ocultar header branded en mobile - ya está en el header de la app */
+      .doc-header { display: none; }
+
+      /* Mostrar mini-header compacto con info esencial */
+      .mobile-mini-header { display: block !important; }
+
+      /* Secciones más compactas */
+      .doc-section { padding: 0.85rem 0.75rem; border-radius: 0.6rem; margin-bottom: 0.6rem; }
+      .section-header { padding-bottom: 0.5rem; margin-bottom: 0.6rem; gap: 0.5rem; }
+      .section-roman { width: 1.5rem; height: 1.5rem; font-size: 0.7rem; }
+      .section-title { font-size: 0.95rem; line-height: 1.2; }
+      .section-desc { font-size: 0.7rem; margin-top: 0.15rem; }
+
+      /* Info grid: 1 columna en mobile */
+      .info-grid { grid-template-columns: 1fr; gap: 0.6rem; }
+      .info-field label { font-size: 0.65rem; }
+
+      /* Question card: layout vertical claro */
+      .question-card { padding: 0.75rem; margin-bottom: 0.6rem; border-radius: 0.6rem; }
+      .question-head { gap: 0.6rem; margin-bottom: 0.6rem; }
+      .question-icon {
+        width: 2rem; height: 2rem; border-radius: 0.4rem;
+        background: rgba(245,158,11,0.1); display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .question-icon i { font-size: 0.95rem; color: #f59e0b; }
+      .valor-badge { font-size: 0.6rem; padding: 0.05rem 0.4rem; }
+      .question-name { font-size: 0.88rem; line-height: 1.25; }
+      .question-desc { font-size: 0.7rem; line-height: 1.45; margin-top: 0.2rem; }
+
+      /* Rating buttons: stack en grid 2x2 o 1 columna para que sean grandes */
+      .rating-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; }
+      .rating-option {
+        padding: 0.55rem 0.15rem; min-height: 3rem;
+        flex-direction: column; gap: 0.1rem;
+      }
+      .rating-num { font-size: 1.1rem; }
+      .rating-text { font-size: 0.55rem; line-height: 1; text-align: center; word-break: break-word; }
+
+      /* Yes/No: stacked grandes */
       .yn-row { flex-direction: column; gap: 0.5rem; }
-      .yn-option { font-size: 0.85rem; padding: 0.7rem; }
-      .scale-legend { font-size: 0.65rem; padding: 0.5rem; }
-      .scale-legend span { display: inline-block; margin-top: 0.15rem; }
-      .actions-bar { padding: 0.6rem; gap: 0.4rem; }
-      .actions-bar ::ng-deep .p-button { flex: 1; min-width: 45%; font-size: 0.8rem; }
-      .section-roman { width: 1.6rem; height: 1.6rem; font-size: 0.75rem; }
-      .section-title { font-size: 1rem; }
+      .yn-option { font-size: 0.9rem; padding: 0.85rem; min-height: 2.75rem; justify-content: center; }
+
+      /* Comentario más pequeño */
+      .comment-input { font-size: 0.8rem; padding: 0.45rem 0.6rem; min-height: 2rem; }
+
+      /* Summary 2x2 compacto */
+      .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+      .summary-cell { padding: 0.65rem 0.5rem; }
+      .summary-value { font-size: 1.3rem; }
+      .summary-label { font-size: 0.6rem; }
+
+      /* Final score block sticky abajo del header en mobile */
+      .final-score-block { padding: 0.85rem; gap: 0.85rem; flex-direction: row; }
+      .final-score-num { font-size: 2.2rem; }
+      .final-score-label { font-size: 0.95rem; }
+      .final-score-pct { font-size: 0.65rem; margin-top: 0.15rem; }
+
+      /* Firmas en una columna */
+      .signature-grid { grid-template-columns: 1fr; gap: 0.85rem; }
+      .signature-input { font-size: 1.05rem; }
+
+      /* Conclusion fields */
+      .conclusion-field label { font-size: 0.75rem; }
+      .conclusion-field textarea { font-size: 0.85rem; padding: 0.55rem; min-height: 3.5rem; }
+
+      /* Scale legend más compacto y vertical */
+      .scale-legend {
+        font-size: 0.65rem; padding: 0.5rem 0.6rem; line-height: 1.5;
+      }
+      .scale-legend span { display: block; margin-left: 0 !important; padding: 0.05rem 0; }
+
+      /* Footer */
+      .doc-footer { font-size: 0.6rem; padding: 0.75rem 0; }
+
+      /* Action bar fija abajo, full-width, con botones grandes */
+      .actions-bar {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        margin: 0; border-radius: 0;
+        border-bottom: 0; border-left: 0; border-right: 0;
+        border-top: 1px solid #262626;
+        padding: 0.6rem 0.75rem;
+        flex-wrap: wrap; gap: 0.4rem;
+        background: rgba(10, 10, 10, 0.97);
+      }
+      .actions-bar ::ng-deep .p-button {
+        flex: 1 1 calc(50% - 0.2rem); min-width: 0; font-size: 0.78rem;
+        padding: 0.55rem 0.4rem;
+      }
+      .actions-bar ::ng-deep .p-button-label { font-size: 0.78rem; }
+    }
+
+    /* Dispositivos muy chicos */
+    @media (max-width: 380px) {
+      .rating-row { grid-template-columns: repeat(5, 1fr); }
+      .rating-text { font-size: 0.5rem; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
     }
     @media print {
-      .no-print { display: none !important; }
-      .doc-page { max-width: none; padding: 0; color: #111 !important; }
-      .doc-header, .doc-section { background: #fff !important; border: 1px solid #ddd !important; color: #111 !important; box-shadow: none !important; page-break-inside: avoid; }
-      .doc-title, .doc-subtitle, .question-name, .section-title { color: #111 !important; }
-      .question-desc, .info-field label, .section-desc, .scale-legend, .summary-label, .doc-footer { color: #555 !important; }
-      .question-card { background: #fafafa !important; border: 1px solid #e5e5e5 !important; }
-      .rating-option, .yn-option { background: #fff !important; }
-      .summary-cell { background: #fff !important; border: 1px solid #ddd !important; }
-      .summary-value { color: #d97706 !important; }
-      input, textarea, .p-select { background: #fff !important; color: #111 !important; border-color: #ddd !important; }
-      .actions-bar { display: none !important; }
+      @page { size: letter; margin: 1.2cm; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .no-print, .actions-bar, .p-toast, .p-confirm-dialog, .p-overlay, p-button, .p-component-overlay { display: none !important; }
+      html, body { background: #fff !important; color: #1a1a1a !important; font-family: 'Inter', system-ui, sans-serif; }
+      .doc-page { max-width: none; padding: 0; margin: 0; color: #1a1a1a !important; }
+      .doc-header {
+        background: #fff !important; border: none !important; border-top: 4px solid #d97706 !important;
+        border-bottom: 1px solid #e5e5e5 !important; border-radius: 0 !important;
+        padding: 1rem 0 1.25rem !important; margin-bottom: 0.75rem !important;
+        page-break-after: avoid;
+      }
+      .doc-header::before { display: none !important; }
+      .doc-brand { color: #d97706 !important; font-size: 0.65rem !important; }
+      .doc-title { color: #1a1a1a !important; font-size: 1.5rem !important; }
+      .doc-subtitle { color: #404040 !important; font-size: 1.1rem !important; }
+      .doc-confidential { color: #737373 !important; font-size: 0.65rem !important; }
+      .doc-section {
+        background: #fff !important; border: 1px solid #e5e5e5 !important;
+        border-radius: 0.5rem !important; padding: 1rem !important;
+        margin-bottom: 0.75rem !important; box-shadow: none !important;
+        page-break-inside: avoid; color: #1a1a1a !important;
+      }
+      .section-header { border-bottom: 1px solid #e5e5e5 !important; padding-bottom: 0.5rem !important; margin-bottom: 0.75rem !important; }
+      .section-roman { background: #d97706 !important; color: #fff !important; }
+      .section-title { color: #1a1a1a !important; font-size: 1rem !important; }
+      .section-desc { color: #525252 !important; }
+      .info-field label { color: #525252 !important; }
+      .info-field input, .info-field .p-select-label, .info-field .p-datepicker input,
+      .signature-input, input, textarea {
+        background: transparent !important; color: #1a1a1a !important;
+        border: none !important; border-bottom: 1px solid #d4d4d4 !important;
+        border-radius: 0 !important; padding: 0.25rem 0 !important;
+      }
+      .scale-legend { background: #f9fafb !important; border: 1px solid #e5e5e5 !important; color: #404040 !important; font-size: 0.7rem !important; }
+      .scale-legend strong { color: #1a1a1a !important; }
+      .question-card {
+        background: #fff !important; border: 1px solid #e5e5e5 !important;
+        page-break-inside: avoid; padding: 0.65rem !important; margin-bottom: 0.4rem !important;
+      }
+      .question-icon { color: #d97706 !important; font-size: 1.1rem !important; }
+      .valor-badge { color: #d97706 !important; background: #fff7ed !important; border: 1px solid #fed7aa !important; }
+      .question-name { color: #1a1a1a !important; font-size: 0.85rem !important; }
+      .question-desc { color: #525252 !important; font-size: 0.7rem !important; }
+      .rating-row { gap: 0.25rem !important; }
+      .rating-option {
+        background: #fff !important; border: 1px solid #d4d4d4 !important;
+        padding: 0.35rem 0.2rem !important;
+      }
+      .rating-option.sel {
+        background: #fffbeb !important; border-width: 2px !important;
+      }
+      .rating-num { font-size: 1rem !important; }
+      .rating-text { color: #525252 !important; font-size: 0.6rem !important; }
+      .comment-input { background: transparent !important; border: 1px solid #e5e5e5 !important; color: #1a1a1a !important; padding: 0.3rem !important; font-size: 0.75rem !important; }
+      .yn-option { background: #fff !important; border: 1px solid #d4d4d4 !important; color: #404040 !important; padding: 0.5rem !important; }
+      .yn-option.sel-yes { background: #ecfdf5 !important; border-color: #2D6A4F !important; color: #2D6A4F !important; }
+      .yn-option.sel-no { background: #fef2f2 !important; border-color: #A32D2D !important; color: #A32D2D !important; }
+      .summary-cell {
+        background: #fff !important; border: 1px solid #e5e5e5 !important;
+      }
+      .summary-value { color: #d97706 !important; font-size: 1.4rem !important; }
+      .summary-label { color: #525252 !important; }
+      .final-score-block {
+        background: #fffbeb !important; border: 2px solid var(--accent, #d97706) !important;
+        page-break-inside: avoid;
+      }
+      .final-score-num { color: var(--accent, #d97706) !important; font-size: 3rem !important; }
+      .final-score-pct { color: #525252 !important; }
+      .progress-bar-bg { background: #e5e5e5 !important; }
+      .progress-bar-fill { background: #d97706 !important; }
+      .signature-input {
+        font-style: italic !important; font-family: 'Brush Script MT', cursive !important;
+        font-size: 1.1rem !important; border-bottom: 1px solid #525252 !important;
+      }
+      .doc-footer { color: #737373 !important; font-size: 0.6rem !important; padding-top: 0.5rem !important; border-top: 1px solid #e5e5e5 !important; }
+      .conclusion-field textarea { min-height: auto !important; }
     }
     .doc-header {
       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
@@ -186,6 +325,35 @@ import {
     .summary-value { font-size: 1.8rem; font-weight: 800; color: #fbbf24; line-height: 1; }
     .summary-label { font-size: 0.7rem; color: #a3a3a3; margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05rem; }
     .progress-bar-bg { height: 0.5rem; background: #262626; border-radius: 1rem; overflow: hidden; margin-top: 0.5rem; }
+
+    /* Mobile mini-header (compacto, solo info esencial) */
+    .mobile-mini-header {
+      display: none;
+      background: linear-gradient(135deg, #171717, #0a0a0a);
+      border: 1px solid #262626; border-radius: 0.75rem;
+      padding: 0.85rem 1rem; margin-bottom: 0.6rem;
+    }
+    .mobile-mini-header .mh-name { font-size: 1.1rem; font-weight: 700; color: white; line-height: 1.2; }
+    .mobile-mini-header .mh-meta {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; margin-top: 0.4rem;
+      font-size: 0.72rem; color: #a3a3a3;
+    }
+    .mobile-mini-header .mh-meta i { margin-right: 0.2rem; color: #f59e0b; }
+    .mobile-mini-header .mh-type {
+      display: inline-block; font-size: 0.6rem; color: #f59e0b;
+      background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+      padding: 0.1rem 0.5rem; border-radius: 0.25rem; margin-bottom: 0.3rem;
+      letter-spacing: 0.05rem; font-weight: 600; text-transform: uppercase;
+    }
+
+    /* Ocultar el bloque grande de Header Info en mobile, mostrar el compacto */
+    @media (max-width: 768px) {
+      .desktop-info-grid { display: none !important; }
+      .mobile-meta-edit { display: block !important; }
+    }
+    @media (min-width: 769px) {
+      .mobile-meta-edit { display: none !important; }
+    }
     .final-score-block {
       display: flex; align-items: center; gap: 1.5rem;
       background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(255,255,255,0.02));
@@ -210,12 +378,18 @@ import {
       height: 100%; background: linear-gradient(90deg, #f59e0b, #d97706);
       transition: width 0.3s ease;
     }
-    .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
-    .signature-box {
-      border-top: 1px solid #525252; padding-top: 0.6rem; text-align: center;
-      font-size: 0.75rem; color: #a3a3a3;
+    .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 0.5rem; }
+    .signature-field label {
+      display: block; font-size: 0.75rem; color: #a3a3a3; margin-bottom: 0.3rem;
+      text-transform: uppercase; letter-spacing: 0.05rem; font-weight: 600;
     }
-    .signature-box input { background: transparent; border: none; color: white; text-align: center; width: 100%; padding: 0.3rem; font-size: 0.85rem; }
+    .signature-input {
+      width: 100%; padding: 0.7rem 0.85rem;
+      background: #0a0a0a; border: 1px solid #404040;
+      border-radius: 0.4rem; color: white; font-size: 0.95rem;
+      font-style: italic; font-family: 'Brush Script MT', cursive, sans-serif;
+    }
+    .signature-input::placeholder { color: #525252; font-style: normal; }
     .doc-footer {
       text-align: center; font-size: 0.7rem; color: #525252;
       letter-spacing: 0.1rem; margin-top: 1.5rem; padding-top: 1rem;
@@ -288,7 +462,25 @@ import {
 
       <!-- Header Info -->
       @if (currentType()) {
-      <div class="doc-section">
+      <!-- Mobile mini-header: compacto con info esencial -->
+      <div class="mobile-mini-header">
+        <div class="mh-type">{{ currentType()!.name }}</div>
+        <div class="mh-name">{{ selectedEmployeeName() || 'Sin colaborador' }}</div>
+        <div class="mh-meta">
+          @if (selectedEmployeeBranch()) {
+            <span><i class="pi pi-map-marker"></i>{{ selectedEmployeeBranch() }}</span>
+          }
+          @if (periodLabel()) {
+            <span><i class="pi pi-calendar"></i>{{ periodLabel() }}</span>
+          }
+          @if (evaluatorName()) {
+            <span><i class="pi pi-user"></i>{{ evaluatorName() }}</span>
+          }
+        </div>
+      </div>
+
+      <!-- Desktop: form con todos los campos editables -->
+      <div class="doc-section desktop-info-grid">
         <div class="info-grid">
           <div class="info-field">
             <label>Nombre del colaborador</label>
@@ -326,6 +518,45 @@ import {
             <input pInputText readonly [value]="evaluatorPosition()" placeholder="Se llena automáticamente" class="w-full" />
           </div>
         </div>
+      </div>
+
+      <!-- Mobile: botón compacto para abrir/editar metadata -->
+      <div class="doc-section mobile-meta-edit md:hidden" style="display:none">
+        <p-button
+          label="Editar período / evaluador"
+          icon="pi pi-pencil"
+          [text]="true"
+          size="small"
+          (onClick)="showMobileMeta.set(!showMobileMeta())"
+          styleClass="w-full"
+        />
+        @if (showMobileMeta()) {
+        <div class="info-grid mt-3">
+          <div class="info-field">
+            <label>Período evaluado</label>
+            <input pInputText [(ngModel)]="periodLabel" placeholder="Ej. Ene – Jun 2026" class="w-full" />
+          </div>
+          <div class="info-field">
+            <label>Fecha de evaluación</label>
+            <p-datepicker [(ngModel)]="evaluationDate" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" appendTo="body" />
+          </div>
+          <div class="info-field">
+            <label>Evaluado por *</label>
+            <p-select
+              [options]="evaluatorOptions()"
+              [(ngModel)]="selectedEvaluatorId"
+              (onChange)="onEvaluatorChange($event)"
+              optionLabel="name"
+              optionValue="value"
+              [filter]="true"
+              filterBy="name"
+              placeholder="Seleccionar"
+              styleClass="w-full"
+              appendTo="body"
+            />
+          </div>
+        </div>
+        }
       </div>
 
       <!-- Sections -->
@@ -507,14 +738,17 @@ import {
 
       <!-- Firmas -->
       <div class="doc-section">
+        <div class="section-header">
+          <div class="section-title" style="margin-left: 0;">Firmas</div>
+        </div>
         <div class="signature-grid">
-          <div>
-            <input pInputText [(ngModel)]="evaluatorSignature" placeholder="Nombre y firma" />
-            <div class="signature-box">Firma del evaluador</div>
+          <div class="signature-field">
+            <label>Firma del evaluador</label>
+            <input pInputText [(ngModel)]="evaluatorSignature" placeholder="Nombre y firma" class="signature-input" />
           </div>
-          <div>
-            <input pInputText [(ngModel)]="employeeSignature" placeholder="Nombre y firma" />
-            <div class="signature-box">Firma del colaborador</div>
+          <div class="signature-field">
+            <label>Firma del colaborador</label>
+            <input pInputText [(ngModel)]="employeeSignature" placeholder="Nombre y firma" class="signature-input" />
           </div>
         </div>
       </div>
@@ -539,16 +773,6 @@ import {
           [loading]="saving()"
           [disabled]="progressPct() < 100"
           (onClick)="save('completed')"
-        />
-        }
-        @if (currentStatus() === 'completed' && !isPrintMode()) {
-        <p-button
-          label="Reabrir como borrador"
-          icon="pi pi-undo"
-          severity="warn"
-          [outlined]="true"
-          [loading]="saving()"
-          (onClick)="save('draft')"
         />
         }
         @if (!isNew()) {
@@ -606,6 +830,7 @@ export class EvaluationFormComponent {
   public currentStatus = signal<'draft' | 'completed' | 'archived'>('draft');
   public isPrintMode = signal<boolean>(this.route.snapshot.queryParamMap.get('print') === '1');
   public isReadOnly = computed(() => this.currentStatus() === 'completed' || this.isPrintMode());
+  public showMobileMeta = signal<boolean>(false);
 
   public saving = signal(false);
 
