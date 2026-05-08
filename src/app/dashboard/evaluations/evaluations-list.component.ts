@@ -42,10 +42,16 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
     @media (max-width: 768px) {
       .desktop-table { display: none; }
       .mobile-cards { display: block; }
+      :host ::ng-deep .p-card-subtitle { display: none; }
+      .filters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+      .search-row { width: 100%; }
+      .header-actions { display: flex; align-items: center; gap: 0.5rem; }
+      .new-btn-mobile { flex-shrink: 0; }
     }
     @media (min-width: 769px) {
       .desktop-table { display: block; }
       .mobile-cards { display: none; }
+      .new-btn-mobile { display: none; }
     }
     .eval-card {
       background: rgba(38, 38, 38, 0.4); border: 1px solid #262626;
@@ -69,47 +75,50 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
     <div class="space-y-4 p-4">
       <p-card>
         <ng-template #title>
-          <div class="flex items-center gap-2">
+          <div class="header-actions">
             <i class="pi pi-star text-amber-400"></i>
-            <span>Evaluaciones de Desempeño</span>
+            <span class="flex-1">Evaluaciones</span>
+            <p-button
+              icon="pi pi-plus"
+              [rounded]="true"
+              size="small"
+              (onClick)="openNew()"
+              styleClass="new-btn-mobile"
+              pTooltip="Nueva evaluación"
+            />
           </div>
         </ng-template>
         <ng-template #subtitle>
           Aplica y consulta evaluaciones a colaboradores. Solo RRHH.
         </ng-template>
 
-        <div class="flex flex-wrap gap-3 items-end mt-3">
-          <div class="flex-1 min-w-[200px]">
-            <label class="text-xs text-gray-400 block mb-1">Buscar empleado</label>
+        <div class="space-y-2 mt-3">
+          <div class="search-row">
             <input
               pInputText
               type="text"
               [(ngModel)]="searchText"
-              placeholder="Nombre…"
+              placeholder="Buscar empleado por nombre…"
               class="w-full"
             />
           </div>
-          <div class="min-w-[200px]">
-            <label class="text-xs text-gray-400 block mb-1">Tipo</label>
+          <div class="filters-row">
             <p-select
               [options]="typeOptions()"
               [(ngModel)]="typeFilter"
               optionLabel="label"
               optionValue="value"
               [showClear]="true"
-              placeholder="Todos"
+              placeholder="Tipo"
               styleClass="w-full"
             />
-          </div>
-          <div class="min-w-[160px]">
-            <label class="text-xs text-gray-400 block mb-1">Status</label>
             <p-select
               [options]="statusOptions"
               [(ngModel)]="statusFilter"
               optionLabel="label"
               optionValue="value"
               [showClear]="true"
-              placeholder="Todos"
+              placeholder="Status"
               styleClass="w-full"
             />
           </div>
@@ -117,6 +126,7 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
             label="Nueva evaluación"
             icon="pi pi-plus"
             (onClick)="openNew()"
+            styleClass="hidden md:inline-flex"
           />
         </div>
       </p-card>
