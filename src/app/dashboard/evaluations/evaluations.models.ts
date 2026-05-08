@@ -6,6 +6,7 @@ export interface EvaluationType {
   rating_labels: string[];
   rating_colors: string[];
   is_active: boolean;
+  target_position_ids?: string[];
   company_id?: string | null;
   created_at?: string;
   updated_at?: string;

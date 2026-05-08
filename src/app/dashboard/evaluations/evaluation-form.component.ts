@@ -524,7 +524,7 @@ export class EvaluationFormComponent {
   // Resources
   public typesResource = httpResource<EvaluationType[]>(() => ({
     url: this.apiUrl.build('rest/v1/evaluation_types', {
-      select: 'id,name,description,rating_scale,rating_labels,rating_colors,is_active',
+      select: 'id,name,description,rating_scale,rating_labels,rating_colors,is_active,target_position_ids',
       is_active: 'eq.true',
       order: 'name.asc',
     }),
@@ -575,16 +575,25 @@ export class EvaluationFormComponent {
     (this.typesResource.value() || []).map((t) => ({ value: t.id, label: t.name }))
   );
 
-  public employeeOptions = computed(() =>
-    (this.dashboardStore.employees.entities() as Employee[])
+  public employeeOptions = computed(() => {
+    // Filtrar por posiciones objetivo del template seleccionado
+    const tid = this.selectedTypeId();
+    const types = this.typesResource.value() || [];
+    const selectedType = types.find((t) => t.id === tid);
+    const targetPos = selectedType?.target_position_ids || [];
+    return (this.dashboardStore.employees.entities() as Employee[])
       .filter((e: any) => e.is_active)
+      .filter((e: any) => {
+        if (!targetPos.length) return true; // sin filtro = todos
+        return targetPos.includes(e.position_id);
+      })
       .map((e: any) => {
         const name = `${e.first_name} ${e.father_name || ''}`.trim();
         const num = e.employee_number ? ` (${e.employee_number})` : '';
         return { value: e.id, label: `${name}${num}` };
       })
-      .sort((a, b) => a.label.localeCompare(b.label))
-  );
+      .sort((a, b) => a.label.localeCompare(b.label));
+  });
 
   // Evaluadores: solo personal del departamento Administración
   public evaluatorOptions = computed(() =>
