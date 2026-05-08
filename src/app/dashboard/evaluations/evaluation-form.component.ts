@@ -51,6 +51,47 @@ import {
   styles: [`
     :host { display: block; }
     .doc-page { max-width: 920px; margin: 0 auto; padding: 1.5rem; color: #e5e5e5; }
+    @media (max-width: 640px) {
+      .doc-page { padding: 0.75rem; }
+      .doc-header { padding: 1.25rem; border-radius: 0.75rem; }
+      .doc-title { font-size: 1.25rem; }
+      .doc-subtitle { font-size: 0.95rem; }
+      .doc-section { padding: 1rem; border-radius: 0.6rem; }
+      .info-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+      .summary-value { font-size: 1.4rem; }
+      .summary-cell { padding: 0.7rem; }
+      .signature-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .question-card { padding: 0.75rem; }
+      .question-icon { font-size: 1.4rem; }
+      .question-name { font-size: 0.9rem; }
+      .question-desc { font-size: 0.75rem; }
+      .rating-row { gap: 0.3rem; }
+      .rating-option { padding: 0.55rem 0.25rem; }
+      .rating-num { font-size: 1.15rem; }
+      .rating-text { font-size: 0.6rem; }
+      .yn-row { flex-direction: column; gap: 0.5rem; }
+      .yn-option { font-size: 0.85rem; padding: 0.7rem; }
+      .scale-legend { font-size: 0.65rem; padding: 0.5rem; }
+      .scale-legend span { display: inline-block; margin-top: 0.15rem; }
+      .actions-bar { padding: 0.6rem; gap: 0.4rem; }
+      .actions-bar ::ng-deep .p-button { flex: 1; min-width: 45%; font-size: 0.8rem; }
+      .section-roman { width: 1.6rem; height: 1.6rem; font-size: 0.75rem; }
+      .section-title { font-size: 1rem; }
+    }
+    @media print {
+      .no-print { display: none !important; }
+      .doc-page { max-width: none; padding: 0; color: #111 !important; }
+      .doc-header, .doc-section { background: #fff !important; border: 1px solid #ddd !important; color: #111 !important; box-shadow: none !important; page-break-inside: avoid; }
+      .doc-title, .doc-subtitle, .question-name, .section-title { color: #111 !important; }
+      .question-desc, .info-field label, .section-desc, .scale-legend, .summary-label, .doc-footer { color: #555 !important; }
+      .question-card { background: #fafafa !important; border: 1px solid #e5e5e5 !important; }
+      .rating-option, .yn-option { background: #fff !important; }
+      .summary-cell { background: #fff !important; border: 1px solid #ddd !important; }
+      .summary-value { color: #d97706 !important; }
+      input, textarea, .p-select { background: #fff !important; color: #111 !important; border-color: #ddd !important; }
+      .actions-bar { display: none !important; }
+    }
     .doc-header {
       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
       border: 1px solid rgba(245, 158, 11, 0.3);
@@ -449,8 +490,9 @@ import {
 
       <div class="doc-footer">Documento confidencial · BlackDog Panamá</div>
 
-      <div class="actions-bar">
-        <p-button label="Cancelar" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="back()" />
+      <div class="actions-bar no-print">
+        <p-button label="Volver" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" />
+        @if (!isReadOnly()) {
         <p-button
           label="Guardar borrador"
           icon="pi pi-save"
@@ -467,11 +509,22 @@ import {
           [disabled]="progressPct() < 100"
           (onClick)="save('completed')"
         />
+        }
+        @if (currentStatus() === 'completed' && !isPrintMode()) {
+        <p-button
+          label="Reabrir como borrador"
+          icon="pi pi-undo"
+          severity="warn"
+          [outlined]="true"
+          [loading]="saving()"
+          (onClick)="save('draft')"
+        />
+        }
         @if (!isNew()) {
         <p-button
-          label="Generar resumen"
-          icon="pi pi-external-link"
-          severity="warn"
+          label="Imprimir / PDF"
+          icon="pi pi-print"
+          severity="info"
           [outlined]="true"
           (onClick)="generateSummary()"
         />
@@ -518,6 +571,10 @@ export class EvaluationFormComponent {
   public employeeSignature = signal<string>('');
   public selectedEvaluatorId = signal<string | null>(null);
   public responses = signal<Map<string, EvaluationResponse>>(new Map());
+
+  public currentStatus = signal<'draft' | 'completed' | 'archived'>('draft');
+  public isPrintMode = signal<boolean>(this.route.snapshot.queryParamMap.get('print') === '1');
+  public isReadOnly = computed(() => this.currentStatus() === 'completed' || this.isPrintMode());
 
   public saving = signal(false);
 
@@ -719,6 +776,7 @@ export class EvaluationFormComponent {
       this.evaluatorSignature.set(e.evaluator_signature || '');
       this.employeeSignature.set(e.employee_signature || '');
       this.selectedEvaluatorId.set(e.evaluator_id || null);
+      this.currentStatus.set(e.status || 'draft');
       const map = new Map<string, EvaluationResponse>();
       for (const r of e.responses || []) {
         map.set(r.question_id, r);
@@ -764,9 +822,8 @@ export class EvaluationFormComponent {
   }
 
   public generateSummary() {
-    const id = this.id();
-    if (!id) return;
-    window.open(`/admin/hr/evaluations/${id}?print=1`, '_blank');
+    // Abre el diálogo de impresión del browser (Save as PDF)
+    window.print();
   }
 
   public back() {
