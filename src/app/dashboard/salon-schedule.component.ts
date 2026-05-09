@@ -8,6 +8,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -22,9 +23,11 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
+import { Popover } from 'primeng/popover';
 import { Card } from 'primeng/card';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
@@ -56,8 +59,10 @@ type GroomerWithAssignments = {
   selector: 'pt-salon-schedule',
   imports: [
     Card,
+    ConfirmDialogModule,
     TableModule,
     Button,
+    Popover,
     FormsModule,
     DatePipe,
     SlicePipe,
@@ -94,6 +99,7 @@ export class SalonScheduleComponent {
   private http = inject(HttpClient);
   private organizationService = inject(OrganizationService);
   private message = inject(MessageService);
+  private confirmService = inject(ConfirmationService);
   private dialogService = inject(DialogService);
   private apiUrl = inject(ApiUrlService);
   private ref = inject(DynamicDialogRef);
@@ -116,6 +122,73 @@ export class SalonScheduleComponent {
     if (!batch) return;
     this.loadNonWorkingDays();
   });
+
+  /** Carga el setting strictAssignmentMode una vez al iniciar */
+  private loadStrictModeEffect = effect(() => {
+    // Llama solo una vez (sin dependencias dinámicas)
+    untracked(() => this.loadStrictMode());
+  });
+
+  private async loadStrictMode(): Promise<void> {
+    try {
+      const rows = await firstValueFrom(
+        this.http.get<any[]>(this.apiUrl.build('rest/v1/settings', {
+          key: 'eq.salon_strict_assignment',
+          select: 'id,value',
+        }))
+      );
+      if (rows && rows.length > 0) {
+        this.strictSettingId.set(rows[0].id);
+        this.strictAssignmentMode.set(rows[0].value === 'true');
+      }
+    } catch (e) {
+      console.warn('[SalonSchedule] Could not load strict mode setting', e);
+    }
+  }
+
+  async toggleStrictMode(value: boolean): Promise<void> {
+    if (this.isReadOnly()) return;
+    this.savingStrictMode.set(true);
+    try {
+      const id = this.strictSettingId();
+      if (id) {
+        await firstValueFrom(
+          this.http.patch(
+            this.apiUrl.build('rest/v1/settings', { id: `eq.${id}` }),
+            { value: value ? 'true' : 'false' },
+            { headers: { Prefer: 'return=representation' } }
+          )
+        );
+      } else {
+        const created = await firstValueFrom(
+          this.http.post<any[]>(this.apiUrl.build('rest/v1/settings'), {
+            key: 'salon_strict_assignment',
+            value: value ? 'true' : 'false',
+            description: 'Si true, gerentes solo pueden agregar horarios desde salon-schedule',
+            category: 'schedules',
+            is_encrypted: false,
+          }, { headers: { Prefer: 'return=representation' } })
+        );
+        if (Array.isArray(created) && created[0]?.id) {
+          this.strictSettingId.set(created[0].id);
+        }
+      }
+      this.strictAssignmentMode.set(value);
+      this.message.add({
+        severity: 'success',
+        summary: 'Configuración guardada',
+        detail: value
+          ? 'Gerentes ahora solo pueden agregar horarios con asignación previa'
+          : 'Gerentes pueden agregar horarios libremente',
+        life: 2500,
+      });
+    } catch (e) {
+      console.error('[SalonSchedule] toggleStrictMode error', e);
+      this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar' });
+    } finally {
+      this.savingStrictMode.set(false);
+    }
+  }
 
   canViewTop = computed(() =>
     this.permissionsService.canAccessSubModule('time_management', 'salon_top')
@@ -156,6 +229,27 @@ export class SalonScheduleComponent {
   currentWeekStart = signal<Date>(startOfWeek(new Date(), { weekStartsOn: 0 })); // Domingo
   assignments = signal<GroomerBranchAssignment[]>([]);
   nonWorkingMap = signal<Record<string, string>>({});
+  /** Map "<employeeId>|YYYY-MM-DD" → "HH:mm-HH:mm" para días con horario laborable asignado */
+  scheduleTimesMap = signal<Record<string, string>>({});
+  /** Map "<employeeId>|YYYY-MM-DD" → schedule_id para pre-llenar el dialog */
+  scheduleIdMap = signal<Record<string, string>>({});
+  /** Modo estricto: si true, los gerentes solo pueden agregar horarios desde salon-schedule (en espera) */
+  strictAssignmentMode = signal<boolean>(false);
+  private strictSettingId = signal<string | null>(null);
+  savingStrictMode = signal<boolean>(false);
+
+  /** Map "<employeeId>|YYYY-MM-DD" → schedule pendiente (existe en Turnos pero no en Salon) */
+  pendingSchedulesMap = signal<Record<string, {
+    branch_id: string;
+    branch_name: string;
+    branch_short_name: string;
+    schedule_name: string;
+    times: string;
+    is_presence_only?: boolean;
+    actual_entry_time?: string;
+    suggested_schedule_id?: string;
+    suggested_schedule_name?: string;
+  }>>({});
 
   private groomerUtils = inject(GroomerScheduleUtilsService);
 
@@ -222,8 +316,16 @@ export class SalonScheduleComponent {
     return this.configMap().get(employeeId)?.is_rotating ?? false;
   }
 
+  /** Zona derivada automáticamente de la sucursal asignada del peluquero */
   getGroomerZone(employeeId: string): string {
-    return this.configMap().get(employeeId)?.zone ?? '';
+    const emp = this.store.employees.entities().find(e => e.id === employeeId);
+    return emp?.branch?.zone ?? '';
+  }
+
+  /** Zona asignada a una sucursal */
+  getBranchZone(branchId: string): string {
+    const branch = this.store.branches.entities().find(b => b.id === branchId);
+    return branch?.zone ?? '';
   }
 
   async toggleRotating(employeeId: string): Promise<void> {
@@ -234,12 +336,22 @@ export class SalonScheduleComponent {
     });
   }
 
-  async setGroomerZone(employeeId: string, zone: string | null): Promise<void> {
-    const current = this.configMap().get(employeeId);
-    await this.upsertConfig(employeeId, {
-      is_rotating: current?.is_rotating ?? false,
-      zone: zone || null,
-    });
+  /** Asigna zona a una sucursal (no a un empleado) */
+  async setBranchZone(branchId: string, zone: string | null): Promise<void> {
+    const url = this.apiUrl.build('rest/v1/branches', { id: `eq.${branchId}` });
+    try {
+      await firstValueFrom(
+        this.http.patch(url, { zone: zone || null }, {
+          headers: { Prefer: 'return=representation' },
+        })
+      );
+      // Recargar branches y employees para reflejar la nueva zona en la UI
+      this.store.branches.reloadItems();
+      this.store.employees.reloadItems();
+    } catch (e) {
+      console.error('[SalonSchedule] Error guardando zona de sucursal:', e);
+      this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la zona' });
+    }
   }
 
   private async upsertConfig(employeeId: string, data: { is_rotating: boolean; zone: string | null }): Promise<void> {
@@ -299,22 +411,22 @@ export class SalonScheduleComponent {
     return this.zoneColorAssignment().get(zoneName) ?? this.zoneColorPalette[0];
   }
 
-  /** Zonas únicas disponibles como opciones del dropdown */
+  /** Zonas únicas disponibles como opciones del dropdown (derivadas de sucursales) */
   availableZones = computed((): string[] => {
     const zones = new Set<string>();
-    for (const cfg of this.groomerConfigs()) {
-      if (cfg.zone) zones.add(cfg.zone);
+    for (const b of this.store.branches.entities()) {
+      if (b.zone) zones.add(b.zone);
     }
     return [...zones].sort();
   });
 
-  /** Lista ordenada de zonas únicas */
+  /** Lista ordenada de zonas únicas (desde sucursales) */
   orderedZones = computed((): string[] => {
-    const map = new Map<string, true>();
-    for (const cfg of this.groomerConfigs()) {
-      if (cfg.zone) map.set(cfg.zone, true);
+    const set = new Set<string>();
+    for (const b of this.store.branches.entities()) {
+      if (b.zone) set.add(b.zone);
     }
-    return [...map.keys()].sort();
+    return [...set].sort();
   });
 
   // Computed signals
@@ -355,7 +467,7 @@ export class SalonScheduleComponent {
   /** Filas de la tabla: encabezados de zona + groomers */
   tableRows = computed((): Array<
     | { type: 'zone-header'; zoneName: string; color: string }
-    | { type: 'branch-subheader'; branchName: string; shortName: string; color: string; collapseKey: string }
+    | { type: 'branch-subheader'; branchId: string; branchName: string; shortName: string; color: string; collapseKey: string }
     | { type: 'groomer'; employee: Employee }
     | { type: 'rotating-header' }
     | { type: 'spacer' }
@@ -376,39 +488,21 @@ export class SalonScheduleComponent {
 
     const rows: Array<
       | { type: 'zone-header'; zoneName: string; color: string }
-      | { type: 'branch-subheader'; branchName: string; shortName: string; color: string; collapseKey: string }
+      | { type: 'branch-subheader'; branchId: string; branchName: string; shortName: string; color: string; collapseKey: string }
       | { type: 'groomer'; employee: Employee }
       | { type: 'rotating-header' }
       | { type: 'spacer' }
     > = [];
 
-    // Helper: agrupa employees por sucursal y emite sub-headers + filas
-    const addByBranch = (emps: Employee[], zonePrefix: string) => {
-      const branchMap = new Map<string, { branch: Employee['branch']; employees: Employee[] }>();
-      const noBranch: Employee[] = [];
-      for (const emp of emps) {
-        if (emp.branch) {
-          if (!branchMap.has(emp.branch_id)) branchMap.set(emp.branch_id, { branch: emp.branch, employees: [] });
-          branchMap.get(emp.branch_id)!.employees.push(emp);
-        } else {
-          noBranch.push(emp);
-        }
-      }
-      const sorted = [...branchMap.values()].sort((a, b) => (a.branch?.name ?? '').localeCompare(b.branch?.name ?? ''));
-      for (const group of sorted) {
-        const collapseKey = `${zonePrefix}::${group.branch?.id ?? 'none'}`;
-        rows.push({
-          type: 'branch-subheader',
-          branchName: group.branch?.name ?? '',
-          shortName: group.branch?.short_name ?? '',
-          color: this.getBranchColor(group.branch?.short_name ?? ''),
-          collapseKey,
-        });
-        if (!this.collapsedBranches().has(collapseKey)) {
-          group.employees.forEach(e => rows.push({ type: 'groomer', employee: e }));
-        }
-      }
-      noBranch.forEach(e => rows.push({ type: 'groomer', employee: e }));
+    // Helper: emite filas de groomer ordenadas por sucursal (sin sub-headers)
+    const addByBranch = (emps: Employee[], _zonePrefix: string) => {
+      const sorted = [...emps].sort((a, b) => {
+        const ba = a.branch?.name ?? '';
+        const bb = b.branch?.name ?? '';
+        if (ba !== bb) return ba.localeCompare(bb);
+        return a.first_name.localeCompare(b.first_name);
+      });
+      sorted.forEach(e => rows.push({ type: 'groomer', employee: e }));
     };
 
     const addSpacer = () => rows.push({ type: 'spacer' as const });
@@ -421,7 +515,7 @@ export class SalonScheduleComponent {
       for (const zone of zones) {
         // Filtrar por zona activa
         if (activeZone && zone !== activeZone) continue;
-        const inZone = nonRotating.filter(e => (configMap.get(e.id)?.zone ?? '') === zone);
+        const inZone = nonRotating.filter(e => ((e.branch?.zone ?? '') ?? '') === zone);
         if (inZone.length === 0) continue;
         if (!first) addSpacer();
         first = false;
@@ -430,7 +524,7 @@ export class SalonScheduleComponent {
       }
       // Sin zona (solo si no hay filtro de zona activa o la zona activa es nula)
       if (!activeZone) {
-        const unzoned = nonRotating.filter(e => !configMap.get(e.id)?.zone);
+        const unzoned = nonRotating.filter(e => !(e.branch?.zone ?? ''));
         if (unzoned.length > 0) {
           if (!first) addSpacer();
           rows.push({ type: 'zone-header', zoneName: 'Sin zona', color: '#374151' });
@@ -524,8 +618,15 @@ export class SalonScheduleComponent {
   openGroomerAssignDialog(employee: Employee, date: Date): void {
     this.selectedEmployee.set(employee);
     this.selectedDate.set(date);
-    this.selectedBranchId.set(undefined);
     this.selectedAssignment.set(undefined);
+    // Si es una marcación detectada, pre-llenar branch desde la marcación
+    const key = `${employee.id}|${format(date, 'yyyy-MM-dd')}`;
+    const pending = this.pendingSchedulesMap()[key];
+    if (pending?.is_presence_only && pending.branch_id) {
+      this.selectedBranchId.set(pending.branch_id);
+    } else {
+      this.selectedBranchId.set(undefined);
+    }
     this.dialogVisible.set(true);
   }
 
@@ -533,10 +634,46 @@ export class SalonScheduleComponent {
     return item.branch.id;
   }
 
+  /** Modo de visualización: semana (Dom-Sáb) o quincena (1-15 / 16-fin)
+   *  Para gerentes (isReadOnly) siempre fuerza quincena.
+   */
+  private _viewMode = signal<'week' | 'biweek'>(
+    typeof localStorage !== 'undefined' && localStorage.getItem('salon-viewMode') === 'biweek'
+      ? 'biweek' : 'week'
+  );
+  viewMode = computed((): 'week' | 'biweek' => {
+    if (this.isReadOnly()) return 'biweek';
+    return this._viewMode();
+  });
+
+  setViewMode(mode: 'week' | 'biweek'): void {
+    if (this.isReadOnly()) return; // gerentes siempre quincena
+    this._viewMode.set(mode);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('salon-viewMode', mode);
+    // Re-snap al periodo actual
+    const today = new Date();
+    if (mode === 'week') {
+      this.currentWeekStart.set(startOfWeek(today, { weekStartsOn: 0 }));
+    } else {
+      const d = getDate(today);
+      const start = d <= 15
+        ? new Date(getYear(today), getMonth(today), 1)
+        : new Date(getYear(today), getMonth(today), 16);
+      this.currentWeekStart.set(start);
+    }
+  }
+
+  /** Fin del periodo según modo */
+  private periodEnd = computed((): Date => {
+    const s = this.currentWeekStart();
+    if (this.viewMode() === 'week') return endOfWeek(s, { weekStartsOn: 0 });
+    const day = getDate(s);
+    if (day <= 15) return new Date(getYear(s), getMonth(s), 15);
+    return new Date(getYear(s), getMonth(s) + 1, 0); // último día del mes
+  });
+
   daysOfWeek = computed(() => {
-    const start = this.currentWeekStart();
-    const end = endOfWeek(start, { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
+    return eachDayOfInterval({ start: this.currentWeekStart(), end: this.periodEnd() });
   });
 
   groomerEmployeesWithAssignments = computed((): GroomerWithAssignments[] => {
@@ -572,17 +709,37 @@ export class SalonScheduleComponent {
     });
   });
 
-  // Navegación de semanas
+  // Navegación de periodos (semana o quincena)
   goToPreviousWeek(): void {
-    this.currentWeekStart.set(addDays(this.currentWeekStart(), -7));
+    const s = this.currentWeekStart();
+    if (this.viewMode() === 'week') {
+      this.currentWeekStart.set(addDays(s, -7));
+      return;
+    }
+    const day = getDate(s);
+    if (day === 1) {
+      this.currentWeekStart.set(new Date(getYear(s), getMonth(s) - 1, 16));
+    } else {
+      this.currentWeekStart.set(new Date(getYear(s), getMonth(s), 1));
+    }
   }
 
   goToNextWeek(): void {
-    this.currentWeekStart.set(addDays(this.currentWeekStart(), 7));
+    const s = this.currentWeekStart();
+    if (this.viewMode() === 'week') {
+      this.currentWeekStart.set(addDays(s, 7));
+      return;
+    }
+    const day = getDate(s);
+    if (day === 1) {
+      this.currentWeekStart.set(new Date(getYear(s), getMonth(s), 16));
+    } else {
+      this.currentWeekStart.set(new Date(getYear(s), getMonth(s) + 1, 1));
+    }
   }
 
   goToCurrentWeek(): void {
-    this.currentWeekStart.set(startOfWeek(new Date(), { weekStartsOn: 0 }));
+    this.setViewMode(this.viewMode());
   }
 
   constructor() {
@@ -592,9 +749,19 @@ export class SalonScheduleComponent {
       this.currentWeekStart(); // Leer el signal para activar el effect
       this.loadAssignments();
       this.loadNonWorkingDays();
+      this.loadAttendance();
     });
     // Cargar configs de peluqueros al inicio (no dependen de la semana)
     this.loadGroomerConfigs();
+    // Para gerentes: forzar quincena al inicio y ajustar fecha al período de quincena actual
+    if (this.isReadOnly()) {
+      const today = new Date();
+      const d = getDate(today);
+      const start = d <= 15
+        ? new Date(getYear(today), getMonth(today), 1)
+        : new Date(getYear(today), getMonth(today), 16);
+      this.currentWeekStart.set(start);
+    }
   }
 
   private loadGroomerConfigs(): void {
@@ -613,7 +780,7 @@ export class SalonScheduleComponent {
   // Cargar asignaciones desde la API
   private loadAssignments(): void {
     const startDate = this.currentWeekStart();
-    const endDate = endOfWeek(startDate, { weekStartsOn: 0 });
+    const endDate = this.periodEnd();
 
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
@@ -661,7 +828,7 @@ export class SalonScheduleComponent {
    */
   private loadNonWorkingDays(): void {
     const startDate = this.currentWeekStart();
-    const endDate = endOfWeek(startDate, { weekStartsOn: 0 });
+    const endDate = this.periodEnd();
 
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
@@ -687,7 +854,7 @@ export class SalonScheduleComponent {
           employee_id: `in.(${groomerIds.join(',')})`,
           ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
           select:
-            'employee_id,start_date,end_date,schedule:schedules(day_off,name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
+            'employee_id,branch_id,schedule_id,start_date,end_date,schedule:schedules(id,day_off,name,entry_time,exit_time),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
         }),
         {}
       )
@@ -701,38 +868,71 @@ export class SalonScheduleComponent {
           }[]
         ) => {
           const map: Record<string, string> = {};
+          const timesMap: Record<string, string> = {};
+          const scheduleIdMapLocal: Record<string, string> = {};
+          const pendingMap: Record<string, {
+            branch_id: string;
+            branch_name: string;
+            branch_short_name: string;
+            schedule_name: string;
+            times: string;
+          }> = {};
           const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+          // Set rápido de assignments existentes en Salon (employee|date)
+          const assignmentKeys = new Set<string>();
+          for (const a of this.assignments()) {
+            assignmentKeys.add(`${a.employee_id}|${this.dateKey(a.date)}`);
+          }
 
           for (const row of rows || []) {
             const schedule = row.schedule;
-
-            // Verificar si es un schedule no laborable
             const isNonWorking = this.isNonWorkingSchedule(schedule);
-            if (!isNonWorking) {
-              continue;
-            }
 
             const rowStart = this.parseDateWithoutTimezone(row.start_date);
             const rowEnd = this.parseDateWithoutTimezone(row.end_date);
 
             for (const d of days) {
-              // Crear fechas solo con año/mes/día para comparación
               const dDate = startOfDay(d);
               const startDateOnly = startOfDay(rowStart);
               const endDateOnly = startOfDay(rowEnd);
 
-              // Comparación inclusive usando solo fecha (sin hora)
               if (dDate >= startDateOnly && dDate <= endDateOnly) {
                 const key = `${row.employee_id}|${format(d, 'yyyy-MM-dd')}`;
-                // Si hay varias, deja la primera
-                if (!map[key]) {
-                  map[key] = this.getScheduleLabel(schedule);
+                if (isNonWorking) {
+                  if (!map[key]) {
+                    map[key] = this.getScheduleLabel(schedule);
+                  }
+                } else if (schedule?.entry_time && schedule?.exit_time) {
+                  const fmt = (t: string) => (t ?? '').slice(0, 5);
+                  const times = `${fmt(schedule.entry_time)}-${fmt(schedule.exit_time)}`;
+                  if (!timesMap[key]) timesMap[key] = times;
+                  if (!scheduleIdMapLocal[key] && (schedule.id || (row as any).schedule_id)) {
+                    scheduleIdMapLocal[key] = schedule.id ?? (row as any).schedule_id;
+                  }
+                  // Si existe horario en Turnos con branch_id pero NO hay assignment en Salon → pending
+                  const branchId = (row as any).branch_id as string | undefined;
+                  if (branchId && !assignmentKeys.has(key) && !pendingMap[key]) {
+                    const branch = this.store.branches.entities().find((b: any) => b.id === branchId);
+                    if (branch) {
+                      pendingMap[key] = {
+                        branch_id: branchId,
+                        branch_name: branch.name ?? '',
+                        branch_short_name: branch.short_name ?? '',
+                        schedule_name: schedule.name ?? '',
+                        times,
+                      };
+                    }
+                  }
                 }
               }
             }
           }
 
           this.nonWorkingMap.set(map);
+          this.scheduleTimesMap.set(timesMap);
+          this.scheduleIdMap.set(scheduleIdMapLocal);
+          this.pendingSchedulesMap.set(pendingMap);
         },
         error: (error: any) => {
           console.error(
@@ -749,9 +949,148 @@ export class SalonScheduleComponent {
     return !!this.nonWorkingMap()[key];
   }
 
+  getScheduleTimes(employeeId: string, date: Date): string | null {
+    const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
+    return this.scheduleTimesMap()[key] ?? null;
+  }
+
+  getScheduleIdForDay(employeeId: string, date: Date): string | undefined {
+    const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
+    return this.scheduleIdMap()[key];
+  }
+
+  /** Hora real de la marcación cuando se abre dialog desde una "presencia detectada" */
+  selectedActualEntryTime = computed((): string | undefined => {
+    const emp = this.selectedEmployee();
+    const date = this.selectedDate();
+    if (!emp || !date) return undefined;
+    const key = `${emp.id}|${format(date, 'yyyy-MM-dd')}`;
+    const pending = this.pendingSchedulesMap()[key];
+    return pending?.is_presence_only ? pending.actual_entry_time : undefined;
+  });
+
+  /** Schedule id seleccionado actualmente para el dialog (existente o sugerido) */
+  selectedScheduleId = computed((): string | undefined => {
+    const emp = this.selectedEmployee();
+    const date = this.selectedDate();
+    if (!emp || !date) return undefined;
+    const existing = this.getScheduleIdForDay(emp.id, date);
+    if (existing) return existing;
+    // Si no hay horario asignado pero existe sugerencia desde marcación → usarla
+    const key = `${emp.id}|${format(date, 'yyyy-MM-dd')}`;
+    return this.pendingSchedulesMap()[key]?.suggested_schedule_id;
+  });
+
+  /** Devuelve el schedule pendiente (existe en Turnos sin assignment en Salon) */
+  getPendingSchedule(employeeId: string, date: Date) {
+    const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
+    return this.pendingSchedulesMap()[key] ?? null;
+  }
+
+  /** Lista total de pendientes para batch-accept */
+  pendingCount = computed(() => Object.keys(this.pendingSchedulesMap()).length);
+
+  /** Acepta un pendiente: crea el groomer_branch_assignment a partir del schedule existente */
+  async acceptPending(employeeId: string, date: Date): Promise<void> {
+    const pending = this.getPendingSchedule(employeeId, date);
+    if (!pending) return;
+    if (this.isReadOnly()) return;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return;
+    try {
+      const payload = {
+        employee_id: employeeId,
+        branch_id: pending.branch_id,
+        date: format(date, 'yyyy-MM-dd'),
+        company_id: companyId,
+      };
+      await firstValueFrom(
+        this.http.post(this.apiUrl.build('rest/v1/groomer_branch_assignments'), payload, {
+          headers: { Prefer: 'return=representation' },
+        })
+      );
+      this.message.add({
+        severity: 'success',
+        summary: 'Aceptado',
+        detail: `Asignación creada en ${pending.branch_short_name || pending.branch_name}`,
+        life: 2000,
+      });
+      // Recargar
+      this.loadAssignments();
+      // pendingMap se reconstruye al recargar nonWorkingDays (depende de assignments)
+      setTimeout(() => this.loadNonWorkingDays(), 200);
+    } catch (e) {
+      console.error('[SalonSchedule] acceptPending error', e);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo aceptar la asignación',
+      });
+    }
+  }
+
+  /** Acepta TODOS los pendientes en una sola pasada */
+  async acceptAllPending(): Promise<void> {
+    if (this.isReadOnly()) return;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return;
+    const pending = this.pendingSchedulesMap();
+    const entries = Object.entries(pending);
+    if (entries.length === 0) return;
+    const payload = entries.map(([key, p]) => {
+      const [employee_id, date] = key.split('|');
+      return {
+        employee_id,
+        branch_id: p.branch_id,
+        date,
+        company_id: companyId,
+      };
+    });
+    try {
+      await firstValueFrom(
+        this.http.post(this.apiUrl.build('rest/v1/groomer_branch_assignments'), payload, {
+          headers: { Prefer: 'return=representation' },
+        })
+      );
+      this.message.add({
+        severity: 'success',
+        summary: 'Aceptados',
+        detail: `${payload.length} asignación(es) creadas desde Turnos`,
+      });
+      this.loadAssignments();
+      setTimeout(() => this.loadNonWorkingDays(), 200);
+    } catch (e) {
+      console.error('[SalonSchedule] acceptAllPending error', e);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo aceptar el batch',
+      });
+    }
+  }
+
   getNonWorkingLabel(employeeId: string, date: Date): string | null {
     const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
     return this.nonWorkingMap()[key] ?? null;
+  }
+
+  /**
+   * Colores por tipo de ausencia: fondo neutro gris con borde y texto por tipo.
+   * Diseñado para NO chocar con la paleta saturada de sucursales — las celdas de ausencia
+   * se distinguen por su fondo gris uniforme + acento sutil en borde/texto.
+   */
+  getNonWorkingColors(label: string | null | undefined): { bg: string; text: string; border: string } {
+    const l = (label ?? '').toLowerCase();
+    const baseBg = 'rgba(38,38,38,0.85)'; // gris oscuro uniforme
+    if (l.includes('vacaci')) return { bg: baseBg, text: '#fde68a', border: '#f59e0b' };       // ámbar
+    if (l.includes('libre')) return { bg: baseBg, text: '#e5e7eb', border: '#9ca3af' };         // gris claro
+    if (l.includes('feriado')) return { bg: baseBg, text: '#fbcfe8', border: '#ec4899' };       // rosa
+    if (l.includes('incapac') || l.includes('reposo') || l.includes('enferm'))
+      return { bg: baseBg, text: '#fecaca', border: '#dc2626' };                                 // rojo
+    if (l.includes('injus')) return { bg: baseBg, text: '#fca5a5', border: '#b91c1c' };         // rojo oscuro
+    if (l.includes('jus') || l.includes('permiso') || l.includes('licencia'))
+      return { bg: baseBg, text: '#fed7aa', border: '#ea580c' };                                 // naranja
+    return { bg: baseBg, text: '#d4d4d8', border: '#71717a' };                                   // gris default
   }
 
   // Obtener asignación para empleado y fecha específica
@@ -760,6 +1099,407 @@ export class SalonScheduleComponent {
     if (typeof value === 'string') return value.slice(0, 10);
     return format(value, 'yyyy-MM-dd');
   }
+
+  /** Devuelve true si la sucursal tiene al menos un peluquero asignado ese día (incluye pendientes desde Turnos) */
+  branchHasGroomerOnDay(branchId: string, date: Date): boolean {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    const hasAssignment = this.assignments().some(
+      (a) => a.branch_id === branchId && this.dateKey(a.date) === dateKey
+    );
+    if (hasAssignment) return true;
+    // Pendientes (horarios en Turnos sin assignment en Salon) también cuentan como cobertura
+    const pending = this.pendingSchedulesMap();
+    for (const key in pending) {
+      if (key.endsWith(`|${dateKey}`) && pending[key].branch_id === branchId) return true;
+    }
+    return false;
+  }
+
+  /** Lista de tiendas + días sin ningún peluquero asignado (incluye pendientes desde Turnos como cobertura) */
+  emptyBranchDays = computed((): Array<{ branch: Branch; date: Date }> => {
+    const out: Array<{ branch: Branch; date: Date }> = [];
+    const branches = this.branchesWithAssignments().map((b) => b.branch);
+    const days = this.daysOfWeek();
+    const assignmentsList = this.assignments();
+    const setKey = new Set<string>();
+    for (const a of assignmentsList) {
+      setKey.add(`${a.branch_id}|${this.dateKey(a.date)}`);
+    }
+    // Pendientes (horarios en Turnos sin assignment en Salon) también cuentan
+    const pending = this.pendingSchedulesMap();
+    for (const key in pending) {
+      const dateKey = key.split('|')[1];
+      setKey.add(`${pending[key].branch_id}|${dateKey}`);
+    }
+    for (const branch of branches) {
+      for (const day of days) {
+        const key = `${branch.id}|${format(day, 'yyyy-MM-dd')}`;
+        if (!setKey.has(key)) out.push({ branch, date: day });
+      }
+    }
+    return out;
+  });
+
+  /** Día seleccionado para el popover de tiendas sin peluquero */
+  selectedMissingDay = signal<Date | null>(null);
+
+  /** Empleado que se está editando desde el popover (cambiar sucursal / rotativo) */
+  editingEmployee = signal<Employee | null>(null);
+
+  /** Setter usado por el HTML antes de abrir el popover */
+  setEditingEmployee(employee: Employee): boolean {
+    this.editingEmployee.set(employee);
+    return true;
+  }
+
+  async changeEmployeeMainBranch(employeeId: string, newBranchId: string): Promise<void> {
+    if (!newBranchId) return;
+    if (this.isReadOnly()) return;
+    const employee = this.store.employees.entities().find((e) => e.id === employeeId);
+    if (!employee) return;
+    if (employee.branch_id === newBranchId) return; // no cambio
+    const oldBranchId = employee.branch_id;
+    const newBranch = this.store.branches.entities().find((b) => b.id === newBranchId);
+
+    // Verificar si hay asignaciones futuras con la sucursal vieja
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    let futureAssignments: any[] = [];
+    let futureSchedules: any[] = [];
+    try {
+      futureAssignments = await firstValueFrom(
+        this.http.get<any[]>(this.apiUrl.build('rest/v1/groomer_branch_assignments', {
+          employee_id: `eq.${employeeId}`,
+          branch_id: `eq.${oldBranchId}`,
+          date: `gte.${todayStr}`,
+          select: 'id',
+        }))
+      ) ?? [];
+      futureSchedules = await firstValueFrom(
+        this.http.get<any[]>(this.apiUrl.build('rest/v1/employee_schedules', {
+          employee_id: `eq.${employeeId}`,
+          branch_id: `eq.${oldBranchId}`,
+          end_date: `gte.${todayStr}`,
+          select: 'id',
+        }))
+      ) ?? [];
+    } catch (e) {
+      console.warn('[SalonSchedule] error verificando futuros', e);
+    }
+
+    const totalToOverwrite = futureAssignments.length + futureSchedules.length;
+
+    const doMainBranchUpdate = async () => {
+      try {
+        await firstValueFrom(
+          this.http.patch(
+            this.apiUrl.build('rest/v1/employees', { id: `eq.${employeeId}` }),
+            { branch_id: newBranchId },
+            { headers: { Prefer: 'return=representation' } }
+          )
+        );
+        this.message.add({
+          severity: 'success',
+          summary: 'Sucursal actualizada',
+          detail: `${employee.first_name} ahora pertenece a ${newBranch?.short_name ?? newBranch?.name ?? 'la nueva sucursal'}`,
+          life: 2500,
+        });
+        this.store.employees.reloadItems();
+      } catch (e) {
+        console.error('[SalonSchedule] changeEmployeeMainBranch error', e);
+        this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cambiar la sucursal' });
+      }
+    };
+
+    const overwriteFuture = async () => {
+      try {
+        if (futureAssignments.length > 0) {
+          await firstValueFrom(
+            this.http.patch(
+              this.apiUrl.build('rest/v1/groomer_branch_assignments', {
+                employee_id: `eq.${employeeId}`,
+                branch_id: `eq.${oldBranchId}`,
+                date: `gte.${todayStr}`,
+              }),
+              { branch_id: newBranchId }
+            )
+          );
+        }
+        if (futureSchedules.length > 0) {
+          await firstValueFrom(
+            this.http.patch(
+              this.apiUrl.build('rest/v1/employee_schedules', {
+                employee_id: `eq.${employeeId}`,
+                branch_id: `eq.${oldBranchId}`,
+                end_date: `gte.${todayStr}`,
+              }),
+              { branch_id: newBranchId }
+            )
+          );
+        }
+        this.loadAssignments();
+        setTimeout(() => this.loadNonWorkingDays(), 200);
+      } catch (e) {
+        console.error('[SalonSchedule] overwriteFuture error', e);
+        this.message.add({ severity: 'warn', summary: 'Aviso', detail: 'Sucursal cambiada pero hubo error actualizando turnos futuros' });
+      }
+    };
+
+    if (totalToOverwrite === 0) {
+      await doMainBranchUpdate();
+      return;
+    }
+
+    this.confirmService.confirm({
+      header: 'Sobreescribir turnos futuros',
+      message: `${employee.first_name} tiene ${futureAssignments.length} asignación(es) y ${futureSchedules.length} horario(s) futuros con la sucursal anterior. ¿Actualizarlos a ${newBranch?.short_name ?? 'la nueva sucursal'}?`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, actualizar todo',
+      rejectLabel: 'Solo cambiar sucursal principal',
+      acceptButtonProps: { severity: 'warn' as any, label: 'Sí, actualizar todo' } as any,
+      rejectButtonProps: { severity: 'secondary', outlined: true, label: 'Solo cambiar sucursal principal' } as any,
+      accept: async () => {
+        await doMainBranchUpdate();
+        await overwriteFuture();
+      },
+      reject: async () => {
+        await doMainBranchUpdate();
+      },
+    });
+  }
+
+  // ========== Toggles de visualización de cumplimiento (días pasados) ==========
+  showAttendance = signal<boolean>(false);
+  showLateness = signal<boolean>(false);
+  showAbsences = signal<boolean>(false);
+
+  /** Map "<employeeId>|YYYY-MM-DD" → estado del día */
+  attendanceMap = signal<Record<string, {
+    status: 'on_time' | 'late' | 'absent' | 'justified';
+    late_minutes?: number;
+    justification?: string;
+    worked_hours?: number;
+    branch_id?: string;
+  }>>({});
+
+  private async loadAttendance(): Promise<void> {
+    const startDate = this.currentWeekStart();
+    const endDate = this.periodEnd();
+    if (!this.showAttendance() && !this.showLateness() && !this.showAbsences()) {
+      this.attendanceMap.set({});
+      return;
+    }
+    try {
+      const fromIso = startDate.toISOString();
+      const toEnd = new Date(endDate);
+      toEnd.setHours(23, 59, 59, 999);
+      const toIso = toEnd.toISOString();
+      // Cargar timelogs tipo entry del periodo (fuente de marcaciones reales actuales)
+      const url = `${this.apiUrl.baseUrl}/rest/v1/timelogs?type=eq.entry&created_at=gte.${encodeURIComponent(fromIso)}&created_at=lte.${encodeURIComponent(toIso)}&select=employee_id,branch_id,created_at,type&order=created_at.asc&limit=5000`;
+      const rows = await firstValueFrom(this.http.get<any[]>(url));
+      const map: Record<string, any> = {};
+      // Por empleado/día tomar la PRIMERA marcación tipo 'entry'
+      for (const r of rows ?? []) {
+        const d = new Date(r.created_at);
+        const dateStr = format(d, 'yyyy-MM-dd');
+        const key = `${r.employee_id}|${dateStr}`;
+        if (map[key]) continue; // Ya tomamos la primera
+        // Determinar status comparando con schedule del día (si existe)
+        const scheduleId = this.scheduleIdMap()[key];
+        let status: 'on_time' | 'late' | 'absent' | 'justified' = 'on_time';
+        let lateMin = 0;
+        if (scheduleId) {
+          const schedule = (this.store.schedules.entities() ?? []).find((s: any) => s.id === scheduleId);
+          if (schedule?.entry_time) {
+            const [hh, mm] = (schedule.entry_time as string).split(':').map((x: string) => parseInt(x, 10));
+            const expected = new Date(d);
+            expected.setHours(hh, mm || 0, 0, 0);
+            const tolerance = (schedule.minutes_tolerance ?? 0) * 60 * 1000;
+            const diffMs = d.getTime() - expected.getTime();
+            if (diffMs > tolerance) {
+              status = 'late';
+              lateMin = Math.round(diffMs / 60000);
+            }
+          }
+        }
+        map[key] = {
+          status,
+          late_minutes: lateMin,
+          justification: '',
+          worked_hours: undefined,
+          branch_id: r.branch_id,
+          entry_time_iso: r.created_at,
+        };
+      }
+      // Detectar AUSENCIAS: días pasados con asignación o horario pero sin timelog
+      const days = eachDayOfInterval({ start: startDate, end: endDate }).filter((d) => this.isPastDay(d));
+      const groomerIds = this.groomerEmployees().map((e) => e.id);
+      const assignmentSet = new Set<string>();
+      for (const a of this.assignments()) {
+        assignmentSet.add(`${a.employee_id}|${this.dateKey(a.date)}`);
+      }
+      for (const empId of groomerIds) {
+        for (const day of days) {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const key = `${empId}|${dateStr}`;
+          if (map[key]) continue; // ya tiene marcación
+          const hasAssignment = assignmentSet.has(key);
+          const hasSchedule = !!this.scheduleIdMap()[key];
+          const isNonWork = !!this.nonWorkingMap()[key];
+          if ((hasAssignment || hasSchedule) && !isNonWork) {
+            map[key] = {
+              status: 'absent',
+              late_minutes: 0,
+              justification: '',
+              worked_hours: 0,
+              branch_id: undefined,
+              entry_time_iso: undefined,
+            };
+          }
+        }
+      }
+      this.attendanceMap.set(map);
+      try {
+        this.mergePresencePending();
+      } catch (err) {
+        console.error('[SalonSchedule] mergePresencePending error', err);
+      }
+    } catch (e) {
+      console.error('[SalonSchedule] loadAttendance error', e);
+    }
+  }
+
+  /** Si un peluquero marcó entrada en una sucursal pero no hay assignment ni schedule en Turnos
+   *  para ese día → lo agregamos a pendingSchedulesMap como "presencia detectada" para que
+   *  RRHH lo apruebe.
+   */
+  private mergePresencePending(): void {
+    const att = this.attendanceMap() as any;
+    const existingPending = { ...this.pendingSchedulesMap() };
+    const assignmentKeys = new Set<string>();
+    for (const a of this.assignments()) {
+      assignmentKeys.add(`${a.employee_id}|${this.dateKey(a.date)}`);
+    }
+    const schedules = (this.store.schedules.entities() ?? []).filter(
+      (s: any) => !s.day_off && s.entry_time
+    );
+    let added = 0;
+    for (const key in att) {
+      const a = att[key];
+      if (!a.branch_id) continue;
+      if (a.status === 'absent') continue;
+      if (assignmentKeys.has(key)) continue;
+      if (existingPending[key] && !existingPending[key].is_presence_only) continue;
+      const branch = this.store.branches.entities().find((b: any) => b.id === a.branch_id);
+      if (!branch) continue;
+
+      // Calcular schedule sugerido desde entry_time real
+      const suggestion = this.suggestScheduleFromEntry(a.entry_time_iso, schedules);
+
+      const entryHHMM = this.extractHHMM(a.entry_time_iso);
+      existingPending[key] = {
+        branch_id: a.branch_id,
+        branch_name: branch.name,
+        branch_short_name: branch.short_name ?? branch.name,
+        schedule_name: suggestion?.name ?? 'Marcación sin asignación',
+        times: entryHHMM ? `${entryHHMM} (marcó)` : '',
+        is_presence_only: true,
+        actual_entry_time: entryHHMM ?? undefined,
+        suggested_schedule_id: suggestion?.id,
+        suggested_schedule_name: suggestion?.name,
+      };
+      added++;
+    }
+    if (added > 0) this.pendingSchedulesMap.set(existingPending);
+  }
+
+  private extractHHMM(iso?: string | null): string | null {
+    if (!iso) return null;
+    try {
+      const d = new Date(iso);
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Encuentra el schedule cuyo entry_time esté más cerca del entry_time real */
+  private suggestScheduleFromEntry(
+    entryIso: string | null | undefined,
+    schedules: any[]
+  ): { id: string; name: string } | null {
+    if (!entryIso || schedules.length === 0) return null;
+    const d = new Date(entryIso);
+    const actualMin = d.getHours() * 60 + d.getMinutes();
+    let best: any = null;
+    let bestDiff = Infinity;
+    for (const s of schedules) {
+      const t = (s.entry_time as string | null) ?? '';
+      const [hh, mm] = t.split(':').map((x) => parseInt(x, 10));
+      if (isNaN(hh)) continue;
+      const sMin = hh * 60 + (mm || 0);
+      const diff = Math.abs(sMin - actualMin);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = s;
+      }
+    }
+    if (!best) return null;
+    return { id: best.id, name: best.name };
+  }
+
+  toggleShowAttendance(value: boolean): void {
+    this.showAttendance.set(value);
+    this.loadAttendance();
+  }
+  toggleShowLateness(value: boolean): void {
+    this.showLateness.set(value);
+    this.loadAttendance();
+  }
+  toggleShowAbsences(value: boolean): void {
+    this.showAbsences.set(value);
+    this.loadAttendance();
+  }
+
+  isPastDay(date: Date): boolean {
+    return startOfDay(date) < startOfDay(new Date());
+  }
+
+  getAttendanceStatus(employeeId: string, date: Date) {
+    if (!this.isPastDay(date)) return null;
+    const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
+    return this.attendanceMap()[key] ?? null;
+  }
+
+  /** Lista de short_names de sucursales sin peluquero ese día */
+  missingBranchesForDay = (date: Date): Branch[] => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return this.emptyBranchDays()
+      .filter((e) => format(e.date, 'yyyy-MM-dd') === dateStr)
+      .map((e) => e.branch);
+  };
+
+  /** True si algún branch no tiene peluquero asignado ese día */
+  isDayMissingGroomers = (date: Date): boolean => {
+    return this.emptyBranchDays().some(
+      (e) => format(e.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+    );
+  };
+
+  /** Resumen agrupado por día: cada día con la lista de tiendas vacías */
+  emptyDaysSummary = computed((): Array<{ date: Date; branches: Branch[] }> => {
+    const days = this.daysOfWeek();
+    const empty = this.emptyBranchDays();
+    return days
+      .map((date) => ({
+        date,
+        branches: empty
+          .filter((e) => format(e.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'))
+          .map((e) => e.branch),
+      }))
+      .filter((d) => d.branches.length > 0);
+  });
 
   getAssignmentForDate(
     employee: Employee,
@@ -958,7 +1698,7 @@ export class SalonScheduleComponent {
   // Obtener semana actual formateada
   getCurrentWeekLabel(): string {
     const start = this.currentWeekStart();
-    const end = endOfWeek(start, { weekStartsOn: 0 });
+    const end = this.periodEnd();
     const startStr = format(start, 'dd MMM', { locale: es });
     const endStr = format(end, 'dd MMM yyyy', { locale: es });
     return `${startStr} - ${endStr}`;
@@ -975,13 +1715,22 @@ export class SalonScheduleComponent {
     this.selectedEmployee.set(employee);
     this.selectedDate.set(event.date);
     this.selectedAssignment.set(event.assignment);
-    this.selectedBranchId.set(undefined); // Permitir cambiar sucursal en edición
+    this.selectedBranchId.set(event.assignment.branch_id); // Pre-fill con la sucursal actual
     this.dialogVisible.set(true);
   }
 
   // Manejadores del diálogo
   onDialogConfirm(result: GroomerBranchSelectionResult): void {
-    if (result.scheduleId) {
+    // Si vienen ambos (schedule + branch) → crear schedule CON branch + crear groomer_branch_assignment
+    if (result.scheduleId && result.branchId) {
+      this.assignScheduleAndBranch(
+        result.employeeId,
+        result.scheduleId,
+        result.branchId,
+        result.startDate,
+        result.endDate
+      );
+    } else if (result.scheduleId) {
       this.assignSchedule(result.employeeId, result.scheduleId, result.startDate, result.endDate);
     } else if (result.branchId) {
       const employee = this.store.employees.entities().find((e) => e.id === result.employeeId);
@@ -994,6 +1743,61 @@ export class SalonScheduleComponent {
       }
     }
     this.closeDialog();
+  }
+
+  private async assignScheduleAndBranch(
+    employeeId: string,
+    scheduleId: string,
+    branchId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<void> {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const currentEmployeeId = this.store.currentEmployee()?.id ?? null;
+    const employee = this.store.employees.entities().find((e) => e.id === employeeId);
+    const branch = this.store.branches.entities().find((b) => b.id === branchId);
+    if (!employee || !branch) return;
+    try {
+      // 1) Crear el employee_schedule con branch_id
+      await firstValueFrom(
+        this.http.post(this.apiUrl.build('rest/v1/employee_schedules'), {
+          employee_id: employeeId,
+          schedule_id: scheduleId,
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd'),
+          branch_id: branchId,
+          approved: true,
+          approved_by: currentEmployeeId,
+          company_id: companyId,
+        })
+      );
+      // 2) Crear los groomer_branch_assignments para cada día
+      const dates = eachDayOfInterval({ start: startDate, end: endDate });
+      const assignmentPayload = dates.map((d) => ({
+        employee_id: employeeId,
+        branch_id: branchId,
+        date: format(d, 'yyyy-MM-dd'),
+        company_id: companyId,
+      }));
+      await firstValueFrom(
+        this.http.post(this.apiUrl.build('rest/v1/groomer_branch_assignments'), assignmentPayload)
+      );
+      this.message.add({
+        severity: 'success',
+        summary: 'Asignado',
+        detail: `Horario y sucursal (${branch.short_name ?? branch.name}) asignados a ${employee.first_name}`,
+        life: 2500,
+      });
+      this.loadAssignments();
+      setTimeout(() => this.loadNonWorkingDays(), 200);
+    } catch (e) {
+      console.error('[SalonSchedule] assignScheduleAndBranch error', e);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo asignar horario + sucursal',
+      });
+    }
   }
 
   private assignSchedule(employeeId: string, scheduleId: string, startDate: Date, endDate: Date): void {
@@ -1057,7 +1861,7 @@ export class SalonScheduleComponent {
     try {
       const { utils, writeFile } = await import('xlsx');
       const startDate = this.currentWeekStart();
-      const endDate = endOfWeek(startDate, { weekStartsOn: 0 }); // Domingo a sábado
+      const endDate = this.periodEnd();
 
       // Obtener todos los días de la semana
       const weekDays = eachDayOfInterval({ start: startDate, end: endDate });

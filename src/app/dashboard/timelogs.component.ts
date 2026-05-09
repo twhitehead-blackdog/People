@@ -38,6 +38,7 @@ import {
 } from './timelogs/components/overtime-confirmation-dialog.component';
 import { TimelogsFiltersComponent } from './timelogs/components/timelogs-filters.component';
 import { TimelogsTableComponent } from './timelogs/components/timelogs-table.component';
+import { TimelogAlertsComponent } from './settings/timelog-alerts.component';
 import { OvertimeRecordsService } from './timelogs/services/overtime-records.service';
 import { TimelogsApiService } from './timelogs/timelogs-api.service';
 import {
@@ -65,6 +66,7 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
     TimelogsFiltersComponent,
     TimelogsTableComponent,
     OvertimeConfirmationDialogComponent,
+    TimelogAlertsComponent,
   ],
   template: `<div class="px-3 sm:px-5 md:px-8 pt-3 sm:pt-5 pb-4" [ngClass]="{ 'naz-theme': isNaz() }">
     <p-card>
@@ -229,6 +231,12 @@ import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
         [isAdmin]="store.isAdmin()"
         (overtimeAction)="onOvertimeAction($event)"
       ></pt-timelogs-table>
+      <!-- Alertas de seguridad de marcaciones (solo Tristan) -->
+      @if (canSeeSecurityAlerts()) {
+        <div class="mt-4">
+          <pt-timelog-alerts />
+        </div>
+      }
     </p-card>
 
     <!-- Overtime Confirmation Dialog -->
@@ -322,6 +330,14 @@ export class TimelogsComponent {
   // ─── Injections ────────────────────────────────────────────
   public employees = inject(EmployeesStore);
   public store = inject(DashboardStore);
+
+  /** Solo Tristan Whitehead (soporte) ve el panel de alertas de seguridad */
+  public canSeeSecurityAlerts = computed((): boolean => {
+    const emp = this.store.currentEmployee();
+    if (!emp) return false;
+    const email = (emp.work_email || emp.email || '').toLowerCase().trim();
+    return email === 'soporte@blackdogpanama.com';
+  });
   public organizationService = inject(OrganizationService);
   public timelogsApiService = inject(TimelogsApiService);
   private logger = inject(LoggerService);

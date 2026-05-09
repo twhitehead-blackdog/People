@@ -4,12 +4,14 @@ import { Incidencia } from '../models/personnel-movements.model';
 
 const LABELS: Record<Incidencia['type'], string> = {
   tardanza: 'Tardanza',
+  salida_temprana: 'Salida Temprana',
   certificado_medico: 'Cert. Médico',
   ausencia_injustificada: 'Ausencia Injust.',
 };
 
 const BADGE: Record<Incidencia['type'], string> = {
   tardanza: 'bg-amber-500/20 text-amber-300',
+  salida_temprana: 'bg-orange-500/20 text-orange-300',
   certificado_medico: 'bg-cyan-500/20 text-cyan-300',
   ausencia_injustificada: 'bg-red-500/20 text-red-300',
 };

@@ -7,6 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { differenceInCalendarDays, format } from 'date-fns';
 import { Button } from 'primeng/button';
@@ -48,6 +49,7 @@ const ALLOWED_STORE_MANAGER_SHIFTS = [
     FormsModule,
     SelectButton,
     DatePicker,
+    SlicePipe,
   ],
   template: `
     <p-dialog
@@ -202,9 +204,16 @@ const ALLOWED_STORE_MANAGER_SHIFTS = [
 
             <!-- Horario -->
             <div class="input-container">
-              <label>Horario</label>
+              <label class="flex items-center gap-2">
+                Horario
+                @if (actualEntryTime(); as actual) {
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
+                    <i class="pi pi-clock text-[9px] mr-1"></i>Marcó a las {{ actual }}
+                  </span>
+                }
+              </label>
               <p-select
-                [options]="availableSchedules()"
+                [options]="schedulesByProximity()"
                 optionLabel="name"
                 optionValue="id"
                 [ngModel]="selectedScheduleId()"
@@ -217,7 +226,18 @@ const ALLOWED_STORE_MANAGER_SHIFTS = [
                 [virtualScroll]="true"
                 [virtualScrollItemSize]="35"
                 [disabled]="branchDisabled()"
-              />
+              >
+                <ng-template let-s pTemplate="item">
+                  <div class="flex items-center justify-between w-full gap-2 py-0.5">
+                    <span class="font-medium">{{ s.name }}</span>
+                    @if (s.entry_time) {
+                      <span class="text-[10px] text-neutral-400 font-mono">
+                        {{ s.entry_time | slice:0:5 }} - {{ s.exit_time | slice:0:5 }}
+                      </span>
+                    }
+                  </div>
+                </ng-template>
+              </p-select>
             </div>
           </div>
           @if (selectedScheduleId() && !selectedBranchId()) {
@@ -256,7 +276,10 @@ export class GroomerBranchSelectionDialogComponent {
   employee = input<Employee | undefined>();
   date = input<Date | undefined>();
   currentBranchId = input<string | undefined>();
+  currentScheduleId = input<string | undefined>();
   branchId = input<string | undefined>();
+  /** HH:MM real de la marcación cuando se abre desde una "presencia detectada" */
+  actualEntryTime = input<string | undefined>();
   allGroomerEmployees = input<Employee[]>([]);
   nonWorkingMap = input<Record<string, string>>({});
   existingAssignments = input<GroomerBranchAssignment[]>([]);
@@ -339,9 +362,33 @@ export class GroomerBranchSelectionDialogComponent {
     );
   });
 
-  // Mutual exclusion
-  branchDisabled = computed(() => !!this.selectedScheduleId());
-  scheduleDisabled = computed(() => !!this.selectedBranchId() || this.branchIsLocked());
+  /** Schedules ordenados por cercanía a actualEntryTime (cuando viene de marcación) */
+  schedulesByProximity = computed(() => {
+    const list = this.availableSchedules();
+    const actual = this.actualEntryTime();
+    if (!actual) return list;
+    const [ah, am] = actual.split(':').map((x) => parseInt(x, 10));
+    const actualMin = ah * 60 + (am || 0);
+    const annotated = list.map((s: any) => {
+      const t = (s.entry_time as string | null) ?? '';
+      const [hh, mm] = t.split(':').map((x: string) => parseInt(x, 10));
+      const sMin = isNaN(hh) ? -1 : hh * 60 + (mm || 0);
+      const diff = sMin < 0 ? Infinity : Math.abs(sMin - actualMin);
+      return { ...s, _proximity: diff };
+    });
+    return annotated.sort((a: any, b: any) => a._proximity - b._proximity);
+  });
+
+  // Mutual exclusion — desactivada cuando hay marcación detectada (queremos ambos)
+  branchDisabled = computed(() => {
+    if (this.actualEntryTime() || this.currentScheduleId()) return false;
+    return !!this.selectedScheduleId();
+  });
+  scheduleDisabled = computed(() => {
+    // En modo edición (con schedule existente) siempre permitir cambiar el schedule
+    if (this.currentScheduleId()) return false;
+    return !!this.selectedBranchId() || this.branchIsLocked();
+  });
 
   // Computed: employees filtered by already-assigned on selected date
   filteredEmployees = computed(() => {
@@ -414,7 +461,8 @@ export class GroomerBranchSelectionDialogComponent {
     this.endDate.set(null);
     this.dateType.set('single');
     this.selectedEmployeeId.set(null);
-    this.selectedScheduleId.set(null);
+    // Pre-llenar schedule si ya existe en Turnos
+    this.selectedScheduleId.set(this.currentScheduleId() ?? null);
 
     const lockBranch = this.branchId();
     const editBranch = this.currentBranchId();
@@ -423,12 +471,18 @@ export class GroomerBranchSelectionDialogComponent {
 
   onBranchChange(value: string | null): void {
     this.selectedBranchId.set(value);
-    if (value) this.selectedScheduleId.set(null);
+    // En modo edición o presencia detectada permitimos branch + schedule simultáneos
+    if (value && !this.currentScheduleId() && !this.actualEntryTime()) {
+      this.selectedScheduleId.set(null);
+    }
   }
 
   onScheduleChange(value: string | null): void {
     this.selectedScheduleId.set(value);
-    if (value) this.selectedBranchId.set(null);
+    // En modo edición o presencia detectada permitimos branch + schedule simultáneos
+    if (value && !this.currentScheduleId() && !this.currentBranchId() && !this.actualEntryTime()) {
+      this.selectedBranchId.set(null);
+    }
   }
 
   getEmployeeColor(employeeId: string): string {
@@ -468,11 +522,11 @@ export class GroomerBranchSelectionDialogComponent {
       endDate,
     };
 
-    if (this.selectedScheduleId()) {
-      result.scheduleId = this.selectedScheduleId()!;
-    } else {
-      result.branchId = this.branchId() ?? this.selectedBranchId()!;
-    }
+    // Soportar ambos: schedule + branch (cuando viene de marcación o edición)
+    const sId = this.selectedScheduleId();
+    const bId = this.branchId() ?? this.selectedBranchId();
+    if (sId) result.scheduleId = sId;
+    if (bId) result.branchId = bId;
 
     this.confirm.emit(result);
     this.closeDialog();

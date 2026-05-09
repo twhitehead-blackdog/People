@@ -1796,54 +1796,26 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // Detect IP address using multiple methods
+  // Detect IP address. Public IP (ipify) FIRST — branches.ip stores public IPs,
+  // so WebRTC's local 192.168.x never matches and would render "IP no permitida".
   private detectIP() {
-    // Method 1: Try WebRTC (works even from localhost)
-    this.getIPViaWebRTC()
+    this.getIPViaHttp()
       .then((ip) => {
-        if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-          this.currentIP.set(ip);
-          return;
-        }
-
-        // Method 2: Try ipify.org (may have CORS issues in dev)
-        this.getIPViaHttp()
-          .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
-            }
-          })
-          .catch(() => {
-            // Method 3: Try alternative service
-            this.getIPViaAlternative()
-              .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
-                }
-              })
-              .catch(() => {
-                // Keep default 127.0.0.1 if all methods fail
-              });
-          });
+        if (ip && ip !== '127.0.0.1') { this.currentIP.set(ip); return; }
+        throw new Error('empty ipify');
       })
       .catch(() => {
-        // If WebRTC fails, try HTTP methods
-        this.getIPViaHttp()
+        this.getIPViaAlternative()
           .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
-            }
+            if (ip && ip !== '127.0.0.1') { this.currentIP.set(ip); return; }
+            throw new Error('empty ipify64');
           })
           .catch(() => {
-            this.getIPViaAlternative()
+            this.getIPViaWebRTC()
               .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
-                }
+                if (ip && ip !== '127.0.0.1' && ip !== '::1') this.currentIP.set(ip);
               })
-              .catch(() => {
-                // Keep default
-              });
+              .catch(() => { /* keep default */ });
           });
       });
   }
@@ -1917,8 +1889,20 @@ export class TimeclockComponent implements OnDestroy {
     });
   }
 
-  // Method 2: Get IP via HTTP (ipify.org)
+  // Method 2: Get IP via nuestro server (sin CORS — recomendado)
   private getIPViaHttp(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.http
+        .get<{ ip: string }>('/api/client-ip')
+        .subscribe({
+          next: (data) => resolve(data.ip),
+          error: () => reject(new Error('Server IP method failed')),
+        });
+    });
+  }
+
+  // Method 3: Fallback via ipify (puede fallar por CORS pero no afecta operación)
+  private getIPViaAlternative(): Promise<string> {
     return new Promise((resolve, reject) => {
       this.http
         .get<{ ip: string }>('https://api.ipify.org?format=json', {
@@ -1926,21 +1910,7 @@ export class TimeclockComponent implements OnDestroy {
         })
         .subscribe({
           next: (data) => resolve(data.ip),
-          error: () => reject(new Error('HTTP method failed')),
-        });
-    });
-  }
-
-  // Method 3: Get IP via alternative service
-  private getIPViaAlternative(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      this.http
-        .get<{ ip: string }>('https://api64.ipify.org?format=json', {
-          headers: { Accept: 'application/json' },
-        })
-        .subscribe({
-          next: (data) => resolve(data.ip),
-          error: () => reject(new Error('Alternative method failed')),
+          error: () => reject(new Error('ipify fallback failed')),
         });
     });
   }
@@ -5463,10 +5433,17 @@ export class TimeclockComponent implements OnDestroy {
       invalid_ip: !this.validIP(),
     };
 
-    // Intento 1: INSERT directo a timelogs (bypassea el RPC complejo)
+    // Intento 1: usar RPC manual con motivo (bypassea process_timelog complejo pero queda auditado)
     this.http.post(
-      this.apiUrl.build('rest/v1/timelogs'),
-      payload,
+      this.apiUrl.build('rest/v1/rpc/insert_manual_timelog'),
+      {
+        p_employee_id: employeeId,
+        p_company_id: companyId,
+        p_branch_id: branchId,
+        p_type: type,
+        p_punched_at: timestamp,
+        p_reason: 'Emergency fallback (process_timelog falló)',
+      },
       { observe: 'response' }
     ).subscribe({
       next: () => {

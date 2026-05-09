@@ -298,6 +298,14 @@ import {
                   [pTooltip]="log.withinTolerance ? 'Dentro de tolerancia' : undefined"
                   >{{ log.entry?.date | panamaDate : 'hh:mm a' }}</span
                 >
+                <i *ngIf="log.entry?.is_manual"
+                   class="pi pi-pencil text-amber-400 text-[11px] ml-1"
+                   [pTooltip]="'Manual: ' + (log.entry?.manual_reason ?? 'sin motivo')"
+                   tooltipPosition="top"></i>
+                <i *ngIf="log.entry?.invalid_ip"
+                   class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
+                   [pTooltip]="'IP inválida: ' + (log.entry?.ip ?? '—')"
+                   tooltipPosition="top"></i>
                 <p-tag
                   *ngIf="log.delay"
                   [value]="'Retraso de ' + log.delay + ' min'"
@@ -340,6 +348,12 @@ import {
                   tooltipPosition="top"
                 ></p-avatar>
                 {{ log.lunch_start?.date | panamaDate : 'hh:mm a' }}
+                <i *ngIf="log.lunch_start?.is_manual"
+                   class="pi pi-pencil text-amber-400 text-[11px] ml-1"
+                   [pTooltip]="'Manual: ' + (log.lunch_start?.manual_reason ?? 'sin motivo')"></i>
+                <i *ngIf="log.lunch_start?.invalid_ip"
+                   class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
+                   [pTooltip]="'IP inválida: ' + (log.lunch_start?.ip ?? '—')"></i>
               </div>
             </td>
             <td>
@@ -358,6 +372,12 @@ import {
                   }"
                   >{{ log.lunch_end?.date | panamaDate : 'hh:mm a' }}</span
                 >
+                <i *ngIf="log.lunch_end?.is_manual"
+                   class="pi pi-pencil text-amber-400 text-[11px] ml-1"
+                   [pTooltip]="'Manual: ' + (log.lunch_end?.manual_reason ?? 'sin motivo')"></i>
+                <i *ngIf="log.lunch_end?.invalid_ip"
+                   class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
+                   [pTooltip]="'IP inválida: ' + (log.lunch_end?.ip ?? '—')"></i>
                 <p-tag
                   *ngIf="log.lunchExceeded && log.lunchMinutes"
                   [value]="'Almuerzo +' + (log.lunchMinutes - 60) + ' min'"
@@ -393,6 +413,14 @@ import {
                   }"
                   >{{ log.exit?.date | panamaDate : 'hh:mm a' }}</span
                 >
+                <i *ngIf="log.exit?.is_manual"
+                   class="pi pi-pencil text-amber-400 text-[11px] ml-1"
+                   [pTooltip]="'Manual: ' + (log.exit?.manual_reason ?? 'sin motivo')"
+                   tooltipPosition="top"></i>
+                <i *ngIf="log.exit?.invalid_ip"
+                   class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
+                   [pTooltip]="'IP inválida: ' + (log.exit?.ip ?? '—')"
+                   tooltipPosition="top"></i>
                 <p-tag
                   *ngIf="log.earlyExit"
                   value="Salida temprana"

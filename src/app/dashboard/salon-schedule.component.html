@@ -8,6 +8,78 @@
         </p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <!-- Toggles de cumplimiento (días pasados) -->
+        @if (!isReadOnly()) {
+          <div class="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-neutral-700 bg-neutral-900 text-[10px]">
+            <span class="text-neutral-400 mr-1 font-semibold uppercase">Cumplimiento:</span>
+            <label class="inline-flex items-center gap-1 cursor-pointer hover:text-green-300 transition-colors"
+              [class.text-green-400]="showAttendance()"
+              [class.text-neutral-400]="!showAttendance()"
+              pTooltip="Mostrar asistencia (✓ presente)" tooltipPosition="bottom">
+              <input type="checkbox" class="cursor-pointer"
+                [checked]="showAttendance()"
+                (change)="toggleShowAttendance($any($event.target).checked)" />
+              <i class="pi pi-check"></i>
+            </label>
+            <label class="inline-flex items-center gap-1 cursor-pointer hover:text-amber-300 transition-colors ml-1"
+              [class.text-amber-400]="showLateness()"
+              [class.text-neutral-400]="!showLateness()"
+              pTooltip="Mostrar tardanzas" tooltipPosition="bottom">
+              <input type="checkbox" class="cursor-pointer"
+                [checked]="showLateness()"
+                (change)="toggleShowLateness($any($event.target).checked)" />
+              <i class="pi pi-clock"></i>
+            </label>
+            <label class="inline-flex items-center gap-1 cursor-pointer hover:text-red-300 transition-colors ml-1"
+              [class.text-red-400]="showAbsences()"
+              [class.text-neutral-400]="!showAbsences()"
+              pTooltip="Mostrar ausencias" tooltipPosition="bottom">
+              <input type="checkbox" class="cursor-pointer"
+                [checked]="showAbsences()"
+                (change)="toggleShowAbsences($any($event.target).checked)" />
+              <i class="pi pi-times"></i>
+            </label>
+          </div>
+        }
+        <!-- Toggle modo estricto (solo RRHH/admin) -->
+        @if (!isReadOnly()) {
+          <label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-neutral-700 bg-neutral-900 text-[11px] cursor-pointer hover:bg-neutral-800 transition-colors"
+            [pTooltip]="strictAssignmentMode()
+              ? 'Modo estricto activo: gerentes solo pueden agregar horarios desde Salon (en espera)'
+              : 'Modo estricto inactivo: gerentes pueden agregar horarios libremente'"
+            tooltipPosition="bottom">
+            <input type="checkbox"
+              class="cursor-pointer"
+              [checked]="strictAssignmentMode()"
+              [disabled]="savingStrictMode()"
+              (change)="toggleStrictMode($any($event.target).checked)" />
+            <span class="font-semibold"
+              [class.text-amber-300]="strictAssignmentMode()"
+              [class.text-neutral-400]="!strictAssignmentMode()">
+              <i class="pi" [class.pi-lock]="strictAssignmentMode()" [class.pi-lock-open]="!strictAssignmentMode()"></i>
+              Modo estricto
+            </span>
+          </label>
+        }
+        <!-- Toggle Semana / Quincena (oculto para gerentes — ven solo quincena) -->
+        @if (!isReadOnly()) {
+        <div class="inline-flex rounded-md overflow-hidden border border-neutral-600 text-[11px]">
+          <button
+            class="px-2.5 py-1 font-semibold transition-colors"
+            [class.bg-neutral-700]="viewMode() === 'week'"
+            [class.text-white]="viewMode() === 'week'"
+            [class.text-neutral-400]="viewMode() !== 'week'"
+            (click)="setViewMode('week')"
+          >Semana</button>
+          <button
+            class="px-2.5 py-1 font-semibold transition-colors border-l border-neutral-600"
+            [class.bg-neutral-700]="viewMode() === 'biweek'"
+            [class.text-white]="viewMode() === 'biweek'"
+            [class.text-neutral-400]="viewMode() !== 'biweek'"
+            (click)="setViewMode('biweek')"
+          >Quincena</button>
+        </div>
+        }
         <p-button
           icon="pi pi-chevron-left"
           severity="secondary"
@@ -15,7 +87,7 @@
           text
           size="small"
           (onClick)="goToPreviousWeek()"
-          pTooltip="Semana anterior"
+          pTooltip="Periodo anterior"
         />
         <p-button
           [label]="getCurrentWeekLabel()"
@@ -128,6 +200,15 @@
   }
 
   @if (activeView() === 'schedule') {
+  <!-- Alerta resumida: solo RRHH/admin (no gerentes) -->
+  @if (!isReadOnly() && emptyDaysSummary().length > 0) {
+    <div class="mx-2 mb-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-1.5 flex items-center gap-2 text-[11px]">
+      <i class="pi pi-exclamation-triangle text-orange-400"></i>
+      <span class="text-orange-200">
+        {{ emptyDaysSummary().length }} día(s) con tiendas sin peluquero asignado — revisa las columnas marcadas
+      </span>
+    </div>
+  }
   <!-- Desktop: tabla principal -->
   <div class="hidden md:block overflow-auto" style="max-height: calc(100vh - 220px)">
     <table class="w-full border-collapse text-xs" style="min-width: 700px; table-layout: fixed">
@@ -152,10 +233,25 @@
             Cargo
           </th>
           @for (day of daysOfWeek(); track day) {
-            <th class="text-center py-2 font-semibold text-gray-300 bg-neutral-800 border-r border-neutral-700/50">
+            <th class="text-center py-2 font-semibold border-r border-neutral-700/50"
+                [class.bg-neutral-800]="isReadOnly() || !isDayMissingGroomers(day)"
+                [class.text-gray-300]="isReadOnly() || !isDayMissingGroomers(day)"
+                [class.bg-orange-900]="!isReadOnly() && isDayMissingGroomers(day)"
+                [class.text-orange-100]="!isReadOnly() && isDayMissingGroomers(day)">
               <div class="flex flex-col items-center leading-tight">
-                <span class="text-[11px] font-bold uppercase text-gray-200">{{ day | date:'EEE':undefined:'es' }}</span>
-                <span class="text-[10px] text-gray-400">{{ day | date:'d MMM':undefined:'es' }}</span>
+                <span class="text-[11px] font-bold uppercase">{{ day | date:'EEE':undefined:'es' }}</span>
+                <span class="inline-flex items-center gap-1 text-[10px] opacity-80">
+                  {{ day | date:'d MMM':undefined:'es' }}
+                  @if (!isReadOnly() && isDayMissingGroomers(day)) {
+                    <button
+                      class="cursor-pointer hover:scale-125 transition-transform leading-none"
+                      (click)="missingDayPopover.toggle($event); selectedMissingDay.set(day)"
+                      pTooltip="Click para ver tiendas sin peluquero"
+                      tooltipPosition="top">
+                      <i class="pi pi-exclamation-triangle text-[10px] text-orange-300"></i>
+                    </button>
+                  }
+                </span>
               </div>
             </th>
           }
@@ -167,19 +263,20 @@
           @if (row.type === 'spacer') {
             <tr style="height: 8px"><td [attr.colspan]="daysOfWeek().length + 3" class="bg-neutral-950"></td></tr>
           } @else if (row.type === 'zone-header') {
-            <!-- ── Encabezado de ZONA ── -->
+            <!-- ── Encabezado de ZONA (tenue, gris con tinte de color) ── -->
             <tr>
               <td [attr.colspan]="daysOfWeek().length + 3"
-                class="px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white sticky left-0 z-10 border-b border-white/10"
-                [style.background-color]="row.color">
-                <i class="pi pi-map-marker text-[9px] mr-1.5 opacity-70"></i>{{ row.zoneName }}
+                class="px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-neutral-200 sticky left-0 z-10 border-b border-white/10 border-l-4"
+                [style.background-color]="row.color + '33'"
+                [style.border-left-color]="row.color + 'aa'">
+                <i class="pi pi-map-marker text-[9px] mr-1.5 opacity-60" [style.color]="row.color + 'cc'"></i>{{ row.zoneName }}
               </td>
             </tr>
 
           } @else if (row.type === 'branch-subheader') {
             <!-- ── Sub-encabezado de SUCURSAL ── -->
             <tr class="cursor-pointer select-none" (click)="toggleBranch(row.collapseKey)">
-              <td [attr.colspan]="daysOfWeek().length + 3"
+              <td colspan="3"
                 class="px-4 py-1 text-[10px] font-semibold text-white/90 sticky left-0 z-10 border-b border-white/10"
                 [style.background-color]="row.color + 'bb'">
                 <i class="pi text-[9px] mr-1 opacity-70"
@@ -189,6 +286,15 @@
                   <span class="ml-2 text-[9px] opacity-60">(colapsado)</span>
                 }
               </td>
+              @for (day of daysOfWeek(); track day) {
+                @if (row.branchId && !branchHasGroomerOnDay(row.branchId, day)) {
+                  <td class="text-center bg-red-500/30 border border-red-500/50 text-red-200">
+                    <i class="pi pi-exclamation-triangle text-[10px]" [pTooltip]="'Sin peluquero asignado el ' + (day | date:'EEEE d':undefined:'es')" tooltipPosition="top"></i>
+                  </td>
+                } @else {
+                  <td class="text-center" [style.background-color]="row.color + '55'"></td>
+                }
+              }
             </tr>
 
           } @else if (row.type === 'rotating-header') {
@@ -203,12 +309,17 @@
           } @else {
             <!-- ── Fila de GROOMER ── -->
             @let rotating = isRotating(row.employee.id);
-            <tr class="border-b border-neutral-700/30 group" style="height: 46px">
+            <tr class="border-b border-neutral-700/30 group" style="height: 34px">
 
               <!-- Peluquero -->
               <td class="px-2 sticky left-0 border-r border-neutral-800 z-10 align-middle" style="left: 0"
                 [style.background-color]="rotating ? '#0a0a0a' : (row.employee.branch ? getBranchColor(row.employee.branch.short_name) + '28' : '#0a0a0a')">
-                <div class="flex items-center gap-1.5 w-full">
+                <div class="flex items-center gap-1.5 w-full"
+                  [class.cursor-pointer]="!isReadOnly()"
+                  [class.hover:opacity-80]="!isReadOnly()"
+                  (click)="!isReadOnly() && setEditingEmployee(row.employee) && employeeEditPopover.toggle($event)"
+                  [pTooltip]="!isReadOnly() ? 'Click para cambiar sucursal o rotativo' : ''"
+                  tooltipPosition="top">
                   <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
                     [style.background-color]="rotating ? '#374151' : getBranchColor(row.employee.first_name)">
                     {{ row.employee.first_name.charAt(0) }}{{ row.employee.father_name.charAt(0) }}
@@ -218,6 +329,9 @@
                     [class.text-neutral-300]="rotating">
                     {{ row.employee.first_name }} {{ row.employee.father_name }}
                   </span>
+                  @if (!isReadOnly()) {
+                    <i class="pi pi-pencil text-[8px] text-neutral-500 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                  }
                 </div>
               </td>
 
@@ -254,19 +368,22 @@
                 <td class="border-r border-neutral-800 p-0 align-stretch"
                   [style.background-color]="rotating ? '#080808' : ''">
                   @if (getNonWorkingLabel(row.employee.id, day); as nonWorkLabel) {
+                    @let nwColors = getNonWorkingColors(nonWorkLabel);
                     <div
-                      class="flex items-center justify-center w-full h-full min-h-[46px] bg-amber-500/20 border-l-2 border-amber-400/50 px-1 transition-opacity"
+                      class="flex items-center justify-center w-full h-full min-h-[34px] border-l-2 px-1 transition-opacity"
+                      [style.background-color]="nwColors.bg"
+                      [style.border-left-color]="nwColors.border"
                       [class.cursor-pointer]="!isReadOnly()"
                       [class.hover:opacity-80]="!isReadOnly()"
                       [pTooltip]="!isReadOnly() ? 'Click para cambiar horario' : nonWorkLabel"
                       tooltipPosition="top"
                       (click)="!isReadOnly() && openGroomerAssignDialog(row.employee, day)"
                     >
-                      <span class="text-[10px] font-semibold text-amber-300 text-center leading-tight">{{ nonWorkLabel | slice:0:9 }}</span>
+                      <span class="text-[10px] font-semibold text-center leading-tight break-words" [style.color]="nwColors.text">{{ nonWorkLabel }}</span>
                     </div>
                   } @else if (getAssignmentForDate(row.employee, day); as assignment) {
                     <div
-                      class="relative flex flex-col items-center justify-center w-full h-full min-h-[46px] cursor-pointer transition-opacity hover:opacity-80"
+                      class="relative flex flex-col items-center justify-center w-full h-full min-h-[34px] cursor-pointer transition-opacity hover:opacity-80"
                       [style.background-color]="getBranchColor(assignment.branch?.short_name ?? '') + 'dd'"
                       [pTooltip]="assignment.branch?.name ?? ''"
                       tooltipPosition="top"
@@ -275,13 +392,88 @@
                       <span class="text-[10px] font-bold text-white drop-shadow-sm leading-tight text-center px-1 break-words hyphens-auto w-full">
                         {{ assignment.branch?.name }}
                       </span>
+                      @if (getScheduleTimes(row.employee.id, day); as times) {
+                        <span class="text-[9px] font-semibold text-white/90 leading-tight text-center mt-0.5">
+                          {{ times }}
+                        </span>
+                      }
+                      @if (getAttendanceStatus(row.employee.id, day); as att) {
+                        @if ((att.status === 'on_time' && showAttendance())
+                            || (att.status === 'late' && showLateness())
+                            || (att.status === 'absent' && showAbsences())
+                            || (att.status === 'justified' && showAbsences())) {
+                          <span class="absolute top-0 left-0 px-1 py-0.5 rounded-br text-[9px] font-bold flex items-center gap-0.5 leading-none"
+                            [class.bg-green-600]="att.status === 'on_time'"
+                            [class.bg-amber-600]="att.status === 'late'"
+                            [class.bg-red-600]="att.status === 'absent'"
+                            [class.bg-neutral-600]="att.status === 'justified'"
+                            [class.text-white]="true"
+                            [pTooltip]="
+                              att.status === 'on_time' ? 'A tiempo (' + (att.worked_hours ?? 0).toFixed(1) + 'h)' :
+                              att.status === 'late'    ? 'Tardanza: ' + (att.late_minutes ?? 0) + ' min' :
+                              att.status === 'absent'  ? 'Ausente' :
+                              'Justificado: ' + (att.justification ?? '')"
+                            tooltipPosition="top">
+                            <i class="pi" [class.pi-check]="att.status === 'on_time'"
+                                          [class.pi-clock]="att.status === 'late'"
+                                          [class.pi-times]="att.status === 'absent'"
+                                          [class.pi-info-circle]="att.status === 'justified'"
+                                          style="font-size: 8px"></i>
+                            @if (att.status === 'late') {
+                              <span>{{ att.late_minutes }}m</span>
+                            }
+                          </span>
+                        }
+                      }
                       @if (!isReadOnly()) {
                         <i class="pi pi-times-circle absolute top-0.5 right-0.5 text-[12px] text-red-500 hover:text-red-400 cursor-pointer opacity-80 hover:opacity-100 transition-opacity drop-shadow"
                           (click)="onRemoveAssignment({ assignment: assignment }); $event.stopPropagation()"></i>
                       }
                     </div>
+                  } @else if (!isReadOnly() && getPendingSchedule(row.employee.id, day); as pending) {
+                    <!-- Pendiente: existe horario en Turnos o marcación sin asignación — color de la sucursal -->
+                    <div
+                      class="group/pend relative flex flex-col items-center justify-center w-full h-full min-h-[34px] border border-dashed"
+                      [class.animate-pulse]="pending.is_presence_only"
+                      [style.background-color]="(pending.is_presence_only ? '#dc2626' : getBranchColor(pending.branch_short_name)) + '0a'"
+                      [style.border-color]="(pending.is_presence_only ? '#dc2626' : getBranchColor(pending.branch_short_name)) + '33'"
+                      [pTooltip]="pending.is_presence_only
+                        ? '⚠ Marcó en ' + pending.branch_name + ' a las ' + pending.actual_entry_time + ' SIN asignación. Sugerencia: ' + (pending.suggested_schedule_name ?? '—')
+                        : 'Pendiente desde Turnos: ' + pending.branch_name + ' (' + pending.schedule_name + ' ' + pending.times + ')'"
+                      tooltipPosition="top"
+                    >
+                      @if (pending.is_presence_only) {
+                        <span class="text-[9px] font-bold leading-tight uppercase flex items-center gap-0.5 text-red-300">
+                          <i class="pi pi-exclamation-triangle text-[8px]"></i>Marcó
+                        </span>
+                        <span class="text-[10px] font-semibold leading-tight text-center px-1 truncate w-full text-red-100">
+                          {{ pending.branch_short_name }} {{ pending.actual_entry_time }}
+                        </span>
+                      } @else {
+                        <span class="text-[9px] font-bold leading-tight uppercase" [style.color]="getBranchColor(pending.branch_short_name)">Pend.</span>
+                        <span class="text-[10px] font-semibold leading-tight text-center px-1 truncate w-full" [style.color]="getBranchColor(pending.branch_short_name)">
+                          {{ pending.branch_short_name }}
+                        </span>
+                      }
+                      @if (!isReadOnly()) {
+                        <div class="absolute inset-0 flex items-center justify-center gap-1 bg-black/70 opacity-0 group-hover/pend:opacity-100 transition-opacity">
+                          <button
+                            class="text-green-400 hover:text-green-300 p-1 rounded hover:bg-green-500/20 transition-colors"
+                            (click)="acceptPending(row.employee.id, day); $event.stopPropagation()"
+                            pTooltip="Aceptar tal cual" tooltipPosition="top">
+                            <i class="pi pi-check text-[12px]"></i>
+                          </button>
+                          <button
+                            class="text-blue-300 hover:text-blue-200 p-1 rounded hover:bg-blue-500/20 transition-colors"
+                            (click)="openGroomerAssignDialog(row.employee, day); $event.stopPropagation()"
+                            pTooltip="Editar sucursal" tooltipPosition="top">
+                            <i class="pi pi-pencil text-[11px]"></i>
+                          </button>
+                        </div>
+                      }
+                    </div>
                   } @else if (!isReadOnly()) {
-                    <div class="flex items-center justify-center w-full h-full min-h-[46px] opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="flex items-center justify-center w-full h-full min-h-[34px] opacity-0 group-hover:opacity-100 transition-opacity">
                       <button class="text-neutral-600 hover:text-amber-400 transition-colors p-1.5 rounded"
                         (click)="openGroomerAssignDialog(row.employee, day)"
                         pTooltip="Asignar sucursal" tooltipPosition="top">
@@ -299,40 +491,141 @@
   </div>
 
 
-  <!-- Mobile: vista de cards -->
-  <div class="md:hidden space-y-3 px-2">
-    @for (employee of groomerEmployees(); track employee.id) {
-      <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-            [style.background-color]="getBranchColor(employee.first_name)">
-            {{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}
-          </div>
-          <div>
-            <span class="font-semibold text-white text-sm">{{ employee.first_name }} {{ employee.father_name }}</span>
-            @if (isRotating(employee.id)) {
-              <span class="ml-2 text-[10px] text-amber-400"><i class="pi pi-sync text-[9px]"></i> Rota</span>
-            }
+  <!-- Mobile: cards verticales con día y estado completo (consistente con desktop) -->
+  <div class="md:hidden space-y-2 px-1.5 pb-3">
+    @for (row of tableRows(); track $index) {
+      @if (row.type === 'zone-header') {
+        <div class="rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-200 sticky top-0 z-20 border-l-4"
+          [style.background-color]="row.color + '33'"
+          [style.border-left-color]="row.color + 'aa'">
+          <i class="pi pi-map-marker text-[9px] mr-1 opacity-60" [style.color]="row.color + 'cc'"></i>{{ row.zoneName }}
+        </div>
+      } @else if (row.type === 'rotating-header') {
+        <div class="rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/15 border border-amber-500/30">
+          <i class="pi pi-sync text-[9px] mr-1"></i>Rotativos
+        </div>
+      } @else if (row.type === 'spacer') {
+        <div class="h-1"></div>
+      } @else if (row.type === 'groomer') {
+      @let employee = row.employee;
+      @let empBranchColor = getBranchColor(employee.branch?.short_name ?? '');
+      <div class="rounded-lg border overflow-hidden"
+           [style.border-color]="empBranchColor + '40'"
+           [style.background]="'linear-gradient(180deg, ' + empBranchColor + '10, transparent)'">
+        <!-- Header del peluquero -->
+        <div class="flex items-center justify-between px-2.5 py-1.5 border-b border-neutral-800/60"
+             [style.background-color]="empBranchColor + '22'"
+             [class.cursor-pointer]="!isReadOnly()"
+             (click)="!isReadOnly() && setEditingEmployee(employee) && employeeEditPopover.toggle($event)">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+              [style.background-color]="empBranchColor">
+              {{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}
+            </div>
+            <div class="min-w-0">
+              <p class="font-semibold text-white text-[12px] m-0 truncate leading-tight">
+                {{ employee.first_name }} {{ employee.father_name }}
+              </p>
+              <p class="text-[9px] m-0 leading-tight truncate flex items-center gap-1">
+                @if (employee.branch) {
+                  <span class="font-bold" [style.color]="empBranchColor">{{ employee.branch.short_name }}</span>
+                  <span class="text-neutral-500">·</span>
+                }
+                <span class="text-neutral-400">{{ employee.position?.name ?? '—' }}</span>
+                @if (isRotating(employee.id)) {
+                  <span class="text-amber-400 ml-1"><i class="pi pi-sync text-[8px]"></i> Rotativo</span>
+                }
+              </p>
+            </div>
           </div>
         </div>
-        <div class="grid grid-cols-7 gap-1">
+        <!-- Días: scroll horizontal con celdas estilo desktop -->
+        <div class="flex overflow-x-auto px-1.5 py-1.5 gap-1" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
           @for (day of daysOfWeek(); track day) {
-            <div class="flex flex-col items-center gap-0.5">
-              <span class="text-[9px] text-gray-500 uppercase">{{ day | date:'EEE':undefined:'es' }}</span>
-              <span class="text-[9px] text-gray-600">{{ day | date:'d' }}</span>
-              @if (getNonWorkingLabel(employee.id, day); as nonWorkLabel) {
-                <span class="text-[9px] px-0.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-center leading-tight">{{ nonWorkLabel | slice:0:4 }}</span>
-              } @else if (getAssignmentForDate(employee, day); as assignment) {
-                <span class="text-[9px] px-1 py-0.5 rounded font-bold text-white text-center"
-                  [style.background-color]="getBranchColor(assignment.branch?.short_name ?? '')">
-                  {{ assignment.branch?.short_name ?? assignment.branch?.name }}
+            <div class="flex-shrink-0 w-[60px] flex flex-col items-center gap-1">
+              <div class="flex flex-col items-center leading-tight">
+                <span class="text-[9px] uppercase font-bold"
+                  [class.text-gray-400]="true">
+                  {{ day | date:'EEE':undefined:'es' }}
                 </span>
-              } @else {
-                <span class="text-neutral-700 text-[9px]">—</span>
-              }
+                <span class="text-[9px] text-gray-500">{{ day | date:'d' }}</span>
+              </div>
+              <div class="w-full min-h-[36px] flex items-stretch">
+                @if (getNonWorkingLabel(employee.id, day); as nonWorkLabel) {
+                  @let nwColors = getNonWorkingColors(nonWorkLabel);
+                  <div class="flex items-center justify-center w-full px-0.5 rounded border-l-2"
+                    [style.background-color]="nwColors.bg"
+                    [style.border-left-color]="nwColors.border"
+                    [class.cursor-pointer]="!isReadOnly()"
+                    (click)="!isReadOnly() && openGroomerAssignDialog(employee, day)">
+                    <span class="text-[9px] font-semibold leading-tight text-center break-words" [style.color]="nwColors.text">
+                      {{ nonWorkLabel }}
+                    </span>
+                  </div>
+                } @else if (getAssignmentForDate(employee, day); as assignment) {
+                  <div class="relative flex flex-col items-center justify-center w-full rounded cursor-pointer transition-opacity hover:opacity-80 px-1"
+                    [style.background-color]="getBranchColor(assignment.branch?.short_name ?? '') + 'dd'"
+                    (click)="!isReadOnly() && onEditAssignment({ assignment: assignment, date: day })">
+                    <span class="text-[9px] font-bold text-white leading-tight text-center truncate w-full">
+                      {{ assignment.branch?.short_name ?? '—' }}
+                    </span>
+                    @if (getScheduleTimes(employee.id, day); as times) {
+                      <span class="text-[8px] text-white/90 leading-tight">{{ times }}</span>
+                    }
+                    @if (getAttendanceStatus(employee.id, day); as att) {
+                      @if ((att.status === 'on_time' && showAttendance())
+                          || (att.status === 'late' && showLateness())
+                          || (att.status === 'absent' && showAbsences())
+                          || (att.status === 'justified' && showAbsences())) {
+                        <span class="absolute top-0 left-0 px-0.5 rounded-br text-[8px] font-bold leading-none text-white"
+                          [class.bg-green-600]="att.status === 'on_time'"
+                          [class.bg-amber-600]="att.status === 'late'"
+                          [class.bg-red-600]="att.status === 'absent'"
+                          [class.bg-neutral-600]="att.status === 'justified'">
+                          <i class="pi" [class.pi-check]="att.status === 'on_time'"
+                                        [class.pi-clock]="att.status === 'late'"
+                                        [class.pi-times]="att.status === 'absent'"
+                                        [class.pi-info-circle]="att.status === 'justified'"
+                                        style="font-size: 7px"></i>
+                        </span>
+                      }
+                    }
+                  </div>
+                } @else if (!isReadOnly() && getPendingSchedule(employee.id, day); as pending) {
+                  <div class="flex flex-col items-center justify-center w-full px-0.5 rounded border border-dashed cursor-pointer"
+                    [class.animate-pulse]="pending.is_presence_only"
+                    [style.background-color]="(pending.is_presence_only ? '#dc2626' : getBranchColor(pending.branch_short_name)) + '33'"
+                    [style.border-color]="(pending.is_presence_only ? '#dc2626' : getBranchColor(pending.branch_short_name)) + 'aa'"
+                    (click)="!isReadOnly() && (pending.is_presence_only ? openGroomerAssignDialog(employee, day) : acceptPending(employee.id, day))">
+                    @if (pending.is_presence_only) {
+                      <span class="text-[8px] font-bold text-red-300 uppercase">⚠ Marcó</span>
+                      <span class="text-[9px] font-semibold text-red-100 truncate w-full text-center">{{ pending.branch_short_name }}</span>
+                      <span class="text-[8px] text-red-200/80">{{ pending.actual_entry_time }}</span>
+                    } @else {
+                      <span class="text-[8px] font-bold uppercase" [style.color]="getBranchColor(pending.branch_short_name)">Pend.</span>
+                      <span class="text-[9px] font-semibold truncate w-full text-center" [style.color]="getBranchColor(pending.branch_short_name)">{{ pending.branch_short_name }}</span>
+                    }
+                  </div>
+                } @else if (!isReadOnly()) {
+                  <button class="w-full flex items-center justify-center rounded border border-dashed border-neutral-700 text-neutral-600 hover:text-amber-400 hover:border-amber-500 transition-colors"
+                    (click)="openGroomerAssignDialog(employee, day)"
+                    pTooltip="Asignar sucursal" tooltipPosition="top">
+                    <i class="pi pi-plus text-[10px]"></i>
+                  </button>
+                } @else {
+                  <div class="w-full flex items-center justify-center text-neutral-700 text-[10px]">—</div>
+                }
+              </div>
             </div>
           }
         </div>
+      </div>
+      }
+    }
+    @if (groomerEmployees().length === 0) {
+      <div class="text-center py-8 text-gray-500">
+        <i class="pi pi-calendar-times text-2xl block mb-2"></i>
+        <p class="text-xs m-0">No hay peluqueros para mostrar</p>
       </div>
     }
   </div>
@@ -345,6 +638,8 @@
     [employee]="selectedEmployee()"
     [branchId]="selectedBranchId()"
     [currentBranchId]="selectedAssignment()?.branch_id"
+    [currentScheduleId]="selectedScheduleId()"
+    [actualEntryTime]="selectedActualEntryTime()"
     [date]="selectedDate()"
     [allGroomerEmployees]="groomerEmployees()"
     [existingAssignments]="assignments()"
@@ -353,32 +648,122 @@
     (confirm)="onDialogConfirm($event)"
     (cancel)="onDialogCancel()"
   />
+  <p-confirmDialog />
+  <!-- Popover edición rápida de peluquero (cambiar sucursal / toggle rotativo) -->
+  <p-popover #employeeEditPopover>
+    @if (editingEmployee(); as emp) {
+      <div class="p-3 min-w-[260px]">
+        <div class="text-[12px] font-bold text-white mb-2 flex items-center gap-1.5">
+          <i class="pi pi-user text-[11px] opacity-70"></i>
+          {{ emp.first_name }} {{ emp.father_name }}
+        </div>
+        <div class="space-y-3">
+          <!-- Toggle Rotativo -->
+          <label class="flex items-center justify-between gap-2 px-2 py-1.5 rounded border border-neutral-700 bg-neutral-900 cursor-pointer hover:bg-neutral-800 transition-colors">
+            <span class="text-[11px] font-semibold text-white flex items-center gap-1.5">
+              <i class="pi pi-sync text-[10px] text-amber-400"></i>
+              Marcar como rotativo
+            </span>
+            <input type="checkbox" class="cursor-pointer"
+              [checked]="isRotating(emp.id)"
+              (change)="toggleRotating(emp.id)" />
+          </label>
+          <!-- Sucursal principal -->
+          <div>
+            <label class="text-[10px] uppercase font-bold text-neutral-400 mb-1 block">Sucursal principal</label>
+            <p-select
+              [options]="branches()"
+              optionLabel="name"
+              optionValue="id"
+              [ngModel]="emp.branch_id"
+              (ngModelChange)="changeEmployeeMainBranch(emp.id, $event)"
+              placeholder="Seleccionar sucursal..."
+              [filter]="true"
+              filterBy="name"
+              appendTo="body"
+              styleClass="w-full"
+              [showClear]="false"
+            />
+          </div>
+        </div>
+      </div>
+    }
+  </p-popover>
+  <!-- Popover de tiendas sin peluquero el día seleccionado -->
+  <p-popover #missingDayPopover>
+    @if (selectedMissingDay(); as missDay) {
+      <div class="p-2 max-w-xs">
+        <div class="text-[12px] font-bold text-red-300 mb-1.5 flex items-center gap-1">
+          <i class="pi pi-exclamation-triangle text-red-400"></i>
+          Sin peluquero — {{ missDay | date:'EEEE d MMM':undefined:'es' }}
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          @for (branch of missingBranchesForDay(missDay); track branch.id) {
+            <span class="px-2 py-0.5 rounded text-[11px] font-semibold border"
+              [style.background-color]="getBranchColor(branch.short_name) + '22'"
+              [style.border-color]="getBranchColor(branch.short_name) + '88'"
+              [style.color]="getBranchColor(branch.short_name)">
+              {{ branch.name }}
+            </span>
+          }
+        </div>
+      </div>
+    }
+  </p-popover>
 </p-card>
 
 <!-- Diálogo: configurar peluqueros (zonas + rotantes) -->
 <p-dialog
-  header="Configuración de peluqueros"
+  header="Configuración"
   [visible]="settingsVisible()"
   (visibleChange)="settingsVisible.set($event)"
   [modal]="true"
-  [style]="{ width: '480px' }"
+  [style]="{ width: '560px' }"
   [draggable]="false"
 >
-  <p class="text-xs text-gray-400 mb-4">
-    Asigna una zona a cada peluquero para agruparlos en el horario. Los marcados como "Rota" se resaltan visualmente.
+  <!-- Sección: Zonas por sucursal -->
+  <h3 class="text-sm font-semibold text-gray-200 mb-1">Zonas por sucursal</h3>
+  <p class="text-xs text-gray-400 mb-3">
+    La zona del peluquero se detecta automáticamente según la sucursal asignada.
   </p>
-
-  <!-- Encabezado de columnas -->
-  <div class="grid grid-cols-[1fr_140px_auto] gap-2 px-1 mb-1">
-    <span class="text-[10px] font-semibold text-gray-500 uppercase">Peluquero</span>
+  <div class="grid grid-cols-[1fr_180px] gap-2 px-1 mb-1">
+    <span class="text-[10px] font-semibold text-gray-500 uppercase">Sucursal</span>
     <span class="text-[10px] font-semibold text-gray-500 uppercase">Zona</span>
-    <span class="text-[10px] font-semibold text-gray-500 uppercase">Rota</span>
+  </div>
+  <div class="flex flex-col gap-1 mb-5">
+    @for (b of branchesWithAssignments(); track b.branch.id) {
+      <div class="grid grid-cols-[1fr_180px] items-center gap-2 py-1.5 border-b border-neutral-700/40">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+            [style.background-color]="getBranchColor(b.branch.short_name)"></span>
+          <span class="text-sm text-gray-200 truncate">{{ b.branch.name }}</span>
+        </div>
+        <p-select
+          [options]="availableZones()"
+          [ngModel]="getBranchZone(b.branch.id)"
+          (ngModelChange)="setBranchZone(b.branch.id, $event)"
+          [editable]="true"
+          placeholder="Sin zona..."
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full text-xs"
+        />
+      </div>
+    }
   </div>
 
+  <!-- Sección: Rotativos -->
+  <h3 class="text-sm font-semibold text-gray-200 mb-1">Peluqueros rotativos</h3>
+  <p class="text-xs text-gray-400 mb-3">
+    Los rotativos se muestran al final del horario sin agrupar por sucursal.
+  </p>
+  <div class="grid grid-cols-[1fr_auto] gap-2 px-1 mb-1">
+    <span class="text-[10px] font-semibold text-gray-500 uppercase">Peluquero</span>
+    <span class="text-[10px] font-semibold text-gray-500 uppercase">Rota</span>
+  </div>
   <div class="flex flex-col gap-1">
     @for (emp of groomerEmployees(); track emp.id) {
-      <div class="grid grid-cols-[1fr_140px_auto] items-center gap-2 py-1.5 border-b border-neutral-700/40">
-        <!-- Avatar + nombre -->
+      <div class="grid grid-cols-[1fr_auto] items-center gap-2 py-1.5 border-b border-neutral-700/40">
         <div class="flex items-center gap-2 min-w-0">
           <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
             [style.background-color]="getBranchColor(emp.first_name)">
@@ -386,18 +771,6 @@
           </div>
           <span class="text-sm text-gray-200 truncate">{{ emp.first_name }} {{ emp.father_name }}</span>
         </div>
-        <!-- Dropdown de zona (editable para crear nuevas) -->
-        <p-select
-          [options]="availableZones()"
-          [ngModel]="getGroomerZone(emp.id)"
-          (ngModelChange)="setGroomerZone(emp.id, $event)"
-          [editable]="true"
-          placeholder="Seleccionar zona..."
-          [showClear]="true"
-          appendTo="body"
-          styleClass="w-full text-xs"
-        />
-        <!-- Toggle rotante -->
         <p-toggleswitch
           [ngModel]="isRotating(emp.id)"
           (ngModelChange)="toggleRotating(emp.id)"

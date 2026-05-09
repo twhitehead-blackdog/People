@@ -158,13 +158,13 @@ export class EmergencyTimelogReviewComponent implements OnInit {
 
     try {
       await firstValueFrom(
-        this.http.post(this.apiUrl.build('rest/v1/timelogs'), {
-          employee_id: item.employee_id,
-          company_id: item.company_id,
-          branch_id: item.branch_id,
-          type: item.type,
-          source: 'EMERGENCY',
-          punched_at: item.timestamp,
+        this.http.post(this.apiUrl.build('rest/v1/rpc/insert_manual_timelog'), {
+          p_employee_id: item.employee_id,
+          p_company_id: item.company_id,
+          p_branch_id: item.branch_id,
+          p_type: item.type,
+          p_punched_at: item.timestamp,
+          p_reason: 'Sincronización offline (EMERGENCY queue)',
         })
       );
       this.markSynced(item.id);
@@ -218,13 +218,13 @@ export class EmergencyTimelogReviewComponent implements OnInit {
     for (const item of items) {
       try {
         await firstValueFrom(
-          this.http.post(this.apiUrl.build('rest/v1/timelogs'), {
-            employee_id: item.employee_id,
-            company_id: item.company_id,
-            branch_id: item.branch_id,
-            type: item.type,
-            source: 'EMERGENCY',
-            punched_at: item.timestamp,
+          this.http.post(this.apiUrl.build('rest/v1/rpc/insert_manual_timelog'), {
+            p_employee_id: item.employee_id,
+            p_company_id: item.company_id,
+            p_branch_id: item.branch_id,
+            p_type: item.type,
+            p_punched_at: item.timestamp,
+            p_reason: 'Sincronización offline (EMERGENCY queue)',
           })
         );
         this.markSynced(item.id);

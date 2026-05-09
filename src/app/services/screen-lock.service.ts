@@ -245,6 +245,8 @@ export class ScreenLockService {
     const result =
       positionName.includes('gerente de tienda') ||
       positionName.includes('subgerente') ||
+      positionName.includes('sub gerente') ||
+      positionName.includes('sub-gerente') ||
       getEmployeePermission(employee, 'admin');
     console.log('[ScreenLock] canUseScreenLock() ->', result, { positionName });
     return result;

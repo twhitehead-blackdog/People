@@ -28,6 +28,6 @@ export class LiveEmbedComponent {
   private sanitizer = inject(DomSanitizer);
   protected device = inject(DeviceService);
   public url: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-    'https://dashboards.blackdogpanama.com'
+    'https://dashboards.blackdogpanama.com/live'
   );
 }

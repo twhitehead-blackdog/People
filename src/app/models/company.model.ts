@@ -17,6 +17,7 @@ export type Branch = {
   created_at?: Date;
   ip: string;
   company_id?: string;
+  zone?: string | null;
 };
 
 export type Department = {

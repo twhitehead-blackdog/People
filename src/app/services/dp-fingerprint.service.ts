@@ -90,6 +90,18 @@ export class DpFingerprintService {
   }
 
   /**
+   * Sticky flag: una vez que el Lite Client falló (CommunicationFailed o enumerate
+   * tira excepción), no volvemos a crear FingerprintReader hasta que el usuario
+   * llame retryReader() explícitamente. Evita timers fantasmas + logs de consola.
+   */
+  private liteClientFailed = false;
+
+  /** Reset failure flag — llamar desde la UI cuando el usuario pide reintentar. */
+  retryReader(): void {
+    this.liteClientFailed = false;
+  }
+
+  /**
    * Background status: usa UN solo reader persistente y los eventos DeviceConnected/Disconnected.
    * Heartbeat ligero al Lite Client cada 15s para detectar caída del servicio.
    * No recrea readers (eso confundía al WebSdk channel y dejaba el lector "desconectado" zombie).
@@ -114,48 +126,52 @@ export class DpFingerprintService {
     if (this.pollerStarted || typeof window === 'undefined') return;
     this.pollerStarted = true;
 
-    const initStatusReader = async (): Promise<boolean> => {
+    // Sticky-failure pattern: si init falla una vez, no reintentamos hasta retryReader().
+    // Esto evita: (a) WebChannelClient creando setReconnectTimer interno cada 15s,
+    // y (b) logs de 503 acumulándose en consola.
+    const initStatusReader = async (): Promise<void> => {
+      if (this.statusReader || this.liteClientFailed) return;
+      if (!(await this.isLiteClientAvailable(1500))) {
+        this.setConnected(false);
+        this.liteClientFailed = true; // probe falló → no insistir
+        return;
+      }
       try {
-        if (!(await this.isLiteClientAvailable(1500))) return false;
         await ensureWebSdkLoaded();
-        if (!this.statusReader) {
-          const dpModule = await import('@digitalpersona/devices');
-          this.statusReader = new dpModule.FingerprintReader();
-          this.statusReader.on('DeviceConnected', () => this.setConnected(true));
-          this.statusReader.on('DeviceDisconnected', () => this.setConnected(false));
-          this.statusReader.on('CommunicationFailed', () => {
-            this.setConnected(false);
-            // El channel se cayó: lo reseteamos para reintentar en el próximo heartbeat
-            try { this.statusReader?.off?.(); } catch {}
-            this.statusReader = null;
-          });
-        }
-        const devices: string[] = await this.statusReader.enumerateDevices();
+        const dpModule = await import('@digitalpersona/devices');
+        const reader = new dpModule.FingerprintReader();
+        reader.on('DeviceConnected', () => this.setConnected(true));
+        reader.on('DeviceDisconnected', () => this.setConnected(false));
+        reader.on('CommunicationFailed', () => {
+          this.setConnected(false);
+          this.liteClientFailed = true; // channel se cayó → no recrear
+          try { this.statusReader?.off?.(); } catch {}
+          this.statusReader = null;
+        });
+        this.statusReader = reader;
+        const devices: string[] = await reader.enumerateDevices();
         this.setConnected(!!devices?.length);
-        return true;
       } catch {
+        this.liteClientFailed = true;
         try { this.statusReader?.off?.(); } catch {}
         this.statusReader = null;
         this.setConnected(false);
-        return false;
       }
     };
 
     await initStatusReader();
 
-    // Heartbeat: si perdimos el reader (CommunicationFailed o no se inicializó), reintenta
+    // Heartbeat: si liteClientFailed, no probamos. Si el reader existe, sólo enumerate.
     this.heartbeatTimer = setInterval(async () => {
-      if (!this.pollerStarted) return; // Component unmounted, race-safe.
-      if (!this.statusReader) {
-        await initStatusReader();
-        return;
-      }
-      // Sanity check: pasamos un sólo enumerate cada 15s para confirmar
+      if (!this.pollerStarted) return;
+      if (this.liteClientFailed) return; // no más probes hasta retryReader()
+      if (!this.statusReader) return; // no debería pasar, pero por las dudas
       try {
         const devices: string[] = await this.statusReader.enumerateDevices();
         this.setConnected(!!devices?.length);
       } catch {
         this.setConnected(false);
+        this.liteClientFailed = true;
         try { this.statusReader?.off?.(); } catch {}
         this.statusReader = null;
       }
@@ -169,11 +185,12 @@ export class DpFingerprintService {
   private url(path: string): string { return `${this.base}/${path}`; }
 
   /**
-   * Probe the DP Lite Client. WebSdk negotiates over HTTPS at /get_connection
-   * before opening the WebSocket, so that's the right thing to probe.
-   * Browsers refuse to fetch a self-signed HTTPS endpoint until the user accepts
-   * the cert by visiting https://127.0.0.1:52181 once. We use no-cors mode so
-   * the request still resolves — opaque response = service is up + cert accepted.
+   * Probe the DP Lite Client en mode 'no-cors' para que Chrome NO loguee
+   * errores 4xx/5xx en consola (con CORS los pinta automáticamente).
+   * Tradeoff: con no-cors no podemos leer status, así que un 503 (servicio
+   * corriendo pero unhealthy) cuenta como "available". El sticky-failure flag
+   * en startStatusPolling compensa: si después de probe-OK el reader falla,
+   * lo marcamos como roto y no insistimos. Cero spam.
    */
   async isLiteClientAvailable(timeoutMs = 2500): Promise<boolean> {
     if (typeof window === 'undefined') return false;

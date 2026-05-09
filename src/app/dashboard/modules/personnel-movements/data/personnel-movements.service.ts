@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams, httpResource } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { addDays, format } from 'date-fns';
+import { addDays, format, startOfMonth, endOfMonth } from 'date-fns';
 import {
   Employee,
   EmployeeLateRecord,
@@ -19,6 +19,10 @@ import {
   consolidateIncidencias,
   DisabilityRow,
 } from '../utils/incidencias.utils';
+import {
+  computeEarlyExits,
+  EmployeeScheduleRow,
+} from '../utils/early-exits.utils';
 import { mapMetasToBranches } from '../utils/metas-mapping.utils';
 import {
   BranchHistoryEntry,
@@ -59,7 +63,8 @@ export class PersonnelMovementsService {
   private branchesStore = inject(BranchesStore);
 
   // -------------------- Filters (writable signals) --------------------
-  public readonly dateFrom = signal<Date>(this.defaultFrom());
+  // Default = current month (day 1 → today, since no future data exists).
+  public readonly dateFrom = signal<Date>(startOfMonth(new Date()));
   public readonly dateTo = signal<Date>(new Date());
   public readonly employeeId = signal<string | null>(null);
   public readonly originBranchId = signal<string | null>(null);
@@ -69,14 +74,8 @@ export class PersonnelMovementsService {
   public readonly movementMinDays = signal<number>(1);
   public readonly onlyMetAchieved = signal<boolean>(false);
 
-  private defaultFrom(): Date {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d;
-  }
-
   public resetFilters(): void {
-    this.dateFrom.set(this.defaultFrom());
+    this.dateFrom.set(startOfMonth(new Date()));
     this.dateTo.set(new Date());
     this.employeeId.set(null);
     this.originBranchId.set(null);
@@ -147,7 +146,7 @@ export class PersonnelMovementsService {
     const from = format(this.dateFrom(), 'yyyy-MM-dd');
     const to = format(this.dateTo(), 'yyyy-MM-dd');
     const params = new HttpParams()
-      .set('select', 'id,employee_id,start_date,end_date,reason,status')
+      .set('select', 'id,employee_id,start_date,end_date,description,status')
       .set('company_id', `eq.${companyId}`)
       .set('start_date', `lte.${to}`)
       .append('end_date', `gte.${from}`)
@@ -158,21 +157,43 @@ export class PersonnelMovementsService {
     };
   });
 
-  // -------------------- Unjustified timeoffs (is_approved=false) -----
+  // -------------------- Unjustified timeoffs (rejected only) ---------
+  // "Ausencia injustificada" = permiso explícitamente rechazado.
+  // Pendientes (review_status='pending') NO cuentan como injustificadas.
   public unjustifiedTimeoffsResource = httpResource<TimeoffData[]>(() => {
     const companyId = this.orgService.getCurrentCompanyId();
     if (!companyId) return undefined;
     const from = format(this.dateFrom(), 'yyyy-MM-dd');
     const to = format(this.dateTo(), 'yyyy-MM-dd');
     const params = new HttpParams()
-      .set('select', 'id,type_id,employee_id,date_from,date_to,is_approved,company_id')
+      .set('select', 'id,type_id,employee_id,date_from,date_to,is_approved,review_status,company_id')
       .set('company_id', `eq.${companyId}`)
-      .set('is_approved', 'eq.false')
+      .set('review_status', 'eq.rejected')
       .set('date_from', `lte.${to}`)
-      .append('date_from', `gte.${from}`)
+      .append('date_to', `gte.${from}`)
       .set('order', 'date_from.desc');
     return {
       url: this.apiUrl.build('rest/v1/timeoffs'),
+      params,
+    };
+  });
+
+  // -------------------- Employee schedules (for early-exit calc) -----
+  public employeeSchedulesResource = httpResource<EmployeeScheduleRow[]>(() => {
+    const companyId = this.orgService.getCurrentCompanyId();
+    if (!companyId) return undefined;
+    const from = format(this.dateFrom(), 'yyyy-MM-dd');
+    const to = format(this.dateTo(), 'yyyy-MM-dd');
+    const params = new HttpParams()
+      .set(
+        'select',
+        'id,employee_id,start_date,end_date,approved,created_at,time_off_type,schedule:schedules(id,name,entry_time,exit_time,day_off)',
+      )
+      .set('company_id', `eq.${companyId}`)
+      .set('start_date', `lte.${to}`)
+      .append('end_date', `gte.${from}`);
+    return {
+      url: this.apiUrl.build('rest/v1/employee_schedules'),
       params,
     };
   });
@@ -189,7 +210,9 @@ export class PersonnelMovementsService {
       this.lateRecordsResource.isLoading() ||
       this.disabilitiesResource.isLoading() ||
       this.unjustifiedTimeoffsResource.isLoading() ||
-      this.branchesWithOdooResource.isLoading(),
+      this.branchesWithOdooResource.isLoading() ||
+      this.employeeSchedulesResource.isLoading() ||
+      this.metasResource.isLoading(),
   );
 
   // -------------------- Derived: branch name map ---------------------
@@ -256,15 +279,24 @@ export class PersonnelMovementsService {
   });
 
   // -------------------- Derived: incidencias -------------------------
-  public incidenciasAll = computed<Incidencia[]>(() =>
-    consolidateIncidencias(
+  public incidenciasAll = computed<Incidencia[]>(() => {
+    const base = consolidateIncidencias(
       this.lateRecordsResource.value() ?? [],
       this.disabilitiesResource.value() ?? [],
       this.unjustifiedTimeoffsResource.value() ?? [],
       this.employeesById(),
       this.branchNameMap(),
-    ),
-  );
+    );
+    const earlyExits = computeEarlyExits(
+      this.timelogsResource.value() ?? [],
+      this.employeeSchedulesResource.value() ?? [],
+      this.employeesById(),
+      this.branchNameMap(),
+    );
+    const all = [...base, ...earlyExits];
+    all.sort((a, b) => b.date.localeCompare(a.date));
+    return all;
+  });
 
   // -------------------- Derived: metas enriched ----------------------
   public metasEnriched = computed<MetaBranchView[]>(() => {
@@ -341,6 +373,7 @@ export class PersonnelMovementsService {
     this.lateRecordsResource.reload();
     this.disabilitiesResource.reload();
     this.unjustifiedTimeoffsResource.reload();
+    this.employeeSchedulesResource.reload();
     this.branchesWithOdooResource.reload();
     this.metasResource.reload();
   }

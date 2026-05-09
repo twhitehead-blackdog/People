@@ -459,7 +459,9 @@ export function getScheduleRequiredMinutes(schedule: Schedule): number {
 
   const totalScheduleMinutes = differenceInMinutes(exitDate, entryDate);
 
-  let lunchMinutes = 60; // default si no hay almuerzo definido
+  // Solo aplicar default de almuerzo (60 min) si la jornada dura más de 6h.
+  // Turnos cortos (ej. 8:00-12:00 = 4h) no tienen almuerzo programado.
+  let lunchMinutes = totalScheduleMinutes > 360 ? 60 : 0;
   if (schedule.lunch_start_time && schedule.lunch_end_time) {
     const lsStr =
       typeof schedule.lunch_start_time === 'string'
@@ -530,6 +532,9 @@ function calculateWorkHours(
 
   const totalMinutes = differenceInMinutes(exitDate, entryDate);
 
+  // Si la jornada total es ≤6h, no aplicar default de almuerzo
+  const isShortShift = totalMinutes <= 360;
+
   // Calcular tiempo de almuerzo a restar
   const MIN_VALID_LUNCH_MINUTES = 15;
   let lunchTimeToSubtract = 0;
@@ -555,13 +560,13 @@ function calculateWorkHours(
         } else {
           lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
         }
-      } else if (hasSchedule) {
+      } else if (hasSchedule && !isShortShift) {
         // Marcación de almuerzo demasiado corta (< 15 min): marcación errónea, usar 60 min por defecto
         lunchTimeToSubtract = 60;
       }
     } else {
-      // Fechas inválidas: usar defecto si hay schedule
-      if (hasSchedule) {
+      // Fechas inválidas: usar defecto si hay schedule (no en turnos cortos)
+      if (hasSchedule && !isShortShift) {
         lunchTimeToSubtract = 60;
       }
       logger?.warn(
@@ -573,8 +578,8 @@ function calculateWorkHours(
         }
       );
     }
-  } else if (hasSchedule) {
-    // Sin marcaciones de almuerzo: restar 60 min por defecto
+  } else if (hasSchedule && !isShortShift) {
+    // Sin marcaciones de almuerzo: restar 60 min por defecto solo si jornada > 6h
     lunchTimeToSubtract = 60;
   }
 
@@ -693,14 +698,26 @@ export function buildDayLogs(input: DayLogProcessingInput): DayLog[] {
 
     const effectiveDate = parseLogDate(x, logger);
 
-    acc[index] = {
-      ...acc[index],
-      [x.type]: {
-        date: effectiveDate,
-        branch: x.branch,
-        id: x.id,
-      },
-    };
+    {
+      const src = ((x as any).source ?? '').toString().toUpperCase();
+      const isManualLegacy = src === 'MANUAL' || src === 'EMERGENCY';
+      const ipMissing = (x as any).ip == null || (x as any).ip === '';
+      acc[index] = {
+        ...acc[index],
+        [x.type]: {
+          date: effectiveDate,
+          branch: x.branch,
+          id: x.id,
+          // Considerar legacy: source MANUAL/EMERGENCY también cuenta como manual
+          is_manual: ((x as any).is_manual ?? false) || isManualLegacy,
+          manual_reason: (x as any).manual_reason ?? null,
+          // IP nula ó marcada como inválida
+          invalid_ip: ((x as any).invalid_ip ?? false) || ipMissing,
+          source: (x as any).source ?? null,
+          ip: (x as any).ip ?? null,
+        },
+      };
+    }
 
     // 5. Detectar alertas y calcular métricas
     detectAlerts(acc[index], timeoffsData, timezone);

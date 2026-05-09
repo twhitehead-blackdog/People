@@ -142,6 +142,11 @@ export interface TimelogBranch {
   date: Date;
   branch: Branch;
   id?: string;
+  is_manual?: boolean;
+  manual_reason?: string | null;
+  invalid_ip?: boolean;
+  source?: string | null;
+  ip?: string | null;
 }
 
 export interface EmployeeScheduleData {

@@ -416,6 +416,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       return filterByGender(allSchedules);
     }
 
+    // Subgerentes con work_email cubren a los gerentes en vacaciones,
+    // por lo que necesitan acceso completo al listado de turnos.
+    const SUB_GERENTE_POSITION_ID = '4e58edc4-2943-4a71-920c-a2f0f4d31bcc';
+    const isSubgerenteWithWorkEmail =
+      currentEmployee?.position_id === SUB_GERENTE_POSITION_ID &&
+      !!currentEmployee?.work_email;
+    if (isSubgerenteWithWorkEmail) {
+      return filterByGender(allSchedules);
+    }
+
     // Gerentes de tienda (schedule_admin pero no admin) solo ven turnos específicos
     const isStoreManager =
       this.store.isScheduleAdmin() && !this.store.isAdmin();

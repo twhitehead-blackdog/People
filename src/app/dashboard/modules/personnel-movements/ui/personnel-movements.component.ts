@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -8,7 +8,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { ToggleButtonModule } from 'primeng/togglebutton';
-import { format } from 'date-fns';
+import { endOfMonth, format, startOfMonth } from 'date-fns';
 
 import { Employee } from '../../../../models';
 import { EmployeesStore } from '../../../../stores/employees.store';
@@ -19,7 +19,7 @@ import { MODULE_COLORS } from '../../shared/utils/excel-style.utils';
 import { PersonnelMovementsService } from '../data/personnel-movements.service';
 import { IncidenciaType } from '../models/personnel-movements.model';
 import { filterIncidencias, filterMovements } from '../utils/movements-filter.utils';
-import { exportMovementsWorkbook } from '../utils/movements-export.utils';
+import { exportMovementsWorkbook, EmployeeMeta } from '../utils/movements-export.utils';
 
 import { PmResumenTabComponent } from './pm-resumen-tab.component';
 import { PmMovimientosTabComponent } from './pm-movimientos-tab.component';
@@ -70,14 +70,14 @@ type TabKey = 'resumen' | 'movimientos' | 'historial' | 'incidencias' | 'metas';
       <div class="bg-neutral-800/60 border border-neutral-700/50 rounded-lg p-3 space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
           <div>
-            <label class="block text-xs font-medium text-gray-300 mb-1">Rango de Fechas</label>
+            <label class="block text-xs font-medium text-gray-300 mb-1">Mes</label>
             <p-datepicker
-              [ngModel]="dateRange()"
-              (ngModelChange)="onDateRangeChange($event)"
-              selectionMode="range"
-              dateFormat="dd/mm/yy"
+              [ngModel]="selectedMonth()"
+              (ngModelChange)="onMonthChange($event)"
+              view="month"
+              dateFormat="mm/yy"
               [showIcon]="true"
-              placeholder="Seleccionar rango"
+              placeholder="Seleccionar mes"
               styleClass="w-full"
             />
           </div>
@@ -257,6 +257,7 @@ export class PersonnelMovementsComponent {
 
   public incidenciaOptions: { label: string; value: IncidenciaType }[] = [
     { label: 'Tardanzas', value: 'tardanza' },
+    { label: 'Salidas tempranas', value: 'salida_temprana' },
     { label: 'Certificados médicos', value: 'certificado_medico' },
     { label: 'Ausencias injustificadas', value: 'ausencia_injustificada' },
   ];
@@ -278,12 +279,31 @@ export class PersonnelMovementsComponent {
       .map((b) => ({ value: b.id, label: b.name })),
   );
 
-  public dateRange = computed<Date[]>(() => [this.svc.dateFrom(), this.svc.dateTo()]);
+  // Selector de MES (no rango). Si el mes elegido es el actual, el límite
+  // superior es hoy; si es un mes pasado, fin de mes.
+  public selectedMonth = signal<Date>(startOfMonth(this.svc.dateFrom()));
 
-  public onDateRangeChange(value: Date[] | null): void {
-    if (!value) return;
-    if (value[0]) this.svc.dateFrom.set(value[0]);
-    if (value[1]) this.svc.dateTo.set(value[1]);
+  // Sync service → local cuando se hace reset desde "Limpiar Filtros".
+  private _syncMonth = effect(() => {
+    const from = this.svc.dateFrom();
+    const cur = this.selectedMonth();
+    if (
+      cur.getFullYear() !== from.getFullYear() ||
+      cur.getMonth() !== from.getMonth()
+    ) {
+      this.selectedMonth.set(startOfMonth(from));
+    }
+  });
+
+  public onMonthChange(value: Date | null): void {
+    if (!(value instanceof Date)) return;
+    this.selectedMonth.set(value);
+    const today = new Date();
+    const isCurrentMonth =
+      value.getFullYear() === today.getFullYear() &&
+      value.getMonth() === today.getMonth();
+    this.svc.dateFrom.set(startOfMonth(value));
+    this.svc.dateTo.set(isCurrentMonth ? today : endOfMonth(value));
   }
 
   public filteredMovements = computed(() =>
@@ -308,6 +328,17 @@ export class PersonnelMovementsComponent {
     return all.filter((m) => m.achievedTier !== null);
   });
 
+  private buildEmployeeMeta(): Map<string, EmployeeMeta> {
+    const map = new Map<string, EmployeeMeta>();
+    for (const e of this.employeesStore.employeesList() as Employee[]) {
+      map.set(e.id, {
+        documentId: e.document_id ?? '',
+        positionName: e.position?.name ?? '',
+      });
+    }
+    return map;
+  }
+
   public async onExport(): Promise<void> {
     this.exporting.set(true);
     try {
@@ -321,6 +352,7 @@ export class PersonnelMovementsComponent {
         metas: this.filteredMetas(),
         periodLabel: `${from} → ${to}`,
         moduleColor: MODULE_COLORS['personnel_movements'] ?? '8B5CF6',
+        employeeMeta: this.buildEmployeeMeta(),
       });
       this.message.add({
         severity: 'success',

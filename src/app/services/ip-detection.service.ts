@@ -22,48 +22,25 @@ export class IpDetectionService {
       try { sessionStorage.setItem('timeclock_ip', ip); } catch { /* noop */ }
     };
 
-    this.getIPViaWebRTC()
+    // Public IP first (ipify) — what we actually want for timeclock geolocation/audit.
+    // WebRTC fallback only if both ipify endpoints fail (returns local 192.168.x).
+    this.getIPViaHttp()
       .then((ip) => {
-        if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-          setIP(ip);
-          return;
-        }
-
-        this.getIPViaHttp()
-          .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              setIP(ip);
-            }
-          })
-          .catch(() => {
-            this.getIPViaAlternative()
-              .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  setIP(ip);
-                }
-              })
-              .catch(() => {
-                // Keep default 127.0.0.1 if all methods fail
-              });
-          });
+        if (ip && ip !== '127.0.0.1') { setIP(ip); return; }
+        throw new Error('empty ipify');
       })
       .catch(() => {
-        this.getIPViaHttp()
+        this.getIPViaAlternative()
           .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              setIP(ip);
-            }
+            if (ip && ip !== '127.0.0.1') { setIP(ip); return; }
+            throw new Error('empty ipify64');
           })
           .catch(() => {
-            this.getIPViaAlternative()
+            this.getIPViaWebRTC()
               .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  setIP(ip);
-                }
+                if (ip && ip !== '127.0.0.1' && ip !== '::1') setIP(ip);
               })
-              .catch(() => {
-                // Keep default
-              });
+              .catch(() => { /* keep default */ });
           });
       });
   }

@@ -771,7 +771,7 @@ export class EmployeePortalComponent {
   public isBranchManager = computed(() => {
     const currentEmp = this.currentEmployee();
     const positionName = (currentEmp?.position?.name || '').toLowerCase();
-    return positionName.includes('gerente de tienda') || positionName.includes('subgerente');
+    return positionName.includes('gerente de tienda') || positionName.includes('subgerente') || positionName.includes('sub gerente') || positionName.includes('sub-gerente');
   });
 
   // Empleados de la sucursal del Branch Manager (para solicitudes en su nombre)

@@ -10,6 +10,7 @@ interface Module {
   readonly icon: string;
   readonly target: string;
   readonly moduleId?: string;
+  readonly subModuleId?: string;
   readonly external?: boolean;
   readonly accent: AccentKey;
 }
@@ -55,15 +56,15 @@ const PEOPLE_MODULES: readonly Module[] = [
 ] as const;
 
 const EXTERNAL_MODULES: readonly Module[] = [
-  { id: 'analytics',  label: 'Analytics',           description: 'KPIs y ventas',           icon: 'pi-chart-line',     target: 'analytics',                            accent: 'teal'   },
-  { id: 'dashboards', label: 'Asistencias en vivo', description: 'Asistencia en tiempo real', icon: 'pi-objects-column', target: 'live',                                accent: 'indigo' },
-  { id: 'metas',      label: 'Metas',               description: 'Mensuales y diarias',     icon: 'pi-flag',           target: 'metas',                                accent: 'amber'   },
-  { id: 'stock',      label: 'Stock',               description: 'Top100, rotación, salud', icon: 'pi-box',            target: 'stock',                                accent: 'lime'    },
-  { id: 'respond',    label: 'Respond',             description: 'Conversaciones en vivo',  icon: 'pi-comments',       target: 'respond',                              accent: 'cyan'    },
-  { id: 'scorecard',  label: 'Scorecard',           description: 'Puntaje por sucursal',    icon: 'pi-trophy',         target: 'scorecard',                            accent: 'fuchsia' },
-  { id: 'it',         label: 'BD IT',               description: 'Inventario y soporte',    icon: 'pi-desktop',        target: 'https://it.blackdogpanama.com',  external: true, accent: 'slate'  },
-  { id: 'deploy',     label: 'Deploy',              description: 'CI/CD',                   icon: 'pi-upload',         target: 'https://deploy.blackdogpanama.com', external: true, accent: 'pink'   },
-  { id: 'agent',      label: 'Agente IA',           description: 'Asistente inteligente',   icon: 'pi-android',        target: 'https://agent.blackdogpanama.com', external: true, accent: 'purple' },
+  { id: 'analytics',  label: 'Analytics',           description: 'KPIs y ventas',             icon: 'pi-chart-line',     target: 'analytics', moduleId: 'services', subModuleId: 'analytics_access', accent: 'teal'    },
+  { id: 'dashboards', label: 'Asistencias en vivo', description: 'Asistencia en tiempo real', icon: 'pi-objects-column', target: 'live',      moduleId: 'services', subModuleId: 'live_access',      accent: 'indigo'  },
+  { id: 'metas',      label: 'Metas',               description: 'Mensuales y diarias',       icon: 'pi-flag',           target: 'metas',     moduleId: 'services', subModuleId: 'metas_access',     accent: 'amber'   },
+  { id: 'stock',      label: 'Stock',               description: 'Top100, rotación, salud',   icon: 'pi-box',            target: 'stock',     moduleId: 'services', subModuleId: 'stock_access',     accent: 'lime'    },
+  { id: 'respond',    label: 'Respond',             description: 'Conversaciones en vivo',    icon: 'pi-comments',       target: 'respond',   moduleId: 'services', subModuleId: 'respond_access',   accent: 'cyan'    },
+  { id: 'scorecard',  label: 'Scorecard',           description: 'Puntaje por sucursal',      icon: 'pi-trophy',         target: 'scorecard', moduleId: 'services', subModuleId: 'scorecard_access', accent: 'fuchsia' },
+  { id: 'it',         label: 'BD IT',               description: 'Inventario y soporte',      icon: 'pi-desktop',        target: 'https://it.blackdogpanama.com',     external: true, accent: 'slate'  },
+  { id: 'deploy',     label: 'Deploy',              description: 'CI/CD',                     icon: 'pi-upload',         target: 'https://deploy.blackdogpanama.com', external: true, accent: 'pink'   },
+  { id: 'agent',      label: 'Agente IA',           description: 'Asistente inteligente',     icon: 'pi-android',        target: 'https://agent.blackdogpanama.com',  external: true, accent: 'purple' },
 ] as const;
 
 @Component({
@@ -120,14 +121,15 @@ const EXTERNAL_MODULES: readonly Module[] = [
       }
 
       <!-- Servicios externos -->
+      @if (visibleExternalModules().length > 0) {
       <section class="section" role="region" aria-label="Servicios">
         <div class="section-header">
           <span class="section-label">Servicios</span>
           <span class="section-line" aria-hidden="true"></span>
-          <span class="section-count">{{ EXTERNAL_MODULES.length }}</span>
+          <span class="section-count">{{ visibleExternalModules().length }}</span>
         </div>
         <div class="grid grid--ext">
-          @for (mod of EXTERNAL_MODULES; track mod.id; let i = $index) {
+          @for (mod of visibleExternalModules(); track mod.id; let i = $index) {
             <button
               type="button"
               class="card card--ext"
@@ -152,6 +154,7 @@ const EXTERNAL_MODULES: readonly Module[] = [
           }
         </div>
       </section>
+      }
     </div>
   `,
   styles: [`
@@ -398,8 +401,6 @@ export class AppLauncherComponent {
   private readonly permissions = inject(PermissionsService);
   private readonly store = inject(DashboardStore);
 
-  protected readonly EXTERNAL_MODULES = EXTERNAL_MODULES;
-
   protected readonly firstName = computed(
     () => this.store.currentEmployee()?.first_name?.trim() || null,
   );
@@ -408,6 +409,18 @@ export class AppLauncherComponent {
     PEOPLE_MODULES.filter(
       (m) => !m.moduleId || this.permissions.canAccessModule(m.moduleId),
     ),
+  );
+
+  protected readonly visibleExternalModules = computed(() =>
+    EXTERNAL_MODULES.filter((m) => {
+      if (m.moduleId && m.subModuleId) {
+        return this.permissions.canAccessSubModule(m.moduleId, m.subModuleId);
+      }
+      if (m.moduleId) {
+        return this.permissions.canAccessModule(m.moduleId);
+      }
+      return true;
+    }),
   );
 
   /** Saludo según hora local. */

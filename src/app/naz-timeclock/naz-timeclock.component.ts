@@ -908,54 +908,25 @@ export class NazTimeclockComponent implements OnDestroy {
     this.dp.stopStatusPolling();
   }
 
-  // Detect IP address using multiple methods
+  // Detect IP address. Public IP (ipify) first — branches.ip is the public IP.
   private detectIP() {
-    // Method 1: Try WebRTC (works even from localhost)
-    this.getIPViaWebRTC()
+    this.getIPViaHttp()
       .then((ip) => {
-        if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-          this.currentIP.set(ip);
-          return;
-        }
-
-        // Method 2: Try ipify.org (may have CORS issues in dev)
-        this.getIPViaHttp()
-          .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
-            }
-          })
-          .catch(() => {
-            // Method 3: Try alternative service
-            this.getIPViaAlternative()
-              .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
-                }
-              })
-              .catch(() => {
-                // Keep default 127.0.0.1 if all methods fail
-              });
-          });
+        if (ip && ip !== '127.0.0.1') { this.currentIP.set(ip); return; }
+        throw new Error('empty ipify');
       })
       .catch(() => {
-        // If WebRTC fails, try HTTP methods
-        this.getIPViaHttp()
+        this.getIPViaAlternative()
           .then((ip) => {
-            if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
-            }
+            if (ip && ip !== '127.0.0.1') { this.currentIP.set(ip); return; }
+            throw new Error('empty ipify64');
           })
           .catch(() => {
-            this.getIPViaAlternative()
+            this.getIPViaWebRTC()
               .then((ip) => {
-                if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
-                }
+                if (ip && ip !== '127.0.0.1' && ip !== '::1') this.currentIP.set(ip);
               })
-              .catch(() => {
-                // Keep default
-              });
+              .catch(() => { /* keep default */ });
           });
       });
   }

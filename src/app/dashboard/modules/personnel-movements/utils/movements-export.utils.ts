@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
   BranchHistoryEntry,
   Incidencia,
@@ -7,11 +7,35 @@ import {
   PersonnelMovement,
 } from '../models/personnel-movements.model';
 
+/** Format an ISO yyyy-MM-dd (or empty) to DD/MM/YY for Excel display. */
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  try {
+    return format(parseISO(iso), 'dd/MM/yy');
+  } catch {
+    return iso;
+  }
+}
+
 const INCIDENCIA_LABELS: Record<Incidencia['type'], string> = {
   tardanza: 'Tardanza',
+  salida_temprana: 'Salida Temprana',
   certificado_medico: 'Certificado Médico',
   ausencia_injustificada: 'Ausencia Injustificada',
 };
+
+export interface EmployeeMeta {
+  documentId: string;
+  positionName: string;
+}
+
+function lookup(map: Map<string, EmployeeMeta> | undefined, employeeId: string) {
+  const meta = map?.get(employeeId);
+  return {
+    cedula: meta?.documentId ?? '',
+    cargo: meta?.positionName ?? '',
+  };
+}
 
 /**
  * Build + download the 5-sheet Excel workbook.
@@ -25,6 +49,7 @@ export async function exportMovementsWorkbook(params: {
   metas: MetaBranchView[];
   periodLabel: string;
   moduleColor: string;
+  employeeMeta?: Map<string, EmployeeMeta>;
 }): Promise<void> {
   const xlsxModule = await import('xlsx-js-style');
   const XLSX = ((xlsxModule as unknown) as { default?: unknown }).default ?? xlsxModule;
@@ -68,50 +93,74 @@ export async function exportMovementsWorkbook(params: {
   styleSummarySheet(summaryWs, XLSXTyped.utils, params.moduleColor);
   XLSXTyped.utils.book_append_sheet(wb, summaryWs, 'Resumen');
 
-  // --- Sheet 2: Movimientos ---
-  const movementsData = params.movements.map((m) => ({
-    Colaborador: m.employeeName,
-    'Sucursal Origen': m.originBranchName ?? '',
-    'Sucursal Destino': m.destinationBranchName,
-    'Fecha Inicio': m.startDate,
-    'Fecha Fin': m.endDate,
-    Días: m.durationDays,
-  }));
+  // --- Sheet 2: Movimientos (ordenado por Colaborador, luego fecha asc) ---
+  const movementsSorted = [...params.movements].sort(
+    (a, b) =>
+      a.employeeName.localeCompare(b.employeeName) ||
+      a.startDate.localeCompare(b.startDate),
+  );
+  const movementsData = movementsSorted.map((m) => {
+    const { cedula, cargo } = lookup(params.employeeMeta, m.employeeId);
+    return {
+      Colaborador: m.employeeName,
+      Cédula: cedula,
+      Cargo: cargo,
+      'Sucursal Origen': m.originBranchName ?? '',
+      'Sucursal Destino': m.destinationBranchName,
+      'Fecha Inicio': fmtDate(m.startDate),
+      'Fecha Fin': fmtDate(m.endDate),
+      Días: m.durationDays,
+    };
+  });
   const movementsWs = XLSXTyped.utils.json_to_sheet(movementsData);
   (movementsWs as { [k: string]: unknown })['!cols'] = [
-    { wch: 30 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 8 },
+    { wch: 30 }, { wch: 14 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 8 },
   ];
   styleDataSheet(movementsWs, XLSXTyped.utils, params.moduleColor);
   XLSXTyped.utils.book_append_sheet(wb, movementsWs, 'Movimientos');
 
-  // --- Sheet 3: Historial ---
-  const historyData = params.history.map((h) => ({
-    Colaborador: h.employeeName,
-    Fecha: h.startDate,
-    'Fecha Fin': h.endDate,
-    Sucursal: h.branchName,
-    'Tipo Movimiento': h.movementType === 'base' ? 'Base' : 'Movimiento',
-    'Duración (días)': h.durationDays,
-  }));
+  // --- Sheet 3: Historial (ya viene ordenado por Colaborador + fecha asc) ---
+  const historyData = params.history.map((h) => {
+    const { cedula, cargo } = lookup(params.employeeMeta, h.employeeId);
+    return {
+      Colaborador: h.employeeName,
+      Cédula: cedula,
+      Cargo: cargo,
+      Fecha: fmtDate(h.startDate),
+      'Fecha Fin': fmtDate(h.endDate),
+      Sucursal: h.branchName,
+      'Tipo Movimiento': h.movementType === 'base' ? 'Base' : 'Movimiento',
+      'Duración (días)': h.durationDays,
+    };
+  });
   const historyWs = XLSXTyped.utils.json_to_sheet(historyData);
   (historyWs as { [k: string]: unknown })['!cols'] = [
-    { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 24 }, { wch: 16 }, { wch: 14 },
+    { wch: 30 }, { wch: 14 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 24 }, { wch: 16 }, { wch: 14 },
   ];
   styleDataSheet(historyWs, XLSXTyped.utils, params.moduleColor);
   XLSXTyped.utils.book_append_sheet(wb, historyWs, 'Historial');
 
-  // --- Sheet 4: Incidencias ---
-  const incidenciasData = params.incidencias.map((i) => ({
-    Colaborador: i.employeeName,
-    Fecha: i.date,
-    'Fecha Fin': i.endDate ?? '',
-    Sucursal: i.branchName ?? '',
-    Tipo: INCIDENCIA_LABELS[i.type],
-    Detalle: i.detail,
-  }));
+  // --- Sheet 4: Incidencias (ordenado por Colaborador, luego fecha asc) ---
+  const incidenciasSorted = [...params.incidencias].sort(
+    (a, b) =>
+      a.employeeName.localeCompare(b.employeeName) || a.date.localeCompare(b.date),
+  );
+  const incidenciasData = incidenciasSorted.map((i) => {
+    const { cedula, cargo } = lookup(params.employeeMeta, i.employeeId);
+    return {
+      Colaborador: i.employeeName,
+      Cédula: cedula,
+      Cargo: cargo,
+      Fecha: fmtDate(i.date),
+      'Fecha Fin': fmtDate(i.endDate),
+      Sucursal: i.branchName ?? '',
+      Tipo: INCIDENCIA_LABELS[i.type],
+      Detalle: i.detail,
+    };
+  });
   const incidenciasWs = XLSXTyped.utils.json_to_sheet(incidenciasData);
   (incidenciasWs as { [k: string]: unknown })['!cols'] = [
-    { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 24 }, { wch: 24 }, { wch: 50 },
+    { wch: 30 }, { wch: 14 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 24 }, { wch: 24 }, { wch: 50 },
   ];
   styleDataSheet(incidenciasWs, XLSXTyped.utils, params.moduleColor);
   XLSXTyped.utils.book_append_sheet(wb, incidenciasWs, 'Incidencias');
@@ -133,6 +182,63 @@ export async function exportMovementsWorkbook(params: {
   ];
   styleDataSheet(metasWs, XLSXTyped.utils, params.moduleColor);
   XLSXTyped.utils.book_append_sheet(wb, metasWs, 'Metas');
+
+  // --- Sheet 6: Por Colaborador (timeline unificado: movs + incidencias) ---
+  type UnifiedRow = {
+    employeeId: string;
+    employeeName: string;
+    date: string;
+    endDate: string | null;
+    tipo: string;
+    sucursal: string;
+    detalle: string;
+  };
+  const unified: UnifiedRow[] = [];
+  for (const m of params.movements) {
+    unified.push({
+      employeeId: m.employeeId,
+      employeeName: m.employeeName,
+      date: m.startDate,
+      endDate: m.endDate,
+      tipo: 'Movimiento',
+      sucursal: `${m.originBranchName ?? '—'} → ${m.destinationBranchName}`,
+      detalle: `${m.durationDays} día(s)`,
+    });
+  }
+  for (const i of params.incidencias) {
+    unified.push({
+      employeeId: i.employeeId,
+      employeeName: i.employeeName,
+      date: i.date,
+      endDate: i.endDate,
+      tipo: INCIDENCIA_LABELS[i.type],
+      sucursal: i.branchName ?? '',
+      detalle: i.detail,
+    });
+  }
+  unified.sort(
+    (a, b) =>
+      a.employeeName.localeCompare(b.employeeName) || a.date.localeCompare(b.date),
+  );
+  const unifiedData = unified.map((r) => {
+    const { cedula, cargo } = lookup(params.employeeMeta, r.employeeId);
+    return {
+      Colaborador: r.employeeName,
+      Cédula: cedula,
+      Cargo: cargo,
+      Fecha: fmtDate(r.date),
+      'Fecha Fin': fmtDate(r.endDate),
+      Tipo: r.tipo,
+      Sucursal: r.sucursal,
+      Detalle: r.detalle,
+    };
+  });
+  const unifiedWs = XLSXTyped.utils.json_to_sheet(unifiedData);
+  (unifiedWs as { [k: string]: unknown })['!cols'] = [
+    { wch: 30 }, { wch: 14 }, { wch: 24 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 36 }, { wch: 50 },
+  ];
+  styleDataSheet(unifiedWs, XLSXTyped.utils, params.moduleColor);
+  XLSXTyped.utils.book_append_sheet(wb, unifiedWs, 'Por Colaborador');
 
   const filename = `Movimientos_Personal_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.xlsx`;
   XLSXTyped.writeFile(wb, filename);

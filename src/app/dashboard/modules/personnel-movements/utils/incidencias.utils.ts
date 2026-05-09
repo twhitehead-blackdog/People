@@ -8,13 +8,25 @@ export interface DisabilityRow {
   employee_id: string;
   start_date: string;
   end_date: string;
-  reason?: string;
+  description?: string;
   status?: string;
 }
 
 function fullName(e: Partial<Employee> | undefined, fallbackId: string): string {
   if (!e) return fallbackId;
   return `${e.first_name ?? ''} ${e.father_name ?? ''}`.trim() || fallbackId;
+}
+
+/** "HH:MM" / "HH:MM:SS" → "h:mm AM/PM"; passes through anything else. */
+function toAmPm(hhmm: string | null | undefined): string {
+  if (!hhmm) return '';
+  const [hStr, mStr] = hhmm.split(':');
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
 export function consolidateIncidencias(
@@ -39,7 +51,7 @@ export function consolidateIncidencias(
       branchId: l.branch_id ?? null,
       branchName:
         l.branch_name ?? (l.branch_id ? branchNameMap.get(l.branch_id) ?? null : null),
-      detail: `${l.minutes_late} min tarde (programada ${l.scheduled_entry_time}, real ${l.actual_entry_time})`,
+      detail: `${l.minutes_late} min tarde (programada ${toAmPm(l.scheduled_entry_time)}, real ${toAmPm(l.actual_entry_time)})`,
     });
   }
 
@@ -55,7 +67,7 @@ export function consolidateIncidencias(
       endDate: d.end_date && d.end_date !== d.start_date ? d.end_date : null,
       branchId: empBranchId,
       branchName: empBranchId ? branchNameMap.get(empBranchId) ?? null : null,
-      detail: d.reason?.trim() || 'Certificado médico',
+      detail: d.description?.trim() || 'Certificado médico',
     });
   }
 

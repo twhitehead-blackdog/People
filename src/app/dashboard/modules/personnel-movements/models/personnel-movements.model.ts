@@ -41,7 +41,11 @@ export interface BranchHistoryEntry {
   movementType: 'base' | 'movimiento';
 }
 
-export type IncidenciaType = 'tardanza' | 'certificado_medico' | 'ausencia_injustificada';
+export type IncidenciaType =
+  | 'tardanza'
+  | 'salida_temprana'
+  | 'certificado_medico'
+  | 'ausencia_injustificada';
 
 /** Unified incidencia row (consolidates lates + disabilities + unjustified absences). */
 export interface Incidencia {

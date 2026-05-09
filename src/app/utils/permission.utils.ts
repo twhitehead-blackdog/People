@@ -46,5 +46,10 @@ export function isStoreManagerRole(
 ): boolean {
   if (isScheduleAdmin && !isAdmin) return true;
   const name = positionName.toLowerCase();
-  return name.includes('gerente de tienda') || name.includes('subgerente');
+  return (
+    name.includes('gerente de tienda') ||
+    name.includes('subgerente') ||
+    name.includes('sub gerente') ||
+    name.includes('sub-gerente')
+  );
 }
