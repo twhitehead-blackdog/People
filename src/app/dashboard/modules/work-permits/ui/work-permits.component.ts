@@ -968,17 +968,18 @@ export class WorkPermitsComponent {
 
     const data = {
       employee_id: permit.employee_id,
-      type:
+      message_type:
         status === 'approved'
           ? 'work_permit_approved'
           : 'work_permit_rejected',
+      related_type: 'work_permit',
+      related_id: permit.id,
       title:
         status === 'approved'
           ? 'Permiso Aprobado'
           : 'Permiso Rechazado',
       message,
       is_read: false,
-      created_at: new Date().toISOString(),
     };
     try {
       await firstValueFrom(
