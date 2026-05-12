@@ -1,5 +1,5 @@
 // People App — Service Worker
-const CACHE_NAME = 'people-v7.2.5-moxe4tve';
+const CACHE_NAME = 'people-v7.2.7-mp32y5st';
 const PRECACHE_URLS = [
   '/',
   '/index.html',

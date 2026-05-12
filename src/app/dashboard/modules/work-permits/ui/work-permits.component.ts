@@ -863,6 +863,8 @@ export class WorkPermitsComponent {
   }
 
   private updatePermitStatus(id: string, status: 'approved' | 'rejected') {
+    const permit = this.service.value().find((p) => p.id === id);
+    if (permit) this.selectedPermit.set(permit);
     this.updatePermitStatusFromDialog(status);
   }
 

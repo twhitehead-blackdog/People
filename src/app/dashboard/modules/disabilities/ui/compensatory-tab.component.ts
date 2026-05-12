@@ -363,7 +363,7 @@ import {
                   (click)="$event.stopPropagation()"
                 >
                   <div class="flex gap-0.5 justify-center">
-                    @if (request.review_status === 'pending') {
+                    @if (isPending(request)) {
                     <p-button
                       icon="pi pi-check"
                       [text]="true"
@@ -538,7 +538,7 @@ import {
               [style]="{ 'font-size': '0.7rem' }"
             />
           </div>
-          @if (req.review_status === 'pending') {
+          @if (isPending(req)) {
           <div
             class="flex gap-1 mt-2"
             (click)="$event.stopPropagation()"
@@ -594,13 +594,17 @@ export class CompensatoryTabComponent {
     { label: 'Rechazada', value: 'rejected' },
   ];
 
+  public isPending(r: CompensatoryRequest): boolean {
+    if (r.is_approved) return false;
+    if (r.review_status === 'rejected' || r.rejection_comment) return false;
+    if (r.review_status === 'approved') return false;
+    return true;
+  }
+
   // Stats
   public totalCount = computed(() => this.requests().length);
   public pendingCount = computed(
-    () =>
-      this.requests().filter(
-        (r) => r.review_status === 'pending' || (!r.review_status && !r.is_approved)
-      ).length
+    () => this.requests().filter((r) => this.isPending(r)).length
   );
   public approvedCount = computed(
     () => this.requests().filter((r) => r.is_approved === true).length
@@ -639,7 +643,7 @@ export class CompensatoryTabComponent {
     const status = this.selectedStatus();
     if (status) {
       if (status === 'pending') {
-        items = items.filter((r) => r.review_status === 'pending' || (!r.review_status && !r.is_approved));
+        items = items.filter((r) => this.isPending(r));
       } else if (status === 'approved') {
         items = items.filter((r) => r.is_approved === true);
       } else if (status === 'rejected') {
