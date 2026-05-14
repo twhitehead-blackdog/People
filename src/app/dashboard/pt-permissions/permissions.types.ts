@@ -66,11 +66,21 @@ export const LEGACY_PERMISSION_DEFINITIONS: Record<
 // ============================================
 
 /**
+ * Modo de acceso a un submódulo:
+ *  - false      = sin acceso
+ *  - 'read'     = solo lectura (oculta crear/editar/eliminar)
+ *  - true       = acceso completo (escritura)
+ */
+export type SubModuleAccess = boolean | 'read';
+
+export type SubModuleMode = 'none' | 'read' | 'write';
+
+/**
  * Permiso específico para un submódulo
  */
 export interface SubModulePermission {
   subModuleId: string;
-  enabled: boolean;
+  enabled: SubModuleAccess;
 }
 
 /**
@@ -79,7 +89,7 @@ export interface SubModulePermission {
 export interface ModulePermission {
   moduleId: string;
   enabled: boolean; // Si false, todo el módulo está bloqueado
-  subModules: Record<string, boolean>; // Mapa de subModuleId -> boolean
+  subModules: Record<string, SubModuleAccess>; // subModuleId -> false|'read'|true
 }
 
 /**
@@ -151,19 +161,43 @@ export function checkSalaryAccess(positionName?: string): boolean {
 }
 
 /**
- * Verifica si un usuario tiene acceso a un submódulo específico
+ * Normaliza el valor crudo de un submódulo a uno de los tres modos canónicos.
+ */
+export function normalizeSubModuleMode(raw: SubModuleAccess | undefined): SubModuleMode {
+  if (raw === true) return 'write';
+  if (raw === 'read') return 'read';
+  return 'none';
+}
+
+/**
+ * Retorna el modo de acceso de un usuario a un submódulo: 'none' | 'read' | 'write'.
+ * Si el módulo padre está deshabilitado, el resultado es 'none'.
+ */
+export function getSubModuleMode(
+  frontendPermissions: FrontendPermissions,
+  moduleId: string,
+  subModuleId: string
+): SubModuleMode {
+  const module = frontendPermissions.modules[moduleId];
+  if (!module || !module.enabled) return 'none';
+  return normalizeSubModuleMode(module.subModules[subModuleId]);
+}
+
+/**
+ * Verifica si un usuario tiene acceso a un submódulo específico.
+ * Por defecto cualquier acceso (read o write) cuenta como acceso.
+ * Pasar `requiredMode: 'write'` para exigir acceso de escritura.
  */
 export function hasSubModuleAccess(
   frontendPermissions: FrontendPermissions,
   moduleId: string,
-  subModuleId: string
+  subModuleId: string,
+  requiredMode: 'any' | 'write' = 'any'
 ): boolean {
-  const module = frontendPermissions.modules[moduleId];
-  if (!module) return false;
-  if (!module.enabled) return false;
-  
-  // Si el submódulo no está definido, por defecto está desactivado
-  return module.subModules[subModuleId] ?? false;
+  const mode = getSubModuleMode(frontendPermissions, moduleId, subModuleId);
+  if (mode === 'none') return false;
+  if (requiredMode === 'write') return mode === 'write';
+  return true;
 }
 
 /**
@@ -176,8 +210,8 @@ export function hasModuleAccess(
   const module = frontendPermissions.modules[moduleId];
   if (!module) return false;
   if (!module.enabled) return false;
-  
-  // Verificar si tiene al menos un submódulo activo
-  return Object.values(module.subModules).some(enabled => enabled);
+
+  // Verificar si tiene al menos un submódulo activo (lectura o escritura)
+  return Object.values(module.subModules).some(v => normalizeSubModuleMode(v) !== 'none');
 }
 

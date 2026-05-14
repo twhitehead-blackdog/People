@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
 import { modulePermissionGuard } from '../guards/permission.guard';
+import { accessScheduleGuard } from '../guards/access-schedule.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
     path: '',
+    canActivate: [accessScheduleGuard],
     loadComponent: () =>
       import('./dashboard.component').then((x) => x.DashboardComponent),
     children: [

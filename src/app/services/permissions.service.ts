@@ -5,12 +5,14 @@ import {
   checkSalaryAccess,
   createDefaultFrontendPermissions,
   FrontendPermissions,
+  getSubModuleMode,
   hasModuleAccess,
   hasSubModuleAccess,
   LegacyPermissionDefinition,
   LEGACY_PERMISSION_DEFINITIONS,
   LegacyPermissionKey,
   ModulePermission,
+  SubModuleMode,
   UserPermissionProfile,
 } from '../dashboard/pt-permissions/permissions.types';
 import {
@@ -482,8 +484,43 @@ export class PermissionsService {
   }
 
   /**
+   * Retorna el modo de acceso del usuario actual a un submódulo: 'none' | 'read' | 'write'.
+   * USO PRINCIPAL: componentes que quieren ocultar acciones cuando el modo es 'read'.
+   */
+  public getCurrentSubModuleMode(moduleId: string, subModuleId: string): SubModuleMode {
+    const currentEmployee = this.store.currentEmployee();
+    if (!currentEmployee) return 'none';
+
+    if (this.store.testMode.isSupportUser(currentEmployee.work_email) && this.store.testMode.currentMode === 'gerente') {
+      return getSubModuleMode(GERENTE_TEST_FRONTEND_PERMISSIONS as any, moduleId, subModuleId);
+    }
+
+    // Override del fallback de gerente para schedules/salon (siempre lectura como mínimo)
+    if (
+      moduleId === 'time_management' &&
+      (subModuleId === 'schedules' || subModuleId === 'salon_schedule')
+    ) {
+      if (isStoreManagerRole(this.store.isScheduleAdmin(), this.store.isAdmin(), currentEmployee.position?.name ?? '')) {
+        const profile = this.buildUserProfile(currentEmployee);
+        const mode = getSubModuleMode(profile.frontendPermissions, moduleId, subModuleId);
+        return mode === 'none' ? 'read' : mode;
+      }
+    }
+
+    const profile = this.buildUserProfile(currentEmployee);
+    return getSubModuleMode(profile.frontendPermissions, moduleId, subModuleId);
+  }
+
+  /**
+   * Atajo: ¿el modo del usuario actual sobre este submódulo es solo lectura?
+   */
+  public isCurrentSubModuleReadOnly(moduleId: string, subModuleId: string): boolean {
+    return this.getCurrentSubModuleMode(moduleId, subModuleId) === 'read';
+  }
+
+  /**
    * Verifica si el usuario actual tiene acceso a un submódulo específico
-   * USO PRINCIPAL: Guards de rutas
+   * USO PRINCIPAL: Guards de rutas (acepta lectura O escritura)
    */
   public canAccessSubModule(moduleId: string, subModuleId: string): boolean {
     const currentEmployee = this.store.currentEmployee();

@@ -49,6 +49,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
 
 import { PermissionsService } from '../services/permissions.service';
 import { DeviceService } from '../services/device.service';
+import { AccessScheduleService } from '../services/access-schedule.service';
 import { NotificationsService } from '../services/notifications.service';
 import { DesignVersionService } from '../services/design-version.service';
 import { playNotificationSound } from '../utils/notification-audio.utils';
@@ -1202,6 +1203,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
 })
 export class DashboardComponent {
   public device = inject(DeviceService);
+  private accessSchedule = inject(AccessScheduleService);
   public isCollapsed = signal(true);
   public store = inject(DashboardStore);
   public auth = inject(AuthService);
@@ -1473,6 +1475,17 @@ export class DashboardComponent {
   private previousOrganization: Organization | null = null;
 
   constructor() {
+    // Si el empleado tiene horario de acceso con modo 'block' y se expira
+    // estando logueado, redirigir a la pantalla de fuera-de-horario.
+    effect(() => {
+      if (
+        this.accessSchedule.isOutOfHours() &&
+        this.accessSchedule.mode() === 'block'
+      ) {
+        this.router.navigate(['/out-of-hours']);
+      }
+    });
+
     // En diseño clásico, redirigir desde /launcher al primer módulo accesible
     effect(() => {
       if (this.designVersion.isClassic() && this.isLauncherActive()) {

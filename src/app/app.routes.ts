@@ -35,6 +35,11 @@ export const appRoutes: Route[] = [
       import('./login/login.component').then((x) => x.LoginComponent),
   },
   {
+    path: 'out-of-hours',
+    loadComponent: () =>
+      import('./out-of-hours.component').then((x) => x.OutOfHoursComponent),
+  },
+  {
     path: 'sin-acceso',
     loadComponent: () =>
       import('./no-access.component').then((x) => x.NoAccessComponent),

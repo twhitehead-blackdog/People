@@ -50,7 +50,23 @@ export type Employee = {
   total_lunch_exceeded_minutes?: number;
   frontend_permissions_override?: string | Record<string, unknown>;
   legacy_permissions_override?: string | Record<string, boolean>;
+  access_schedule?: string | AccessSchedule | null;
   hr_pin?: string;
+};
+
+/**
+ * Restricción de horario de acceso por empleado.
+ * - days: 0 Dom, 1 Lun, 2 Mar, 3 Mie, 4 Jue, 5 Vie, 6 Sab
+ * - start/end: "HH:MM" 24h en la zona horaria indicada
+ * - mode: 'block' = bloquea acceso; 'readonly' = forza solo lectura
+ */
+export type AccessSchedule = {
+  enabled: boolean;
+  days: number[];
+  start: string;
+  end: string;
+  timezone: string;
+  mode: 'block' | 'readonly';
 };
 
 export type Termination = {

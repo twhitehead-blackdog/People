@@ -27,6 +27,7 @@ import { isPortalDomain } from './utils/domain.utils';
 import { apiUrlInterceptor } from './interceptors/api-url.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { httpInterceptor } from './interceptors/http.interceptor';
+import { readOnlyInterceptor } from './interceptors/read-only.interceptor';
 import { EmployeePortalStore } from './stores/employee-portal.store';
 import { JobApplicationsStore } from './stores/job-applications.store';
 import { PositionsStore } from './stores/positions.store';
@@ -62,7 +63,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideAnimationsAsync(),
     provideHttpClient(
-      withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])
+      withInterceptors([apiUrlInterceptor, httpInterceptor, readOnlyInterceptor, errorInterceptor])
     ),
     provideAuth0({
       domain: getEnv('ENV_AUTH0_DOMAIN') ?? '',

@@ -16,12 +16,16 @@ import { AccordionModule } from 'primeng/accordion';
 import { BadgeModule } from 'primeng/badge';
 import { TabsModule } from 'primeng/tabs';
 import { DividerModule } from 'primeng/divider';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { PermissionsService } from '../../services/permissions.service';
 import { invalidateEmployeeCache } from '../../guards/employee-portal.guard';
 import {
   FrontendPermissions,
   LegacyPermissionKey,
   ModulePermission,
+  SubModuleAccess,
+  SubModuleMode,
+  normalizeSubModuleMode,
 } from './permissions.types';
 import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permissions.types';
 
@@ -37,6 +41,7 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
     BadgeModule,
     TabsModule,
     DividerModule,
+    SelectButtonModule,
   ],
   template: `
     <div class="flex flex-col gap-4 permission-editor-container">
@@ -140,10 +145,15 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
                           <span class="text-xs text-gray-500">{{ sub.description }}</span>
                         </div>
                       </div>
-                      <p-toggleswitch
-                        [ngModel]="getSubModuleEnabled(module.id, sub.id)"
-                        (ngModelChange)="toggleSubModule(module.id, sub.id, $event)"
-                      ></p-toggleswitch>
+                      <p-selectbutton
+                        [options]="accessOptions"
+                        [ngModel]="getSubModuleAccess(module.id, sub.id)"
+                        (ngModelChange)="setSubModuleAccess(module.id, sub.id, $event)"
+                        optionLabel="label"
+                        optionValue="value"
+                        [allowEmpty]="false"
+                        styleClass="access-select"
+                      ></p-selectbutton>
                     </div>
                     }
                   </div>
@@ -230,6 +240,15 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
       padding: 0.75rem;
     }
 
+    :host ::ng-deep .access-select .p-button {
+      padding: 0.25rem 0.6rem;
+      font-size: 0.7rem;
+    }
+    :host ::ng-deep .access-select .p-button.p-highlight[data-pc-name="button"]:nth-child(2) {
+      background: #f59e0b;
+      border-color: #f59e0b;
+    }
+
     .sticky-buttons {
       position: sticky;
       bottom: -1.25rem;
@@ -261,6 +280,13 @@ export class PermissionEditorDialogComponent {
   // Módulos del sistema
   public systemModules = SYSTEM_MODULES;
 
+  // Opciones para el selector tri-estado por sub-módulo
+  public accessOptions: Array<{ label: string; value: SubModuleMode; icon: string }> = [
+    { label: 'Sin acceso', value: 'none', icon: 'pi pi-ban' },
+    { label: 'Lectura', value: 'read', icon: 'pi pi-eye' },
+    { label: 'Completo', value: 'write', icon: 'pi pi-pencil' },
+  ];
+
   // Valores iniciales para abrir todos los paneles del acordeón por defecto
   public defaultAccordionValues = SYSTEM_MODULES.map((m) => m.id);
 
@@ -277,7 +303,7 @@ export class PermissionEditorDialogComponent {
     return SYSTEM_MODULES.map(module => {
       const modulePerm = perms.modules[module.id];
       const enabledCount = Object.values(modulePerm?.subModules || {})
-        .filter(v => v).length;
+        .filter(v => normalizeSubModuleMode(v) !== 'none').length;
       return {
         moduleId: module.id,
         label: module.label,
@@ -305,7 +331,7 @@ export class PermissionEditorDialogComponent {
     const modules: Record<string, ModulePermission> = {};
 
     for (const module of SYSTEM_MODULES) {
-      const subModules: Record<string, boolean> = {};
+      const subModules: Record<string, SubModuleAccess> = {};
       for (const sub of module.subModules) {
         subModules[sub.id] = false;
       }
@@ -330,13 +356,19 @@ export class PermissionEditorDialogComponent {
   getSubModuleEnabled(moduleId: string, subModuleId: string): boolean {
     const module = this.frontendPermissionsState().modules[moduleId];
     if (!module?.enabled) return false;
-    return module.subModules[subModuleId] || false;
+    return !!module.subModules[subModuleId];
+  }
+
+  getSubModuleAccess(moduleId: string, subModuleId: string): SubModuleMode {
+    const module = this.frontendPermissionsState().modules[moduleId];
+    if (!module?.enabled) return 'none';
+    return normalizeSubModuleMode(module.subModules[subModuleId]);
   }
 
   getEnabledSubModulesCount(moduleId: string): number {
     const module = this.frontendPermissionsState().modules[moduleId];
     if (!module?.enabled) return 0;
-    return Object.values(module.subModules).filter(v => v).length;
+    return Object.values(module.subModules).filter(v => normalizeSubModuleMode(v) !== 'none').length;
   }
 
   // Toggles
@@ -361,9 +393,20 @@ export class PermissionEditorDialogComponent {
   }
 
   toggleSubModule(moduleId: string, subModuleId: string, enabled: boolean): void {
+    this.setSubModuleAccess(moduleId, subModuleId, enabled ? 'write' : 'none');
+  }
+
+  /**
+   * Aplica el modo de acceso ('none'|'read'|'write') a un sub-módulo.
+   * Se persiste como `false | 'read' | true` para mantener compatibilidad con el JSON existente.
+   */
+  setSubModuleAccess(moduleId: string, subModuleId: string, mode: SubModuleMode): void {
     const current = this.frontendPermissionsState();
     const module = current.modules[moduleId];
     if (!module) return;
+
+    const value: SubModuleAccess = mode === 'write' ? true : mode === 'read' ? 'read' : false;
+    const shouldEnableModule = mode !== 'none' ? true : module.enabled;
 
     this.frontendPermissionsState.set({
       ...current,
@@ -371,10 +414,10 @@ export class PermissionEditorDialogComponent {
         ...current.modules,
         [moduleId]: {
           ...module,
-          enabled: true, // Activar el módulo si se activa un submódulo
+          enabled: shouldEnableModule,
           subModules: {
             ...module.subModules,
-            [subModuleId]: enabled,
+            [subModuleId]: value,
           },
         },
       },
@@ -386,7 +429,7 @@ export class PermissionEditorDialogComponent {
     const newModules: Record<string, ModulePermission> = {};
 
     for (const module of SYSTEM_MODULES) {
-      const subModules: Record<string, boolean> = {};
+      const subModules: Record<string, SubModuleAccess> = {};
       for (const sub of module.subModules) {
         subModules[sub.id] = enabled;
       }

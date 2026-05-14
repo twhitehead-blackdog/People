@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { LegacyPermissionKey } from '../dashboard/pt-permissions/permissions.types';
 import { SYSTEM_MODULES } from '../dashboard/pt-permissions/module-permissions.types';
 import { PermissionsService } from '../services/permissions.service';
+import { ReadOnlyContextService } from '../services/read-only-context.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 /**
@@ -98,6 +99,7 @@ export const modulePermissionGuard = (
     const permissions = inject(PermissionsService);
     const router = inject(Router);
     const dashboardStore = inject(DashboardStore);
+    const readOnlyCtx = inject(ReadOnlyContextService);
 
     const loaded = await waitForEmployee(dashboardStore);
     if (!loaded) {
@@ -114,6 +116,9 @@ export const modulePermissionGuard = (
     }
 
     if (hasAccess) {
+      // Registra el contexto activo para que cualquier componente/directiva
+      // pueda saber si la vista actual es solo lectura.
+      readOnlyCtx.setCurrentTarget(moduleId, subModuleId);
       return true;
     }
 
