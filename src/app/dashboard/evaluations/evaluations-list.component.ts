@@ -76,6 +76,15 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
       font-size: 1.4rem; font-weight: 800; line-height: 1;
       flex-shrink: 0; min-width: 2.5rem; text-align: right;
     }
+    .score-chip {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
   `],
   template: `
     <p-toast />
@@ -176,14 +185,18 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
                 <td class="py-2 px-2 text-gray-300">{{ e.evaluation_type?.name }}</td>
                 <td class="py-2 px-2 text-gray-400">{{ e.period_label || '—' }}</td>
                 <td class="py-2 px-2 text-gray-400">{{ e.evaluation_date | date:'dd/MM/yyyy' }}</td>
-                <td class="py-2 px-2 text-gray-400">{{ e.evaluator_name || '—' }}</td>
+                <td class="py-2 px-2 text-gray-400">{{ evaluatorName(e) }}</td>
                 <td class="py-2 px-2">
                   @if (e.overall_score != null) {
                     @let r = scoreRating(e);
-                    <span class="font-semibold" [style.color]="r.color">
-                      {{ r.label }}
+                    <span
+                      class="score-chip"
+                      [style.background]="r.color + '22'"
+                      [style.border]="'1px solid ' + r.color"
+                      [style.color]="r.color"
+                    >
+                      {{ r.label }} ({{ e.overall_score | number:'1.1-1' }})
                     </span>
-                    <span class="text-gray-500 text-xs ml-1">({{ e.overall_score | number:'1.1-1' }})</span>
                   } @else { <span class="text-gray-500">—</span> }
                 </td>
                 <td class="py-2 px-2">
@@ -220,15 +233,20 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
               </div>
               @if (e.overall_score != null) {
                 @let r = scoreRating(e);
-                <div class="eval-card-score text-right" [style.color]="r.color">
-                  <div style="font-size: 0.8rem; font-weight: 700; line-height: 1.1;">{{ r.label }}</div>
-                  <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 600;">{{ e.overall_score | number:'1.1-1' }}</div>
-                </div>
+                <span
+                  class="score-chip"
+                  [style.background]="r.color + '22'"
+                  [style.border]="'1px solid ' + r.color"
+                  [style.color]="r.color"
+                >
+                  {{ r.label }} ({{ e.overall_score | number:'1.1-1' }})
+                </span>
               }
             </div>
             <div class="eval-card-meta">
               <span><i class="pi pi-calendar"></i>{{ e.evaluation_date | date:'dd/MM/yyyy' }}</span>
-              @if (e.evaluator_name) { <span><i class="pi pi-user"></i>{{ e.evaluator_name }}</span> }
+              @let evName = evaluatorName(e);
+              @if (evName !== '—') { <span><i class="pi pi-user"></i>{{ evName }}</span> }
               @if (e.period_label) { <span><i class="pi pi-clock"></i>{{ e.period_label }}</span> }
             </div>
             <div class="flex items-center justify-between mt-2">
@@ -278,7 +296,7 @@ export class EvaluationsListComponent {
   public evaluationsResource = httpResource<EmployeeEvaluation[]>(() => ({
     url: this.apiUrl.build('rest/v1/employee_evaluations', {
       select:
-        'id,employee_id,evaluation_type_id,evaluator_name,period_label,evaluation_date,status,overall_score,values_avg,competencies_avg,suitability_count,employee:employees!employee_evaluations_employee_id_fkey(id,first_name,father_name,branch:branches(id,name)),evaluation_type:evaluation_types!employee_evaluations_evaluation_type_id_fkey(id,name,rating_scale,rating_labels,rating_colors)',
+        'id,employee_id,evaluator_id,evaluation_type_id,evaluator_name,period_label,evaluation_date,status,overall_score,values_avg,competencies_avg,suitability_count,employee:employees!employee_evaluations_employee_id_fkey(id,first_name,father_name,branch:branches(id,name)),evaluator:employees!employee_evaluations_evaluator_id_fkey(id,first_name,father_name),evaluation_type:evaluation_types!employee_evaluations_evaluation_type_id_fkey(id,name,rating_scale,rating_labels,rating_colors)',
       order: 'evaluation_date.desc',
     }),
   }));
@@ -318,6 +336,16 @@ export class EvaluationsListComponent {
   }
   public statusSeverity(s: string): 'info' | 'success' | 'secondary' {
     return s === 'completed' ? 'success' : s === 'draft' ? 'info' : 'secondary';
+  }
+
+  public evaluatorName(e: EmployeeEvaluation): string {
+    if (e.evaluator_name && e.evaluator_name.trim()) return e.evaluator_name;
+    const ev = e.evaluator;
+    if (ev) {
+      const full = `${ev.first_name ?? ''} ${ev.father_name ?? ''}`.trim();
+      if (full) return full;
+    }
+    return '—';
   }
 
   public scoreRating(e: EmployeeEvaluation): { label: string; color: string } {

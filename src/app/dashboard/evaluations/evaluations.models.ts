@@ -71,6 +71,7 @@ export interface EmployeeEvaluation {
     rating_labels?: string[];
     rating_colors?: string[];
   };
+  evaluator?: { id: string; first_name: string; father_name?: string } | null;
   responses?: EvaluationResponse[];
 }
 
