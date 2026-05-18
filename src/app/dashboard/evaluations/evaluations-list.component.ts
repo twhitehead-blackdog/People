@@ -189,10 +189,15 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
                 <td class="py-2 px-2">
                   @if (e.overall_score != null) {
                     @let r = scoreRating(e);
-                    <p-tag
-                      [value]="r.label + ' (' + (e.overall_score | number:'1.1-1') + ')'"
-                      [style]="{ background: r.color, color: '#fff' }"
-                    />
+                    <span
+                      class="score-chip"
+                      [style.background]="r.color + '22'"
+                      [style.border]="'1px solid ' + r.color"
+                      [style.color]="r.color"
+                    >
+                      {{ r.label }}
+                    </span>
+                    <span class="text-gray-400 text-xs ml-2">{{ e.overall_score | number:'1.1-1' }}</span>
                   } @else { <span class="text-gray-500">—</span> }
                 </td>
                 <td class="py-2 px-2">
@@ -229,10 +234,17 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
               </div>
               @if (e.overall_score != null) {
                 @let r = scoreRating(e);
-                <p-tag
-                  [value]="r.label + ' (' + (e.overall_score | number:'1.1-1') + ')'"
-                  [style]="{ background: r.color, color: '#fff' }"
-                />
+                <div class="flex items-center gap-2">
+                  <span
+                    class="score-chip"
+                    [style.background]="r.color + '22'"
+                    [style.border]="'1px solid ' + r.color"
+                    [style.color]="r.color"
+                  >
+                    {{ r.label }}
+                  </span>
+                  <span class="text-gray-400 text-xs">{{ e.overall_score | number:'1.1-1' }}</span>
+                </div>
               }
             </div>
             <div class="eval-card-meta">
