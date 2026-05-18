@@ -100,6 +100,10 @@ export function app(): express.Express {
     validate: { trustProxy: false },
     skip: (req) => {
       const p = req.path;
+      // /api/auth/check is hit by nginx auth_request on every protected request
+      // across all bd domains (conciliador, etc.) — counts as a single IP (127.0.0.1)
+      // so it saturates the limit and causes 429 → nginx maps it to 500
+      if (p === '/api/auth/check') return true;
       return p === '/api/version' || p === '/api/client-ip' || p === '/api/server-time' || p === '/api/lock-settings';
     },
   });
