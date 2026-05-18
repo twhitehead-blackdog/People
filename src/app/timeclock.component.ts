@@ -61,6 +61,7 @@ import { DogAnimationComponent } from './dashboard/components/dog.component';
 import { CatAnimationComponent } from './dashboard/components/cat.component';
 import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import { DpInstallHelpModalComponent } from './shared/components/dp-install-help-modal.component';
+import { AuthenticatorEnrollmentComponent } from './dashboard/authenticator-enrollment/authenticator-enrollment.component';
 import {
   initAudioContext,
   playFailureSound,
@@ -119,6 +120,7 @@ interface TimeclockInfoData {
     DogAnimationComponent,
     DpEnrollDialogComponent,
     DpInstallHelpModalComponent,
+    AuthenticatorEnrollmentComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
@@ -638,6 +640,28 @@ interface TimeclockInfoData {
               />
             </div>
 
+            <!-- Banner: empleado sin Authenticator -->
+            @if (selectedEmployee() && needsEnrollment()) {
+              <div class="w-full" style="
+                display:flex; align-items:center; gap:0.6rem;
+                padding:0.65rem 0.85rem; margin-bottom: 0.5rem;
+                background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.4);
+                border-radius: 0.5rem; color: #fbbf24; font-size: 0.78rem;
+              ">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div style="flex:1">
+                  <strong>Sin Authenticator</strong> — un gerente debe configurar el acceso.
+                </div>
+                <p-button
+                  label="Configurar"
+                  icon="pi pi-shield"
+                  size="small"
+                  severity="warn"
+                  (onClick)="openEnrollment()"
+                />
+              </div>
+            }
+
             <!-- Auth Method Toggle: SIEMPRE visible cuando hay empleado.
                  PIN es opcional para todos aunque tengan huella enrolada. -->
             @if (selectedEmployee()) {
@@ -1069,7 +1093,17 @@ interface TimeclockInfoData {
     }
 
     <!-- DP install help dialog (shared modal — rendered at template root) -->
-    <app-dp-install-help-modal [(show)]="showDpHelp" />`,
+    <app-dp-install-help-modal [(show)]="showDpHelp" />
+
+    <!-- Authenticator enrollment wizard -->
+    @if (selectedEmployee()) {
+      <pt-authenticator-enrollment
+        [employee]="enrollmentEmployee()"
+        [visible]="enrollmentVisible()"
+        (finished)="onEnrollmentFinished()"
+        (cancelled)="enrollmentVisible.set(false)"
+      />
+    }`,
   styleUrl: './timeclock.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1138,6 +1172,30 @@ export class TimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
+
+  // Authenticator enrollment wizard
+  public enrollmentVisible = signal<boolean>(false);
+  public needsEnrollment = computed<boolean>(() => {
+    const e: any = this.selectedEmployee();
+    return !!e && e.authenticator_enrolled === false;
+  });
+  public enrollmentEmployee = computed(() => {
+    const e: any = this.selectedEmployee() || {};
+    return {
+      id: e.id,
+      first_name: e.first_name || '',
+      father_name: e.father_name || '',
+      code_uri: e.code_uri || null,
+      branch_id: e.branch_id || null,
+    };
+  });
+  public openEnrollment() { this.enrollmentVisible.set(true); }
+  public onEnrollmentFinished() {
+    this.enrollmentVisible.set(false);
+    const e: any = this.selectedEmployee();
+    if (e) this.selectedEmployee.set({ ...e, authenticator_enrolled: true });
+    this.employeesResource.reload();
+  }
   public authMethod = signal<'pin' | 'fingerprint'>('pin');
   public employeeHasFingerprint = signal<boolean>(false);
   // Fallback PIN: si falla la huella, habilitamos PIN aunque el empleado
@@ -2110,7 +2168,7 @@ export class TimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri,birth_date,branch_id,gender',
+      select: 'id,first_name,father_name,code_uri,birth_date,branch_id,gender,authenticator_enrolled',
       order: 'father_name',
       is_active: 'eq.true',
     };
