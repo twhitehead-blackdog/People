@@ -137,6 +137,30 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'it-tickets',
+            canActivate: [modulePermissionGuard('admin', 'it_tickets')],
+            loadComponent: () =>
+              import('./it-tickets-admin.component').then(
+                (x) => x.ItTicketsAdminComponent
+              ),
+          },
+          {
+            path: 'it-mobile-lines',
+            canActivate: [modulePermissionGuard('admin', 'it_mobile_lines')],
+            loadComponent: () =>
+              import('./it-mobile-lines.component').then(
+                (x) => x.ItMobileLinesComponent
+              ),
+          },
+          {
+            path: 'it-licenses',
+            canActivate: [modulePermissionGuard('admin', 'it_licenses')],
+            loadComponent: () =>
+              import('./it-licenses.component').then(
+                (x) => x.ItLicensesComponent
+              ),
+          },
+          {
             path: 'news',
             canActivate: [modulePermissionGuard('admin', 'device_inventory')],
             loadComponent: () =>

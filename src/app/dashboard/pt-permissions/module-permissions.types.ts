@@ -55,6 +55,9 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'job_applications', label: 'Postulaciones', description: 'Gestión de postulaciones de empleo', icon: 'pi pi-file-edit', route: 'job-applications' },
       { id: 'audit_tasks', label: 'Control de Tareas', description: 'Seguimiento y control de tareas de auditoría', icon: 'pi pi-check-square', route: 'audit-tasks' },
       { id: 'device_inventory', label: 'Inventario de Dispositivos', description: 'Gestión de dispositivos y equipos', icon: 'pi pi-mobile', route: 'device-inventory' },
+      { id: 'it_tickets',       label: 'Tickets IT',         description: 'Bandeja de tickets de soporte técnico', icon: 'pi pi-desktop',     route: 'it-tickets' },
+      { id: 'it_mobile_lines',  label: 'Líneas Móviles',     description: 'Gestión de líneas móviles corporativas', icon: 'pi pi-phone',       route: 'it-mobile-lines' },
+      { id: 'it_licenses',      label: 'Licencias Software', description: 'Inventario de licencias de software',    icon: 'pi pi-key',         route: 'it-licenses' },
     ],
   },
   {

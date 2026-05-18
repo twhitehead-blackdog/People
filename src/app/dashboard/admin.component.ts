@@ -86,6 +86,24 @@ import { DeviceService } from '../services/device.service';
                   [class.text-amber-300]="isActiveRoute('device-inventory')">
                   <i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span>
                 </a>
+                <a routerLink="it-tickets"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('it-tickets')"
+                  [class.text-amber-300]="isActiveRoute('it-tickets')">
+                  <i class="pi pi-desktop text-sm"></i><span>Tickets IT</span>
+                </a>
+                <a routerLink="it-mobile-lines"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('it-mobile-lines')"
+                  [class.text-amber-300]="isActiveRoute('it-mobile-lines')">
+                  <i class="pi pi-phone text-sm"></i><span>Líneas Móviles</span>
+                </a>
+                <a routerLink="it-licenses"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('it-licenses')"
+                  [class.text-amber-300]="isActiveRoute('it-licenses')">
+                  <i class="pi pi-key text-sm"></i><span>Licencias</span>
+                </a>
                 @if (adminSubs().user_management) {
                 <a routerLink="user-management"
                   class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -261,6 +279,9 @@ import { DeviceService } from '../services/device.service';
             @if (canViewITModule()) {
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
             <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
+            <a routerLink="it-tickets" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-tickets')" [class.text-amber-300]="isActiveRoute('it-tickets')"><i class="pi pi-desktop text-sm"></i><span>Tickets IT</span></a>
+            <a routerLink="it-mobile-lines" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-mobile-lines')" [class.text-amber-300]="isActiveRoute('it-mobile-lines')"><i class="pi pi-phone text-sm"></i><span>Líneas Móviles</span></a>
+            <a routerLink="it-licenses" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-licenses')" [class.text-amber-300]="isActiveRoute('it-licenses')"><i class="pi pi-key text-sm"></i><span>Licencias</span></a>
             @if (adminSubs().user_management) {
             <a routerLink="user-management" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('user-management')" [class.text-amber-300]="isActiveRoute('user-management')"><i class="pi pi-user-edit text-sm"></i><span>Gestión de Usuarios</span></a>
             }
