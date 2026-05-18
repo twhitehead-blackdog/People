@@ -2911,6 +2911,111 @@ export function app(): express.Express {
     }
   });
 
+  // ============================================================
+  // Notificación: ticket IT urgente
+  // ============================================================
+  server.post('/api/notifications/it-ticket-urgent', async (req, res) => {
+    try {
+      const { ticketId, title, description, category, branchName, requesterName } = req.body as {
+        ticketId?: number;
+        title: string;
+        description?: string;
+        category?: string;
+        branchName?: string;
+        requesterName?: string;
+      };
+
+      if (!title) {
+        return res.status(400).json({ error: 'title es requerido' });
+      }
+
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const supabaseKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_API_KEY'];
+
+      let emailMasterEnabled = true;
+      let typeEnabled = true;
+      let recipients = ['soporte2@blackdogpanama.com'];
+
+      if (supabaseUrl && supabaseKey) {
+        try {
+          const settingsRes = await fetch(
+            `${supabaseUrl}/rest/v1/settings?key=in.(email_enabled,it_email_notify_urgent,it_email_recipients_urgent)&select=key,value`,
+            {
+              headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+              signal: AbortSignal.timeout(5000),
+            }
+          );
+          if (settingsRes.ok) {
+            const settings: Array<{ key: string; value: string }> = await settingsRes.json();
+            for (const s of settings) {
+              if (s.key === 'email_enabled') emailMasterEnabled = s.value !== 'false';
+              if (s.key === 'it_email_notify_urgent') typeEnabled = s.value !== 'false';
+              if (s.key === 'it_email_recipients_urgent' && s.value) {
+                recipients = s.value.split(',').map(r => r.trim()).filter(Boolean);
+              }
+            }
+          }
+        } catch {
+          // Usar defaults si falla la lectura
+        }
+      }
+
+      if (!emailMasterEnabled) {
+        return res.json({ sent: false, reason: 'email deshabilitado' });
+      }
+      if (!typeEnabled) {
+        return res.json({ sent: false, reason: 'notificaciones IT urgentes deshabilitadas' });
+      }
+
+      const catLabels: Record<string, string> = {
+        hardware: 'Hardware',
+        software: 'Software / Acceso',
+        network:  'Red / Internet',
+        other:    'Otro',
+      };
+      const now = new Date().toLocaleString('es-PA', { timeZone: 'America/Panama' });
+      const escape = (s: string) => String(s ?? '').replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c] as string));
+
+      const subject = `[URGENTE] Ticket IT #${ticketId ?? '—'} — ${escape(title)}`;
+      const html = `
+        <div style="font-family:system-ui,sans-serif;max-width:600px;background:#0f0f0f;color:#e4e4e7;padding:24px;border-radius:8px;">
+          <div style="background:#dc2626;color:#fff;padding:8px 12px;border-radius:6px;display:inline-block;font-weight:600;font-size:13px;letter-spacing:0.5px;">
+            PRIORIDAD URGENTE
+          </div>
+          <h2 style="margin:12px 0 4px;color:#fff;">Ticket IT #${ticketId ?? '—'}</h2>
+          <p style="margin:0 0 16px;color:#71717a;font-size:14px;">${now}</p>
+          <h3 style="margin:8px 0;color:#fafafa;">${escape(title)}</h3>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;">
+            ${requesterName ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Solicitante</td><td style="padding:4px 12px;">${escape(requesterName)}</td></tr>` : ''}
+            ${branchName ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Sucursal</td><td style="padding:4px 12px;">${escape(branchName)}</td></tr>` : ''}
+            ${category ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Categoría</td><td style="padding:4px 12px;">${catLabels[category] || category}</td></tr>` : ''}
+          </table>
+          ${description ? `<div style="background:#18181b;border-radius:6px;padding:12px;margin-top:14px;font-size:13px;white-space:pre-wrap;">${escape(description)}</div>` : ''}
+          <p style="margin-top:20px;font-size:13px;">
+            <a href="https://people.blackdogpanama.com/admin/it-tickets" style="color:#fbbf24;text-decoration:none;">
+              → Abrir bandeja IT en People
+            </a>
+          </p>
+          <p style="margin-top:12px;color:#52525b;font-size:12px;">— People IT</p>
+        </div>`;
+
+      const notifUser = process.env['ENV_NOTIFICATIONS_SMTP_USER'] || '';
+      const notifPass = process.env['ENV_NOTIFICATIONS_SMTP_PASSWORD'] || '';
+      const smtpOpts = notifUser && notifPass
+        ? { user: notifUser, pass: notifPass, from: notifUser }
+        : undefined;
+
+      console.error('[IT Urgent] Enviando a:', recipients, '| ticket:', ticketId);
+      const sent = await sendEmailMS365(recipients, subject, html, smtpOpts);
+      console.error('[IT Urgent] Resultado:', sent ? '✅ enviado' : '❌ falló');
+
+      return res.json({ sent });
+    } catch (error: any) {
+      console.error('[IT Urgent] Error:', error.message);
+      return res.status(500).json({ error: 'Error al enviar notificación IT urgent' });
+    }
+  });
+
   // Root endpoint - información básica del servidor (solo para peticiones API)
   // Para peticiones del navegador, servir index.html directamente
   server.get('/', (req, res) => {

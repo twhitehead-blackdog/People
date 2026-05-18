@@ -651,8 +651,8 @@ export class BranchManagerItTicketsTabComponent {
 
     this.saving.set(true);
     try {
-      await firstValueFrom(
-        this.http.post(
+      const insertResponse = await firstValueFrom(
+        this.http.post<Array<{ id: number }>>(
           this.apiUrl.build('rest/v1/it_tickets'),
           {
             title:        this.form.title.trim(),
@@ -664,13 +664,30 @@ export class BranchManagerItTicketsTabComponent {
             company_id:   companyId,
             requester_id: employee.id,
           },
-          { headers: { Prefer: 'return=minimal' } }
+          { headers: { Prefer: 'return=representation', Accept: 'application/json' } }
         )
       );
+      const newTicketId = Array.isArray(insertResponse) ? insertResponse[0]?.id : undefined;
+
+      if (this.form.priority === 'urgent') {
+        const branchName = this.store.currentBranch()?.name;
+        const requesterName = `${employee.first_name ?? ''} ${employee.father_name ?? ''}`.trim();
+        this.http.post('/api/notifications/it-ticket-urgent', {
+          ticketId:      newTicketId,
+          title:         this.form.title.trim(),
+          description:   this.form.description.trim(),
+          category:      this.form.category,
+          branchName,
+          requesterName,
+        }).subscribe({ error: () => void 0 });
+      }
+
       this.messageService.add({
         severity: 'success',
         summary: 'Ticket enviado',
-        detail: 'El equipo IT recibió tu reporte y lo atenderá pronto.',
+        detail: this.form.priority === 'urgent'
+          ? 'El equipo IT recibió tu reporte URGENTE y será notificado por correo.'
+          : 'El equipo IT recibió tu reporte y lo atenderá pronto.',
         life: 5000,
       });
       this.showDialog = false;
