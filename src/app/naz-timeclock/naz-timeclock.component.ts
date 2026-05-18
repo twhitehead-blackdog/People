@@ -29,7 +29,6 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DpInstallHelpModalComponent } from '../shared/components/dp-install-help-modal.component';
-import { AuthenticatorEnrollmentComponent } from '../dashboard/authenticator-enrollment/authenticator-enrollment.component';
 import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
@@ -87,7 +86,6 @@ interface TimeclockInfoData {
     TrimPipe,
     NgClass,
     DpInstallHelpModalComponent,
-    AuthenticatorEnrollmentComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-confirmDialog key="confirm2">
@@ -437,28 +435,6 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Banner para empleados sin Authenticator configurado -->
-            @if (selectedEmployee() && needsEnrollment()) {
-              <div class="w-full" style="
-                display:flex; align-items:center; gap:0.6rem;
-                padding:0.65rem 0.85rem; margin-bottom: 0.5rem;
-                background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.4);
-                border-radius: 0.5rem; color: #fbbf24; font-size: 0.78rem;
-              ">
-                <i class="pi pi-exclamation-triangle"></i>
-                <div style="flex:1">
-                  <strong>Sin Authenticator</strong> — un gerente debe configurar el acceso.
-                </div>
-                <p-button
-                  label="Configurar"
-                  icon="pi pi-shield"
-                  size="small"
-                  severity="warn"
-                  (onClick)="openEnrollment()"
-                />
-              </div>
-            }
-
             <!-- Auth Method Toggle: visible cuando no hay huella usable.
                  DP requiere lector conectado; sin lector, dejamos PIN como fallback. -->
             @if (selectedEmployee() && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
@@ -674,16 +650,6 @@ interface TimeclockInfoData {
 
       <!-- DP install help dialog (shared modal — rendered at template root) -->
       <app-dp-install-help-modal [(show)]="showDpHelp" />
-
-      <!-- Authenticator enrollment wizard -->
-      @if (selectedEmployee()) {
-        <pt-authenticator-enrollment
-          [employee]="enrollmentEmployee()"
-          [visible]="enrollmentVisible()"
-          (finished)="onEnrollmentFinished()"
-          (cancelled)="enrollmentVisible.set(false)"
-        />
-      }
     </div>`,
   styleUrl: './naz-timeclock.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -720,31 +686,6 @@ export class NazTimeclockComponent implements OnDestroy {
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
-
-  // Authenticator enrollment wizard
-  public enrollmentVisible = signal<boolean>(false);
-  public needsEnrollment = computed<boolean>(() => {
-    const e: any = this.selectedEmployee();
-    return !!e && e.authenticator_enrolled === false;
-  });
-  public enrollmentEmployee = computed(() => {
-    const e: any = this.selectedEmployee() || {};
-    return {
-      id: e.id,
-      first_name: e.first_name || '',
-      father_name: e.father_name || '',
-      code_uri: e.code_uri || null,
-      branch_id: e.branch_id || null,
-    };
-  });
-  public openEnrollment() { this.enrollmentVisible.set(true); }
-  public onEnrollmentFinished() {
-    this.enrollmentVisible.set(false);
-    // refrescar el flag local sin recargar todo
-    const e: any = this.selectedEmployee();
-    if (e) this.selectedEmployee.set({ ...e, authenticator_enrolled: true });
-    this.employeesResource.reload();
-  }
 
   // Computed para verificar si es Naz
   public isNazCompany = computed(() => this.organizationService.isNaz());
@@ -1241,7 +1182,7 @@ export class NazTimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri,birth_date,branch_id,authenticator_enrolled',
+      select: 'id,first_name,father_name,code_uri,birth_date,branch_id',
       order: 'father_name',
       is_active: 'eq.true',
     };

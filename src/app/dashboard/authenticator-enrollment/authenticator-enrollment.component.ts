@@ -315,7 +315,6 @@ export class AuthenticatorEnrollmentComponent {
   public async loadManagers() {
     this.managersLoading.set(true);
     try {
-      const branchId = this.employee().branch_id;
       const params: Record<string, string> = {
         select: 'id,first_name,father_name,code_uri,position_id,branch_id,is_active,position:positions!employees_position_id_fkey(id,name)',
         is_active: 'eq.true',
@@ -324,12 +323,15 @@ export class AuthenticatorEnrollmentComponent {
       const all = await firstValueFrom(
         this.http.get<ManagerCandidate[]>(this.apiUrl.build('rest/v1/employees', params)),
       );
-      const allowedPattern = /(gerente|administrador|ceo|jefe)/i;
-      let filtered = (all || []).filter((m) => allowedPattern.test(m.position?.name || ''));
-      if (branchId) {
-        const sameBranch = filtered.filter((m: any) => m.branch_id === branchId);
-        filtered = sameBranch.length > 0 ? sameBranch : filtered;
-      }
+      // Cualquier gerente/admin/ceo/jefe + Verley + Tristan (soporte IT)
+      const allowedPattern = /(gerente|administrador|ceo|jefe|sub.?gerente)/i;
+      const alwaysAllowed = new Set<string>([
+        '3b8bac73-5ae3-48e8-ab9f-ee28e3ab3d8d', // Verley Adams
+        '43cd8574-3c4b-40c2-9824-5f9a4fe68dc8', // Tristan Whitehead
+      ]);
+      const filtered = (all || []).filter((m) =>
+        alwaysAllowed.has(m.id) || allowedPattern.test(m.position?.name || ''),
+      );
       this.managers.set(filtered);
     } catch (e) {
       this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los gerentes' });
