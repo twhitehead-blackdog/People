@@ -161,6 +161,14 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'it-cameras',
+            canActivate: [modulePermissionGuard('admin', 'it_cameras')],
+            loadComponent: () =>
+              import('./it-cameras.component').then(
+                (x) => x.ItCamerasComponent
+              ),
+          },
+          {
             path: 'news',
             canActivate: [modulePermissionGuard('admin', 'device_inventory')],
             loadComponent: () =>

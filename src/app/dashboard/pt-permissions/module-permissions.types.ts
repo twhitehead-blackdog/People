@@ -58,6 +58,7 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
       { id: 'it_tickets',       label: 'Tickets IT',         description: 'Bandeja de tickets de soporte técnico', icon: 'pi pi-desktop',     route: 'it-tickets' },
       { id: 'it_mobile_lines',  label: 'Líneas Móviles',     description: 'Gestión de líneas móviles corporativas', icon: 'pi pi-phone',       route: 'it-mobile-lines' },
       { id: 'it_licenses',      label: 'Licencias Software', description: 'Inventario de licencias de software',    icon: 'pi pi-key',         route: 'it-licenses' },
+      { id: 'it_cameras',       label: 'Cámaras NVR',        description: 'Monitoreo de cámaras de seguridad',      icon: 'pi pi-video',       route: 'it-cameras' },
     ],
   },
   {

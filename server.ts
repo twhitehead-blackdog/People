@@ -106,6 +106,8 @@ export function app(): express.Express {
       // across all bd domains (conciliador, etc.) — counts as a single IP (127.0.0.1)
       // so it saturates the limit and causes 429 → nginx maps it to 500
       if (p === '/api/auth/check') return true;
+      // Long-lived camera MJPEG streams: una sola request por sesión, cuenta como muchas
+      if (p.startsWith('/api/live/') || p.startsWith('/api/snapshot/') || p.startsWith('/go2rtc')) return true;
       return p === '/api/version' || p === '/api/client-ip' || p === '/api/server-time' || p === '/api/lock-settings';
     },
   });
@@ -3015,6 +3017,311 @@ export function app(): express.Express {
       return res.status(500).json({ error: 'Error al enviar notificación IT urgent' });
     }
   });
+
+  // ============================================================
+  // CÁMARAS NVR (Hikvision ISAPI) — migrado desde blackdog-it
+  // ============================================================
+  {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const DigestFetchMod = require('digest-fetch');
+    const DigestFetch: any = DigestFetchMod.default || DigestFetchMod.DigestClient || DigestFetchMod;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const { createProxyMiddleware } = require('http-proxy-middleware') as { createProxyMiddleware: any };
+
+    const supabaseUrlNVR = process.env['ENV_SUPABASE_URL'];
+    const supabaseKeyNVR = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_API_KEY'];
+    const GO2RTC_API = process.env['ENV_GO2RTC_URL'] || 'http://localhost:1984';
+
+    async function nvrSelect(query: string): Promise<any[]> {
+      if (!supabaseUrlNVR || !supabaseKeyNVR) return [];
+      const r = await fetch(`${supabaseUrlNVR}/rest/v1/it_nvr_devices?${query}`, {
+        headers: { apikey: supabaseKeyNVR, Authorization: `Bearer ${supabaseKeyNVR}` },
+      });
+      if (!r.ok) return [];
+      return r.json();
+    }
+
+    async function isapiFetch(ip: string, port: number, username: string, password: string, endpoint: string, timeoutMs = 10000): Promise<string> {
+      const client = new DigestFetch(username, password);
+      const url = `http://${ip}:${port}${endpoint}`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const r = await client.fetch(url, { signal: controller.signal });
+        if (!r.ok) throw new Error(`ISAPI ${r.status}: ${r.statusText}`);
+        return await r.text();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function parseChannelStatus(xml: string) {
+      const blocks = xml.match(/<InputProxyChannelStatus[^>]*>[\s\S]*?<\/InputProxyChannelStatus>/g) || [];
+      return blocks.map(block => {
+        const streamingIds = block.match(/<streamingProxyChannelId>(\d+)<\/streamingProxyChannelId>/g) || [];
+        const mainStreamId = streamingIds.map(s => s.replace(/<\/?streamingProxyChannelId>/g, '')).find(id => id.endsWith('1')) || '';
+        return {
+          channel_id: block.match(/<id>(.*?)<\/id>/)?.[1]?.trim() || '',
+          streaming_id: mainStreamId,
+          online: block.match(/<online>(.*?)<\/online>/)?.[1]?.trim() === 'true',
+          cam_ip: block.match(/<ipAddress>(.*?)<\/ipAddress>/)?.[1]?.trim() || '',
+          cam_name: block.match(/<name>(.*?)<\/name>/)?.[1]?.trim() || '',
+        };
+      });
+    }
+
+    function parseStreamingChannels(xml: string): string[] {
+      const ids = xml.match(/<id>(\d+)<\/id>/g) || [];
+      return ids.map(s => s.replace(/<\/?id>/g, '')).filter(id => id.endsWith('1') && id.length >= 3);
+    }
+
+    function parseStorage(xml: string) {
+      const capMatch = xml.match(/<capacity>(\d+)<\/capacity>/);
+      const freeMatch = xml.match(/<freeSpace>(\d+)<\/freeSpace>/);
+      const totalGb = capMatch ? Math.round(parseInt(capMatch[1]) / 1024 / 1024 * 10) / 10 : null;
+      const freeGb = freeMatch ? Math.round(parseInt(freeMatch[1]) / 1024 / 1024 * 10) / 10 : null;
+      return { disk_total_gb: totalGb, disk_free_gb: freeGb };
+    }
+
+    async function getNvr(nvrId: string) {
+      const list = await nvrSelect(`id=eq.${encodeURIComponent(nvrId)}&select=id,name,ip,port,rtsp_port,username,password_enc,location,model&limit=1`);
+      return list[0];
+    }
+
+    const digestClients = new Map<string, { client: any; ts: number }>();
+    function getDigestClient(nvrId: string, username: string, password: string) {
+      const cached = digestClients.get(nvrId);
+      if (cached && Date.now() - cached.ts < 300000) return cached.client;
+      const client = new DigestFetch(username, password);
+      digestClients.set(nvrId, { client, ts: Date.now() });
+      return client;
+    }
+
+    async function registerStream(streamName: string, rtspUrl: string) {
+      try {
+        await fetch(`${GO2RTC_API}/api/streams?name=${encodeURIComponent(streamName)}&src=${encodeURIComponent(rtspUrl)}`, { method: 'PUT' });
+      } catch (e) {
+        console.error('[go2rtc] register error:', (e as Error).message);
+      }
+    }
+
+    // Batch: estado de todos los NVRs activos
+    server.get('/api/nvr/all/status', async (_req, res) => {
+      try {
+        const nvrs = await nvrSelect('active=eq.true&select=id,name,ip,port,username,password_enc,location,model,branch_id,expected_channels,branch:branches(id,name)&order=name');
+        if (!nvrs.length) { res.json([]); return; }
+        const results = await Promise.allSettled(nvrs.map(async (nvr: any) => {
+          const [statusXml, storageXml, streamingXml] = await Promise.allSettled([
+            isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/InputProxy/channels/status', 8000),
+            isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/Storage', 8000),
+            isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/Streaming/channels', 8000),
+          ]);
+          const channels = statusXml.status === 'fulfilled' ? parseChannelStatus(statusXml.value) : [];
+          const storage = storageXml.status === 'fulfilled' ? parseStorage(storageXml.value) : { disk_total_gb: null, disk_free_gb: null };
+          const streamingChannelIds = streamingXml.status === 'fulfilled' ? parseStreamingChannels(streamingXml.value) : [];
+          const branch = nvr.branch;
+          const expected = nvr.expected_channels;
+          const activeChannels = expected ? channels.slice(0, expected).map(ch => ({ ...ch, unused: false })) : channels.map(ch => ({ ...ch, unused: false }));
+          const unusedChannels = expected ? channels.slice(expected).map(ch => ({ ...ch, unused: true, online: false })) : [];
+          const allChannels = [...activeChannels, ...unusedChannels];
+          return {
+            nvr_id: nvr.id, nvr_name: nvr.name, nvr_ip: nvr.ip,
+            nvr_location: nvr.location || branch?.name || '',
+            nvr_model: nvr.model, branch_id: nvr.branch_id,
+            branch_name: branch?.name || nvr.location || '',
+            expected_channels: expected, channels: allChannels,
+            streaming_channels: streamingChannelIds, ...storage,
+            online: activeChannels.length > 0,
+            online_count: activeChannels.filter(c => c.online).length,
+            offline_count: activeChannels.filter(c => !c.online).length,
+            unused_count: unusedChannels.length,
+            total_channels: allChannels.length,
+            error: statusXml.status === 'rejected' ? (statusXml.reason as Error)?.message : null,
+          };
+        }));
+        res.json(results.map((r, i) => {
+          const nvr = nvrs[i] as any;
+          return r.status === 'fulfilled' ? r.value : {
+            nvr_id: nvr.id, nvr_name: nvr.name, nvr_ip: nvr.ip,
+            nvr_location: nvr.location || nvr.branch?.name || '',
+            branch_id: nvr.branch_id,
+            branch_name: nvr.branch?.name || nvr.location || '',
+            expected_channels: nvr.expected_channels,
+            channels: [], streaming_channels: [],
+            online: false, online_count: 0, offline_count: 0, unused_count: 0, total_channels: 0,
+            error: (r.reason as Error)?.message || 'Connection failed',
+          };
+        }));
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Status individual de un NVR
+    server.get('/api/nvr/:nvrId/status', async (req, res) => {
+      try {
+        const nvr = await getNvr(req.params['nvrId']);
+        if (!nvr) { res.status(404).json({ error: 'NVR not found' }); return; }
+        const [statusXml, storageXml] = await Promise.allSettled([
+          isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/InputProxy/channels/status'),
+          isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/Storage'),
+        ]);
+        const channels = statusXml.status === 'fulfilled' ? parseChannelStatus(statusXml.value) : [];
+        const storage = storageXml.status === 'fulfilled' ? parseStorage(storageXml.value) : { disk_total_gb: null, disk_free_gb: null };
+        res.json({
+          nvr_id: nvr.id, nvr_name: nvr.name, channels, ...storage,
+          checked_at: new Date().toISOString(),
+          errors: [
+            ...(statusXml.status === 'rejected' ? [`channels: ${(statusXml.reason as Error)?.message || 'error'}`] : []),
+            ...(storageXml.status === 'rejected' ? [`storage: ${(storageXml.reason as Error)?.message || 'error'}`] : []),
+          ],
+        });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    server.get('/api/nvr/:nvrId/storage', async (req, res) => {
+      try {
+        const nvr = await getNvr(req.params['nvrId']);
+        if (!nvr) { res.status(404).json({ error: 'NVR not found' }); return; }
+        const xml = await isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/Storage');
+        res.json(parseStorage(xml));
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Stream WebRTC/MSE via go2rtc
+    server.get('/api/stream/:nvrId/:channelId', async (req, res) => {
+      try {
+        const nvr = await getNvr(req.params['nvrId']);
+        if (!nvr) { res.status(404).json({ error: 'NVR not found' }); return; }
+        const ch = parseInt(req.params['channelId']);
+        const rtspPort = nvr.rtsp_port || 554;
+        const streamId = `${ch}01`;
+        const streamName = `nvr_${nvr.id}_ch${ch}`;
+        const rtspUrl = `rtsp://${nvr.username}:${nvr.password_enc}@${nvr.ip}:${rtspPort}/Streaming/Channels/${streamId}`;
+        await registerStream(streamName, rtspUrl);
+        res.json({
+          stream_name: streamName, nvr_name: nvr.name, channel_id: ch,
+          ws_mse: `/go2rtc/api/ws?src=${streamName}`,
+          webrtc: `/go2rtc/api/webrtc?src=${streamName}`,
+        });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Snapshot JPEG ISAPI
+    server.get('/api/snapshot/:nvrId/:streamingId', async (req, res) => {
+      try {
+        const nvr = await getNvr(req.params['nvrId']);
+        if (!nvr) { res.status(404).json({ error: 'NVR not found' }); return; }
+        const streamingId = req.params['streamingId'];
+        const client = getDigestClient(nvr.id, nvr.username, nvr.password_enc);
+        const url = `http://${nvr.ip}:${nvr.port}/ISAPI/Streaming/channels/${streamingId}/picture`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        try {
+          const response = await client.fetch(url, { signal: controller.signal });
+          if (!response.ok) throw new Error(`ISAPI ${response.status}`);
+          const buffer = await response.arrayBuffer();
+          res.set('Content-Type', 'image/jpeg');
+          res.set('Cache-Control', 'no-cache');
+          res.send(Buffer.from(buffer));
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Live MJPEG continuo
+    server.get('/api/live/:nvrId/:streamingId', async (req, res) => {
+      try {
+        const nvr = await getNvr(req.params['nvrId']);
+        if (!nvr) { res.status(404).json({ error: 'NVR not found' }); return; }
+        const streamingId = req.params['streamingId'];
+        const client = getDigestClient(nvr.id, nvr.username, nvr.password_enc);
+        const pictureUrl = `http://${nvr.ip}:${nvr.port}/ISAPI/Streaming/channels/${streamingId}/picture`;
+        res.set('Content-Type', 'multipart/x-mixed-replace; boundary=--frame');
+        res.set('Cache-Control', 'no-cache, no-store');
+        res.set('Connection', 'keep-alive');
+        res.set('Pragma', 'no-cache');
+        let running = true;
+        req.on('close', () => { running = false; });
+        req.on('error', () => { running = false; });
+        while (running) {
+          try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 5000);
+            const response = await client.fetch(pictureUrl, { signal: controller.signal });
+            clearTimeout(timer);
+            if (!response.ok) continue;
+            const buffer = Buffer.from(await response.arrayBuffer());
+            res.write('--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ' + buffer.length + '\r\n\r\n');
+            res.write(buffer);
+            res.write('\r\n');
+          } catch {
+            if (!running) break;
+            await new Promise(r => setTimeout(r, 200));
+          }
+        }
+      } catch (err: any) {
+        if (!res.headersSent) res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Manual camera check trigger
+    server.post('/api/admin/check-cameras', async (_req, res) => {
+      checkAllCameras().catch(console.error);
+      res.json({ ok: true, message: 'Camera check triggered' });
+    });
+
+    // Cron: cada 10 minutos
+    async function checkAllCameras() {
+      if (!supabaseUrlNVR || !supabaseKeyNVR) return;
+      const nvrs = await nvrSelect('active=eq.true&select=*');
+      for (const nvr of nvrs as any[]) {
+        try {
+          const [statusXml, storageXml] = await Promise.allSettled([
+            isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/InputProxy/channels/status', 8000),
+            isapiFetch(nvr.ip, nvr.port, nvr.username, nvr.password_enc, '/ISAPI/ContentMgmt/Storage', 8000),
+          ]);
+          const channels = statusXml.status === 'fulfilled' ? parseChannelStatus(statusXml.value) : [];
+          const storage = storageXml.status === 'fulfilled' ? parseStorage(storageXml.value) : { disk_total_gb: null, disk_free_gb: null };
+          const rows = channels.map(ch => ({
+            nvr_id: nvr.id, channel_id: ch.channel_id, cam_ip: ch.cam_ip,
+            online: ch.online, disk_total_gb: storage.disk_total_gb, disk_free_gb: storage.disk_free_gb,
+          }));
+          if (rows.length > 0) {
+            await fetch(`${supabaseUrlNVR}/rest/v1/it_camera_status`, {
+              method: 'POST',
+              headers: { apikey: supabaseKeyNVR, Authorization: `Bearer ${supabaseKeyNVR}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+              body: JSON.stringify(rows),
+            }).catch(() => void 0);
+          }
+        } catch (err) {
+          console.error(`[Camera cron] Error checking NVR ${nvr.name}:`, (err as Error).message);
+        }
+      }
+    }
+
+    cron.schedule('*/10 * * * *', () => checkAllCameras().catch(console.error));
+
+    // Proxy a go2rtc (WebSocket + HTTP) para WebRTC/MSE
+    const go2rtcProxy = createProxyMiddleware({
+      target: GO2RTC_API,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { '^/go2rtc': '' },
+    });
+    server.use('/go2rtc', go2rtcProxy);
+
+    console.error('[Cameras] ✓ NVR endpoints + cron registered (go2rtc:', GO2RTC_API, ')');
+  }
 
   // Root endpoint - información básica del servidor (solo para peticiones API)
   // Para peticiones del navegador, servir index.html directamente

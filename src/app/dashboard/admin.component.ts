@@ -104,10 +104,11 @@ import { DeviceService } from '../services/device.service';
                   [class.text-amber-300]="isActiveRoute('it-licenses')">
                   <i class="pi pi-key text-sm"></i><span>Licencias</span>
                 </a>
-                <a href="https://it.blackdogpanama.com/cameras" target="_blank" rel="noopener"
-                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2">
+                <a routerLink="it-cameras"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('it-cameras')"
+                  [class.text-amber-300]="isActiveRoute('it-cameras')">
                   <i class="pi pi-video text-sm"></i><span>Cámaras NVR</span>
-                  <i class="pi pi-external-link text-[10px] ml-auto text-gray-500"></i>
                 </a>
                 @if (adminSubs().user_management) {
                 <a routerLink="user-management"
@@ -287,7 +288,7 @@ import { DeviceService } from '../services/device.service';
             <a routerLink="it-tickets" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-tickets')" [class.text-amber-300]="isActiveRoute('it-tickets')"><i class="pi pi-desktop text-sm"></i><span>Tickets IT</span></a>
             <a routerLink="it-mobile-lines" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-mobile-lines')" [class.text-amber-300]="isActiveRoute('it-mobile-lines')"><i class="pi pi-phone text-sm"></i><span>Líneas Móviles</span></a>
             <a routerLink="it-licenses" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-licenses')" [class.text-amber-300]="isActiveRoute('it-licenses')"><i class="pi pi-key text-sm"></i><span>Licencias</span></a>
-            <a href="https://it.blackdogpanama.com/cameras" target="_blank" rel="noopener" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white"><i class="pi pi-video text-sm"></i><span>Cámaras NVR</span><i class="pi pi-external-link text-[10px] ml-auto text-gray-500"></i></a>
+            <a routerLink="it-cameras" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-cameras')" [class.text-amber-300]="isActiveRoute('it-cameras')"><i class="pi pi-video text-sm"></i><span>Cámaras NVR</span></a>
             @if (adminSubs().user_management) {
             <a routerLink="user-management" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('user-management')" [class.text-amber-300]="isActiveRoute('user-management')"><i class="pi pi-user-edit text-sm"></i><span>Gestión de Usuarios</span></a>
             }
