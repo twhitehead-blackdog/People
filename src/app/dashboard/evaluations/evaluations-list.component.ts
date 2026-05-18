@@ -189,14 +189,10 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
                 <td class="py-2 px-2">
                   @if (e.overall_score != null) {
                     @let r = scoreRating(e);
-                    <span
-                      class="score-chip"
-                      [style.background]="r.color + '22'"
-                      [style.border]="'1px solid ' + r.color"
-                      [style.color]="r.color"
-                    >
-                      {{ r.label }} ({{ e.overall_score | number:'1.1-1' }})
-                    </span>
+                    <p-tag
+                      [value]="r.label + ' (' + (e.overall_score | number:'1.1-1') + ')'"
+                      [style]="{ background: r.color, color: '#fff' }"
+                    />
                   } @else { <span class="text-gray-500">—</span> }
                 </td>
                 <td class="py-2 px-2">
@@ -233,14 +229,10 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
               </div>
               @if (e.overall_score != null) {
                 @let r = scoreRating(e);
-                <span
-                  class="score-chip"
-                  [style.background]="r.color + '22'"
-                  [style.border]="'1px solid ' + r.color"
-                  [style.color]="r.color"
-                >
-                  {{ r.label }} ({{ e.overall_score | number:'1.1-1' }})
-                </span>
+                <p-tag
+                  [value]="r.label + ' (' + (e.overall_score | number:'1.1-1') + ')'"
+                  [style]="{ background: r.color, color: '#fff' }"
+                />
               }
             </div>
             <div class="eval-card-meta">
