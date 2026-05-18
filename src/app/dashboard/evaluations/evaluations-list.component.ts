@@ -326,7 +326,7 @@ export class EvaluationsListComponent {
     const t = e.evaluation_type;
     const labels = t?.rating_labels?.length ? t.rating_labels : ['No cumple', 'Debe mejorar', 'Cumple', 'Excede'];
     const colors = t?.rating_colors?.length ? t.rating_colors : ['#A32D2D', '#E08C00', '#C8860A', '#2D6A4F'];
-    const idx = Math.min(Math.max(Math.round(score) - 1, 0), labels.length - 1);
+    const idx = Math.min(Math.max(Math.floor(score) - 1, 0), labels.length - 1);
     return { label: labels[idx], color: colors[idx] || '#a3a3a3' };
   }
 
