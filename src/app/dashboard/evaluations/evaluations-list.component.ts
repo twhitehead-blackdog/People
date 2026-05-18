@@ -179,9 +179,11 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
                 <td class="py-2 px-2 text-gray-400">{{ e.evaluator_name || '—' }}</td>
                 <td class="py-2 px-2">
                   @if (e.overall_score != null) {
-                    <span class="font-semibold" [style.color]="scoreColor(e.overall_score)">
-                      {{ e.overall_score | number:'1.1-1' }}
+                    @let r = scoreRating(e);
+                    <span class="font-semibold" [style.color]="r.color">
+                      {{ r.label }}
                     </span>
+                    <span class="text-gray-500 text-xs ml-1">({{ e.overall_score | number:'1.1-1' }})</span>
                   } @else { <span class="text-gray-500">—</span> }
                 </td>
                 <td class="py-2 px-2">
@@ -217,8 +219,10 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
                 <div class="eval-card-type">{{ e.evaluation_type?.name }}</div>
               </div>
               @if (e.overall_score != null) {
-                <div class="eval-card-score" [style.color]="scoreColor(e.overall_score)">
-                  {{ e.overall_score | number:'1.1-1' }}
+                @let r = scoreRating(e);
+                <div class="eval-card-score text-right" [style.color]="r.color">
+                  <div style="font-size: 0.8rem; font-weight: 700; line-height: 1.1;">{{ r.label }}</div>
+                  <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 600;">{{ e.overall_score | number:'1.1-1' }}</div>
                 </div>
               }
             </div>
@@ -274,7 +278,7 @@ export class EvaluationsListComponent {
   public evaluationsResource = httpResource<EmployeeEvaluation[]>(() => ({
     url: this.apiUrl.build('rest/v1/employee_evaluations', {
       select:
-        'id,employee_id,evaluation_type_id,evaluator_name,period_label,evaluation_date,status,overall_score,values_avg,competencies_avg,suitability_count,employee:employees!employee_evaluations_employee_id_fkey(id,first_name,father_name,branch:branches(id,name)),evaluation_type:evaluation_types!employee_evaluations_evaluation_type_id_fkey(id,name)',
+        'id,employee_id,evaluation_type_id,evaluator_name,period_label,evaluation_date,status,overall_score,values_avg,competencies_avg,suitability_count,employee:employees!employee_evaluations_employee_id_fkey(id,first_name,father_name,branch:branches(id,name)),evaluation_type:evaluation_types!employee_evaluations_evaluation_type_id_fkey(id,name,rating_scale,rating_labels,rating_colors)',
       order: 'evaluation_date.desc',
     }),
   }));
@@ -316,11 +320,14 @@ export class EvaluationsListComponent {
     return s === 'completed' ? 'success' : s === 'draft' ? 'info' : 'secondary';
   }
 
-  public scoreColor(score: number): string {
-    if (score <= 1.5) return '#2D6A4F';
-    if (score <= 2.5) return '#C8860A';
-    if (score <= 3.5) return '#E08C00';
-    return '#A32D2D';
+  public scoreRating(e: EmployeeEvaluation): { label: string; color: string } {
+    const score = e.overall_score;
+    if (score == null) return { label: '—', color: '#737373' };
+    const t = e.evaluation_type;
+    const labels = t?.rating_labels?.length ? t.rating_labels : ['No cumple', 'Debe mejorar', 'Cumple', 'Excede'];
+    const colors = t?.rating_colors?.length ? t.rating_colors : ['#A32D2D', '#E08C00', '#C8860A', '#2D6A4F'];
+    const idx = Math.min(Math.max(Math.round(score) - 1, 0), labels.length - 1);
+    return { label: labels[idx], color: colors[idx] || '#a3a3a3' };
   }
 
   public confirmDelete(e: EmployeeEvaluation) {

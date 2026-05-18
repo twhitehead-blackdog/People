@@ -64,7 +64,13 @@ export interface EmployeeEvaluation {
     father_name?: string;
     branch?: { id: string; name: string };
   };
-  evaluation_type?: { id: string; name: string };
+  evaluation_type?: {
+    id: string;
+    name: string;
+    rating_scale?: number;
+    rating_labels?: string[];
+    rating_colors?: string[];
+  };
   responses?: EvaluationResponse[];
 }
 
