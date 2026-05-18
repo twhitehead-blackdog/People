@@ -99,7 +99,9 @@ export function app(): express.Express {
     message: { error: 'Too many requests, please try again later' },
     validate: { trustProxy: false },
     skip: (req) => {
-      const p = req.path;
+      // Use originalUrl: req.path is relative to the '/api/' mount point,
+      // so comparing against '/api/...' would never match.
+      const p = (req.originalUrl || req.url).split('?')[0];
       // /api/auth/check is hit by nginx auth_request on every protected request
       // across all bd domains (conciliador, etc.) — counts as a single IP (127.0.0.1)
       // so it saturates the limit and causes 429 → nginx maps it to 500
