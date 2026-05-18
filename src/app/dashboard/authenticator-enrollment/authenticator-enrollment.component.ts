@@ -49,66 +49,173 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    :host ::ng-deep .enroll-dialog .p-dialog-content { padding: 0; }
+    :host ::ng-deep .enroll-dialog .p-dialog-content { padding: 0; background: #0a0a0a; }
+    :host ::ng-deep .enroll-dialog .p-dialog-header { background: #0a0a0a; border-bottom: 1px solid #262626; padding: 1rem 1.25rem; }
+    :host ::ng-deep .enroll-dialog .p-dialog-title { font-size: 0.95rem; font-weight: 700; }
+
+    /* Stepper */
     .stepper-head {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0.85rem 1.25rem; border-bottom: 1px solid #262626;
-      background: #0a0a0a;
+      padding: 0.85rem 1.25rem;
+      background: linear-gradient(180deg, #0a0a0a 0%, #111 100%);
+      border-bottom: 1px solid #262626;
+      position: relative;
+    }
+    .stepper-head::after {
+      content: ''; position: absolute; left: 2.25rem; right: 2.25rem; top: 50%;
+      height: 2px; background: #262626; z-index: 0;
     }
     .step-pill {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-size: 0.75rem; color: #737373;
+      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+      font-size: 0.65rem; color: #737373; position: relative; z-index: 1;
+      background: #0a0a0a; padding: 0 0.35rem;
+      transition: color 0.2s;
     }
     .step-pill.active { color: #f59e0b; }
     .step-pill.done { color: #22c55e; }
     .step-num {
-      width: 1.5rem; height: 1.5rem; border-radius: 50%;
+      width: 1.8rem; height: 1.8rem; border-radius: 50%;
       background: #262626; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.7rem;
+      font-weight: 700; font-size: 0.8rem; color: #737373;
+      border: 2px solid #262626;
+      transition: all 0.2s;
     }
-    .step-pill.active .step-num { background: #f59e0b; color: #000; }
-    .step-pill.done .step-num { background: #22c55e; color: #000; }
-    .stepper-body { padding: 1.5rem 1.25rem; min-height: 320px; }
-    .step-title { font-size: 1.1rem; font-weight: 700; color: white; margin-bottom: 0.25rem; }
-    .step-sub { font-size: 0.8rem; color: #a3a3a3; margin-bottom: 1.25rem; }
-    .qr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 600px) { .qr-grid { grid-template-columns: 1fr; } }
+    .step-pill.active .step-num {
+      background: #f59e0b; color: #000; border-color: #f59e0b;
+      box-shadow: 0 0 0 4px rgba(245,158,11,0.15);
+    }
+    .step-pill.done .step-num { background: #22c55e; color: #000; border-color: #22c55e; }
+    .step-label { font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+
+    /* Body */
+    .stepper-body {
+      padding: 1.5rem 1.5rem 1.25rem;
+      min-height: 360px;
+      background: #0a0a0a;
+    }
+    .step-title {
+      font-size: 1.15rem; font-weight: 700; color: white; margin: 0 0 0.35rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .step-title i { color: #f59e0b; font-size: 1rem; }
+    .step-sub {
+      font-size: 0.82rem; color: #a3a3a3; margin: 0 0 1.25rem; line-height: 1.45;
+    }
+    .step-sub strong { color: #f59e0b; font-weight: 700; }
+
+    /* QR grid for download apps */
+    .qr-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      align-items: stretch;
+    }
+    @media (max-width: 600px) {
+      .qr-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+    }
     .qr-card {
-      background: #171717; border: 1px solid #262626; border-radius: 0.75rem;
-      padding: 1rem; text-align: center;
+      background: linear-gradient(180deg, #171717 0%, #111 100%);
+      border: 1px solid #262626; border-radius: 0.85rem;
+      padding: 1rem 0.85rem;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center;
+      transition: transform 0.15s, border-color 0.15s;
     }
-    .qr-card img { width: 100%; max-width: 180px; border-radius: 0.5rem; background: white; padding: 0.5rem; }
-    .qr-card-title { font-weight: 700; margin-top: 0.6rem; font-size: 0.9rem; }
-    .qr-card-sub { font-size: 0.7rem; color: #a3a3a3; margin-top: 0.15rem; }
-    .single-qr { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
-    .single-qr img { width: 220px; height: 220px; background: white; padding: 0.75rem; border-radius: 0.75rem; }
-    .otp-row { display: flex; justify-content: center; margin: 1rem 0; }
-    :host ::ng-deep .otp-row .p-inputotp-input {
-      width: 2.5rem !important; height: 3rem !important; font-size: 1.5rem !important;
-    }
-    .stepper-foot {
-      display: flex; gap: 0.5rem; justify-content: space-between;
-      padding: 0.85rem 1.25rem; border-top: 1px solid #262626; background: #0a0a0a;
-    }
-    .manager-select { display: flex; flex-direction: column; gap: 0.6rem; max-height: 220px; overflow-y: auto; }
-    .manager-row {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem;
-      border: 1px solid #262626; border-radius: 0.6rem; cursor: pointer; background: #171717;
-    }
-    .manager-row.sel { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
-    .manager-avatar {
-      width: 2rem; height: 2rem; border-radius: 50%;
-      background: linear-gradient(135deg, #f59e0b, #d97706); color: #000;
-      display: flex; align-items: center; justify-content: center; font-weight: 700;
-    }
-    .manager-name { font-weight: 600; color: white; font-size: 0.85rem; }
-    .manager-position { font-size: 0.7rem; color: #a3a3a3; }
-    .empty-msg { color: #a3a3a3; font-size: 0.85rem; text-align: center; padding: 2rem; }
-    .ok-icon {
-      width: 4rem; height: 4rem; border-radius: 50%;
-      background: rgba(34,197,94,0.15); border: 2px solid #22c55e;
+    .qr-card:hover { border-color: #404040; transform: translateY(-2px); }
+    .qr-frame {
+      width: 160px; height: 160px;
+      background: #ffffff;
+      border-radius: 0.65rem;
+      padding: 0.6rem;
       display: flex; align-items: center; justify-content: center;
-      font-size: 2rem; color: #22c55e; margin: 0 auto 1rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+    .qr-frame img { width: 100%; height: 100%; display: block; }
+    .qr-card-title {
+      font-weight: 700; margin-top: 0.85rem; font-size: 0.85rem; color: #fff;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .qr-card-sub { font-size: 0.68rem; color: #737373; margin-top: 0.15rem; letter-spacing: 0.02em; }
+
+    /* Single QR (employee) */
+    .single-qr {
+      display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    }
+    .single-qr .qr-frame { width: 240px; height: 240px; padding: 0.85rem; }
+    .single-qr-hint {
+      font-size: 0.75rem; color: #a3a3a3; text-align: center; max-width: 320px;
+      line-height: 1.5;
+    }
+
+    /* OTP */
+    .otp-row { display: flex; justify-content: center; margin: 1.5rem 0 0.5rem; }
+    :host ::ng-deep .otp-row .p-inputotp { gap: 0.4rem; }
+    :host ::ng-deep .otp-row .p-inputotp-input {
+      width: 2.6rem !important; height: 3.1rem !important; font-size: 1.4rem !important;
+      font-weight: 700 !important;
+      background: #171717 !important; border: 1.5px solid #404040 !important;
+      color: #f59e0b !important;
+      border-radius: 0.5rem !important;
+    }
+    :host ::ng-deep .otp-row .p-inputotp-input:focus {
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.15) !important;
+    }
+
+    /* Footer */
+    .stepper-foot {
+      display: flex; gap: 0.5rem; justify-content: space-between; align-items: center;
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid #262626;
+      background: #0a0a0a;
+    }
+
+    /* Manager list */
+    .manager-select {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      max-height: 230px; overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+    .manager-select::-webkit-scrollbar { width: 6px; }
+    .manager-select::-webkit-scrollbar-thumb { background: #404040; border-radius: 3px; }
+    .manager-row {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border: 1.5px solid #262626; border-radius: 0.65rem;
+      cursor: pointer; background: #131313;
+      transition: all 0.15s;
+    }
+    .manager-row:hover { background: #1a1a1a; border-color: #404040; }
+    .manager-row.sel {
+      border-color: #f59e0b;
+      background: rgba(245,158,11,0.08);
+      box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+    }
+    .manager-avatar {
+      width: 2.25rem; height: 2.25rem; border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706); color: #000;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    .manager-name { font-weight: 600; color: white; font-size: 0.88rem; line-height: 1.2; }
+    .manager-position { font-size: 0.7rem; color: #a3a3a3; margin-top: 0.1rem; }
+    .empty-msg {
+      color: #a3a3a3; font-size: 0.85rem; text-align: center; padding: 2.5rem 1rem;
+    }
+    .empty-msg i { font-size: 1.5rem; color: #f59e0b; margin-bottom: 0.5rem; display: block; }
+
+    /* Done step */
+    .done-wrap {
+      text-align: center;
+      padding: 1.5rem 1rem;
+    }
+    .ok-icon {
+      width: 4.5rem; height: 4.5rem; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(34,197,94,0.25), rgba(34,197,94,0.1));
+      border: 2px solid #22c55e;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.25rem; color: #22c55e;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 0 0 6px rgba(34,197,94,0.08), 0 4px 20px rgba(34,197,94,0.25);
     }
   `],
   template: `
@@ -126,31 +233,36 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google
     >
       <div class="stepper-head">
         <div class="step-pill" [class.active]="step() === 0" [class.done]="step() > 0">
-          <span class="step-num">1</span><span>Gerente</span>
+          <span class="step-num">{{ step() > 0 ? '✓' : '1' }}</span>
+          <span class="step-label">Gerente</span>
         </div>
         <div class="step-pill" [class.active]="step() === 1" [class.done]="step() > 1">
-          <span class="step-num">2</span><span>App</span>
+          <span class="step-num">{{ step() > 1 ? '✓' : '2' }}</span>
+          <span class="step-label">App</span>
         </div>
         <div class="step-pill" [class.active]="step() === 2" [class.done]="step() > 2">
-          <span class="step-num">3</span><span>Escanear</span>
+          <span class="step-num">{{ step() > 2 ? '✓' : '3' }}</span>
+          <span class="step-label">Escanear</span>
         </div>
         <div class="step-pill" [class.active]="step() === 3" [class.done]="step() > 3">
-          <span class="step-num">4</span><span>Verificar</span>
+          <span class="step-num">{{ step() > 3 ? '✓' : '4' }}</span>
+          <span class="step-label">Verificar</span>
         </div>
-        <div class="step-pill" [class.active]="step() === 4">
-          <span class="step-num">5</span><span>Listo</span>
+        <div class="step-pill" [class.active]="step() === 4" [class.done]="step() === 4">
+          <span class="step-num">{{ step() === 4 ? '✓' : '5' }}</span>
+          <span class="step-label">Listo</span>
         </div>
       </div>
 
       <div class="stepper-body">
         @switch (step()) {
           @case (0) {
-            <div class="step-title">Autorización del gerente</div>
+            <div class="step-title"><i class="pi pi-user-edit"></i> Autorización del gerente</div>
             <div class="step-sub">Selecciona tu nombre e ingresa tu código de Authenticator para autorizar el roll-in.</div>
             @if (managersLoading()) {
-              <div class="empty-msg"><i class="pi pi-spin pi-spinner"></i> Buscando gerentes…</div>
+              <div class="empty-msg"><i class="pi pi-spin pi-spinner"></i>Buscando gerentes…</div>
             } @else if (managers().length === 0) {
-              <div class="empty-msg">No se encontró ningún gerente con Authenticator configurado en esta sucursal.</div>
+              <div class="empty-msg"><i class="pi pi-info-circle"></i>No se encontró ningún gerente con Authenticator configurado.</div>
             } @else {
               <div class="manager-select">
                 @for (m of managers(); track m.id) {
@@ -172,46 +284,54 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google
             }
           }
           @case (1) {
-            <div class="step-title">Descarga Google Authenticator</div>
+            <div class="step-title"><i class="pi pi-mobile"></i> Descarga Google Authenticator</div>
             <div class="step-sub">Escanea el QR correspondiente a tu dispositivo o busca "Google Authenticator" en la tienda.</div>
             <div class="qr-grid">
               <div class="qr-card">
-                @if (appStoreQr()) { <img [src]="appStoreQr()" alt="App Store" /> }
-                <div class="qr-card-title"><i class="pi pi-apple"></i> iOS — App Store</div>
-                <div class="qr-card-sub">Para iPhone / iPad</div>
+                <div class="qr-frame">
+                  @if (appStoreQr()) { <img [src]="appStoreQr()" alt="App Store" /> }
+                </div>
+                <div class="qr-card-title"><i class="pi pi-apple"></i> iOS · App Store</div>
+                <div class="qr-card-sub">iPhone / iPad</div>
               </div>
               <div class="qr-card">
-                @if (playStoreQr()) { <img [src]="playStoreQr()" alt="Play Store" /> }
-                <div class="qr-card-title"><i class="pi pi-android"></i> Android — Play Store</div>
-                <div class="qr-card-sub">Para Android</div>
+                <div class="qr-frame">
+                  @if (playStoreQr()) { <img [src]="playStoreQr()" alt="Play Store" /> }
+                </div>
+                <div class="qr-card-title"><i class="pi pi-android"></i> Android · Play Store</div>
+                <div class="qr-card-sub">Android</div>
               </div>
             </div>
           }
           @case (2) {
-            <div class="step-title">Escanea tu código personal</div>
-            <div class="step-sub">Abre Google Authenticator → "+" → "Escanear un código QR" → apúntalo al QR de abajo.</div>
+            <div class="step-title"><i class="pi pi-qrcode"></i> Escanea tu código personal</div>
+            <div class="step-sub">Abre Google Authenticator → toca <strong>+</strong> → "Escanear un código QR" → apúntalo al QR de abajo.</div>
             <div class="single-qr">
-              @if (employeeQr()) {
-                <img [src]="employeeQr()" alt="QR del empleado" />
-              } @else {
-                <i class="pi pi-spin pi-spinner" style="font-size:2rem;color:#f59e0b"></i>
-              }
-              <div class="step-sub" style="margin:0">Cuando lo agregues, verás un código de 6 dígitos que cambia cada 30 segundos.</div>
+              <div class="qr-frame">
+                @if (employeeQr()) {
+                  <img [src]="employeeQr()" alt="QR del empleado" />
+                } @else {
+                  <i class="pi pi-spin pi-spinner" style="font-size:2rem;color:#f59e0b"></i>
+                }
+              </div>
+              <div class="single-qr-hint">
+                Cuando lo agregues, verás un código de <strong>6 dígitos</strong> que cambia cada 30 segundos.
+              </div>
             </div>
           }
           @case (3) {
-            <div class="step-title">Verifica el código</div>
+            <div class="step-title"><i class="pi pi-shield"></i> Verifica el código</div>
             <div class="step-sub">Ingresa el código de 6 dígitos que aparece en Authenticator para <strong>{{ employeeFullName() }}</strong>.</div>
             <div class="otp-row">
               <p-inputOtp [(ngModel)]="employeeOtp" [length]="6" [integerOnly]="true" />
             </div>
           }
           @case (4) {
-            <div style="text-align:center; padding-top: 1.5rem">
+            <div class="done-wrap">
               <div class="ok-icon"><i class="pi pi-check"></i></div>
-              <div class="step-title">¡Listo!</div>
-              <div class="step-sub">
-                {{ employeeFullName() }} ya tiene Authenticator configurado.
+              <div class="step-title" style="justify-content:center">¡Listo!</div>
+              <div class="step-sub" style="margin-top: 0.35rem">
+                <strong>{{ employeeFullName() }}</strong> ya tiene Authenticator configurado.<br>
                 Desde ahora puede marcar entrada/salida con el código de 6 dígitos.
               </div>
             </div>
@@ -343,8 +463,8 @@ export class AuthenticatorEnrollmentComponent {
   public async preloadAppStoreQrs() {
     try {
       const [apple, play] = await Promise.all([
-        QRCode.toDataURL(APP_STORE_URL, { margin: 1, width: 220 }),
-        QRCode.toDataURL(PLAY_STORE_URL, { margin: 1, width: 220 }),
+        QRCode.toDataURL(APP_STORE_URL, { margin: 1, width: 320, errorCorrectionLevel: 'M' }),
+        QRCode.toDataURL(PLAY_STORE_URL, { margin: 1, width: 320, errorCorrectionLevel: 'M' }),
       ]);
       this.appStoreQr.set(apple);
       this.playStoreQr.set(play);
@@ -393,7 +513,7 @@ export class AuthenticatorEnrollmentComponent {
         uri = r.code_uri;
         this.employeeQr.set(r.qr_code);
       } else {
-        const qr = await QRCode.toDataURL(uri, { margin: 1, width: 260 });
+        const qr = await QRCode.toDataURL(uri, { margin: 1, width: 480, errorCorrectionLevel: 'M' });
         this.employeeQr.set(qr);
       }
       this.step.set(2);
