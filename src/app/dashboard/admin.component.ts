@@ -414,10 +414,16 @@ export class AdminComponent implements OnInit, OnDestroy {
   );
 
   public canViewITModule = computed(() => {
+    // Cualquiera con admin legacy o algún submódulo IT habilitado ve el dropdown IT
+    if (this.permissionsService.canCurrentUser('admin')) return true;
+    const itSubs = ['device_inventory', 'it_tickets', 'it_mobile_lines', 'it_licenses', 'user_management'];
+    if (itSubs.some(s => this.permissionsService.canAccessSubModule('admin', s))) return true;
+
+    // Fallback histórico: emails/cargos de soporte
     const emp = this.dashboardStore.currentEmployee();
     const email = emp?.work_email?.toLowerCase() || '';
     const position = emp?.position?.name?.toLowerCase() || '';
-    const allowedEmails = ['soporte2', 'soporte', 'desarrollo', 'dev', 'diego'];
+    const allowedEmails = ['soporte2', 'soporte', 'desarrollo', 'dev', 'diego', 'tristan'];
     return (
       allowedEmails.some(e => email.includes(e)) ||
       ['desarrollador', 'developer', 'soporte', 'it', 'sistemas'].some(p => position.includes(p))
