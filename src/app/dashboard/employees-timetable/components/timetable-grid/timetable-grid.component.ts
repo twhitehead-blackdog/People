@@ -80,6 +80,9 @@ type EmployeeWithDays = {
                 <span class="text-[9px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded px-1">
                   COBERTURA@if (employee.homeBranchName) { · {{ employee.homeBranchName }} }
                 </span>
+                @if (employee.isFloating) {
+                  <span class="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded px-1 ml-1">ROTATIVO</span>
+                }
               } @else if (employee.isFloating) {
                 <i class="pi pi-sync text-purple-400 text-[9px]"></i>
                 <span class="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded px-1">ROTATIVO</span>
@@ -201,6 +204,9 @@ type EmployeeWithDays = {
                   <span class="text-[9px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded px-1 py-0.5">
                     COBERTURA@if (item.homeBranchName) { · {{ item.homeBranchName }} }
                   </span>
+                  @if (item.isFloating) {
+                    <span class="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded px-1 py-0.5 ml-1">ROTATIVO</span>
+                  }
                 } @else if (item.isFloating) {
                   <i class="pi pi-sync text-purple-400 text-[10px]"></i>
                   <span class="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded px-1 py-0.5">ROTATIVO</span>

@@ -14,8 +14,10 @@ export type Employee = {
   gender: 'M' | 'F';
   start_date: Date;
   monthly_salary: number;
-  branch_id: string;
+  branch_id: string | null;
   branch?: Branch;
+  /** Sucursales habituales para rotativos. Vacío = solo aparece donde tenga turnos esa semana. */
+  rotation_branch_ids?: string[];
   department_id: string;
   department?: Department;
   position_id: string;
@@ -32,8 +34,6 @@ export type Employee = {
   created_at?: Date;
   updated_at?: Date;
   is_active: boolean;
-  /** Personal rotativo / sin sucursal fija — aparece como cobertura en cualquier sucursal con turnos. */
-  is_floating?: boolean;
   profile_photo_url?: string;
   uniform_size?: UniformSize;
   timeoffs?: TimeOff[];

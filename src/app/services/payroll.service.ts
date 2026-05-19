@@ -246,7 +246,7 @@ export class PayrollService {
         {
           monthly_salary: emp.monthly_salary,
           payroll_type: (emp.employee?.payroll_type as 'regular' | 'honorarios') ?? 'regular',
-          branch_id: emp.employee?.branch_id,
+          branch_id: emp.employee?.branch_id ?? undefined,
           department_id: emp.employee?.department_id,
         },
         attendance,
@@ -259,7 +259,7 @@ export class PayrollService {
       results.push({
         employee_id: emp.employee_id,
         employee_name: `${emp.employee?.first_name ?? ''} ${emp.employee?.father_name ?? ''}`.trim(),
-        branch_id: emp.employee?.branch_id,
+        branch_id: emp.employee?.branch_id ?? undefined,
         department_id: emp.employee?.department_id,
         payroll_type: (emp.employee?.payroll_type as 'regular' | 'honorarios') ?? 'regular',
         calculation,

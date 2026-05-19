@@ -55,7 +55,9 @@ export class TimetableFilterService {
 
     return employees
       .filter((employee) => {
-        if (isManager && managerBranchId && employee.branch_id !== managerBranchId) {
+        const rotationIds = (employee as any).rotation_branch_ids as string[] | undefined;
+        const inRotation = (b: string) => Array.isArray(rotationIds) && rotationIds.includes(b);
+        if (isManager && managerBranchId && employee.branch_id !== managerBranchId && !inRotation(managerBranchId)) {
           return false;
         }
         const matchesSearch =
@@ -63,7 +65,7 @@ export class TimetableFilterService {
           `${employee.first_name} ${employee.father_name}`.toLowerCase().includes(searchTerm) ||
           (employee.first_name?.toLowerCase().includes(searchTerm) ?? false) ||
           (employee.father_name?.toLowerCase().includes(searchTerm) ?? false);
-        const matchesBranch = !branchId || employee.branch_id === branchId;
+        const matchesBranch = !branchId || employee.branch_id === branchId || inRotation(branchId);
         const matchesPosition = !positionId || employee.position_id === positionId;
         return matchesSearch && matchesBranch && matchesPosition;
       })
@@ -77,7 +79,7 @@ export class TimetableFilterService {
           position_id,
           position,
           start_date,
-          is_floating,
+          rotation_branch_ids,
         }: any) => ({
           id,
           first_name,
@@ -87,7 +89,7 @@ export class TimetableFilterService {
           position,
           position_id,
           start_date,
-          is_floating,
+          rotation_branch_ids,
         })
       )
       .sort((a, b) => {

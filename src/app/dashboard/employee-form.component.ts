@@ -25,6 +25,8 @@ import { DatePicker } from 'primeng/datepicker';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { MultiSelect } from 'primeng/multiselect';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
 import { format, parseISO } from 'date-fns';
@@ -65,6 +67,8 @@ import {
     InputNumber,
     DatePicker,
     Select,
+    MultiSelect,
+    ToggleSwitch,
     Checkbox,
     Button,
     TabsModule,
@@ -537,17 +541,23 @@ import {
                   />
                 </div>
                 <div class="input-container">
-                  <label for="employee_number">Número de Empleado</label>
+                  <label for="employee_number">
+                    Número de Empleado
+                    <span class="text-[10px] text-gray-500 font-normal ml-1">(automático)</span>
+                  </label>
                   <input
                     type="text"
                     id="employee_number"
                     pInputText
                     formControlName="employee_number"
-                    placeholder=""
+                    [placeholder]="employee_id() ? '' : 'Se generará automáticamente al guardar'"
                     [style]="{ fontFamily: 'monospace' }"
                     maxlength="6"
+                    readonly
                   />
-                  <small class="text-gray-400 text-xs mt-1 block"></small>
+                  <small class="text-gray-400 text-xs mt-1 block">
+                    Generado automáticamente con prefijo de la empresa (BD/NZ) + secuencia.
+                  </small>
                 </div>
                 <div class="input-container">
                   <label for="position">Cargo</label>
@@ -574,7 +584,12 @@ import {
                   />
                 </div>
                 <div class="input-container">
-                  <label for="branch">Sucursal</label>
+                  <label for="branch">
+                    Sucursal
+                    @if (form.controls.is_rotating.value) {
+                      <span class="text-[10px] text-purple-300 font-normal ml-1">(opcional para rotativos)</span>
+                    }
+                  </label>
                   <p-select
                     [options]="store.branches.entities()"
                     optionLabel="name"
@@ -583,8 +598,42 @@ import {
                     formControlName="branch_id"
                     placeholder="Seleccione una sucursal"
                     appendTo="body"
+                    [showClear]="!!form.controls.is_rotating.value"
                   />
                 </div>
+                <div class="input-container">
+                  <label class="flex items-center gap-2">
+                    <p-toggleswitch formControlName="is_rotating" inputId="is_rotating" />
+                    <span>
+                      <i class="pi pi-sync text-purple-400 text-[11px] mr-1"></i>
+                      Personal rotativo
+                    </span>
+                  </label>
+                  <small class="text-[11px] text-gray-400 italic mt-1">
+                    Si está activo: el empleado puede no tener sucursal fija. Aparecerá en la sección
+                    "Personal rotativo" del Horario en cada sucursal seleccionada abajo o donde tenga turnos.
+                  </small>
+                </div>
+                @if (form.controls.is_rotating.value) {
+                  <div class="input-container">
+                    <label for="rotation_branches">
+                      Sucursales habituales
+                      <span class="text-[10px] text-gray-500 font-normal ml-1">(opcional)</span>
+                    </label>
+                    <p-multiselect
+                      [options]="store.branches.entities()"
+                      optionLabel="name"
+                      optionValue="id"
+                      inputId="rotation_branches"
+                      formControlName="rotation_branch_ids"
+                      placeholder="Ninguna (solo donde tenga turnos)"
+                      display="chip"
+                      appendTo="body"
+                      filter
+                      [showClear]="true"
+                    />
+                  </div>
+                }
                 <div class="input-container">
                   <label for="salary">Salario mensual</label>
                   <p-inputNumber
@@ -967,10 +1016,11 @@ export class EmployeeFormComponent implements OnInit {
     end_date: new FormControl<Date | undefined>(undefined, {
       nonNullable: true,
     }),
-    branch_id: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
+    branch_id: new FormControl<string | null>('', {
+      nonNullable: false,
     }),
+    is_rotating: new FormControl<boolean>(false, { nonNullable: true }),
+    rotation_branch_ids: new FormControl<string[]>([], { nonNullable: true }),
     department_id: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required],
@@ -1113,7 +1163,10 @@ export class EmployeeFormComponent implements OnInit {
       () => {
         const employee = this.currentEmployee.value()?.[0];
         if (!employee) return;
-        untracked(() => preloadEmployeeForm(this.form, employee));
+        untracked(() => {
+          preloadEmployeeForm(this.form, employee);
+          this.loadIsRotatingForEmployee(employee.id);
+        });
       },
       { injector: this.injector }
     );
@@ -1180,6 +1233,59 @@ export class EmployeeFormComponent implements OnInit {
     );
   }
 
+  /** Carga is_rotating desde groomer_employee_config (fuente de verdad compartida con salon-schedule y timetable). */
+  private async loadIsRotatingForEmployee(employeeId: string): Promise<void> {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return;
+    const url = this.apiUrl.build('rest/v1/groomer_employee_config', {
+      company_id: `eq.${companyId}`,
+      employee_id: `eq.${employeeId}`,
+      select: 'is_rotating',
+      limit: 1,
+    });
+    try {
+      const rows = await firstValueFrom(this.http.get<Array<{ is_rotating: boolean }>>(url));
+      const isRotating = !!rows?.[0]?.is_rotating;
+      this.form.get('is_rotating')?.setValue(isRotating, { emitEvent: false });
+      this._initialIsRotating = isRotating;
+      // Si rotativo y rotation_branch_ids está vacío, prefiltrar con su branch_id actual
+      const rbidsCtrl = this.form.get('rotation_branch_ids');
+      const branchId = this.form.get('branch_id')?.value as string | null;
+      const current = (rbidsCtrl?.value ?? []) as string[];
+      if (isRotating && branchId && current.length === 0) {
+        rbidsCtrl?.setValue([branchId], { emitEvent: false });
+      }
+    } catch (e) {
+      console.error('Error cargando is_rotating:', e);
+    }
+  }
+
+  private _initialIsRotating = false;
+
+  /** UPSERT is_rotating en groomer_employee_config. Llamar tras crear/editar empleado. */
+  private async persistIsRotating(employeeId: string, isRotating: boolean): Promise<void> {
+    if (isRotating === this._initialIsRotating) return; // sin cambio
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return;
+    const url = this.apiUrl.build('rest/v1/groomer_employee_config', {
+      on_conflict: 'company_id,employee_id',
+    });
+    try {
+      await firstValueFrom(
+        this.http.post(url, {
+          company_id: companyId,
+          employee_id: employeeId,
+          is_rotating: isRotating,
+          zone: null,
+        }, {
+          headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        })
+      );
+    } catch (e) {
+      console.error('Error guardando is_rotating:', e);
+    }
+  }
+
   saveChanges() {
     if (this.form.invalid) {
       const invalidFields = getInvalidFieldLabels(this.form);
@@ -1242,8 +1348,11 @@ export class EmployeeFormComponent implements OnInit {
       }
     } else {
       // Existing employee
+      const isRotating = !!this.form.get('is_rotating')?.value;
+      const employeeId = this.employee_id();
       this.store.employees.editItem(dataToSave as Employee).subscribe({
-        next: () => {
+        next: async () => {
+          if (employeeId) await this.persistIsRotating(employeeId, isRotating);
           this.store.employees.reloadItems();
           this.router.navigate(['/admin/employees']);
         },
@@ -1262,8 +1371,11 @@ export class EmployeeFormComponent implements OnInit {
   }
 
   private saveNewEmployee(dataToSave: any, phoneNumber: string) {
+    const isRotating = !!this.form.get('is_rotating')?.value;
     this.store.employees.createItem(dataToSave).subscribe({
-      next: () => {
+      next: async (created: any) => {
+        const newId = created?.id ?? created?.[0]?.id;
+        if (newId) await this.persistIsRotating(newId, isRotating);
         this.store.employees.reloadItems();
 
         if (phoneNumber && dataToSave.work_email) {

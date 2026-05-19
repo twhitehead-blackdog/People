@@ -123,6 +123,14 @@ export class SalonScheduleComponent {
     this.loadNonWorkingDays();
   });
 
+  /** G3: realtime sync con la grilla de Turnos. Cuando alguien marca/desmarca rotativo allá, refleja aquí. */
+  private configChanges = this.realtime.subscribeToTable('groomer_employee_config');
+  private realtimeReloadConfigs = effect(() => {
+    const batch = this.configChanges();
+    if (!batch) return;
+    this.loadGroomerConfigs();
+  });
+
   /** Carga el setting strictAssignmentMode una vez al iniciar */
   private loadStrictModeEffect = effect(() => {
     // Llama solo una vez (sin dependencias dinámicas)

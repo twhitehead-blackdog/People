@@ -335,16 +335,39 @@ export class PunchQueueService {
 
   /**
    * Migrar el formato viejo `bd_kiosk_emergency_timelogs` a IDB.
-   * Estos eran del incidente del 19/05/2026 — quedan en kiosks que no han recargado.
+   *
+   * SANITY CHECK: rechazamos entradas con timestamp > 48h hacia atrás o > 1h hacia
+   * adelante respecto a la hora actual. Estos casos vienen de kiosks con reloj
+   * atascado (bug del 19/05/2026 donde algunos kiosks acumulaban marcaciones con
+   * fechas hasta 40 días viejas). Las entradas rechazadas se conservan en
+   * `bd_kiosk_emergency_timelogs_quarantine` para revisión manual posterior.
    */
   private async migrateFromLegacyLocalStorage(): Promise<void> {
+    const MAX_BACK_MS = 48 * 60 * 60 * 1000;  // 48 horas hacia atrás
+    const MAX_FWD_MS  = 60 * 60 * 1000;       // 1 hora hacia adelante
     try {
       const raw = localStorage.getItem(LS_KEY_LEGACY);
       if (!raw) return;
       const list: Array<Record<string, unknown>> = JSON.parse(raw);
       if (!Array.isArray(list) || list.length === 0) return;
+
+      const now = Date.now();
+      const accepted: Array<Record<string, unknown>> = [];
+      const quarantined: Array<Record<string, unknown>> = [];
+
       for (const item of list) {
         if (item['synced']) continue;
+        const tsRaw = (item['timestamp'] as string) || '';
+        const tsMs = tsRaw ? Date.parse(tsRaw) : NaN;
+        const ageMs = isNaN(tsMs) ? Infinity : now - tsMs;
+        const isStale = isNaN(tsMs) || ageMs > MAX_BACK_MS || ageMs < -MAX_FWD_MS;
+
+        if (isStale) {
+          // No importamos: timestamp sospechoso (probable reloj atascado del kiosk).
+          quarantined.push({ ...item, quarantined_at: new Date().toISOString(), age_ms: ageMs });
+          continue;
+        }
+
         const entry: QueuedPunch = {
           id: (item['id'] as string) || uuid(),
           employee_id: item['employee_id'] as string,
@@ -353,18 +376,33 @@ export class PunchQueueService {
           company_id: item['company_id'] as string,
           type: item['type'] as string,
           type_label: item['type_label'] as string,
-          punched_at: (item['timestamp'] as string) || new Date().toISOString(),
+          punched_at: tsRaw,
           enqueued_at: new Date().toISOString(),
           attempts: 0,
-          reason: 'Migrado desde bd_kiosk_emergency_timelogs (incidente 19/05/2026)',
+          reason: 'Migrado desde bd_kiosk_emergency_timelogs (sync diferido)',
         };
         await this.writeToIDB(entry);
         this.writeToLocalStorageMirror(entry);
+        accepted.push(item);
       }
+
+      // Persistir cuarentena para auditoría — admin puede revisarlas con la pantalla emergency-timelog-review.
+      if (quarantined.length > 0) {
+        const QKEY = 'bd_kiosk_emergency_timelogs_quarantine';
+        try {
+          const prev = JSON.parse(localStorage.getItem(QKEY) || '[]');
+          const merged = Array.isArray(prev) ? [...prev, ...quarantined] : quarantined;
+          localStorage.setItem(QKEY, JSON.stringify(merged));
+        } catch {
+          localStorage.setItem('bd_kiosk_emergency_timelogs_quarantine', JSON.stringify(quarantined));
+        }
+        console.warn(`[PunchQueue] ${quarantined.length} timelogs en cuarentena por timestamp sospechoso`);
+      }
+
       // Marcar todos como synced en el formato viejo para no reimportar
       const marked = list.map(x => ({ ...x, synced: true }));
       localStorage.setItem(LS_KEY_LEGACY, JSON.stringify(marked));
-      console.info(`[PunchQueue] migrados ${list.length} timelogs legacy → IDB`);
+      console.info(`[PunchQueue] migración legacy: ${accepted.length} aceptados, ${quarantined.length} en cuarentena`);
     } catch (err) {
       console.warn('[PunchQueue] migración legacy falló', err);
     }

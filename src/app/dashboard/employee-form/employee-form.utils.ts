@@ -134,6 +134,8 @@ export function buildSavePayload(form: FormGroup): EmployeeSavePayload {
   delete data['phone_country_code'];
   delete data['work_phone_country_code'];
   delete data['emergency_contact_phone_country_code'];
+  // is_rotating no pertenece a employees (vive en groomer_employee_config); se persiste aparte.
+  delete data['is_rotating'];
 
   return { data, phoneNumber };
 }

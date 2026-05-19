@@ -33,6 +33,7 @@ import { Dialog } from 'primeng/dialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { MultiSelect } from 'primeng/multiselect';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
 import { Tooltip } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -40,6 +41,7 @@ import * as OTPAuth from 'otpauth';
 import { colorVariants, EmployeeSchedule, GroomerEmployeeConfig } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { SupabaseRealtimeService } from '../services/supabase-realtime.service';
 import {
   ScheduleAuditLog,
   ScheduleAuditService,
@@ -81,6 +83,14 @@ import {
   getWeeksInMonth,
 } from './utils/timetable-date.utils';
 
+// Helper: compara dos arrays como conjuntos (orden no importa).
+function arraysEqualSet(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = new Set(a);
+  for (const x of b) if (!sa.has(x)) return false;
+  return true;
+}
+
 @Component({
   selector: 'pt-employees-timetable',
   providers: [
@@ -96,6 +106,7 @@ import {
     Button,
     ToggleSwitch,
     Select,
+    MultiSelect,
     Dialog,
     InputText,
     ConfirmDialog,
@@ -432,6 +443,41 @@ import {
           (lockedShift)="onLockedShiftClick()"
         />
       }
+
+      @if (floatingSchedulesList().length > 0) {
+        <div class="flex items-center gap-2 mt-6 mb-2 px-1">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30">
+            <i class="pi pi-sync text-purple-400 text-sm"></i>
+            <span class="text-sm font-bold text-purple-300">Personal rotativo</span>
+            <span class="text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full px-2 py-0.5">{{ floatingSchedulesList().length }}</span>
+          </div>
+          <span class="text-[11px] text-gray-400 hidden sm:inline">Rotan entre sucursales — pueden o no tener sucursal hogar fija.</span>
+        </div>
+        <pt-timetable-grid
+          [employees]="floatingSchedulesList()"
+          [days]="days()"
+          [canManageSchedules]="store.canManageSchedules()"
+          [canApproveSchedules]="permissionsService.canApproveSchedules()"
+          [selectionMode]="bulkSelectionMode()"
+          [selectedKeys]="selectedSelectionKeys()"
+          [isStoreManager]="permissionsService.isStoreManager()"
+          [lockedPositions]="lockedPositions()"
+          [managerBranchId]="managerBranchId()"
+          [viewBranchId]="viewBranchId()"
+          [alwaysShowBranchTag]="true"
+          [strictMode]="isStrictMode()"
+          [disablePagination]="true"
+          (editShift)="editSchedule($event)"
+          (deleteShift)="deleteSchedule($event.shift, $event.date)"
+          (approveShift)="approveSchedule($event)"
+          (confirmWeek)="confirmEmployeeWeek($event)"
+          (addShift)="editSchedule($event)"
+          (viewAudit)="onViewSpecificAudit($event)"
+          (toggleSelection)="toggleShiftSelection($event)"
+          (lockedShift)="onLockedShiftClick()"
+          (employeeNameClick)="openFloatingToggleDialog($event)"
+        />
+      }
     </div>
 
     <p-dialog
@@ -475,27 +521,51 @@ import {
             }
           </div>
 
-          <!-- Sucursal hogar -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-gray-300 flex items-center gap-1">
-              <i class="pi pi-building text-[11px]"></i> Sucursal fija
-            </label>
-            <p-select
-              fluid
-              [ngModel]="floatingDialogBranchId()"
-              (ngModelChange)="floatingDialogBranchId.set($event)"
-              [options]="store.branches.entities()"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Seleccionar sucursal..."
-              appendTo="body"
-              filter
-              [disabled]="floatingDialogIsFloating()"
-            />
-            @if (floatingDialogIsFloating()) {
-              <span class="text-[11px] text-gray-500 italic">Mientras esté marcado como rotativo, la sucursal fija se ignora.</span>
-            }
-          </div>
+          <!-- Sucursal hogar (no rotativo: single-select obligatorio) -->
+          @if (!floatingDialogIsFloating()) {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-300 flex items-center gap-1">
+                <i class="pi pi-building text-[11px]"></i> Sucursal
+              </label>
+              <p-select
+                fluid
+                [ngModel]="floatingDialogBranchId() ?? null"
+                (ngModelChange)="floatingDialogBranchId.set($event ?? undefined)"
+                [options]="branchSelectOptions()"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Seleccionar sucursal..."
+                appendTo="body"
+                filter
+              />
+            </div>
+          }
+          <!-- Sucursales habituales (rotativo: multi-select opcional) -->
+          @if (floatingDialogIsFloating()) {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold text-gray-300 flex items-center gap-1">
+                <i class="pi pi-th-large text-[11px]"></i> Sucursales habituales
+                <span class="text-[10px] font-normal text-gray-500">(opcional)</span>
+              </label>
+              <p-multiSelect
+                [ngModel]="floatingDialogRotationBranches()"
+                (ngModelChange)="floatingDialogRotationBranches.set($event ?? [])"
+                [options]="branchSelectOptions()"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Ninguna (solo donde tenga turnos)"
+                display="chip"
+                appendTo="body"
+                filter
+                [showClear]="true"
+                styleClass="w-full"
+              />
+              <span class="text-[11px] text-gray-400 italic">
+                Aparece en la sección "Personal rotativo" de cada sucursal seleccionada,
+                más cualquier sucursal donde tenga turnos esa semana. Si dejas vacío, solo donde tenga turnos.
+              </span>
+            </div>
+          }
 
           <!-- Toggle rotativo -->
           <div class="flex items-start gap-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
@@ -508,8 +578,9 @@ import {
                 <i class="pi pi-sync text-[11px]"></i> Personal rotativo / sin sucursal fija
               </div>
               <p class="text-[11px] text-gray-400 m-0 mt-1">
-                Aparecerá en la sección "Personal en cobertura" de cualquier sucursal donde tenga turnos esa semana.
-                Útil para personal que rota entre tiendas o cubre vacaciones / días libres / incapacidades.
+                Aparecerá en la sección "Personal rotativo" — separado del resto — en su sucursal hogar
+                y en cualquier sucursal donde tenga turnos esa semana.
+                Compatible con tener una sucursal hogar asignada o quedar sin sucursal.
               </p>
             </div>
           </div>
@@ -675,12 +746,18 @@ export class EmployeesTimetableComponent implements OnInit {
   public floatingDialogEmployee = signal<any | null>(null);
   public floatingDialogBranchId = signal<string | undefined>(undefined);
   public floatingDialogIsFloating = signal<boolean>(false);
+  /** Multi-select de sucursales habituales (solo aplica cuando rotativo=ON) */
+  public floatingDialogRotationBranches = signal<string[]>([]);
   public groomerConfigs = signal<GroomerEmployeeConfig[]>([]);
   public rotatingMap = computed(() => {
     const m = new Map<string, boolean>();
     for (const c of this.groomerConfigs()) m.set(c.employee_id, !!c.is_rotating);
     return m;
   });
+  /** Opciones del select de sucursal en el popup (incluye placeholder "sin sucursal" cuando rotativo) */
+  public branchSelectOptions = computed(() =>
+    this.store.branches.entities() as any[]
+  );
   public monthWeekSelectorVisible = signal(false);
   public selectedMonth = signal<Date>(new Date());
   public selectedMonthOption = signal<{ label: string; value: Date }>({
@@ -755,6 +832,16 @@ export class EmployeesTimetableComponent implements OnInit {
   private apiUrl = inject(ApiUrlService);
   private http = inject(HttpClient);
   private organizationService = inject(OrganizationService);
+  private realtime = inject(SupabaseRealtimeService);
+  /** G3: realtime sync con salon-schedule. Cuando se toca groomer_employee_config en otra pestaña/vista, recargamos. */
+  private configChanges = this.realtime.subscribeToTable('groomer_employee_config');
+  private configReloadEffect = effect(() => {
+    const change = this.configChanges();
+    if (change) {
+      // Recargar configs sin spammear
+      this.loadGroomerConfigs();
+    }
+  });
   private readonly esLocale = esDateFns;
   public permissionsService = inject(TimetablePermissionsService);
   public filterService = inject(TimetableFilterService);
@@ -1093,7 +1180,7 @@ export class EmployeesTimetableComponent implements OnInit {
       position: employee.position
         ? { id: (employee.position as any).id, name: employee.position.name }
         : { id: '', name: '' },
-      isNewHire: differenceInDays(new Date(), employee.start_date ?? new Date()) < 15,
+      isNewHire: differenceInDays(new Date(), employee.start_date ?? new Date()) < 30,
       // Fuente: groomer_employee_config.is_rotating (compartido con salon-schedule)
       isFloating: rotating.get(employee.id) ?? false,
       // Solo se considera "en cobertura" si su sucursal hogar difiere de la vista actual.
@@ -1124,15 +1211,22 @@ export class EmployeesTimetableComponent implements OnInit {
     }));
   });
 
-  /** Empleados fijos de la sucursal en foco (o todos cuando no hay filtro) */
+  /** Empleados fijos de la sucursal en foco (o todos cuando no hay filtro).
+   *  Excluye rotativos (van a su propia sección al final). */
   public fixedSchedulesList = computed(() =>
-    this.employeeSchedulesList().filter((e) => !e.isCovering)
+    this.employeeSchedulesList().filter((e) => !e.isCovering && !e.isFloating)
   );
 
-  /** Empleados en cobertura: solo aparecen cuando hay sucursal en foco
-   *  y su sucursal hogar es distinta. Se muestran en un grupo aparte. */
+  /** Empleados en cobertura: aparecen cuando hay sucursal en foco
+   *  y su sucursal hogar es distinta. Excluye rotativos. */
   public coveringSchedulesList = computed(() =>
-    this.employeeSchedulesList().filter((e) => e.isCovering)
+    this.employeeSchedulesList().filter((e) => e.isCovering && !e.isFloating)
+  );
+
+  /** Empleados rotativos. Aparecen siempre al final, separados del personal fijo
+   *  aunque tengan la misma sucursal hogar que la vista actual. */
+  public floatingSchedulesList = computed(() =>
+    this.employeeSchedulesList().filter((e) => e.isFloating)
   );
 
   // ========== Specific Audit Dialog Header ==========
@@ -1706,6 +1800,10 @@ export class EmployeesTimetableComponent implements OnInit {
     const full = this.store.employees.entities().find((e: any) => e.id === employee.id) ?? employee;
     this.floatingDialogEmployee.set(full);
     this.floatingDialogBranchId.set(full.branch_id ?? undefined);
+    // Default: si no tiene rotation_branch_ids pero sí branch_id, prefiltrar con su sucursal hogar
+    const stored: string[] = (full as any).rotation_branch_ids ?? [];
+    const defaulted = stored.length === 0 && full.branch_id ? [full.branch_id] : stored;
+    this.floatingDialogRotationBranches.set(defaulted);
     // Fuente de verdad: groomer_employee_config (compartida con salon-schedule)
     this.floatingDialogIsFloating.set(this.rotatingMap().get(full.id) ?? false);
     this.floatingDialogVisible.set(true);
@@ -1714,25 +1812,48 @@ export class EmployeesTimetableComponent implements OnInit {
   public async saveFloatingDialog(): Promise<void> {
     const emp = this.floatingDialogEmployee();
     if (!emp) return;
-    const branchId = this.floatingDialogBranchId();
     const isRotating = this.floatingDialogIsFloating();
     const wasRotating = this.rotatingMap().get(emp.id) ?? false;
+    const rotationBranches = isRotating ? this.floatingDialogRotationBranches() : [];
 
-    const branchChanged = !!(branchId && branchId !== emp.branch_id);
+    // Derivar branch_id final:
+    // - No rotativo: usar el select de sucursal (obligatorio).
+    // - Rotativo: usar la primera de la lista (si hay), o null.
+    const branchId = isRotating
+      ? (rotationBranches.length > 0 ? rotationBranches[0] : null)
+      : (this.floatingDialogBranchId() ?? null);
+
+    // Validación: no rotativo requiere sucursal
+    if (!isRotating && !branchId) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Falta sucursal',
+        detail: 'Asignale una sucursal o activá rotativo (que permite quedar sin sucursal).',
+        life: 5000,
+      });
+      return;
+    }
+
+    const currentRotation: string[] = (emp as any).rotation_branch_ids ?? [];
+    const rotationChanged = !arraysEqualSet(currentRotation, rotationBranches);
+    const branchChanged = (branchId ?? null) !== (emp.branch_id ?? null);
     const rotatingChanged = isRotating !== wasRotating;
 
-    if (!branchChanged && !rotatingChanged) {
+    if (!branchChanged && !rotatingChanged && !rotationChanged) {
       this.floatingDialogVisible.set(false);
       return;
     }
 
     try {
-      // 1) Cambio de sucursal → PATCH employees
-      if (branchChanged) {
+      // 1) PATCH employees: branch_id y/o rotation_branch_ids
+      if (branchChanged || rotationChanged) {
+        const payload: any = {};
+        if (branchChanged) payload.branch_id = branchId;
+        if (rotationChanged) payload.rotation_branch_ids = rotationBranches;
         await firstValueFrom(
           this.http.patch(
             this.apiUrl.build('rest/v1/employees', { id: `eq.${emp.id}` }),
-            { branch_id: branchId },
+            payload,
             { headers: { Prefer: 'return=minimal' } }
           )
         );
@@ -1774,7 +1895,7 @@ export class EmployeesTimetableComponent implements OnInit {
       });
       this.floatingDialogVisible.set(false);
       this.floatingDialogEmployee.set(null);
-      if (branchChanged) (this.store.employees as any).fetchItems?.();
+      if (branchChanged) this.store.employees.reloadItems();
     } catch (e) {
       console.error('Error guardando asignación', e);
       this.message.add({

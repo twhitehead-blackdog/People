@@ -27,6 +27,7 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { differenceInDays } from 'date-fns';
 import { Employee, ExportColumn } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { DeviceService } from '../services/device.service';
@@ -150,6 +151,19 @@ import { EmployeeFormComponent } from './employee-form.component';
               placeholder="Todos"
               appendTo="body"
               [showClear]="true"
+              class="w-full"
+              styleClass="!min-h-[38px]"
+            />
+          </div>
+          <div class="min-w-[160px]">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Asignación</label>
+            <p-select
+              [options]="assignmentOptions"
+              [ngModel]="assignmentFilter()"
+              (ngModelChange)="assignmentFilter.set($event)"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
               class="w-full"
               styleClass="!min-h-[38px]"
             />
@@ -286,6 +300,10 @@ import { EmployeeFormComponent } from './employee-form.component';
             <div>
               <label class="block text-xs font-medium text-gray-400 mb-1">Género</label>
               <p-select [options]="genders" [(ngModel)]="genderFilter" optionLabel="label" optionValue="value" placeholder="Todos" appendTo="body" [showClear]="true" class="w-full" styleClass="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Asignación</label>
+              <p-select [options]="assignmentOptions" [ngModel]="assignmentFilter()" (ngModelChange)="assignmentFilter.set($event)" optionLabel="label" optionValue="value" appendTo="body" class="w-full" styleClass="w-full" />
             </div>
             <div class="flex items-center gap-2 pt-1">
               <p-toggleswitch [formControl]="inactiveToggle" inputId="mobile-inactive" />
@@ -738,13 +756,24 @@ export class EmployeeListComponent implements OnInit {
   public departmentFilter = signal<any[]>([]);
   public positionFilter = signal<any[]>([]);
   public genderFilter = signal<string | null>(null);
+  /** Filtro de asignación: all | rotativos | sin_sucursal | nuevos */
+  public assignmentFilter = signal<'all' | 'rotativos' | 'sin_sucursal' | 'nuevos'>('all');
+  public assignmentOptions = [
+    { label: 'Todos', value: 'all' },
+    { label: 'Solo rotativos', value: 'rotativos' },
+    { label: 'Sin sucursal', value: 'sin_sucursal' },
+    { label: 'Nuevos (< 30 días)', value: 'nuevos' },
+  ];
+  /** Set de IDs de empleados con is_rotating=true (cargado desde groomer_employee_config) */
+  public rotatingEmployeeIds = signal<Set<string>>(new Set());
 
   public hasActiveFilters = computed(() => {
     return (
       this.branchFilter().length > 0 ||
       this.departmentFilter().length > 0 ||
       this.positionFilter().length > 0 ||
-      this.genderFilter() !== null
+      this.genderFilter() !== null ||
+      this.assignmentFilter() !== 'all'
     );
   });
 
@@ -754,6 +783,7 @@ export class EmployeeListComponent implements OnInit {
     if (this.departmentFilter().length > 0) count++;
     if (this.positionFilter().length > 0) count++;
     if (this.genderFilter() !== null) count++;
+    if (this.assignmentFilter() !== 'all') count++;
     return count;
   });
 
@@ -762,6 +792,26 @@ export class EmployeeListComponent implements OnInit {
     this.departmentFilter.set([]);
     this.positionFilter.set([]);
     this.genderFilter.set(null);
+    this.assignmentFilter.set('all');
+  }
+
+  /** Carga el set de empleados rotativos desde groomer_employee_config. */
+  private async loadRotatingIds(): Promise<void> {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return;
+    const url = this.apiUrl.build('rest/v1/groomer_employee_config', {
+      company_id: `eq.${companyId}`,
+      is_rotating: 'eq.true',
+      select: 'employee_id',
+    });
+    try {
+      const rows = await firstValueFrom(
+        this.http.get<Array<{ employee_id: string }>>(url)
+      );
+      this.rotatingEmployeeIds.set(new Set((rows ?? []).map((r) => r.employee_id)));
+    } catch (e) {
+      console.error('[employee-list] Error cargando rotativos:', e);
+    }
   }
 
   public filtered = computed(() => {
@@ -839,6 +889,22 @@ export class EmployeeListComponent implements OnInit {
       filtered = filtered.filter((emp) => emp.gender === gender);
     }
 
+    // Aplicar filtro de asignación (rotativo / sin sucursal / nuevos)
+    const assignment = this.assignmentFilter();
+    if (assignment === 'rotativos') {
+      const ids = this.rotatingEmployeeIds();
+      filtered = filtered.filter((emp) => ids.has(emp.id));
+    } else if (assignment === 'sin_sucursal') {
+      filtered = filtered.filter((emp) => !emp.branch_id);
+    } else if (assignment === 'nuevos') {
+      const now = new Date();
+      filtered = filtered.filter((emp) => {
+        if (!emp.start_date) return false;
+        const start = emp.start_date instanceof Date ? emp.start_date : new Date(emp.start_date as any);
+        return differenceInDays(now, start) < 30;
+      });
+    }
+
     return filtered;
   });
 
@@ -869,6 +935,7 @@ export class EmployeeListComponent implements OnInit {
     this.store.positions.fetchItems();
     this.store.branches.fetchItems();
     this.store.departments.fetchItems();
+    this.loadRotatingIds();
   }
 
   editEmployee(employee?: Employee) {
