@@ -48,6 +48,8 @@ export type EmployeeSchedule = {
   approved_by_employee?: { id: string; first_name: string; father_name: string };
   migrated_from_branch_id?: string | null;
   migrated_at?: string | null;
+  /** Motivo de cobertura: rotativo | vacaciones | dia_libre | incapacidad | traslado. NULL si turno normal. */
+  cover_reason?: 'rotativo' | 'vacaciones' | 'dia_libre' | 'incapacidad' | 'traslado' | null;
 };
 
 export type VetBranchAssignment = {

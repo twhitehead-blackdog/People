@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, HostListener, input, output, signal, TemplateRef } from '@angular/core';
 import { isToday as dateFnsIsToday } from 'date-fns';
 import { TableModule } from 'primeng/table';
+import { Tooltip } from 'primeng/tooltip';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
 type SalonAssignment = {
@@ -16,6 +17,9 @@ type EmployeeWithDays = {
   branch_id?: string | null;
   position: { name: string };
   isNewHire?: boolean;
+  isCovering?: boolean;
+  isFloating?: boolean;
+  homeBranchName?: string | null;
   days: Array<{
     date: Date;
     day: number;
@@ -28,7 +32,7 @@ type EmployeeWithDays = {
 @Component({
   selector: 'pt-timetable-grid',
   standalone: true,
-  imports: [CommonModule, TableModule, ShiftCellComponent],
+  imports: [CommonModule, TableModule, Tooltip, ShiftCellComponent],
   template: `
     <!-- Mobile View: horizontal scroll per employee -->
     <div class="md:hidden space-y-2">
@@ -36,22 +40,26 @@ type EmployeeWithDays = {
       <div
         class="bg-neutral-800/60 rounded-xl border overflow-hidden"
         [ngClass]="
-          employee.isNewHire
-            ? 'border-green-500/40 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]'
-            : lockedPositions().has(employee.position.name || '')
-              ? 'border-amber-500/40 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
-              : 'border-neutral-700/40'
+          employee.isCovering
+            ? 'border-cyan-500/40 shadow-[0_0_0_1px_rgba(6,182,212,0.25)]'
+            : employee.isNewHire
+              ? 'border-green-500/40 shadow-[0_0_0_1px_rgba(34,197,94,0.25)]'
+              : lockedPositions().has(employee.position.name || '')
+                ? 'border-amber-500/40 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
+                : 'border-neutral-700/40'
         "
       >
         <!-- Employee header -->
         <div
           class="px-3 py-2 border-b flex items-center gap-2"
           [ngClass]="
-            employee.isNewHire
-              ? 'bg-green-500/10 border-green-500/30'
-              : lockedPositions().has(employee.position.name || '')
-                ? 'bg-amber-500/10 border-amber-500/30'
-                : 'bg-neutral-700/20 border-neutral-700/30'
+            employee.isCovering
+              ? 'bg-cyan-500/10 border-cyan-500/30'
+              : employee.isNewHire
+                ? 'bg-green-500/10 border-green-500/30'
+                : lockedPositions().has(employee.position.name || '')
+                  ? 'bg-amber-500/10 border-amber-500/30'
+                  : 'bg-neutral-700/20 border-neutral-700/30'
           "
         >
           <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
@@ -59,10 +67,23 @@ type EmployeeWithDays = {
             <span class="text-[10px] font-bold" [ngClass]="employee.isNewHire ? 'text-green-400' : 'text-amber-400'">{{ employee.first_name.charAt(0) }}{{ employee.father_name.charAt(0) }}</span>
           </div>
           <div class="min-w-0">
-            <p class="text-[13px] font-semibold text-white m-0 truncate">{{ employee.first_name }} {{ employee.father_name }}</p>
+            <p class="text-[13px] font-semibold text-white m-0 truncate cursor-pointer hover:text-cyan-300 transition-colors"
+               (click)="employeeNameClick.emit(employee)"
+               pTooltip="Tocar para marcar/desmarcar como personal sin sucursal fija"
+               tooltipPosition="top">
+              {{ employee.first_name }} {{ employee.father_name }}
+            </p>
             <p class="text-[10px] m-0 truncate flex items-center gap-1"
-              [ngClass]="employee.isNewHire ? 'text-green-300' : lockedPositions().has(employee.position.name || '') ? 'text-amber-300' : 'text-gray-500'">
-              @if (employee.isNewHire) {
+              [ngClass]="employee.isCovering ? 'text-cyan-300' : employee.isFloating ? 'text-purple-300' : employee.isNewHire ? 'text-green-300' : lockedPositions().has(employee.position.name || '') ? 'text-amber-300' : 'text-gray-500'">
+              @if (employee.isCovering) {
+                <i class="pi pi-sync text-cyan-400 text-[9px]"></i>
+                <span class="text-[9px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded px-1">
+                  COBERTURA@if (employee.homeBranchName) { · {{ employee.homeBranchName }} }
+                </span>
+              } @else if (employee.isFloating) {
+                <i class="pi pi-sync text-purple-400 text-[9px]"></i>
+                <span class="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded px-1">ROTATIVO</span>
+              } @else if (employee.isNewHire) {
                 <i class="pi pi-star-fill text-green-400 text-[9px]"></i>
                 <span class="text-[9px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded px-1">NUEVO</span>
               } @else if (lockedPositions().has(employee.position.name || '')) {
@@ -90,6 +111,8 @@ type EmployeeWithDays = {
                 [scheduleWarning]="day.scheduleWarning ?? null"
                 [assignment]="day.assignment ?? null"
                 [managerBranchId]="managerBranchId()"
+                [viewBranchId]="viewBranchId()"
+                [alwaysShowBranchTag]="alwaysShowBranchTag() || !!employee.isCovering"
                 [strictMode]="strictMode()"
                 [employeeBranchId]="employee.branch_id ?? null"
                 (edit)="onEditShift($event)"
@@ -161,15 +184,27 @@ type EmployeeWithDays = {
               pFrozenColumn
               class="whitespace-nowrap"
               [ngClass]="
-                item.isNewHire
-                  ? 'bg-green-500/10 text-green-200 border-r border-green-500/25'
-                  : lockedPositions().has(item.position.name || '')
-                    ? 'bg-amber-500/10 text-amber-200 border-r border-amber-500/25'
-                    : ''
+                item.isCovering
+                  ? 'bg-cyan-500/10 text-cyan-200 border-r border-cyan-500/25'
+                  : item.isFloating
+                    ? 'bg-purple-500/10 text-purple-200 border-r border-purple-500/25'
+                    : item.isNewHire
+                      ? 'bg-green-500/10 text-green-200 border-r border-green-500/25'
+                      : lockedPositions().has(item.position.name || '')
+                        ? 'bg-amber-500/10 text-amber-200 border-r border-amber-500/25'
+                        : ''
               "
             >
               <span class="inline-flex items-center gap-1">
-                @if (item.isNewHire) {
+                @if (item.isCovering) {
+                  <i class="pi pi-sync text-cyan-400 text-[10px]"></i>
+                  <span class="text-[9px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded px-1 py-0.5">
+                    COBERTURA@if (item.homeBranchName) { · {{ item.homeBranchName }} }
+                  </span>
+                } @else if (item.isFloating) {
+                  <i class="pi pi-sync text-purple-400 text-[10px]"></i>
+                  <span class="text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded px-1 py-0.5">ROTATIVO</span>
+                } @else if (item.isNewHire) {
                   <i class="pi pi-star-fill text-green-400 text-[10px]"></i>
                   <span class="text-[9px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded px-1 py-0.5">NUEVO</span>
                 } @else if (lockedPositions().has(item.position.name || '')) {
@@ -178,7 +213,14 @@ type EmployeeWithDays = {
                 {{ item.position.name }}
               </span>
             </td>
-            <td class="whitespace-nowrap">{{ item.first_name }} {{ item.father_name }}</td>
+            <td class="whitespace-nowrap">
+              <span class="cursor-pointer hover:text-cyan-300 transition-colors inline-flex items-center gap-1"
+                    (click)="employeeNameClick.emit(item)"
+                    pTooltip="Tocar para marcar/desmarcar como personal sin sucursal fija"
+                    tooltipPosition="top">
+                {{ item.first_name }} {{ item.father_name }}
+              </span>
+            </td>
             @for(day of item.days; track day.date){
             <td class="text-center">
               <pt-shift-cell
@@ -192,6 +234,8 @@ type EmployeeWithDays = {
                 [scheduleWarning]="day.scheduleWarning ?? null"
                 [assignment]="day.assignment ?? null"
                 [managerBranchId]="managerBranchId()"
+                [viewBranchId]="viewBranchId()"
+                [alwaysShowBranchTag]="alwaysShowBranchTag() || !!item.isCovering"
                 [strictMode]="strictMode()"
                 [employeeBranchId]="item.branch_id ?? null"
                 (edit)="onEditShift($event)"
@@ -243,6 +287,10 @@ export class TimetableGridComponent {
 
   /** Sucursal del gerente actual (para diferenciar entre días asignados a su tienda vs otra) */
   public managerBranchId = input<string | null>(null);
+  /** Sucursal en foco para la vista — propagada a las celdas para mostrar sigla del turno cuando difiere */
+  public viewBranchId = input<string | null>(null);
+  /** Siempre mostrar la sigla de la sucursal en cada turno (para grilla de cobertura) */
+  public alwaysShowBranchTag = input<boolean>(false);
 
   /** Modo estricto: gerentes solo pueden agregar horarios desde salon-schedule */
   public strictMode = input<boolean>(false);
@@ -266,6 +314,7 @@ export class TimetableGridComponent {
   public viewAudit = output<{ employeeId: string; date: Date }>();
   public toggleSelection = output<{ shiftId: string; date: Date }>();
   public lockedShift = output<void>();
+  public employeeNameClick = output<EmployeeWithDays>();
 
   constructor() {
     // Note: Do NOT access required inputs in constructor - they are not yet available

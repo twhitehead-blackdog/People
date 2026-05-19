@@ -47,6 +47,11 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         <i class="pi pi-exclamation-triangle text-amber-400 text-[10px] flex-shrink-0" [pTooltip]="warn" tooltipPosition="top"></i>
       }
       <span class="truncate font-semibold leading-tight min-w-0">
+        @if (showBranchTag()) {
+          <span class="text-[9px] font-bold bg-black/30 rounded px-1 py-px mr-1 uppercase tracking-wider"
+                [pTooltip]="'Turno en: ' + (shiftValue?.branch?.name ?? '')"
+                tooltipPosition="top">{{ shiftValue?.branch?.short_name ?? shiftValue?.branch?.name ?? '?' }}</span>
+        }
         {{ shiftValue?.schedule?.name }}
       </span>
         @if (shiftValue?.migrated_from_branch_id) {
@@ -217,8 +222,25 @@ export class ShiftCellComponent {
   /** Sucursal nativa del empleado — para detectar invitados (no pertenecen a la sucursal del gerente) */
   public employeeBranchId = input<string | null>(null);
   public managerBranchId = input<string | null>(null);
+  /** Sucursal en foco para la vista (filtro o sucursal del gerente). Si el turno
+   *  pertenece a otra sucursal distinta a esta, se muestra la sigla de la sucursal
+   *  junto al horario para diferenciar. */
+  public viewBranchId = input<string | null>(null);
+  /** Forzar siempre mostrar la sigla de la sucursal en cada turno (útil para
+   *  filas de personal en cobertura / rotativo). */
+  public alwaysShowBranchTag = input<boolean>(false);
   /** Modo estricto: gerentes solo pueden agregar horarios desde salon-schedule */
   public strictMode = input<boolean>(false);
+
+  /** Mostrar la sigla de la sucursal en el turno cuando el turno pertenece a
+   *  una sucursal distinta a la sucursal en foco. */
+  public showBranchTag = computed(() => {
+    if (this.alwaysShowBranchTag()) return true;
+    const s = this.shift();
+    const view = this.viewBranchId();
+    if (!view || !s?.branch_id) return false;
+    return s.branch_id !== view;
+  });
   /** True si el gerente está viendo a un empleado invitado de otra sucursal */
   public isGuestEmployee = computed(() => {
     const mgr = this.managerBranchId();

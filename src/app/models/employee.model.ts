@@ -32,6 +32,8 @@ export type Employee = {
   created_at?: Date;
   updated_at?: Date;
   is_active: boolean;
+  /** Personal rotativo / sin sucursal fija — aparece como cobertura en cualquier sucursal con turnos. */
+  is_floating?: boolean;
   profile_photo_url?: string;
   uniform_size?: UniformSize;
   timeoffs?: TimeOff[];

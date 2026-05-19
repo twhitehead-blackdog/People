@@ -1,4 +1,4 @@
-import { httpResource } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,11 +32,12 @@ import { Button } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
 import { Tooltip } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import * as OTPAuth from 'otpauth';
-import { colorVariants, EmployeeSchedule } from '../models';
+import { colorVariants, EmployeeSchedule, GroomerEmployeeConfig } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import {
@@ -94,6 +95,7 @@ import {
     FormsModule,
     Button,
     ToggleSwitch,
+    Select,
     Dialog,
     InputText,
     ConfirmDialog,
@@ -374,7 +376,7 @@ import {
       }
 
       <pt-timetable-grid
-        [employees]="employeeSchedulesList()"
+        [employees]="fixedSchedulesList()"
         [days]="days()"
         [canManageSchedules]="store.canManageSchedules()"
         [canApproveSchedules]="permissionsService.canApproveSchedules()"
@@ -383,6 +385,7 @@ import {
         [isStoreManager]="permissionsService.isStoreManager()"
         [lockedPositions]="lockedPositions()"
         [managerBranchId]="managerBranchId()"
+        [viewBranchId]="viewBranchId()"
         [strictMode]="isStrictMode()"
         [disablePagination]="!!filterService.currentBranch()"
         (editShift)="editSchedule($event)"
@@ -393,7 +396,42 @@ import {
         (viewAudit)="onViewSpecificAudit($event)"
         (toggleSelection)="toggleShiftSelection($event)"
         (lockedShift)="onLockedShiftClick()"
+        (employeeNameClick)="openFloatingToggleDialog($event)"
       />
+
+      @if (coveringSchedulesList().length > 0) {
+        <div class="flex items-center gap-2 mt-6 mb-2 px-1">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+            <i class="pi pi-sync text-cyan-400 text-sm"></i>
+            <span class="text-sm font-bold text-cyan-300">Personal en cobertura</span>
+            <span class="text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-full px-2 py-0.5">{{ coveringSchedulesList().length }}</span>
+          </div>
+          <span class="text-[11px] text-gray-400 hidden sm:inline">No son fijos de esta sucursal — cubren turnos esta semana.</span>
+        </div>
+        <pt-timetable-grid
+          [employees]="coveringSchedulesList()"
+          [days]="days()"
+          [canManageSchedules]="store.canManageSchedules()"
+          [canApproveSchedules]="permissionsService.canApproveSchedules()"
+          [selectionMode]="bulkSelectionMode()"
+          [selectedKeys]="selectedSelectionKeys()"
+          [isStoreManager]="permissionsService.isStoreManager()"
+          [lockedPositions]="lockedPositions()"
+          [managerBranchId]="managerBranchId()"
+          [viewBranchId]="viewBranchId()"
+          [alwaysShowBranchTag]="true"
+          [strictMode]="isStrictMode()"
+          [disablePagination]="true"
+          (editShift)="editSchedule($event)"
+          (deleteShift)="deleteSchedule($event.shift, $event.date)"
+          (approveShift)="approveSchedule($event)"
+          (confirmWeek)="confirmEmployeeWeek($event)"
+          (addShift)="editSchedule($event)"
+          (viewAudit)="onViewSpecificAudit($event)"
+          (toggleSelection)="toggleShiftSelection($event)"
+          (lockedShift)="onLockedShiftClick()"
+        />
+      }
     </div>
 
     <p-dialog
@@ -416,6 +454,72 @@ import {
         />
         <p-button label="Validar" (click)="validateCode(code)" rounded />
       </div>
+    </p-dialog>
+
+    <!-- Asignación de sucursal / rotativo -->
+    <p-dialog
+      header="Asignación de sucursal"
+      [(visible)]="floatingDialogVisible"
+      modal
+      [dismissableMask]="true"
+      [style]="{ width: '480px' }"
+    >
+      @if (floatingDialogEmployee(); as emp) {
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-2 pb-2 border-b border-neutral-700/40">
+            <i class="pi pi-user text-cyan-400"></i>
+            <span class="font-semibold text-white">{{ emp.first_name }} {{ emp.father_name }}</span>
+            <span class="text-xs text-gray-400">· {{ emp.position?.name || 'Sin cargo' }}</span>
+            @if (floatingDialogIsFloating()) {
+              <span class="ml-auto text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded px-1.5 py-0.5">ROTATIVO</span>
+            }
+          </div>
+
+          <!-- Sucursal hogar -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-300 flex items-center gap-1">
+              <i class="pi pi-building text-[11px]"></i> Sucursal fija
+            </label>
+            <p-select
+              fluid
+              [ngModel]="floatingDialogBranchId()"
+              (ngModelChange)="floatingDialogBranchId.set($event)"
+              [options]="store.branches.entities()"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Seleccionar sucursal..."
+              appendTo="body"
+              filter
+              [disabled]="floatingDialogIsFloating()"
+            />
+            @if (floatingDialogIsFloating()) {
+              <span class="text-[11px] text-gray-500 italic">Mientras esté marcado como rotativo, la sucursal fija se ignora.</span>
+            }
+          </div>
+
+          <!-- Toggle rotativo -->
+          <div class="flex items-start gap-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+            <p-toggleSwitch
+              [ngModel]="floatingDialogIsFloating()"
+              (onChange)="floatingDialogIsFloating.set($event.checked)"
+            />
+            <div class="flex-1">
+              <div class="text-sm font-semibold text-cyan-200 flex items-center gap-1.5">
+                <i class="pi pi-sync text-[11px]"></i> Personal rotativo / sin sucursal fija
+              </div>
+              <p class="text-[11px] text-gray-400 m-0 mt-1">
+                Aparecerá en la sección "Personal en cobertura" de cualquier sucursal donde tenga turnos esa semana.
+                Útil para personal que rota entre tiendas o cubre vacaciones / días libres / incapacidades.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-5">
+          <p-button label="Cancelar" severity="secondary" [outlined]="true" (onClick)="floatingDialogVisible.set(false)" />
+          <p-button label="Guardar" icon="pi pi-check" severity="info" (onClick)="saveFloatingDialog()" />
+        </div>
+      }
     </p-dialog>
 
     <pt-month-week-selector
@@ -565,6 +669,18 @@ export class EmployeesTimetableComponent implements OnInit {
   public store = inject(DashboardStore);
   public editionLocked = model<boolean>();
   public unlockModal = signal(false);
+
+  // Asignación de sucursal / rotativo (source of truth: groomer_employee_config.is_rotating, compartido con salon-schedule)
+  public floatingDialogVisible = signal(false);
+  public floatingDialogEmployee = signal<any | null>(null);
+  public floatingDialogBranchId = signal<string | undefined>(undefined);
+  public floatingDialogIsFloating = signal<boolean>(false);
+  public groomerConfigs = signal<GroomerEmployeeConfig[]>([]);
+  public rotatingMap = computed(() => {
+    const m = new Map<string, boolean>();
+    for (const c of this.groomerConfigs()) m.set(c.employee_id, !!c.is_rotating);
+    return m;
+  });
   public monthWeekSelectorVisible = signal(false);
   public selectedMonth = signal<Date>(new Date());
   public selectedMonthOption = signal<{ label: string; value: Date }>({
@@ -637,6 +753,7 @@ export class EmployeesTimetableComponent implements OnInit {
   });
 
   private apiUrl = inject(ApiUrlService);
+  private http = inject(HttpClient);
   private organizationService = inject(OrganizationService);
   private readonly esLocale = esDateFns;
   public permissionsService = inject(TimetablePermissionsService);
@@ -815,6 +932,15 @@ export class EmployeesTimetableComponent implements OnInit {
     return this.store.currentEmployee()?.branch_id ?? null;
   });
 
+  /**
+   * Sucursal "en foco" para la vista: la del gerente si aplica, sino la
+   * seleccionada en el filtro de sucursal. Sirve para detectar empleados
+   * que están cubriendo (no fijos en esa sucursal).
+   */
+  public viewBranchId = computed((): string | null => {
+    return this.managerBranchId() ?? this.filterService.currentBranch() ?? null;
+  });
+
   /** Setting global: si true, gerentes solo pueden agregar horarios desde salon-schedule (en espera) */
   public strictAssignmentMode = httpResource<any[]>(() => ({
     url: this.apiUrl.build('rest/v1/settings', {
@@ -839,7 +965,7 @@ export class EmployeesTimetableComponent implements OnInit {
     return {
       url: this.apiUrl.build('rest/v1/employee_schedules', {
         select:
-          'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,migrated_from_branch_id,migrated_at,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
+          'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,migrated_from_branch_id,migrated_at,cover_reason,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees!employee_schedule_employee_id_fkey(id,company_id)',
         start_date: `lte.${endDate}`,
         end_date: `gte.${startDate}`,
         ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
@@ -855,22 +981,30 @@ export class EmployeesTimetableComponent implements OnInit {
    * dentro del periodo visible. Solo lectura excepto en sus días asignados.
    */
   private guestEmployees = computed(() => {
-    const mgrBranchId = this.managerBranchId();
-    if (!mgrBranchId) return [];
+    const viewBranchId = this.viewBranchId();
+    if (!viewBranchId) return [];
 
     const baseIds = new Set(this.filterService.filteredEmployees().map((e) => e.id));
     const assignments = this.assignmentsResource.value() ?? [];
+    const schedules = this.schedulesResource.value() ?? [];
 
     const guestIds = new Set<string>();
     for (const a of assignments) {
-      if (a.branch_id === mgrBranchId && !baseIds.has(a.employee_id)) {
+      if (a.branch_id === viewBranchId && !baseIds.has(a.employee_id)) {
         guestIds.add(a.employee_id);
+      }
+    }
+    // Empleados con turnos directos (no solo asignaciones de peluquería)
+    // en la sucursal en foco pero cuyo hogar es otra sucursal: están cubriendo.
+    for (const s of schedules) {
+      if (s.branch_id === viewBranchId && s.employee_id && !baseIds.has(s.employee_id)) {
+        guestIds.add(s.employee_id);
       }
     }
     if (guestIds.size === 0) return [];
 
     const allEmployees = this.store.employees.employeesList()
-      .filter((e: any) => e.is_active && guestIds.has(e.id));
+      .filter((e: any) => e.is_active && guestIds.has(e.id) && e.branch_id !== viewBranchId);
 
     return allEmployees.map((e: any) => ({
       id: e.id,
@@ -947,6 +1081,8 @@ export class EmployeesTimetableComponent implements OnInit {
     const mgrConflicts = this.managerConflictKeys();
     const pelConflicts = this.peluqueroConflictKeys();
     const asistenteMin = this.asistenteMinEntryMinutesByKey();
+    const viewBranchId = this.viewBranchId();
+    const rotating = this.rotatingMap();
 
     return employees.map((employee) => ({
       id: employee.id,
@@ -958,6 +1094,15 @@ export class EmployeesTimetableComponent implements OnInit {
         ? { id: (employee.position as any).id, name: employee.position.name }
         : { id: '', name: '' },
       isNewHire: differenceInDays(new Date(), employee.start_date ?? new Date()) < 15,
+      // Fuente: groomer_employee_config.is_rotating (compartido con salon-schedule)
+      isFloating: rotating.get(employee.id) ?? false,
+      // Solo se considera "en cobertura" si su sucursal hogar difiere de la vista actual.
+      // Los rotativos siguen en su lista normal y se identifican con badge ROTATIVO.
+      isCovering: !!(viewBranchId && (employee as any).branch_id && (employee as any).branch_id !== viewBranchId),
+      homeBranchName:
+        (employee as any).branch?.short_name
+        ?? (employee as any).branch?.name
+        ?? null,
       days: employee.days.map((day) => {
         const shift =
           findIntervalForDate(
@@ -978,6 +1123,17 @@ export class EmployeesTimetableComponent implements OnInit {
       }),
     }));
   });
+
+  /** Empleados fijos de la sucursal en foco (o todos cuando no hay filtro) */
+  public fixedSchedulesList = computed(() =>
+    this.employeeSchedulesList().filter((e) => !e.isCovering)
+  );
+
+  /** Empleados en cobertura: solo aparecen cuando hay sucursal en foco
+   *  y su sucursal hogar es distinta. Se muestran en un grupo aparte. */
+  public coveringSchedulesList = computed(() =>
+    this.employeeSchedulesList().filter((e) => e.isCovering)
+  );
 
   // ========== Specific Audit Dialog Header ==========
 
@@ -1035,6 +1191,7 @@ export class EmployeesTimetableComponent implements OnInit {
     this.store.positions.fetchItems();
     this.scheduleLockService.loadSettings();
     this.loadPendingChangeRequestCount();
+    this.loadGroomerConfigs();
 
     effect(
       () => {
@@ -1532,6 +1689,113 @@ export class EmployeesTimetableComponent implements OnInit {
       summary: 'Turno bloqueado',
       detail: 'Este turno está bloqueado. Para solicitar un cambio, usa el botón "Solicitar cambio de horario".',
       life: 5000,
+    });
+  }
+
+  public openFloatingToggleDialog(employee: any): void {
+    if (!this.permissionsService.canApproveSchedules() && !this.store.isAdmin()) {
+      this.message.add({
+        severity: 'info',
+        summary: 'Solo administradores',
+        detail: 'Solo administradores o aprobadores pueden cambiar la asignación de sucursal.',
+        life: 4000,
+      });
+      return;
+    }
+    // Cargar el empleado completo desde el store (no solo el snapshot de la grilla)
+    const full = this.store.employees.entities().find((e: any) => e.id === employee.id) ?? employee;
+    this.floatingDialogEmployee.set(full);
+    this.floatingDialogBranchId.set(full.branch_id ?? undefined);
+    // Fuente de verdad: groomer_employee_config (compartida con salon-schedule)
+    this.floatingDialogIsFloating.set(this.rotatingMap().get(full.id) ?? false);
+    this.floatingDialogVisible.set(true);
+  }
+
+  public async saveFloatingDialog(): Promise<void> {
+    const emp = this.floatingDialogEmployee();
+    if (!emp) return;
+    const branchId = this.floatingDialogBranchId();
+    const isRotating = this.floatingDialogIsFloating();
+    const wasRotating = this.rotatingMap().get(emp.id) ?? false;
+
+    const branchChanged = !!(branchId && branchId !== emp.branch_id);
+    const rotatingChanged = isRotating !== wasRotating;
+
+    if (!branchChanged && !rotatingChanged) {
+      this.floatingDialogVisible.set(false);
+      return;
+    }
+
+    try {
+      // 1) Cambio de sucursal → PATCH employees
+      if (branchChanged) {
+        await firstValueFrom(
+          this.http.patch(
+            this.apiUrl.build('rest/v1/employees', { id: `eq.${emp.id}` }),
+            { branch_id: branchId },
+            { headers: { Prefer: 'return=minimal' } }
+          )
+        );
+      }
+      // 2) Toggle rotativo → UPSERT groomer_employee_config (misma fuente que salon-schedule)
+      if (rotatingChanged) {
+        const companyId = this.organizationService.getCurrentCompanyId();
+        if (!companyId) throw new Error('Sin company_id');
+        const current = this.groomerConfigs().find((c) => c.employee_id === emp.id);
+        const payload = {
+          company_id: companyId,
+          employee_id: emp.id,
+          is_rotating: isRotating,
+          zone: current?.zone ?? null,
+        };
+        const url = this.apiUrl.build('rest/v1/groomer_employee_config', {
+          on_conflict: 'company_id,employee_id',
+        });
+        const updated = await firstValueFrom(
+          this.http.post<GroomerEmployeeConfig[]>(url, payload, {
+            headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+          })
+        );
+        const row = Array.isArray(updated) ? updated[0] : (updated as any);
+        const existing = this.groomerConfigs();
+        const idx = existing.findIndex((c) => c.employee_id === emp.id);
+        if (idx >= 0) {
+          this.groomerConfigs.set([...existing.slice(0, idx), row, ...existing.slice(idx + 1)]);
+        } else {
+          this.groomerConfigs.set([...existing, row]);
+        }
+      }
+
+      this.message.add({
+        severity: 'success',
+        summary: 'Guardado',
+        detail: 'Asignación actualizada (sincronizada con Horario Peluquería).',
+        life: 3000,
+      });
+      this.floatingDialogVisible.set(false);
+      this.floatingDialogEmployee.set(null);
+      if (branchChanged) (this.store.employees as any).fetchItems?.();
+    } catch (e) {
+      console.error('Error guardando asignación', e);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo guardar. Intenta de nuevo.',
+        life: 4000,
+      });
+    }
+  }
+
+  private loadGroomerConfigs(): void {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return;
+    const url = this.apiUrl.build('rest/v1/groomer_employee_config', {
+      company_id: `eq.${companyId}`,
+      select: '*',
+    });
+    this.http.get<GroomerEmployeeConfig[]>(url).subscribe({
+      next: (configs) => this.groomerConfigs.set(configs ?? []),
+      error: (e) => console.error('[Timetable] Error cargando groomer_employee_config:', e),
     });
   }
 

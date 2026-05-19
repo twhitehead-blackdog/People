@@ -77,7 +77,8 @@ export class TimetableFilterService {
           position_id,
           position,
           start_date,
-        }) => ({
+          is_floating,
+        }: any) => ({
           id,
           first_name,
           father_name,
@@ -86,6 +87,7 @@ export class TimetableFilterService {
           position,
           position_id,
           start_date,
+          is_floating,
         })
       )
       .sort((a, b) => {
