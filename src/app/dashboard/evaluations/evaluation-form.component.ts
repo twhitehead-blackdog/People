@@ -14,7 +14,9 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { InputText } from 'primeng/inputtext';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { Tooltip } from 'primeng/tooltip';
 import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
@@ -44,9 +46,11 @@ import {
     InputText,
     Textarea,
     ToastModule,
+    ConfirmDialog,
+    Tooltip,
     DatePipe,
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display: block; }
@@ -511,11 +515,26 @@ import {
   `],
   template: `
     <p-toast />
+    <p-confirmDialog />
     <div class="doc-page" [class.read-only]="isReadOnly()">
       <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <p-button icon="pi pi-arrow-left" label="Volver" [text]="true" size="small" (onClick)="back()" />
         @if (isReadOnly() && currentStatus() === 'completed') {
-          <span class="read-only-badge"><i class="pi pi-lock"></i> Evaluación completada — solo lectura</span>
+          <div class="flex items-center gap-2">
+            <span class="read-only-badge"><i class="pi pi-lock"></i> Evaluación completada — solo lectura</span>
+            @if (canRevertToDraft()) {
+              <p-button
+                icon="pi pi-lock-open"
+                label="Desbloquear"
+                severity="warn"
+                [outlined]="true"
+                size="small"
+                (onClick)="confirmRevertToDraft()"
+                pTooltip="Volver a borrador para editar"
+                tooltipPosition="bottom"
+              />
+            }
+          </div>
         }
         @if (autosaveState() !== 'idle' && !isReadOnly()) {
           <div class="autosave-pill" [class.saving]="autosaveState() === 'saving' || autosaveState() === 'pending'" [class.saved]="autosaveState() === 'saved'">
@@ -921,6 +940,7 @@ export class EvaluationFormComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private message = inject(MessageService);
+  private confirmSvc = inject(ConfirmationService);
   private orgService = inject(OrganizationService);
   private dashboardStore = inject(DashboardStore);
 
@@ -947,6 +967,15 @@ export class EvaluationFormComponent {
   public responses = signal<Map<string, EvaluationResponse>>(new Map());
 
   public currentStatus = signal<'draft' | 'completed' | 'archived'>('draft');
+
+  /** Solo admins / HR pueden desbloquear una evaluación completada. */
+  public canRevertToDraft = computed(() => {
+    const store = this.dashboardStore;
+    if (store.isAdmin()) return true;
+    const emp = store.currentEmployee();
+    const dept = (emp?.department?.name || '').toLowerCase();
+    return dept.includes('humano') || dept.includes('recursos');
+  });
   public isPrintMode = signal<boolean>(this.route.snapshot.queryParamMap.get('print') === '1');
   public isReadOnly = computed(() => this.currentStatus() === 'completed' || this.isPrintMode());
   public showMobileMeta = signal<boolean>(false);
@@ -1251,6 +1280,48 @@ export class EvaluationFormComponent {
 
   public romanNumeral(n: number): string {
     return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][n - 1] ?? `${n}`;
+  }
+
+  public confirmRevertToDraft() {
+    if (!this.canRevertToDraft()) return;
+    this.confirmSvc.confirm({
+      header: 'Volver a borrador',
+      message: 'Esta evaluación está completada. Al volverla a borrador, se podrá editar de nuevo. ¿Continuar?',
+      icon: 'pi pi-lock-open',
+      acceptLabel: 'Sí, volver a borrador',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-warning',
+      accept: () => this.revertToDraft(),
+    });
+  }
+
+  private async revertToDraft() {
+    const id = this.id();
+    if (!id) return;
+    try {
+      await firstValueFrom(
+        this.http.patch(
+          this.apiUrl.build('rest/v1/employee_evaluations', { id: `eq.${id}` }),
+          { status: 'draft' },
+          { headers: { Prefer: 'return=minimal' } }
+        )
+      );
+      this.currentStatus.set('draft');
+      this.message.add({
+        severity: 'success',
+        summary: 'Volvió a borrador',
+        detail: 'La evaluación ahora se puede editar.',
+        life: 3500,
+      });
+    } catch (e) {
+      console.error('Error volviendo a borrador', e);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo cambiar el estado.',
+        life: 4000,
+      });
+    }
   }
 
   public onEvaluatorChange(event: { value: string }) {

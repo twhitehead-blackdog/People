@@ -19,6 +19,7 @@ import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
 import { ApiUrlService } from '../../services/api-url.service';
+import { DashboardStore } from '../../stores/dashboard.store';
 import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
 
 @Component({
@@ -201,12 +202,34 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
                   } @else { <span class="text-gray-500">—</span> }
                 </td>
                 <td class="py-2 px-2">
-                  <p-tag
-                    [value]="statusLabel(e.status)"
-                    [severity]="statusSeverity(e.status)"
-                  />
+                  <div class="inline-flex items-center gap-1">
+                    <p-tag
+                      [value]="statusLabel(e.status)"
+                      [severity]="statusSeverity(e.status)"
+                    />
+                    @if (e.status === 'completed') {
+                      <i class="pi pi-lock text-amber-400 text-xs"
+                         pTooltip="Completada — solo lectura"
+                         tooltipPosition="top"></i>
+                    } @else if (e.status === 'draft') {
+                      <i class="pi pi-lock-open text-blue-300 text-xs"
+                         pTooltip="Borrador — editable"
+                         tooltipPosition="top"></i>
+                    }
+                  </div>
                 </td>
                 <td class="py-2 px-2 text-right" (click)="$event.stopPropagation()">
+                  @if (e.status === 'completed' && canRevertToDraft()) {
+                    <p-button
+                      icon="pi pi-lock-open"
+                      severity="warn"
+                      [text]="true"
+                      [rounded]="true"
+                      size="small"
+                      (onClick)="confirmRevertToDraft(e)"
+                      pTooltip="Volver a borrador"
+                    />
+                  }
                   <p-button
                     icon="pi pi-trash"
                     severity="danger"
@@ -254,7 +277,25 @@ import { EmployeeEvaluation, EvaluationType } from './evaluations.models';
               @if (e.period_label) { <span><i class="pi pi-clock"></i>{{ e.period_label }}</span> }
             </div>
             <div class="flex items-center justify-between mt-2">
-              <p-tag [value]="statusLabel(e.status)" [severity]="statusSeverity(e.status)" />
+              <div class="inline-flex items-center gap-1">
+                <p-tag [value]="statusLabel(e.status)" [severity]="statusSeverity(e.status)" />
+                @if (e.status === 'completed') {
+                  <i class="pi pi-lock text-amber-400 text-xs"></i>
+                } @else if (e.status === 'draft') {
+                  <i class="pi pi-lock-open text-blue-300 text-xs"></i>
+                }
+                @if (e.status === 'completed' && canRevertToDraft()) {
+                  <p-button
+                    icon="pi pi-lock-open"
+                    severity="warn"
+                    [text]="true"
+                    [rounded]="true"
+                    size="small"
+                    (onClick)="confirmRevertToDraft(e); $event.stopPropagation()"
+                    pTooltip="Volver a borrador"
+                  />
+                }
+              </div>
               <p-button
                 icon="pi pi-trash"
                 severity="danger"
@@ -278,6 +319,51 @@ export class EvaluationsListComponent {
   private router = inject(Router);
   private message = inject(MessageService);
   private confirmation = inject(ConfirmationService);
+  private dashboardStore = inject(DashboardStore);
+
+  public canRevertToDraft = computed(() => {
+    if (this.dashboardStore.isAdmin()) return true;
+    const emp = this.dashboardStore.currentEmployee();
+    const dept = (emp?.department?.name || '').toLowerCase();
+    return dept.includes('humano') || dept.includes('recursos');
+  });
+
+  public confirmRevertToDraft(e: EmployeeEvaluation) {
+    if (!this.canRevertToDraft()) return;
+    this.confirmation.confirm({
+      header: 'Volver a borrador',
+      message: 'Esta evaluación se podrá editar de nuevo. ¿Continuar?',
+      icon: 'pi pi-lock-open',
+      acceptLabel: 'Sí, volver a borrador',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-warning',
+      accept: async () => {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              this.apiUrl.build('rest/v1/employee_evaluations', { id: `eq.${e.id}` }),
+              { status: 'draft' },
+              { headers: { Prefer: 'return=minimal' } }
+            )
+          );
+          this.message.add({
+            severity: 'success',
+            summary: 'Volvió a borrador',
+            life: 3000,
+          });
+          this.evaluationsResource.reload();
+        } catch (err) {
+          console.error(err);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo cambiar el estado.',
+            life: 4000,
+          });
+        }
+      },
+    });
+  }
 
   public searchText = signal('');
   public typeFilter = signal<string | null>(null);
