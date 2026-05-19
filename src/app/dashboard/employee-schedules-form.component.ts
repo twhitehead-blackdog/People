@@ -188,6 +188,27 @@ import { ScheduleLockService } from '../services/schedule-lock.service';
       </div>
       }
     </div>
+
+    <!-- Motivo de cobertura -->
+    <div class="mb-4">
+      <label for="cover_reason" class="block text-sm font-medium text-gray-300 mb-1">
+        Motivo de cobertura
+        <span class="text-[10px] text-gray-500 font-normal ml-1">(opcional)</span>
+      </label>
+      <p-select
+        inputId="cover_reason"
+        [options]="coverReasonOptions"
+        formControlName="cover_reason"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        placeholder="Sin motivo"
+        [showClear]="true"
+      />
+      <small class="text-[11px] text-gray-500 italic block mt-1">
+        Marca por qué este turno cubre algo: vacaciones, día libre, incapacidad, traslado o rotativo.
+      </small>
+    </div>
     <div class="flex justify-end gap-4 mt-4">
       <p-button
         label="Cancelar"
@@ -229,7 +250,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       nonNullable: true,
     }),
     approved: new FormControl(true, { nonNullable: true }),
+    cover_reason: new FormControl<string | null>(null),
   });
+
+  public coverReasonOptions = [
+    { label: '— Sin motivo —', value: null },
+    { label: 'Rotativo (rota habitualmente)', value: 'rotativo' },
+    { label: 'Vacaciones (cubre)', value: 'vacaciones' },
+    { label: 'Día libre (cubre)', value: 'dia_libre' },
+    { label: 'Incapacidad (cubre)', value: 'incapacidad' },
+    { label: 'Traslado (apoyo puntual)', value: 'traslado' },
+  ];
   public dialogRef = inject(DynamicDialogRef);
   private dialog = inject(DynamicDialogConfig);
   public loading = signal<boolean>(false);
@@ -586,7 +617,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         end_date,
         branch_id,
         approved,
-      } = employee_schedule;
+        cover_reason,
+      } = employee_schedule as any;
+      this.form.get('cover_reason')?.patchValue(cover_reason ?? null);
 
       // Guardar el turno original para comparación
       this.originalSchedule = employee_schedule;

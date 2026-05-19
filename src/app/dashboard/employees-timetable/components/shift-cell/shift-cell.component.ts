@@ -54,6 +54,14 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         }
         {{ shiftValue?.schedule?.name }}
       </span>
+      @if (shiftValue?.cover_reason) {
+        <span class="text-[8px] font-bold uppercase tracking-wider rounded px-1 py-px ml-1"
+              [class]="coverReasonClass(shiftValue?.cover_reason)"
+              [pTooltip]="coverReasonLabel(shiftValue?.cover_reason)"
+              tooltipPosition="top">
+          {{ coverReasonShort(shiftValue?.cover_reason) }}
+        </span>
+      }
         @if (shiftValue?.migrated_from_branch_id) {
         <i
           class="pi pi-exclamation-circle text-yellow-300 text-[9px] flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
@@ -241,6 +249,37 @@ export class ShiftCellComponent {
     if (!view || !s?.branch_id) return false;
     return s.branch_id !== view;
   });
+
+  public coverReasonLabel(r: string | null | undefined): string {
+    switch (r) {
+      case 'rotativo': return 'Rotativo (rota habitualmente)';
+      case 'vacaciones': return 'Cubre vacaciones';
+      case 'dia_libre': return 'Cubre día libre';
+      case 'incapacidad': return 'Cubre incapacidad';
+      case 'traslado': return 'Traslado / apoyo puntual';
+      default: return '';
+    }
+  }
+  public coverReasonShort(r: string | null | undefined): string {
+    switch (r) {
+      case 'rotativo': return 'ROT';
+      case 'vacaciones': return 'VAC';
+      case 'dia_libre': return 'DL';
+      case 'incapacidad': return 'INC';
+      case 'traslado': return 'TR';
+      default: return '';
+    }
+  }
+  public coverReasonClass(r: string | null | undefined): string {
+    switch (r) {
+      case 'rotativo': return 'bg-purple-500/25 text-purple-100 border border-purple-400/40';
+      case 'vacaciones': return 'bg-blue-500/25 text-blue-100 border border-blue-400/40';
+      case 'dia_libre': return 'bg-amber-500/25 text-amber-100 border border-amber-400/40';
+      case 'incapacidad': return 'bg-rose-500/25 text-rose-100 border border-rose-400/40';
+      case 'traslado': return 'bg-emerald-500/25 text-emerald-100 border border-emerald-400/40';
+      default: return '';
+    }
+  }
   /** True si el gerente está viendo a un empleado invitado de otra sucursal */
   public isGuestEmployee = computed(() => {
     const mgr = this.managerBranchId();

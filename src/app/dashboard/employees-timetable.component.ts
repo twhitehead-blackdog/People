@@ -124,9 +124,28 @@ function arraysEqualSet(a: readonly string[], b: readonly string[]): boolean {
   ],
   template: `<div class="timetable-wrapper px-3 sm:px-5 md:px-8 pt-2 sm:pt-5 pb-4">
       <!-- Desktop title -->
-      <div class="hidden md:block">
-        <h2 class="text-xl font-bold text-white m-0">Turnos</h2>
-        <p class="text-sm text-gray-400 m-0 mt-0.5">Vista semanal de turnos y horarios de empleados</p>
+      <div class="hidden md:flex md:items-end md:justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white m-0">Turnos</h2>
+          <p class="text-sm text-gray-400 m-0 mt-0.5">
+            Vista semanal de turnos y horarios de empleados
+            <span class="ml-2 text-[11px]">
+              <span class="font-semibold text-white">{{ fixedSchedulesList().length }}</span> fijos
+              @if (coveringSchedulesList().length > 0) {
+                · <span class="text-cyan-300 font-semibold">{{ coveringSchedulesList().length }}</span> cobertura
+              }
+              @if (floatingSchedulesList().length > 0) {
+                · <span class="text-purple-300 font-semibold">{{ floatingSchedulesList().length }}</span> rotativos
+              }
+            </span>
+          </p>
+        </div>
+        <!-- Leyenda de badges -->
+        <div class="flex items-center gap-2 text-[10px]">
+          <span class="font-semibold bg-green-500/15 text-green-300 border border-green-500/30 rounded px-2 py-0.5" pTooltip="Empleados con menos de 30 días en la empresa" tooltipPosition="top">NUEVO</span>
+          <span class="font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 rounded px-2 py-0.5" pTooltip="Empleado de otra sucursal cubriendo turnos aquí esta semana" tooltipPosition="top">COBERTURA</span>
+          <span class="font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 rounded px-2 py-0.5" pTooltip="Personal rotativo (sincronizado con Horario Peluquería)" tooltipPosition="top">ROTATIVO</span>
+        </div>
       </div>
 
       <!-- Mobile compact header bar -->
@@ -1858,6 +1877,11 @@ export class EmployeesTimetableComponent implements OnInit {
           )
         );
       }
+
+      // 1b) Si cambió la sucursal de un NO-rotativo, ofrecer reasignar turnos futuros
+      if (branchChanged && !isRotating && branchId) {
+        await this.maybeReassignFutureShifts(emp.id, branchId);
+      }
       // 2) Toggle rotativo → UPSERT groomer_employee_config (misma fuente que salon-schedule)
       if (rotatingChanged) {
         const companyId = this.organizationService.getCurrentCompanyId();
@@ -1905,6 +1929,70 @@ export class EmployeesTimetableComponent implements OnInit {
         life: 4000,
       });
     }
+  }
+
+  /** Cuando un no-rotativo cambia de sucursal, ofrecer reasignar sus turnos futuros. */
+  private async maybeReassignFutureShifts(employeeId: string, newBranchId: string): Promise<void> {
+    const today = new Date().toISOString().slice(0, 10);
+    // Contar turnos futuros que NO están ya en la sucursal nueva
+    const countUrl = this.apiUrl.build('rest/v1/employee_schedules', {
+      employee_id: `eq.${employeeId}`,
+      end_date: `gte.${today}`,
+      branch_id: `neq.${newBranchId}`,
+      select: 'id',
+    });
+    let count = 0;
+    try {
+      const rows = await firstValueFrom(
+        this.http.get<Array<{ id: string }>>(countUrl, {
+          headers: { Prefer: 'count=exact' },
+          observe: 'response' as any,
+        } as any)
+      ) as any;
+      count = Array.isArray(rows?.body) ? rows.body.length : 0;
+    } catch (e) {
+      console.warn('Error contando turnos futuros', e);
+      return;
+    }
+    if (count === 0) return;
+
+    this.confirm.confirm({
+      header: 'Reasignar turnos futuros',
+      message: `Este empleado tiene ${count} turno(s) futuros en otra sucursal. ¿Reasignar también esos turnos a la nueva sucursal?`,
+      icon: 'pi pi-question-circle',
+      acceptLabel: 'Sí, reasignar',
+      rejectLabel: 'No, dejarlos',
+      accept: async () => {
+        try {
+          await firstValueFrom(
+            this.http.patch(
+              this.apiUrl.build('rest/v1/employee_schedules', {
+                employee_id: `eq.${employeeId}`,
+                end_date: `gte.${today}`,
+                branch_id: `neq.${newBranchId}`,
+              }),
+              { branch_id: newBranchId, migrated_at: new Date().toISOString() },
+              { headers: { Prefer: 'return=minimal' } }
+            )
+          );
+          this.message.add({
+            severity: 'success',
+            summary: 'Turnos reasignados',
+            detail: `${count} turno(s) movidos a la nueva sucursal.`,
+            life: 3500,
+          });
+          this.schedulesResource.reload();
+        } catch (e) {
+          console.error('Error reasignando turnos', e);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudieron reasignar los turnos.',
+            life: 4000,
+          });
+        }
+      },
+    });
   }
 
   private loadGroomerConfigs(): void {
