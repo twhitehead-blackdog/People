@@ -52,6 +52,7 @@ import { ApiUrlService } from './services/api-url.service';
 import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
+import { PunchQueueService } from './services/punch-queue.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
 import { TimeSyncService } from './services/time-sync.service';
 import { WebAuthnService } from './services/webauthn.service';
@@ -124,6 +125,39 @@ interface TimeclockInfoData {
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
+
+    <!-- ── Pending punches banner ─────────────────────────────────────
+         Aparece automáticamente si quedaron marcaciones de emergencia sin
+         sincronizar. Es persistente (no se cierra hasta que la cola está vacía)
+         para que el operador/encargado lo vea SIEMPRE y pueda forzar el sync.
+         Evita el problema del 19/05/2026 donde el toast amarillo "guardada
+         localmente" se perdía y nadie sabía que había punches pendientes.
+    -->
+    @if (punchQueue.pendingCount() > 0) {
+      <div class="punch-queue-banner" role="alert" aria-live="polite">
+        <div class="punch-queue-banner__inner">
+          <i class="pi pi-exclamation-triangle punch-queue-banner__icon"></i>
+          <div class="punch-queue-banner__text">
+            <strong>{{ punchQueue.pendingCount() }}</strong>
+            marcación(es) pendiente(s) de sincronizar.
+            @if (punchQueue.syncing()) {
+              <span class="punch-queue-banner__sub">Sincronizando…</span>
+            } @else {
+              <span class="punch-queue-banner__sub">El sistema reintentará solo cada 30s. Si tienes red, presiona "Sincronizar ahora".</span>
+            }
+          </div>
+          <button
+            type="button"
+            class="punch-queue-banner__btn"
+            (click)="manualDrainQueue()"
+            [disabled]="punchQueue.syncing()">
+            <i class="pi pi-refresh"></i>
+            Sincronizar ahora
+          </button>
+        </div>
+      </div>
+    }
+
     <app-dp-enroll-dialog
       [employeeId]="selfEnrollEmployeeId()"
       [employeeName]="selfEnrollEmployeeName()"
@@ -1121,6 +1155,7 @@ export class TimeclockComponent implements OnDestroy {
   private phrases = inject(TimeclockPhrasesService);
   private webAuthn = inject(WebAuthnService);
   private dp = inject(DpFingerprintService);
+  public punchQueue = inject(PunchQueueService);
   public employeeHasDp = signal<boolean>(false);
 
   /** Employees that can mark from any IP address */
@@ -1421,6 +1456,13 @@ export class TimeclockComponent implements OnDestroy {
 
   // Update time every second
   constructor() {
+    // Bootstrap de la cola persistente de punches.
+    // Esto programa auto-sync cada 30s, en evento 'online', en visibilitychange,
+    // y un drain inmediato. Imprescindible: si hubo un deploy o caída de Supabase
+    // y quedaron punches en IDB/localStorage del kiosk, se suben SOLOS al abrir
+    // la app sin que nadie tenga que ir a Settings.
+    this.punchQueue.bootstrap();
+
     // Monitorear estado del lector DP
     this.dp.startStatusPolling(5000);
     this.dp.onConnectionChange((c) => {
@@ -5536,7 +5578,43 @@ export class TimeclockComponent implements OnDestroy {
           life: 8000,
         });
 
-        // Intento 2: guardar en localStorage (retrocompat)
+        // Intento 2: encolar en PunchQueueService (IndexedDB + auto-sync).
+        // Esto reemplaza el viejo localStorage manual y garantiza que la marcación
+        // se reintente automáticamente al volver la red, al recargar la app o
+        // cada 30s — sin que ningún operador tenga que tocar nada.
+        void this.punchQueue.enqueue({
+          employee_id: employeeId,
+          employee_name: employeeName,
+          branch_id: branchId,
+          company_id: companyId,
+          type,
+          type_label: typeLabel,
+          punched_at: timestamp,
+          ip: this.getIP(),
+          invalid_ip: !this.validIP(),
+          auth_method: 'pin',
+          reason: `Emergency fallback (status ${status ?? 'unknown'}${code ? ' ' + code : ''})`,
+        });
+
+        // Intento 3 (paralelo, fire-and-forget): sendBeacon directo al server.
+        // Es el camino más resiliente — el navegador lo entrega incluso si la
+        // pestaña se cierra justo después. El server escribe a disco antes de BD.
+        this.punchQueue.sendBeaconFireAndForget({
+          employee_id: employeeId,
+          employee_name: employeeName,
+          branch_id: branchId,
+          company_id: companyId,
+          type,
+          type_label: typeLabel,
+          punched_at: timestamp,
+          ip: this.getIP(),
+          invalid_ip: !this.validIP(),
+          auth_method: 'pin',
+          reason: 'sendBeacon emergency fallback',
+        });
+
+        // Intento 4 (legacy, retrocompat): formato viejo localStorage por si
+        // algún script todavía lo lee. PunchQueueService migra de aquí al boot.
         const localEntry: EmergencyTimelog = {
           id: crypto.randomUUID(),
           employee_id: employeeId,
@@ -5552,6 +5630,33 @@ export class TimeclockComponent implements OnDestroy {
         this.emergencyState.set('saved_local');
       },
     });
+  }
+
+  /** Llamado desde el banner persistente cuando el operador presiona "Sincronizar ahora". */
+  public async manualDrainQueue(): Promise<void> {
+    const result = await this.punchQueue.drainNow();
+    if (result.drained > 0) {
+      this.message.add({
+        severity: 'success',
+        summary: 'Sincronización completa',
+        detail: `${result.drained} marcación(es) enviada(s) al servidor.${result.remaining > 0 ? ` Quedan ${result.remaining} pendientes (sin red).` : ''}`,
+        life: 6000,
+      });
+    } else if (result.failed > 0) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Sin red',
+        detail: `No se pudo conectar al servidor. ${result.remaining} marcación(es) sigue(n) pendiente(s). Se reintentará automáticamente.`,
+        life: 6000,
+      });
+    } else {
+      this.message.add({
+        severity: 'info',
+        summary: 'Cola vacía',
+        detail: 'No hay marcaciones pendientes.',
+        life: 3000,
+      });
+    }
   }
 
   // ── Pet type rotation (dog/cat) ──────────────────────────────────────

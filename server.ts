@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import dotenv from 'dotenv';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { readFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import helmet from 'helmet';
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import nodemailer from 'nodemailer';
@@ -267,6 +267,180 @@ export function app(): express.Express {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+
+  // ── Punch Beacon — disk-first emergency punch sink ─────────────────────
+  // Última red de seguridad cuando RPC process_timelog y insert_manual_timelog fallan.
+  // Escribe primero a /var/log/people-punch-beacons.jsonl (append-only) y luego
+  // INTENTA insertar a Supabase con source='EMERGENCY'. Si Supabase falla, devuelve
+  // 200 igual: el cron drainPunchBeacons() reintenta cada minuto.
+  // El frontend usa navigator.sendBeacon() así que sobrevive aunque la pestaña se cierre.
+  const BEACON_DIR = '/var/log/people-beacons';
+  const BEACON_PATH = `${BEACON_DIR}/punch-beacons.jsonl`;
+  try {
+    if (!existsSync(BEACON_DIR)) mkdirSync(BEACON_DIR, { recursive: true, mode: 0o755 });
+  } catch (e) { safeLogger.error('No se pudo crear BEACON_DIR', e); }
+
+  async function insertBeaconToSupabase(entry: Record<string, unknown>): Promise<{ ok: boolean; status?: number; err?: string }> {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || process.env['ENV_SUPABASE_ANON_KEY'];
+      if (!supabaseUrl || !serviceKey) return { ok: false, err: 'missing supabase config' };
+      const body = {
+        employee_id: entry['employee_id'],
+        company_id: entry['company_id'],
+        branch_id: entry['branch_id'],
+        type: entry['type'],
+        source: 'EMERGENCY',
+        punched_at: entry['punched_at'],
+        ip: entry['ip'] ?? null,
+        invalid_ip: entry['invalid_ip'] ?? false,
+        auth_method: entry['auth_method'] ?? null,
+        reason: entry['reason'] ?? 'Emergency beacon — process_timelog y insert_manual_timelog fallaron',
+      };
+      const r = await fetch(`${supabaseUrl}/rest/v1/timelogs`, {
+        method: 'POST',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const txt = await r.text().catch(() => '');
+        return { ok: false, status: r.status, err: txt.slice(0, 200) };
+      }
+      return { ok: true, status: r.status };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { ok: false, err: msg };
+    }
+  }
+
+  server.post('/api/punch-beacon', async (req, res) => {
+    const received_at = new Date().toISOString();
+    const payload = (req.body || {}) as Record<string, unknown>;
+    // Validación mínima — todo lo demás se guarda en disco para análisis
+    const required = ['employee_id', 'branch_id', 'company_id', 'type', 'punched_at'];
+    const missing = required.filter(k => !payload[k]);
+    if (missing.length > 0) {
+      // Aún así guardamos para no perder nada
+      try {
+        appendFileSync(BEACON_PATH, JSON.stringify({ received_at, error: 'missing_fields', missing, payload }) + '\n');
+      } catch { /* */ }
+      res.status(200).json({ accepted: true, queued: true, warning: `missing: ${missing.join(',')}` });
+      return;
+    }
+    const beaconId = (typeof globalThis.crypto?.randomUUID === 'function')
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const entry = { beacon_id: beaconId, received_at, synced: false, ...payload } as Record<string, unknown>;
+    // 1) Disco primero — incluso si esto falla, no podemos perder el dato
+    let diskOk = false;
+    try {
+      appendFileSync(BEACON_PATH, JSON.stringify(entry) + '\n');
+      diskOk = true;
+    } catch (err) {
+      safeLogger.error('[punch-beacon] disk write failed', err);
+    }
+    // 2) Intentar Supabase ahora
+    const supa = await insertBeaconToSupabase(entry);
+    if (supa.ok && diskOk) {
+      // Marca como synced en disco (append una línea de marca; drainPunchBeacons() la compacta)
+      try { appendFileSync(BEACON_PATH, JSON.stringify({ beacon_id: beaconId, synced_at: new Date().toISOString(), marker: 'synced' }) + '\n'); } catch { /* */ }
+    }
+    res.status(200).json({
+      accepted: true,
+      beacon_id: beaconId,
+      disk: diskOk,
+      synced_supabase: supa.ok,
+    });
+  });
+
+  // Endpoint público para que dashboard/admins puedan ver beacons pendientes
+  server.get('/api/punch-beacon/status', async (_req, res) => {
+    try {
+      if (!existsSync(BEACON_PATH)) { res.json({ total: 0, pending: 0, synced: 0 }); return; }
+      const raw = readFileSync(BEACON_PATH, 'utf8');
+      const lines = raw.split('\n').filter(Boolean);
+      const synced = new Set<string>();
+      const beacons: Array<Record<string, unknown>> = [];
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.marker === 'synced' && obj.beacon_id) { synced.add(obj.beacon_id); continue; }
+          if (obj.beacon_id) beacons.push(obj);
+        } catch { /* skip malformed */ }
+      }
+      const pending = beacons.filter(b => !synced.has(b['beacon_id'] as string));
+      res.json({
+        total: beacons.length,
+        pending: pending.length,
+        synced: synced.size,
+        pending_sample: pending.slice(0, 10),
+      });
+    } catch (err) {
+      safeLogger.error('[punch-beacon/status]', err);
+      res.status(500).json({ error: 'Internal error' });
+    }
+  });
+
+  // Drain cron: cada minuto reintenta beacons no sincronizados y compacta el archivo
+  async function drainPunchBeacons() {
+    try {
+      if (!existsSync(BEACON_PATH)) return;
+      const raw = readFileSync(BEACON_PATH, 'utf8');
+      const lines = raw.split('\n').filter(Boolean);
+      if (lines.length === 0) return;
+      const synced = new Set<string>();
+      const beacons: Array<Record<string, unknown>> = [];
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.marker === 'synced' && obj.beacon_id) { synced.add(obj.beacon_id); continue; }
+          if (obj.beacon_id) beacons.push(obj);
+        } catch { /* skip */ }
+      }
+      let drained = 0;
+      const stillPending: Array<Record<string, unknown>> = [];
+      for (const b of beacons) {
+        const id = b['beacon_id'] as string;
+        if (synced.has(id)) continue;
+        const r = await insertBeaconToSupabase(b);
+        if (r.ok) {
+          synced.add(id);
+          drained++;
+        } else {
+          stillPending.push(b);
+        }
+      }
+      // Compactar: rewrite con solo pending + marca de los sincronizados últimos 24h (auditoría)
+      const cutoff = Date.now() - 24 * 3600 * 1000;
+      const keepSyncedMarkers = beacons
+        .filter(b => synced.has(b['beacon_id'] as string))
+        .filter(b => {
+          const t = b['received_at'] ? Date.parse(b['received_at'] as string) : 0;
+          return t > cutoff;
+        });
+      const newLines: string[] = [];
+      for (const b of stillPending) newLines.push(JSON.stringify(b));
+      for (const b of keepSyncedMarkers) {
+        newLines.push(JSON.stringify(b));
+        newLines.push(JSON.stringify({ beacon_id: b['beacon_id'], synced_at: new Date().toISOString(), marker: 'synced' }));
+      }
+      const tmp = `${BEACON_PATH}.tmp`;
+      writeFileSync(tmp, newLines.length > 0 ? newLines.join('\n') + '\n' : '');
+      renameSync(tmp, BEACON_PATH);
+      if (drained > 0) safeLogger.log(`[punch-beacon] drained ${drained} pending → Supabase (${stillPending.length} still pending)`);
+    } catch (err) {
+      safeLogger.error('[punch-beacon] drain failed', err);
+    }
+  }
+  // Arrancar el cron de drain cada 60s (al final del bootstrap)
+  cron.schedule('*/1 * * * *', () => { drainPunchBeacons().catch(() => { /* swallow */ }); });
+  // Drain inicial al boot (con delay para que el resto del server termine de levantarse)
+  setTimeout(() => { drainPunchBeacons().catch(() => { /* */ }); }, 5000);
 
   // Lock settings proxy — bypasses Supabase RLS (uses service role key)
   // Needed because schedule_lock_settings has no SELECT/UPDATE policy for authenticated users
