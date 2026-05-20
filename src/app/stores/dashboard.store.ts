@@ -25,6 +25,7 @@ import {
 import { checkSalaryAccess } from '../dashboard/pt-permissions/permissions.types';
 import { Branch, Department, Employee, Position } from '../models';
 import { TestModeService } from '../services/test-mode.service';
+import { ImpersonationService } from '../services/impersonation.service';
 import { getEmployeePermission, isStoreManagerRole } from '../utils/permission.utils';
 import { AuthStore } from './auth.store';
 import { BanksStore } from './banks.store';
@@ -107,19 +108,39 @@ export const DashboardStore = signalStore(
     banks: inject(BanksStore),
     payrolls: inject(PayrollsStore),
     testMode: inject(TestModeService),
+    impersonation: inject(ImpersonationService),
   })),
   withComputed(
-    ({ employees, branches, companies, selectedCompanyId, auth, testMode }) => {
+    ({ employees, branches, companies, selectedCompanyId, auth, testMode, impersonation }) => {
       const headCount = computed(() => {
         const allEmployees = employees.entities();
         const activeEmployees = allEmployees.filter((x) => x.is_active);
         return activeEmployees.length;
       });
 
-      const currentEmployee = computed(() => {
+      /** Empleado REAL del usuario logueado, sin impersonación. */
+      const realEmployee = computed(() => {
         const employeeId = auth.currentEmployeeId();
         const allEmployees = employees.entities();
         return allEmployees.find((x) => x.id === employeeId);
+      });
+
+      /** Empleado visto por la UI. Si el real es super-admin y hay impersonación activa, retorna el impersonado. */
+      const currentEmployee = computed(() => {
+        const real = realEmployee();
+        const impId = impersonation.impersonatedEmployeeId();
+        if (impId && impersonation.isSuperAdmin(real?.id, real?.work_email ?? real?.email)) {
+          const allEmployees = employees.entities();
+          const imp = allEmployees.find((x) => x.id === impId);
+          if (imp) return imp;
+        }
+        return real;
+      });
+
+      /** True si el usuario real (no impersonado) es el super-admin. Útil para mostrar/esconder el botón. */
+      const isSuperAdmin = computed(() => {
+        const r = realEmployee();
+        return impersonation.isSuperAdmin(r?.id, r?.work_email ?? r?.email);
       });
 
       const monthlyBudget = computed(() => {
@@ -911,6 +932,8 @@ export const DashboardStore = signalStore(
         birthDates,
         selectedCompany,
         currentEmployee,
+        realEmployee,
+        isSuperAdmin,
         isAdmin,
         hasPortalAccessOnly,
         isScheduleAdmin,
@@ -1014,6 +1037,16 @@ export const DashboardStore = signalStore(
               isLoadingEmployee = false;
             }, 2000);
           }, 100);
+        }
+      });
+
+      // Efecto adicional: cargar el empleado IMPERSONADO si no está en entities
+      effect(() => {
+        const impId = store.impersonation.impersonatedEmployeeId();
+        if (!impId) return;
+        const exists = store.employees.entities().some((x) => x.id === impId);
+        if (!exists) {
+          setTimeout(() => store.employees.ensureEmployeeLoaded(impId), 100);
         }
       });
     },

@@ -990,3 +990,17 @@ pt-timeclock, app-timeclock, app-naz-timeclock,
 .timeclock-content [class*="pi-"]::before {
   font-family: 'primeicons' !important;
 }
+
+/* Super-admin impersonation banner — empuja el contenido hacia abajo
+   sin que el banner tape el navbar (la raíz del dashboard es h-screen). */
+body.impersonation-active .dashboard-root {
+  margin-top: 36px;
+  height: calc(100vh - 36px) !important;
+}
+body.impersonation-active .dashboard-root.mobile-shell {
+  height: calc(100dvh - 36px) !important;
+}
+body.impersonation-active .p-toast,
+body.impersonation-active .p-confirmdialog {
+  margin-top: 36px;
+}

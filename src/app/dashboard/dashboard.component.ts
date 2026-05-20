@@ -55,7 +55,7 @@ import { DesignVersionService } from '../services/design-version.service';
 import { playNotificationSound } from '../utils/notification-audio.utils';
 import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
 import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mobile-bottom-nav.component';
-import { ChatWidgetComponent } from '../shared/components/chat-widget.component';
+import { SuperAdminMenuComponent } from './super-admin-menu.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -91,11 +91,12 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
     ScreenLockComponent,
     MobileBottomNavComponent,
     NotificationsDropdownComponent,
-    ChatWidgetComponent,
+    SuperAdminMenuComponent,
   ],
   template: `
     <p-toast />
     <p-confirmDialog />
+    <pt-super-admin-menu />
     @let user = currentUser$ | async;
 
     @if (device.isDesktop()) {
@@ -108,7 +109,7 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
     ></div>
     }
     <div
-      class="h-screen flex flex-col overflow-hidden"
+      class="dashboard-root h-screen flex flex-col overflow-hidden"
       [ngClass]="{ 'naz-theme': isNaz() }"
     >
       <nav
@@ -731,13 +732,12 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
         }
       </div>
       <pt-screen-lock></pt-screen-lock>
-      <pt-chat-widget [hidden]="!store.isAdmin() || !device.isDesktop() || isTimeclockActive()" [employeeName]="store.currentEmployee()?.first_name" />
     </div>
 
     } @else {
     <!-- ========== MOBILE ========== -->
     <div
-      class="flex flex-col overflow-hidden mobile-shell"
+      class="dashboard-root flex flex-col overflow-hidden mobile-shell"
       style="height: 100dvh"
       [ngClass]="{ 'naz-theme': isNaz() }"
     >
@@ -817,7 +817,6 @@ import { ChatWidgetComponent } from '../shared/components/chat-widget.component'
         (tabChange)="onMobileAdminTabChange($event)"
       />
       <pt-screen-lock></pt-screen-lock>
-      <pt-chat-widget [hidden]="!store.isAdmin() || !device.isDesktop() || isTimeclockActive()" [employeeName]="store.currentEmployee()?.first_name" />
     </div>
     }
   `,
