@@ -35,7 +35,9 @@ export function getAvailableTypes(
   lastType: string | null,
   allTypes: Array<{ value: string; label: string }>
 ): Array<{ value: string; label: string }> {
-  if (!lastType) return allTypes;
+  // Sin marca previa: solo entry (la primera marca del día nunca puede ser exit).
+  // Coincide con el trigger DB enforce_timelog_sequence.
+  if (!lastType) return allTypes.filter((t) => t.value === 'entry');
 
   let filtered: Array<{ value: string; label: string }> = [];
 
