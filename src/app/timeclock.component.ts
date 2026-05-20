@@ -54,6 +54,7 @@ import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { PunchQueueService } from './services/punch-queue.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
+import { TimeclockDebugService, RandomEffect } from './services/timeclock-debug.service';
 import { TimeSyncService } from './services/time-sync.service';
 import { WebAuthnService } from './services/webauthn.service';
 import { DpFingerprintService } from './services/dp-fingerprint.service';
@@ -63,8 +64,11 @@ import { CatAnimationComponent } from './dashboard/components/cat.component';
 import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import { DpInstallHelpModalComponent } from './shared/components/dp-install-help-modal.component';
 import { AuthenticatorEnrollmentComponent } from './dashboard/authenticator-enrollment/authenticator-enrollment.component';
+import { KioskExtrasComponent } from './timeclock/kiosk-extras.component';
 import {
   initAudioContext,
+  playEffectSound,
+  vibrateForMarking,
   playFailureSound,
   playLateSound,
   playSuccessSound,
@@ -122,9 +126,11 @@ interface TimeclockInfoData {
     DpEnrollDialogComponent,
     DpInstallHelpModalComponent,
     AuthenticatorEnrollmentComponent,
+    KioskExtrasComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
+    <pt-kiosk-extras />
 
     <!-- ── Pending punches banner ─────────────────────────────────────
          Aparece automáticamente si quedaron marcaciones de emergencia sin
@@ -203,7 +209,16 @@ interface TimeclockInfoData {
           [class.is-batman]="confirmModalData()?.isBatman"
           [class.is-starwars]="confirmModalData()?.isStarWars"
           [class.is-corridos]="confirmModalData()?.isCorridos"
-          [class.is-watchdogs]="confirmModalData()?.isWatchDogs">
+          [class.is-watchdogs]="confirmModalData()?.isWatchDogs"
+          [class.fx-shake]="confirmModalData()?.randomEffect === 'shake'"
+          [class.fx-jackpot]="confirmModalData()?.randomEffect === 'jackpot'"
+          [class.fx-rainbow]="confirmModalData()?.randomEffect === 'rainbow'"
+          [class.fx-fire]="confirmModalData()?.randomEffect === 'fire'"
+          [class.fx-tornado-card]="confirmModalData()?.randomEffect === 'tornado'"
+          [class.fx-glitch-card]="confirmModalData()?.randomEffect === 'glitch'"
+          [class.fx-disco-card]="confirmModalData()?.randomEffect === 'disco'"
+          [class.fx-vhs-card]="confirmModalData()?.randomEffect === 'vhs'"
+          [class.fx-boom-card]="confirmModalData()?.randomEffect === 'boom'">
 
           <!-- Birthday confetti particles -->
           @if (confirmModalData()?.isBirthday) {
@@ -212,6 +227,148 @@ interface TimeclockInfoData {
                 <div class="confetti-piece" [style.--i]="i"></div>
               }
             </div>
+          }
+
+          <!-- Random effects overlays -->
+          @if (confirmModalData()?.randomEffect === 'paw_rain') {
+            <div class="fx-overlay fx-paw-rain">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; track i) {
+                <span class="fx-paw" [style.--i]="i">🐾</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'emoji_explosion') {
+            <div class="fx-overlay fx-emoji-explosion">
+              @for (e of EMOJI_EXPLOSION_LIST; track $index) {
+                <span class="fx-emoji" [style.--i]="$index">{{ e }}</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'jackpot') {
+            <div class="fx-overlay fx-jackpot-overlay">
+              <div class="fx-jackpot-text">¡JACKPOT!</div>
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]; track i) {
+                <span class="fx-coin" [style.--i]="i">🪙</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'unicorn') {
+            <div class="fx-overlay fx-unicorn">
+              <span class="fx-unicorn-glyph">🦄</span>
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
+                <span class="fx-sparkle" [style.--i]="i">✨</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'pizza') {
+            <div class="fx-overlay fx-pizza-rain">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
+                <span class="fx-pizza" [style.--i]="i">🍕</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'fireworks') {
+            <div class="fx-overlay fx-fireworks">
+              @for (i of [1,2,3,4,5,6,7,8]; track i) {
+                <span class="fx-firework" [style.--i]="i">🎆</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'fire') {
+            <div class="fx-overlay fx-fire-overlay">
+              @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+                <span class="fx-flame" [style.--i]="i">🔥</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'money_rain') {
+            <div class="fx-overlay fx-money-rain">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]; track i) {
+                <span class="fx-bill" [style.--i]="i">💵</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'heart_burst') {
+            <div class="fx-overlay fx-heart-burst">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; track i) {
+                <span class="fx-heart" [style.--i]="i">❤️</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'disco') {
+            <div class="fx-overlay fx-disco">
+              <span class="fx-disco-ball">🪩</span>
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'lightning') {
+            <div class="fx-overlay fx-lightning">
+              @for (i of [1,2,3,4,5]; track i) {
+                <span class="fx-bolt" [style.--i]="i">⚡</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'tornado') {
+            <div class="fx-overlay fx-tornado"></div>
+          }
+          @if (confirmModalData()?.randomEffect === 'glitch') {
+            <div class="fx-overlay fx-glitch"></div>
+          }
+          @if (confirmModalData()?.randomEffect === 'boom') {
+            <div class="fx-overlay fx-boom">
+              <span class="fx-boom-text">¡BOOM!</span>
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'stars_warp') {
+            <div class="fx-overlay fx-stars-warp">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]; track i) {
+                <span class="fx-star" [style.--i]="i">✦</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'confetti_cannon') {
+            <div class="fx-overlay fx-confetti-cannon">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]; track i) {
+                <span class="fx-confetti" [style.--i]="i" [style.--side]="i % 2 === 0 ? '1' : '-1'"></span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'dragon_energy') {
+            <div class="fx-overlay fx-dragon-energy">
+              <div class="fx-aura fx-aura-1"></div>
+              <div class="fx-aura fx-aura-2"></div>
+              <div class="fx-aura fx-aura-3"></div>
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'panama_flag') {
+            <div class="fx-overlay fx-panama">
+              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
+                <span class="fx-flag" [style.--i]="i">🇵🇦</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'vhs') {
+            <div class="fx-overlay fx-vhs">
+              <div class="fx-vhs-noise"></div>
+              <div class="fx-vhs-scanline"></div>
+              <div class="fx-vhs-text">► REC ●</div>
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'laser_show') {
+            <div class="fx-overlay fx-laser-show">
+              @for (i of [1,2,3,4,5,6,7,8]; track i) {
+                <span class="fx-laser" [style.--i]="i"></span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomEffect === 'beer') {
+            <div class="fx-overlay fx-beer">
+              @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+                <span class="fx-beer-mug" [style.--i]="i">🍻</span>
+              }
+            </div>
+          }
+          @if (confirmModalData()?.randomBadge) {
+            <div class="fx-badge">{{ confirmModalData()?.randomBadge }}</div>
           }
 
           <!-- Icon -->
@@ -610,6 +767,7 @@ interface TimeclockInfoData {
                 optionValue="id"
                 filter
                 filterBy="name"
+                appendTo="body"
                 class="w-full"
                 [styleClass]="'w-full'"
               />
@@ -630,6 +788,7 @@ interface TimeclockInfoData {
                   optionLabel="name"
                   filter
                   filterBy="name"
+                  appendTo="body"
                   class="w-full"
                   [styleClass]="'w-full'"
                 />
@@ -649,6 +808,7 @@ interface TimeclockInfoData {
                 placeholder="Seleccionar empleado"
                 filter
                 filterBy="first_name,father_name"
+                appendTo="body"
                 class="w-full"
                 [styleClass]="'w-full'"
               >
@@ -669,6 +829,7 @@ interface TimeclockInfoData {
                 [options]="availableTypes()"
                 optionLabel="label"
                 optionValue="value"
+                appendTo="body"
                 class="w-full"
                 [styleClass]="'w-full'"
               />
@@ -1153,6 +1314,7 @@ export class TimeclockComponent implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
   private phrases = inject(TimeclockPhrasesService);
+  private debugSvc = inject(TimeclockDebugService);
   private webAuthn = inject(WebAuthnService);
   private dp = inject(DpFingerprintService);
   public punchQueue = inject(PunchQueueService);
@@ -1323,6 +1485,8 @@ export class TimeclockComponent implements OnDestroy {
   // Custom confirmation modal signals
   public confirmModalVisible = signal(false);
   public confirmModalExiting = signal(false);
+  public readonly EMOJI_EXPLOSION_LIST = ['🎉','🎊','💥','⭐','✨','🌟','💫','🎯','🏆','🥇','🚀','💎','🐶','🐕','🦴','🐾','❤️','💪','👏','🙌'];
+
   public confirmModalData = signal<{
     message: string;
     phrase: string;
@@ -1343,6 +1507,8 @@ export class TimeclockComponent implements OnDestroy {
     employeeName: string;
     isLunchOvertime: boolean;
     lunchExceededMinutes: number;
+    randomEffect: RandomEffect;
+    randomBadge: string | null;
   } | null>(null);
   private confirmModalTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -3551,13 +3717,23 @@ export class TimeclockComponent implements OnDestroy {
     this.stopCorridos();
     this.stopWatchDogs();
 
+    // Override por debug menu si Tristan forzó un easter egg
+    const forcedEgg = this.debugSvc.consumeForcedEgg();
+    let isBirthdayOverride = modalData?.isBirthday;
     const vip = !!modalData?.isVip;
-    const mx = !!modalData?.isMatrix;
-    const moto = !!modalData?.isMoto;
-    const bat = !!modalData?.isBatman;
-    const sw = !!modalData?.isStarWars;
-    const corr = !!modalData?.isCorridos;
-    const wd = !!modalData?.isWatchDogs;
+    let mx = !!modalData?.isMatrix;
+    let moto = !!modalData?.isMoto;
+    let bat = !!modalData?.isBatman;
+    let sw = !!modalData?.isStarWars;
+    let corr = !!modalData?.isCorridos;
+    let wd = !!modalData?.isWatchDogs;
+    if (forcedEgg === 'matrix') mx = true;
+    else if (forcedEgg === 'moto') moto = true;
+    else if (forcedEgg === 'batman') bat = true;
+    else if (forcedEgg === 'starwars') sw = true;
+    else if (forcedEgg === 'corridos') corr = true;
+    else if (forcedEgg === 'watchdogs') wd = true;
+    else if (forcedEgg === 'birthday') isBirthdayOverride = true;
 
     // Reproducir sonido según contexto
     if (modalData?.isBirthday) {
@@ -3582,6 +3758,19 @@ export class TimeclockComponent implements OnDestroy {
       playSuccessSound(employeeId);
     }
 
+    // Determinar efecto random + badge (con override del debug)
+    const isBirthdayFinal = !!isBirthdayOverride;
+    const randomEffect = this.pickRandomEffect(isLate, isBirthdayFinal);
+    const randomBadge = this.pickRandomBadge();
+
+    // Sonido del efecto random (después del sonido base) + vibración móvil
+    if (randomEffect) {
+      setTimeout(() => playEffectSound(randomEffect), 250);
+    }
+    vibrateForMarking(isLate ? 'late' : (modalData?.typeLabel?.toLowerCase().includes('almuerzo')
+      ? (modalData?.typeLabel?.toLowerCase().includes('fin') ? 'lunch_end' : 'lunch_start')
+      : modalData?.typeLabel?.toLowerCase().includes('salida') ? 'exit' : 'entry'));
+
     // Set modal data (streak will be updated async)
     this.confirmModalData.set({
       message: _message,
@@ -3592,7 +3781,7 @@ export class TimeclockComponent implements OnDestroy {
       isVeryLate: modalData?.isVeryLate || false,
       typeLabel: modalData?.typeLabel || '',
       time: modalData?.time || '',
-      isBirthday: modalData?.isBirthday || false,
+      isBirthday: isBirthdayFinal,
       isVip: vip,
       isMatrix: mx,
       isMoto: moto,
@@ -3603,6 +3792,8 @@ export class TimeclockComponent implements OnDestroy {
       employeeName: modalData?.employeeName || '',
       isLunchOvertime: modalData?.isLunchOvertime || false,
       lunchExceededMinutes: modalData?.lunchExceededMinutes || 0,
+      randomEffect,
+      randomBadge,
     });
     this.confirmModalExiting.set(false);
     this.confirmModalVisible.set(true);
@@ -3617,6 +3808,68 @@ export class TimeclockComponent implements OnDestroy {
     this.confirmModalTimer = setTimeout(() => {
       this.dismissConfirmModal();
     }, dismissTime);
+  }
+
+  /**
+   * Elige un efecto random gracioso para el modal de éxito.
+   * Respeta el debug service: si hay forceNextEffect, usa ese y limpia el override.
+   * El effectMultiplier escala las probabilidades base.
+   */
+  private pickRandomEffect(isLate: boolean, isBirthday: boolean): RandomEffect {
+    // Si el debug forzó un efecto, usarlo
+    const forced = this.debugSvc.consumeForcedEffect();
+    if (forced) return forced;
+
+    // No mezclar efectos random con cumpleaños o easter eggs de pantalla completa
+    if (isBirthday) return null;
+
+    const m = this.debugSvc.getEffectMultiplier();
+    if (m <= 0) return null;
+
+    const r = Math.random() / m;
+    if (r < 0.005) return 'jackpot';
+    if (r < 0.010) return 'fireworks';
+    if (r < 0.015) return 'money_rain';
+    if (r < 0.020) return 'dragon_energy';
+    if (r < 0.025) return 'unicorn';
+    if (r < 0.030) return 'boom';
+    if (r < 0.035) return 'stars_warp';
+    if (r < 0.045) return 'pizza';
+    if (r < 0.055) return 'panama_flag';
+    if (r < 0.065) return 'rainbow';
+    if (r < 0.075) return 'lightning';
+    if (r < 0.085) return 'confetti_cannon';
+    if (r < 0.095) return 'heart_burst';
+    if (r < 0.105) return 'disco';
+    if (r < 0.115) return 'laser_show';
+    if (r < 0.125) return 'tornado';
+    if (r < 0.140) return 'paw_rain';
+    if (r < 0.155) return 'emoji_explosion';
+    if (r < 0.170) return 'beer';
+    if (r < 0.180) return 'glitch';
+    if (r < 0.190) return 'vhs';
+    if (r < 0.200) return 'shake';
+    if (isLate && r < 0.230) return 'fire';
+    return null;
+  }
+
+  /** Random badge text (achievement-style). 5% chance. */
+  private pickRandomBadge(): string | null {
+    if (this.debugSvc.config().enabled && this.debugSvc.config().forceNextEffect) {
+      // Cuando debug fuerza efecto, también mostrar badge para preview
+      const badges = [
+        '🏆 PUNTUAL', '⭐ EN RACHA', '🔥 IMPARABLE', '💎 PRO',
+        '🚀 NIVEL 99', '👑 LEYENDA', '⚡ RÁPIDO', '🎯 PRECISO',
+      ];
+      return badges[Math.floor(Math.random() * badges.length)];
+    }
+    if (Math.random() > 0.05 * this.debugSvc.getEffectMultiplier()) return null;
+    const badges = [
+      '🏆 PUNTUAL DE ORO', '⭐ EN RACHA', '🔥 IMPARABLE', '💎 PRO',
+      '🚀 NIVEL 99', '👑 LEYENDA DEL EQUIPO', '⚡ FLASH', '🎯 PRECISIÓN MÁXIMA',
+      '🎖️ MEDALLA DEL DÍA', '🐕 BLACK DOG ELITE', '🌟 ESTRELLA',
+    ];
+    return badges[Math.floor(Math.random() * badges.length)];
   }
 
   /** Dismiss the success confirmation modal */

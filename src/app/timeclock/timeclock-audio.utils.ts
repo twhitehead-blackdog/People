@@ -361,3 +361,144 @@ export function playBirthdaySound(): void {
     // Audio not supported
   }
 }
+
+// ============== SOUND EFFECTS FOR RANDOM EFFECTS (mod menu) ==============
+
+function tone(ctx: AudioContext, freq: number, dur: number, startOffset = 0, type: OscillatorType = 'sine', vol = 0.2): void {
+  const t0 = ctx.currentTime + startOffset;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0 + dur);
+}
+
+function noise(ctx: AudioContext, dur: number, startOffset = 0, lowpass = 1500, vol = 0.15): void {
+  const t0 = ctx.currentTime + startOffset;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = lowpass;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  src.connect(filter); filter.connect(g); g.connect(ctx.destination);
+  src.start(t0); src.stop(t0 + dur);
+}
+
+export function playEffectSound(effect: string | null): void {
+  if (!effect) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    switch (effect) {
+      case 'jackpot':
+        [880, 1100, 1320, 1760].forEach((f, i) => tone(ctx, f, 0.12, i * 0.1, 'square', 0.18));
+        break;
+      case 'boom':
+        noise(ctx, 0.6, 0, 200, 0.4);
+        tone(ctx, 60, 0.5, 0, 'sine', 0.5);
+        tone(ctx, 110, 0.4, 0.05, 'triangle', 0.3);
+        break;
+      case 'beer':
+        [2200, 2400, 2600].forEach((f, i) => tone(ctx, f, 0.08, i * 0.07, 'triangle', 0.12));
+        break;
+      case 'panama_flag':
+        [523, 659, 784, 1047].forEach((f, i) => tone(ctx, f, 0.18, i * 0.12, 'square', 0.18));
+        break;
+      case 'lightning':
+        noise(ctx, 0.4, 0, 400, 0.5);
+        tone(ctx, 80, 0.5, 0.1, 'sawtooth', 0.2);
+        break;
+      case 'heart_burst':
+        [880, 1100, 1320].forEach((f, i) => tone(ctx, f, 0.3, i * 0.05, 'sine', 0.15));
+        break;
+      case 'money_rain':
+        [1200, 1500].forEach((f, i) => tone(ctx, f, 0.15, i * 0.12, 'square', 0.15));
+        tone(ctx, 800, 0.3, 0.25, 'triangle', 0.12);
+        break;
+      case 'disco':
+        [220, 330, 440, 330].forEach((f, i) => tone(ctx, f, 0.15, i * 0.18, 'sawtooth', 0.15));
+        break;
+      case 'dragon_energy':
+        for (let i = 0; i < 12; i++) tone(ctx, 200 + i * 50, 0.08, i * 0.05, 'sawtooth', 0.12);
+        break;
+      case 'fireworks':
+        for (let i = 0; i < 4; i++) {
+          noise(ctx, 0.2, i * 0.25, 3000, 0.3);
+          tone(ctx, 2000 - i * 200, 0.15, i * 0.25, 'triangle', 0.1);
+        }
+        break;
+      case 'unicorn':
+        [659, 880, 1109, 1318, 1760].forEach((f, i) => tone(ctx, f, 0.4, i * 0.08, 'sine', 0.12));
+        break;
+      case 'pizza':
+        tone(ctx, 1400, 0.15, 0, 'sine', 0.18);
+        tone(ctx, 1800, 0.2, 0.12, 'sine', 0.15);
+        break;
+      case 'paw_rain':
+        for (let i = 0; i < 6; i++) tone(ctx, 800 + Math.random() * 600, 0.08, i * 0.15, 'sine', 0.1);
+        break;
+      case 'emoji_explosion':
+        noise(ctx, 0.3, 0, 5000, 0.2);
+        [600, 900, 1200].forEach((f, i) => tone(ctx, f, 0.2, i * 0.08, 'square', 0.15));
+        break;
+      case 'shake':
+        tone(ctx, 80, 0.4, 0, 'sawtooth', 0.3);
+        tone(ctx, 120, 0.4, 0.1, 'sawtooth', 0.2);
+        break;
+      case 'rainbow':
+        [523, 587, 659, 698, 784, 880, 988, 1047].forEach((f, i) => tone(ctx, f, 0.12, i * 0.08, 'triangle', 0.13));
+        break;
+      case 'fire':
+        noise(ctx, 1.2, 0, 800, 0.18);
+        for (let i = 0; i < 5; i++) tone(ctx, 120 + Math.random() * 80, 0.4, i * 0.2, 'sawtooth', 0.1);
+        break;
+      case 'tornado':
+        for (let i = 0; i < 20; i++) tone(ctx, 200 + i * 30, 0.05, i * 0.06, 'sawtooth', 0.1);
+        break;
+      case 'glitch':
+        for (let i = 0; i < 8; i++) {
+          if (Math.random() < 0.5) noise(ctx, 0.05, i * 0.06, 4000, 0.2);
+          else tone(ctx, 200 + Math.random() * 1000, 0.04, i * 0.06, 'square', 0.15);
+        }
+        break;
+      case 'stars_warp':
+        for (let i = 0; i < 8; i++) tone(ctx, 1500 - i * 150, 0.1, i * 0.08, 'triangle', 0.12);
+        break;
+      case 'confetti_cannon':
+        noise(ctx, 0.15, 0, 4000, 0.25);
+        tone(ctx, 600, 0.2, 0, 'square', 0.18);
+        tone(ctx, 1200, 0.25, 0.05, 'triangle', 0.12);
+        break;
+      case 'vhs':
+        noise(ctx, 1.0, 0, 600, 0.15);
+        tone(ctx, 90, 0.8, 0, 'sawtooth', 0.1);
+        break;
+      case 'laser_show':
+        for (let i = 0; i < 8; i++) tone(ctx, 800 + i * 200, 0.1, i * 0.1, 'sawtooth', 0.1);
+        break;
+    }
+  } catch { /* noop */ }
+}
+
+/** Vibración (móvil) según tipo de marca */
+export function vibrateForMarking(type: 'entry' | 'lunch_start' | 'lunch_end' | 'exit' | 'late'): void {
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+  const patterns: Record<string, number | number[]> = {
+    entry: [80, 40, 80],
+    lunch_start: 100,
+    lunch_end: 100,
+    exit: 200,
+    late: [50, 30, 50, 30, 50],
+  };
+  try { navigator.vibrate(patterns[type] || 80); } catch {}
+}

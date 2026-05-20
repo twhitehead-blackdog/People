@@ -1374,6 +1374,220 @@ export class TimeclockPhrasesService {
     (n, g) => `¡${n}, a darle que hoy se puede todo!`,
   ];
 
+  /** ===================== CURIOSIDADES PANAMÁ + NOMBRE ===================== */
+  private readonly CURIOSIDADES_PANAMA: PhraseGen[] = [
+    (n) => `¿Sabías, ${n}, que Panamá es el único lugar del mundo donde puedes ver el sol salir en el Pacífico y ponerse en el Atlántico?`,
+    (n, g) => `${n}, dato curioso: Panamá tiene más de 970 especies de aves, más que toda Norteamérica junta. Vos hoy también das vuelo`,
+    (n) => `¿Sabías que el Canal de Panamá ahorra 13,000 km a un barco que va de Nueva York a San Francisco? Vos también ahorrás tiempo al llegar puntual, ${n}`,
+    (n, g) => `${n}, en Panamá usamos balboas y dólares al mismo tiempo desde 1904. Sos versátil, igual que nuestra moneda`,
+    (n) => `Dato curioso, ${n}: en Panamá hay más de 500 ríos. Que tu día fluya tan bien como uno de ellos`,
+    (n, g) => `${n}, sabías que Panamá produce uno de los mejores cafés del mundo, el Geisha de Boquete, ¿ya te tomaste el tuyo?`,
+    (n) => `¿Sabías, ${n}, que el sombrero panamá en realidad se hace en Ecuador? La vida está llena de sorpresas, igual que tu día`,
+    (n, g) => `${n}, dato: el Puente de las Américas conecta dos continentes. Vos conectás al equipo entero con tu actitud`,
+    (n) => `¿Sabías, ${n}, que Casco Viejo es Patrimonio de la Humanidad desde 1997? Vos también sos patrimonio de este equipo`,
+    (n, g) => `${n}, en Panamá hay más biodiversidad por km² que en toda Europa. Vos también sumás variedad valiosa al equipo`,
+    (n) => `Dato curioso, ${n}: el sancocho panameño cura todo, hasta el guayabo. Que tu día sea sancocho-level`,
+    (n, g) => `${n}, sabías que el archipiélago de San Blas tiene 365 islas, una por cada día del año. Que hoy sea tu mejor isla`,
+    (n) => `¿Sabías, ${n}, que la rana dorada de Panamá es única en el mundo? Vos también sos único acá`,
+    (n, g) => `${n}, dato: Panamá tiene la cordillera continental más baja de las Américas. Pero vos hoy llegás a la cima`,
+    (n) => `¿Sabías, ${n}, que Panamá tiene un volcán activo, el Barú, y desde la cima se ven los dos océanos? Hoy vos vas a alcanzar tu propia cima`,
+    (n, g) => `${n}, dato curioso: el ñame, ñampí y otoe son raíces panameñas. Vos también tenés raíces fuertes en este equipo`,
+    (n) => `¿Sabías que el primer ferrocarril transcontinental del mundo se construyó en Panamá en 1855? ${n}, vos también marcás historia con cada día`,
+    (n, g) => `${n}, sabías que el carimañola panameña se inventó como comida portátil. Vos también te llevás todo a donde vas`,
+    (n) => `Dato curioso, ${n}: en Panamá nació el bolero "Historia de un Amor", el más versionado del mundo. Tu historia con el equipo también es legendaria`,
+    (n, g) => `${n}, en Panamá decimos "fren" para todos. Hoy todo el equipo es tu fren`,
+    (n) => `¿Sabías, ${n}, que el dólar de plata panameño tiene una de las monedas más raras del mundo, el 5 centavos de Vasco Núñez de Balboa?`,
+    (n, g) => `${n}, el Camino Real cruzaba Panamá llevando el oro de Perú a España. Vos también cargás valor en cada jornada`,
+    (n) => `Dato: ${n}, Panamá es de los pocos países cuya bandera tiene cuadros. Único, como vos`,
+    (n, g) => `${n}, sabías que en Pedasí está la playa donde nacen las tortugas marinas. Hoy vos también empezás un nuevo viaje`,
+    (n) => `¿Sabías, ${n}, que el guacho de mariscos panameño tiene más historia que muchos países? Cada día con vos también suma historia`,
+  ];
+
+  /** ===================== CURIOSIDADES PERROS Y GATOS + NOMBRE ===================== */
+  private readonly CURIOSIDADES_MASCOTAS: PhraseGen[] = [
+    (n) => `Dato curioso, ${n}: los perros pueden oler tu estado de ánimo. Si llegan moviendo la cola hoy, es porque traes buena vibra`,
+    (n, g) => `${n}, los perros sueñan igual que vos. Pero ellos sueñan con galletas, vos soñá en grande`,
+    (n) => `¿Sabías, ${n}, que los perros pueden aprender más de 250 palabras? Vos hoy aprendés más con cada cliente`,
+    (n, g) => `${n}, la huella nasal de un perro es única como tu huella digital. Vos también sos único en este equipo`,
+    (n) => `Dato curioso, ${n}: los gatos ronronean a una frecuencia que ayuda a sanar huesos. ¿Vos qué frecuencia sanadora traés hoy?`,
+    (n, g) => `${n}, los perros mueven la cola más a la derecha cuando están felices. Hoy todos van a estar moviendo cola derecha gracias a vos`,
+    (n) => `¿Sabías que los gatos pasan el 70% de su vida durmiendo, ${n}? Vos productivo en el 100% de la tuya`,
+    (n, g) => `${n}, los perros entienden hasta 165 palabras, igual que un niño de 2 años. Vos hablás varios idiomas con clientes`,
+    (n) => `Dato, ${n}: el corazón de un perro late entre 70 y 120 veces por minuto. El tuyo late con compromiso por este equipo`,
+    (n, g) => `${n}, los gatos tienen 32 músculos en cada oreja. Vos sí que sabés escuchar a tus compañeros`,
+    (n) => `¿Sabías, ${n}, que los Golden Retrievers se inventaron en Escocia para cazar patos? Vos cazás oportunidades cada día`,
+    (n, g) => `${n}, los chihuahuas viven hasta 20 años. La constancia paga, igual que la tuya en el equipo`,
+    (n) => `Dato curioso, ${n}: los perros pueden detectar enfermedades antes que los doctores. Vos también detectás problemas antes que nadie`,
+    (n, g) => `${n}, sabías que los gatos negros no traen mala suerte. Eso es mito. Vos solo traés buena vibra`,
+    (n) => `¿Sabías, ${n}, que los perros saludan moviendo la cola en círculos cuando aman mucho a alguien? Tu actitud merece círculos completos hoy`,
+    (n, g) => `${n}, los perros bostezan cuando vos bostezás, por empatía. Por eso este equipo se contagia tu energía`,
+    (n) => `Dato, ${n}: el Bulldog Francés es la raza más popular del 2024. Pero el más popular del equipo es alguien con tu nombre`,
+    (n, g) => `${n}, los gatos pueden saltar hasta 6 veces su altura. Hoy vos también dás un salto grande`,
+    (n) => `¿Sabías, ${n}, que los Pastores Alemanes son los mejores perros de servicio? Vos sos servicio top tier en Black Dog`,
+    (n, g) => `${n}, los perros viejos pueden aprender trucos nuevos. Es mito que no puedan. Hoy vos también aprendés algo nuevo`,
+    (n) => `Dato curioso, ${n}: los gatos tienen un sentido del balance casi perfecto. Igual que vos balanceando todas las tareas del día`,
+    (n, g) => `${n}, los perros sienten el tiempo, saben cuándo es hora de comer. Vos también sabés cuándo darle al gas en el trabajo`,
+  ];
+
+  /** ===================== CIENCIA Y DATOS DIVERTIDOS + NOMBRE ===================== */
+  private readonly CURIOSIDADES_CIENCIA: PhraseGen[] = [
+    (n) => `Dato curioso, ${n}: tu cerebro consume el 20% de tu energía. Que la cafeína de hoy le haga justicia`,
+    (n, g) => `${n}, el cuerpo humano produce 25 millones de células nuevas por segundo. Vos te renovás todo el día`,
+    (n) => `¿Sabías, ${n}, que reír 100 veces equivale a 15 minutos de ejercicio? Andá riéndote del equipo todo el día`,
+    (n, g) => `${n}, los humanos compartimos el 60% del ADN con un plátano. Vos también podés con cualquier curva del día`,
+    (n) => `Dato, ${n}: el corazón humano late 100,000 veces al día. El tuyo late con propósito`,
+    (n, g) => `${n}, sabías que el estómago se regenera cada 3 días. Hoy estrenás estómago para el almuerzo`,
+    (n) => `¿Sabías, ${n}, que un estornudo viaja a 160 km/h? Que tu día arranque con esa velocidad`,
+    (n, g) => `${n}, los humanos olvidamos el 80% de lo que aprendemos en una semana. Lo bueno: vos hoy aprendés algo que dura más`,
+    (n) => `Dato curioso, ${n}: tu lengua tiene su huella única. Sos irrepetible en todos los sentidos`,
+    (n, g) => `${n}, el agua representa el 60% de tu cuerpo. Mantenete hidratad${g === 'F' ? 'a' : 'o'} hoy`,
+    (n) => `¿Sabías, ${n}, que los humanos dejamos de crecer a los 21 años en altura, pero no en sabiduría? Hoy crecés un poquito más`,
+    (n, g) => `${n}, el cerebro genera suficiente electricidad para encender una bombilla pequeña. La tuya hoy ilumina al equipo`,
+    (n) => `Dato, ${n}: el ojo humano distingue 10 millones de colores. Vos hoy ves oportunidades en cada matiz`,
+    (n, g) => `${n}, sabías que dormir 7-9 horas mejora la memoria. Esperamos que hayas dormido para recordar este día`,
+    (n) => `¿Sabías, ${n}, que sonreír usa menos músculos que fruncir el ceño? Pongámoslo a prueba hoy`,
+    (n, g) => `${n}, el cuerpo humano tiene 206 huesos al nacer y 206 al morir, pero un bebé tiene 270. La vida nos consolida, como tu rol acá`,
+    (n) => `Dato curioso, ${n}: un beso quema 6.4 calorías por minuto. Saludar al equipo también cuenta como ejercicio`,
+    (n, g) => `${n}, la velocidad de tus pensamientos es de 400 km/h. La velocidad de tu compromiso es aún mayor`,
+    (n) => `¿Sabías, ${n}, que las estrellas que ves de noche pueden haber muerto hace millones de años? Vos brillás en tiempo real`,
+    (n, g) => `${n}, sabías que es imposible estornudar con los ojos abiertos. Hay cosas que solo pasan con fe ciega, como tu día de hoy`,
+  ];
+
+  /** ===================== MOTIVACIONAL PROFUNDO + NOMBRE ===================== */
+  private readonly NOMBRE_MOTIVACIONAL_PROFUNDO: PhraseGen[] = [
+    (n, g) => `${n}, cada vez que marcás entrada, estás eligiendo construir algo. Hoy también`,
+    (n) => `${n}, la diferencia entre quien sueña y quien lo logra es presentarse. Vos presente, otra vez`,
+    (n, g) => `${n}, el éxito no es ruidoso, es constante. Como vos llegando cada día`,
+    (n) => `${n}, los grandes resultados nacen de pequeños actos repetidos. Marcar puntual es uno de ellos`,
+    (n, g) => `${n}, hoy es un día más para demostrar quien sos, no para probarle a nadie`,
+    (n) => `${n}, no es lo que sabés, es lo que hacés con lo que sabés. Hoy vas a hacerlo bien`,
+    (n, g) => `${n}, la disciplina supera al talento cuando el talento no se disciplina. Vos tenés ambos`,
+    (n) => `${n}, el equipo es un reflejo del compromiso individual. El tuyo es alto`,
+    (n, g) => `${n}, cada cliente que atendés hoy se va a llevar parte de tu energía. Mantenela alta`,
+    (n) => `${n}, los días buenos no se esperan, se construyen. Empezás bien al marcar a tiempo`,
+    (n, g) => `${n}, vos no trabajás aquí, vos hacés parte de algo. Hay diferencia`,
+    (n) => `${n}, la actitud es contagiosa. Asegurate hoy de tener una buena que valga la pena imitar`,
+    (n, g) => `${n}, hoy alguien va a recordar algo bueno que hagas. Hacelo intencionalmente`,
+    (n) => `${n}, los grandes resultados vienen de personas que se presentan incluso cuando no tienen ganas`,
+    (n, g) => `${n}, una sonrisa cambia el día de quien la recibe. Andá repartiendo`,
+    (n) => `${n}, la calidad de tu trabajo es la calidad de tu firma en el mundo. Firmá bonito`,
+    (n, g) => `${n}, hoy alguien necesita lo que vos sabés hacer. Estás en el lugar correcto`,
+    (n) => `${n}, los profesionales se notan en los detalles que nadie pide. Vos los hacés`,
+    (n, g) => `${n}, el mundo necesita gente que diga "yo lo hago". Vos lo decís con tu marcación`,
+    (n) => `${n}, la confianza no se exige, se demuestra. Vos la demostrás cada día`,
+  ];
+
+  /** ===================== SALUDOS REGIONALES PANAMEÑOS + NOMBRE ===================== */
+  private readonly NOMBRE_PANAMENO: PhraseGen[] = [
+    (n) => `¡Ey ${n}, qué xopá! Listo${''} para darle al día`,
+    (n, g) => `${n}, llegaste y el equipo dijo "diablo, qué bueno"`,
+    (n) => `¡${n}! Vení que aquí está la jugada de hoy`,
+    (n, g) => `${n}, hoy te pones la pilas y le metés sin freno`,
+    (n) => `¡${n}, qué pifia tan vacanísima verte por aquí!`,
+    (n, g) => `${n}, no hay nivel para vos, sos puro fuego`,
+    (n) => `¡Ey ${n}! Llegó la persona que esperábamos`,
+    (n, g) => `${n}, hoy te pones full y te llevás el día`,
+    (n) => `¡${n}, vos sí que sabés llegar bonit${''}!`,
+    (n, g) => `${n}, hoy hay que meterle pin pin pin, vos sabés`,
+    (n) => `¡${n}, qué nota que estés aquí!`,
+    (n, g) => `${n}, hoy el día está pa' romperla, y vos romperla`,
+    (n) => `¡${n}! Llegó la gasolina del equipo`,
+    (n, g) => `${n}, no hay forma, hoy vos sos la diferencia`,
+    (n) => `¡Ey ${n}, qué chévere! Le damos al día`,
+    (n, g) => `${n}, vení que hoy se siente bueno el equipo con vos`,
+    (n) => `¡${n}, llegaste pa' brillar bien zafao!`,
+    (n, g) => `${n}, hoy se prende el equipo porque vos estás`,
+    (n) => `¡${n}, qué orgullo tenerte aquí!`,
+    (n, g) => `${n}, sin vos esto no era lo mismo, fren`,
+  ];
+
+  /** ===================== HUMOR PERSONALIZADO + NOMBRE ===================== */
+  private readonly NOMBRE_HUMOR: PhraseGen[] = [
+    (n) => `${n}, la cafetera te extrañó. Mucho`,
+    (n, g) => `${n}, llegaste antes que el WiFi se estabilizara. Récord`,
+    (n) => `${n}, tu reloj y vos tienen una relación saludable. Felicidades`,
+    (n, g) => `${n}, hoy el corredor se rindió ante vos`,
+    (n) => `${n}, alguien debería escribir un libro sobre cómo llegás siempre. Best-seller`,
+    (n, g) => `${n}, tu almohada está procesando el duelo de tu ausencia`,
+    (n) => `${n}, si la puntualidad fuera olímpica, vos llevarías oro`,
+    (n, g) => `${n}, hoy el café se hizo solo porque te vio venir`,
+    (n) => `${n}, llegaste y el día oficialmente empezó`,
+    (n, g) => `${n}, el tráfico te tiene respeto desde hace rato`,
+    (n) => `${n}, vos no llegás temprano, el tiempo te espera`,
+    (n, g) => `${n}, hoy el lunes se rinde porque vos sos titán`,
+    (n) => `${n}, la marcación está orgullosa de tener tu huella otra vez`,
+    (n, g) => `${n}, si la energía fuera moneda, vos serías millonari${g === 'F' ? 'a' : 'o'}`,
+    (n) => `${n}, los semáforos te dejaron pasar todos. Eso es karma bueno`,
+    (n, g) => `${n}, hoy hasta el internet está rápido en tu honor`,
+    (n) => `${n}, el equipo te aplaude internamente cada vez que marcás`,
+    (n, g) => `${n}, los lunes existen, pero contigo no se sienten lunes`,
+    (n) => `${n}, hoy las galletas en la cocina te están esperando`,
+    (n, g) => `${n}, vos no sos puntual, vos sos el reloj`,
+  ];
+
+  /** ===================== FRASES POR LETRA INICIAL DEL NOMBRE ===================== */
+  private readonly NOMBRE_POR_LETRA: PhraseGen[] = [
+    (n, g) => {
+      const letter = n.charAt(0).toUpperCase();
+      const adj: Record<string, string> = {
+        A: 'aguerrid' + (g === 'F' ? 'a' : 'o'),
+        B: 'brillante',
+        C: 'comprometid' + (g === 'F' ? 'a' : 'o'),
+        D: 'dedicad' + (g === 'F' ? 'a' : 'o'),
+        E: 'estrella',
+        F: 'fenomenal',
+        G: 'grand' + (g === 'F' ? 'e' : 'e'),
+        H: 'honest' + (g === 'F' ? 'a' : 'o'),
+        I: 'incansable',
+        J: 'jefazo' + (g === 'F' ? '/jefaza' : ''),
+        K: 'kilométric' + (g === 'F' ? 'a' : 'o') + ' en compromiso',
+        L: 'legendari' + (g === 'F' ? 'a' : 'o'),
+        M: 'magnífic' + (g === 'F' ? 'a' : 'o'),
+        N: 'noble',
+        O: 'optimista',
+        P: 'profesional',
+        Q: 'qué crack',
+        R: 'responsable',
+        S: 'sólid' + (g === 'F' ? 'a' : 'o'),
+        T: 'tenaz',
+        U: 'únic' + (g === 'F' ? 'a' : 'o'),
+        V: 'valient' + (g === 'F' ? 'e' : 'e'),
+        W: 'workaholic en buen sentido',
+        X: 'extraordinari' + (g === 'F' ? 'a' : 'o'),
+        Y: 'ya casi imparable',
+        Z: 'zampatorbellinos',
+      };
+      const a = adj[letter] || ('crack');
+      return `${n}, hoy estás ${a}. Que la letra ${letter} sea la inicial de tu mejor día`;
+    },
+    (n) => {
+      const letter = n.charAt(0).toUpperCase();
+      const verbs: Record<string, string> = {
+        A: 'Avanzar', B: 'Brillar', C: 'Conquistar', D: 'Demostrar', E: 'Emprender',
+        F: 'Florecer', G: 'Ganar', H: 'Hacer historia', I: 'Inspirar', J: 'Jugar a ganar',
+        K: 'Keep going', L: 'Lograr', M: 'Marcar la diferencia', N: 'Nunca rendirse',
+        O: 'Optimizar', P: 'Persistir', Q: 'Querer más', R: 'Romper récords', S: 'Sumar',
+        T: 'Triunfar', U: 'Unir al equipo', V: 'Vencer', W: 'Walk the talk',
+        X: 'Xtraer lo mejor', Y: 'Ya lograrlo', Z: 'Zambullirse al día',
+      };
+      const v = verbs[letter] || 'Crecer';
+      return `${n}, hoy tu palabra clave es: ${v}`;
+    },
+  ];
+
+  /** ===================== EFEMÉRIDES PANAMÁ + NOMBRE ===================== */
+  private readonly EFEMERIDES_PANAMA: PhraseGen[] = [
+    (n) => `${n}, en noviembre Panamá celebra fiestas patrias, pero vos celebrás puntualidad todo el año`,
+    (n, g) => `${n}, el Día del Niño en Panamá fue el 16 de julio. Vos hoy sos niñ${g === 'F' ? 'a' : 'o'} grande de este equipo`,
+    (n) => `${n}, los Mártires del 9 de Enero defendieron nuestra soberanía. Vos defendés la calidad cada día`,
+    (n, g) => `${n}, el Día del Padre y de la Madre en Panamá son únicos. Vos sos único también acá`,
+    (n) => `${n}, el Carnaval panameño es uno de los más grandes del mundo. Tu energía hoy es nivel carnaval`,
+    (n, g) => `${n}, sabías que Panamá es Independiente desde 1903 y separada de Colombia desde el 3 de noviembre. Sos pionero como nuestro país`,
+    (n) => `${n}, el 1 de noviembre celebramos Día de los Símbolos Patrios. Hoy vos simbolizás compromiso`,
+    (n, g) => `${n}, el 28 de noviembre es Independencia de España. Cada día con vos también es nueva independencia para el equipo`,
+    (n) => `${n}, el Día del Trabajador en Panamá es el 1 de mayo. Pero cada día vos celebrás trabajar`,
+  ];
+
   /**
    * Main method - context-aware phrase selection.
    * Priority: birthday > type-specific > late > payday > day > time > themed > general
@@ -1432,11 +1646,42 @@ export class TimeclockPhrasesService {
     if (roll < 0.42) return this.pick(this.COMIDA_PTY);
     if (roll < 0.52) return Math.random() < 0.5 ? this.pick(this.PANAMANIAN) : this.pick(this.FAMOUS_PANAMA);
 
-    if (name && Math.random() < 0.45) {
-      const fn = this.GENERAL_PERSONALIZED[Math.floor(Math.random() * this.GENERAL_PERSONALIZED.length)];
-      return fn(name, gender);
+    // Pools personalizados con nombre — máxima prioridad cuando hay nombre disponible
+    if (name) {
+      const personalizedRoll = Math.random();
+      if (personalizedRoll < 0.18) {
+        return this.pickFn(this.CURIOSIDADES_PANAMA, name, gender);
+      }
+      if (personalizedRoll < 0.32) {
+        return this.pickFn(this.CURIOSIDADES_MASCOTAS, name, gender);
+      }
+      if (personalizedRoll < 0.42) {
+        return this.pickFn(this.CURIOSIDADES_CIENCIA, name, gender);
+      }
+      if (personalizedRoll < 0.55) {
+        return this.pickFn(this.NOMBRE_MOTIVACIONAL_PROFUNDO, name, gender);
+      }
+      if (personalizedRoll < 0.65) {
+        return this.pickFn(this.NOMBRE_PANAMENO, name, gender);
+      }
+      if (personalizedRoll < 0.75) {
+        return this.pickFn(this.NOMBRE_HUMOR, name, gender);
+      }
+      if (personalizedRoll < 0.78) {
+        return this.pickFn(this.NOMBRE_POR_LETRA, name, gender);
+      }
+      if (personalizedRoll < 0.83) {
+        return this.pickFn(this.EFEMERIDES_PANAMA, name, gender);
+      }
+      // 17% restante → GENERAL_PERSONALIZED clásico
+      return this.pickFn(this.GENERAL_PERSONALIZED, name, gender);
     }
     return this.pick(this.GENERAL);
+  }
+
+  private pickFn(arr: PhraseGen[], name: string, gender?: 'M' | 'F'): string {
+    const fn = arr[Math.floor(Math.random() * arr.length)];
+    return fn(name, gender);
   }
 
   public getBirthdayPhrase(): string {

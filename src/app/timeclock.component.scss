@@ -3407,3 +3407,501 @@
   0%, 100% { box-shadow: 0 2px 12px rgba(220, 38, 38, 0.35); }
   50% { box-shadow: 0 4px 20px rgba(220, 38, 38, 0.6); }
 }
+
+/* ====================================================================
+   ✦ MODERN UI OVERLAY (2026 refresh) — appended overrides ✦
+   ====================================================================
+   Glass morph, refined shadows, sharper typography, smoother transitions.
+   No rompe layout, solo afina visualmente. */
+
+/* ===== FONDO LLAMATIVO: Aurora + Mesh + Orbs intensos ===== */
+.animated-gradient-container {
+  background: #050507 !important;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Capa 1: aurora animada — sin filter blur extra para evitar artefactos */
+.animated-gradient-container::before {
+  content: '';
+  position: fixed; inset: -20%;
+  pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 30% 25%, rgba(251, 191, 36, 0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 75% 75%, rgba(59, 130, 246, 0.07) 0%, transparent 70%);
+  animation: aurora-shift 30s ease-in-out infinite alternate;
+}
+@keyframes aurora-shift {
+  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33%  { transform: translate(-3%, 2%) rotate(2deg) scale(1.08); }
+  66%  { transform: translate(2%, -3%) rotate(-2deg) scale(1.05); }
+  100% { transform: translate(-2%, -2%) rotate(1deg) scale(1.1); }
+}
+
+/* Capa 2: grano sutil sin blend-mode */
+.animated-gradient-container::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.012) 1px, transparent 0);
+  background-size: 32px 32px;
+  opacity: 0.6;
+}
+
+/* Orbs suaves — sin mix-blend-mode para evitar sombras raras */
+.bg-orb {
+  opacity: 1 !important;
+  filter: blur(140px) !important;
+  mix-blend-mode: normal !important;
+}
+.bg-orb--1 {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.20), transparent 70%) !important;
+  width: 600px !important;
+  height: 600px !important;
+  animation-duration: 22s !important;
+}
+.bg-orb--2 {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 70%) !important;
+  width: 520px !important;
+  height: 520px !important;
+  animation-duration: 26s !important;
+}
+.bg-orb--3 {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.12), transparent 70%) !important;
+  width: 480px !important;
+  height: 480px !important;
+  animation-duration: 28s !important;
+}
+.bg-orb--4 {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.04), transparent 70%) !important;
+  width: 420px !important;
+  height: 420px !important;
+  animation-duration: 24s !important;
+}
+
+/* Animaciones de orbs más amplias y dramáticas */
+@keyframes orb-drift-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(25vw, 30vh) scale(1.3); }
+  50%  { transform: translate(40vw, 10vh) scale(0.85); }
+  75%  { transform: translate(15vw, 35vh) scale(1.2); }
+  100% { transform: translate(-10vw, 20vh) scale(1); }
+}
+@keyframes orb-drift-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(-30vw, -20vh) scale(1.2); }
+  50%  { transform: translate(-15vw, -35vh) scale(0.9); }
+  75%  { transform: translate(10vw, -25vh) scale(1.25); }
+  100% { transform: translate(20vw, -15vh) scale(1.05); }
+}
+@keyframes orb-drift-3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(-20vw, 15vh) scale(1.35); }
+  50%  { transform: translate(-5vw, -15vh) scale(0.8); }
+  75%  { transform: translate(15vw, 5vh) scale(1.15); }
+  100% { transform: translate(25vw, -10vh) scale(1); }
+}
+@keyframes orb-drift-4 {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(20vw, -15vh) scale(1.2); }
+  50%  { transform: translate(-15vw, -5vh) scale(1.4); }
+  75%  { transform: translate(-25vw, 15vh) scale(0.9); }
+  100% { transform: translate(5vw, 25vh) scale(1.1); }
+}
+
+/* Partículas flotantes blancas tenues (sin colores) */
+.bg-orbs::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 13% 24%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 31% 68%, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 47% 12%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 67% 81%, rgba(255, 255, 255, 0.18), transparent),
+    radial-gradient(1px 1px at 83% 36%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 92% 67%, rgba(255, 255, 255, 0.18), transparent),
+    radial-gradient(1px 1px at 25% 88%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 55% 45%, rgba(255, 255, 255, 0.18), transparent),
+    radial-gradient(1px 1px at 75% 15%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 5% 55%, rgba(255, 255, 255, 0.18), transparent);
+  animation: particles-twinkle 8s ease-in-out infinite alternate;
+}
+@keyframes particles-twinkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* Línea de luz que recorre la pantalla — muy sutil, solo blanco */
+.bg-orbs::after {
+  content: '';
+  position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 48%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.04) 52%,
+    transparent 100%
+  );
+  animation: light-sweep 18s linear infinite;
+  pointer-events: none;
+}
+@keyframes light-sweep {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* Card principal: glass morph */
+.timeclock-card {
+  border-radius: 20px !important;
+  overflow: hidden;
+}
+.timeclock-card ::ng-deep .p-card {
+  background: linear-gradient(145deg,
+    rgba(20, 20, 28, 0.85) 0%,
+    rgba(14, 14, 20, 0.92) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 20px !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(251, 191, 36, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+.timeclock-card::before {
+  background: linear-gradient(135deg,
+    rgba(251, 191, 36, 0.04) 0%,
+    transparent 40%,
+    rgba(168, 85, 247, 0.03) 100%) !important;
+}
+
+/* Clock hero: tipografía más refinada (sin romper el contenedor oscuro original) */
+.clock-hero-time {
+  color: #fde047 !important;
+  text-shadow:
+    0 0 14px rgba(251, 191, 36, 0.55),
+    0 0 30px rgba(251, 191, 36, 0.25),
+    0 0 2px rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(251, 191, 36, 0.25) !important;
+  box-shadow: inset 0 0 22px rgba(251, 191, 36, 0.08), 0 6px 28px rgba(0, 0, 0, 0.45) !important;
+  font-variant-numeric: tabular-nums;
+}
+.clock-hero-date {
+  color: rgba(255, 255, 255, 0.55) !important;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.85rem !important;
+}
+.clock-subtitle {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-weight: 500;
+}
+
+/* Branch badge: pill moderno */
+.branch-name-badge {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.06)) !important;
+  border: 1px solid rgba(251, 191, 36, 0.25) !important;
+  border-radius: 999px !important;
+  padding: 6px 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(8px);
+}
+
+/* OTP / PIN dots: más grandes, suaves, con glow al llenar */
+.info-pin-dots {
+  gap: 14px !important;
+  padding: 8px 0;
+}
+.info-pin-dot {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 2px solid rgba(255, 255, 255, 0.12) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.info-pin-dot.filled {
+  background: linear-gradient(135deg, #fde047, #fbbf24) !important;
+  border-color: #fbbf24 !important;
+  box-shadow:
+    0 0 0 4px rgba(251, 191, 36, 0.15),
+    0 4px 12px rgba(251, 191, 36, 0.5) !important;
+  transform: scale(1.15);
+}
+.info-pin-dot.error {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
+  animation: pin-dot-shake 0.4s;
+}
+@keyframes pin-dot-shake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-3px); }
+  40%,80% { transform: translateX(3px); }
+}
+
+/* Keypad: botones modernos con profundidad */
+.info-keypad-btn,
+.keypad-btn,
+.ip-override-keypad button {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 14px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 1.4rem !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+}
+.info-keypad-btn::before,
+.keypad-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(251, 191, 36, 0) 0%, transparent 70%);
+  transition: background 0.3s;
+  pointer-events: none;
+}
+.info-keypad-btn:hover,
+.keypad-btn:hover {
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.05)) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+  color: #fbbf24 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(251, 191, 36, 0.15) !important;
+}
+.info-keypad-btn:hover::before,
+.keypad-btn:hover::before {
+  background: radial-gradient(circle at center, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+}
+.info-keypad-btn:active,
+.keypad-btn:active {
+  transform: translateY(0) scale(0.96) !important;
+}
+
+/* Botón principal de marcar — más impactante */
+.mark-button ::ng-deep .p-button {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 14px 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+  font-size: 1rem !important;
+  color: #111 !important;
+  box-shadow:
+    0 8px 24px rgba(251, 191, 36, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-transform: none !important;
+}
+.mark-button ::ng-deep .p-button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 12px 32px rgba(251, 191, 36, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15) !important;
+  background: linear-gradient(135deg, #fde047 0%, #fbbf24 50%, #f59e0b 100%) !important;
+}
+
+/* Selector de tipo de marca (dropdown) — moderno + centrado */
+.timeclock-card ::ng-deep .p-select {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.timeclock-card ::ng-deep .p-select:hover {
+  border-color: rgba(251, 191, 36, 0.4) !important;
+  background: linear-gradient(145deg, rgba(251, 191, 36, 0.08), rgba(245, 158, 11, 0.03)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(251, 191, 36, 0.2) !important;
+}
+.timeclock-card ::ng-deep .p-select.p-focus {
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15), 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+}
+.timeclock-card ::ng-deep .p-select-label {
+  color: #fff !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px;
+  text-align: center !important;
+  flex: 1;
+  padding-right: 0 !important;
+}
+.timeclock-card ::ng-deep .p-select-dropdown {
+  color: rgba(251, 191, 36, 0.8) !important;
+}
+
+/* Panel del dropdown abierto — glass moderno, z-index alto para que se vea encima del dialog */
+::ng-deep .p-select-overlay,
+::ng-deep .p-select-panel,
+body > .p-select-overlay,
+body > .p-select-panel {
+  background: linear-gradient(145deg, rgba(20, 20, 28, 0.96), rgba(14, 14, 20, 0.98)) !important;
+  border: 1px solid rgba(251, 191, 36, 0.2) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(251, 191, 36, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  overflow: hidden;
+  z-index: 99999 !important;
+}
+::ng-deep .p-select-overlay .p-select-list,
+::ng-deep .p-select-panel .p-select-list {
+  padding: 6px !important;
+}
+::ng-deep .p-select-overlay .p-select-option,
+::ng-deep .p-select-panel .p-select-option {
+  padding: 12px 16px !important;
+  border-radius: 10px !important;
+  margin: 2px 0 !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  text-align: center !important;
+  justify-content: center !important;
+  transition: all 0.15s !important;
+  cursor: pointer !important;
+}
+::ng-deep .p-select-overlay .p-select-option:hover,
+::ng-deep .p-select-panel .p-select-option:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08)) !important;
+  color: #fbbf24 !important;
+  transform: scale(1.02);
+}
+::ng-deep .p-select-overlay .p-select-option.p-select-option-selected,
+::ng-deep .p-select-panel .p-select-option.p-select-option-selected,
+::ng-deep .p-select-overlay .p-select-option.p-highlight,
+::ng-deep .p-select-panel .p-select-option.p-highlight {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #111 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.35) !important;
+}
+
+/* Banner de punches pendientes — moderno */
+.punch-queue-banner {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.06)) !important;
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(251, 191, 36, 0.1) !important;
+}
+.punch-queue-banner__btn {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #111 !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  padding: 8px 16px !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.35) !important;
+  transition: all 0.2s !important;
+}
+.punch-queue-banner__btn:hover { transform: scale(1.05); }
+
+/* IP warning card */
+.ip-warning-card {
+  background: linear-gradient(145deg, rgba(20, 20, 28, 0.95), rgba(14, 14, 20, 0.98)) !important;
+  border: 1px solid rgba(251, 191, 36, 0.25) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(251, 191, 36, 0.1) !important;
+}
+.ip-warning-btn {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #111 !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 6px 16px rgba(251, 191, 36, 0.35) !important;
+  transition: all 0.2s !important;
+}
+.ip-warning-btn:hover { transform: translateY(-1px); }
+
+/* Modal de éxito — más refinado */
+.confirm-modal-card {
+  border-radius: 24px !important;
+  background: linear-gradient(145deg, rgba(20, 20, 28, 0.95), rgba(14, 14, 20, 0.98)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(251, 191, 36, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+.confirm-modal-overlay {
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(8px);
+}
+.confirm-modal-title {
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+.confirm-modal-time {
+  background: linear-gradient(135deg, #fde047, #fbbf24) !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+  filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.2));
+}
+.confirm-modal-phrase-box {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05)) !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(8px);
+}
+.confirm-modal-streak-box {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(16, 185, 129, 0.05)) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  border-radius: 12px !important;
+}
+
+/* Authenticator method toggle */
+.auth-method-toggle,
+.auth-method-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s !important;
+  backdrop-filter: blur(8px);
+}
+.auth-method-btn:hover {
+  border-color: rgba(251, 191, 36, 0.4) !important;
+  background: rgba(251, 191, 36, 0.06) !important;
+}
+
+/* DP status chip */
+.dp-status-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 999px !important;
+  backdrop-filter: blur(8px);
+}
+.dp-status-dot {
+  box-shadow: 0 0 12px currentColor;
+}
+
+/* Scrollbars refinadas */
+.animated-gradient-container::-webkit-scrollbar { width: 6px !important; }
+.animated-gradient-container::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.3) !important;
+  border-radius: 3px !important;
+}
+.animated-gradient-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(251, 191, 36, 0.5) !important;
+}
