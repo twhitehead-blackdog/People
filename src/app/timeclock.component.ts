@@ -173,6 +173,28 @@ interface TimeclockInfoData {
       (closed)="onSelfEnrollClosed()"
     />
 
+    <!-- Aviso temporal: inconvenientes resueltos -->
+    @if (showOutageNoticeModal()) {
+      <div class="confirm-modal-overlay" (click)="dismissOutageNotice()">
+        <div class="ip-warning-card" (click)="$event.stopPropagation()" style="max-width: 480px;">
+          <div class="restricted-icon-wrap">
+            <div class="ip-warning-icon" style="background: rgba(34,197,94,0.15); color: #22c55e;">
+              <i class="pi pi-check-circle"></i>
+            </div>
+          </div>
+          <div class="ip-warning-title">Inconvenientes resueltos</div>
+          <div class="ip-warning-desc" style="text-align: left; line-height: 1.5;">
+            Pedimos disculpas por la falla del reloj de marcaciones de hoy. Ya quedó corregido.
+            <br><br>
+            <strong>Si no pudiste marcar entrada/salida/almuerzo</strong>, por favor envía el reporte de las marcaciones faltantes a tu supervisor o a RRHH para que las ingresemos manualmente en el sistema.
+            <br><br>
+            Gracias por su paciencia.
+          </div>
+          <button class="ip-warning-btn" (click)="dismissOutageNotice()">Entendido</button>
+        </div>
+      </div>
+    }
+
     <!-- IP Warning Modal -->
     @if (ipWarningVisible()) {
       <div class="confirm-modal-overlay" (click)="dismissIpWarning()">
@@ -5673,6 +5695,16 @@ export class TimeclockComponent implements OnDestroy {
 
   // IP warning modal signals
   public ipWarningVisible = signal(false);
+
+  // Aviso temporal post-incidente del 2026-05-21 (kiosk dropdowns NG0200)
+  private readonly OUTAGE_NOTICE_KEY = 'outage_notice_2026_05_21_dismissed';
+  public showOutageNoticeModal = signal(
+    typeof localStorage !== 'undefined' && !localStorage.getItem(this.OUTAGE_NOTICE_KEY)
+  );
+  dismissOutageNotice(): void {
+    this.showOutageNoticeModal.set(false);
+    try { localStorage.setItem(this.OUTAGE_NOTICE_KEY, '1'); } catch {}
+  }
   public ipWarningExiting = signal(false);
 
   private alertInvalidIP() {
