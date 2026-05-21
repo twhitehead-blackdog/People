@@ -65,6 +65,8 @@ import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import { DpInstallHelpModalComponent } from './shared/components/dp-install-help-modal.component';
 import { AuthenticatorEnrollmentComponent } from './dashboard/authenticator-enrollment/authenticator-enrollment.component';
 import { KioskExtrasComponent } from './timeclock/kiosk-extras.component';
+import { KioskScreensaverComponent } from './timeclock/kiosk-screensaver.component';
+import { TeamPulseComponent } from './timeclock/team-pulse.component';
 import {
   initAudioContext,
   playEffectSound,
@@ -127,10 +129,14 @@ interface TimeclockInfoData {
     DpInstallHelpModalComponent,
     AuthenticatorEnrollmentComponent,
     KioskExtrasComponent,
+    KioskScreensaverComponent,
+    TeamPulseComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
     <pt-kiosk-extras />
+    <pt-kiosk-screensaver />
+    <pt-team-pulse />
 
     <!-- ── Pending punches banner ─────────────────────────────────────
          Aparece automáticamente si quedaron marcaciones de emergencia sin
