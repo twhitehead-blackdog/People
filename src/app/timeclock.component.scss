@@ -157,15 +157,6 @@
   margin: 0 !important;
 }
 
-/* En kiosk, las overlays de PrimeNG (p-select, etc.) van con appendTo="body",
-   o sea fuera del contenedor fixed con z-index:9999. Sin esto, la overlay
-   queda DETRÁS del propio kiosk y por eso "los dropdowns no abren". */
-body:has(pt-timeclock.kiosk-fullscreen) .p-select-overlay,
-body:has(pt-timeclock.kiosk-fullscreen) .p-overlay,
-body:has(pt-timeclock.kiosk-fullscreen) .p-popover,
-body:has(pt-timeclock.kiosk-fullscreen) .p-toast {
-  z-index: 10001 !important;
-}
 .timeclock-content {
   width: 100%;
   max-width: 100%;
