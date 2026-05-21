@@ -767,7 +767,7 @@ interface TimeclockInfoData {
                 optionValue="id"
                 filter
                 filterBy="name"
-                appendTo="body"
+                
                 class="w-full"
                 [styleClass]="'w-full'"
               />
@@ -788,7 +788,7 @@ interface TimeclockInfoData {
                   optionLabel="name"
                   filter
                   filterBy="name"
-                  appendTo="body"
+                  
                   class="w-full"
                   [styleClass]="'w-full'"
                 />
@@ -808,7 +808,7 @@ interface TimeclockInfoData {
                 placeholder="Seleccionar empleado"
                 filter
                 filterBy="first_name,father_name"
-                appendTo="body"
+                
                 class="w-full"
                 [styleClass]="'w-full'"
               >
@@ -829,7 +829,7 @@ interface TimeclockInfoData {
                 [options]="availableTypes()"
                 optionLabel="label"
                 optionValue="value"
-                appendTo="body"
+                
                 class="w-full"
                 [styleClass]="'w-full'"
               />
