@@ -1042,12 +1042,14 @@ interface TimeclockInfoData {
       </div>
       }
 
-      <pt-dog-animation
+      @if (!isKioskMode()) {
+        <pt-dog-animation
           [selectedName]="selectedEmployee()?.first_name || ''"
           [selectedPosition]="selectedEmployee()?.position?.name || ''"
           [selectedDept]="selectedEmployee()?.department?.name || ''"
           [selectedGender]="selectedEmployee()?.gender || ''"
         ></pt-dog-animation>
+      }
     </div>
 
     <!-- Manager Override Modal - outside scroll container so position:fixed works correctly -->
