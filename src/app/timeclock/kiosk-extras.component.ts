@@ -48,20 +48,22 @@ interface LeaderboardRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Botón CTA esquina superior derecha — pill animado con texto y pulse -->
-    <button
-      type="button"
-      class="kiosk-extras-cta"
-      (click)="open()"
-      title="Quiz de mascotas y ranking"
-    >
-      <span class="kiosk-extras-cta__pulse"></span>
-      <span class="kiosk-extras-cta__icon">🐕</span>
-      <span class="kiosk-extras-cta__text">
-        <span class="kiosk-extras-cta__title">Quiz Mascotas</span>
-        <span class="kiosk-extras-cta__sub">¡Juega y ranking!</span>
-      </span>
-      <i class="pi pi-chevron-right kiosk-extras-cta__arrow"></i>
-    </button>
+    @if (showCTA()) {
+      <button
+        type="button"
+        class="kiosk-extras-cta"
+        (click)="open()"
+        title="Quiz de mascotas y ranking"
+      >
+        <span class="kiosk-extras-cta__pulse"></span>
+        <span class="kiosk-extras-cta__icon">🐕</span>
+        <span class="kiosk-extras-cta__text">
+          <span class="kiosk-extras-cta__title">Quiz Mascotas</span>
+          <span class="kiosk-extras-cta__sub">¡Juega y ranking!</span>
+        </span>
+        <i class="pi pi-chevron-right kiosk-extras-cta__arrow"></i>
+      </button>
+    }
 
     <p-dialog
       header="🏆 Black Dog Kiosk"
@@ -774,6 +776,13 @@ export class KioskExtrasComponent implements OnInit {
   private orgService = inject(OrganizationService);
 
   public visible = signal(false);
+
+  /** Ocultar el CTA en rutas de kiosk para no tapar los dropdowns */
+  public showCTA = computed(() => {
+    if (typeof window === 'undefined') return true;
+    const path = window.location.pathname;
+    return !/\/timeclock-kiosk/.test(path);
+  });
   public tab = signal<'leaderboard' | 'quiz' | 'recent'>('leaderboard');
   public loading = signal(false);
 
