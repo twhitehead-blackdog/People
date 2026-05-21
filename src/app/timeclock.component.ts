@@ -130,7 +130,7 @@ interface TimeclockInfoData {
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
-    @if (!isKioskMode()) { <pt-kiosk-extras /> }
+    <pt-kiosk-extras />
 
     <!-- ── Pending punches banner ─────────────────────────────────────
          Aparece automáticamente si quedaron marcaciones de emergencia sin
