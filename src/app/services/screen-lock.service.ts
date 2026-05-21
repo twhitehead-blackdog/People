@@ -22,6 +22,14 @@ export class ScreenLockService {
   private lastActivity = signal<Date>(new Date());
 
   constructor() {
+    // No activar ScreenLock en rutas de kiosk (timeclock-kiosk, timeclock-kiosk-mobile)
+    const isKioskPath = typeof window !== 'undefined' &&
+      /\/timeclock-kiosk(-mobile)?(\/|$|\?)/.test(window.location.pathname);
+    if (isKioskPath) {
+      // No cargar estado ni monitorear en kiosk
+      return;
+    }
+
     // Cargar estado persistido
     this.loadState();
 
@@ -43,13 +51,8 @@ export class ScreenLockService {
       if (savedTimeout !== null)
         this.lockTimeout.set(parseInt(savedTimeout, 10));
 
-      console.log('[ScreenLock] State loaded', {
-        enabled: this.isEnabled(),
-        locked: this.isLocked(),
-        timeout: this.lockTimeout(),
-      });
     } catch (e) {
-      console.error('[ScreenLock] Error loading state', e);
+      // silencioso
     }
   }
 
