@@ -1682,3 +1682,15 @@ button[pTooltip*="Super-admin"]:hover {
 .p-overlaypanel {
   z-index: 99999 !important;
 }
+
+/* En timeclock-kiosk no usamos appendTo=body (causaba stacking issue con
+   position:fixed del fullscreen). Como el overlay vive inline, hay que elevar
+   el p-select abierto para que no quede tapado por el siguiente input. */
+pt-timeclock .input-container:has(.p-select[aria-expanded="true"]),
+pt-timeclock .input-container:has(.p-select-open) {
+  position: relative;
+  z-index: 99999 !important;
+}
+pt-timeclock .p-select-overlay {
+  z-index: 100000 !important;
+}
