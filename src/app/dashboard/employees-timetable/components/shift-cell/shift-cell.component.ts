@@ -105,16 +105,17 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
     </ng-template>
     <p-popover #options>
       <div class="relative">
-        @if (!isStoreManager()) {
-        <!-- Icono de auditoría en esquina superior derecha -->
-        <i
-          class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
-          pTooltip="Ver historial de auditoría de este día"
+        <!-- Botón historial visible para todos -->
+        <button
+          class="absolute top-0 right-0 flex items-center gap-1 text-[10px] text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10 px-1.5 py-0.5 rounded hover:bg-neutral-700/60"
+          pTooltip="Ver historial de cambios de este día"
           tooltipPosition="left"
           (click)="onViewAudit(); options.hide()"
-        ></i>
-        }
-        <span class="font-medium block mb-2" [class.pr-6]="!isStoreManager()">Opciones</span>
+        >
+          <i class="pi pi-history text-[10px]"></i>
+          <span>Historial</span>
+        </button>
+        <span class="font-medium block mb-2 pr-20">Opciones</span>
         <ul class="list-non flex flex-col">
           @if (canManageSchedules()) {
           <li

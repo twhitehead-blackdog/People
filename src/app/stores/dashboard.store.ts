@@ -26,6 +26,7 @@ import { checkSalaryAccess } from '../dashboard/pt-permissions/permissions.types
 import { Branch, Department, Employee, Position } from '../models';
 import { TestModeService } from '../services/test-mode.service';
 import { ImpersonationService } from '../services/impersonation.service';
+import { AuditStampService } from '../services/audit-stamp.service';
 import { getEmployeePermission, isStoreManagerRole } from '../utils/permission.utils';
 import { AuthStore } from './auth.store';
 import { BanksStore } from './banks.store';
@@ -1049,6 +1050,15 @@ export const DashboardStore = signalStore(
           setTimeout(() => store.employees.ensureEmployeeLoaded(impId), 100);
         }
       });
+
+      // Audit stamp: registrar el empleado actual para el HTTP interceptor
+      try {
+        const auditStamp = inject(AuditStampService);
+        effect(() => {
+          const emp = store.currentEmployee();
+          if (emp?.id) auditStamp.setEmployee(emp.id);
+        });
+      } catch {}
     },
   })
 );

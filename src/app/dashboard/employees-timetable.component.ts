@@ -145,6 +145,15 @@ function arraysEqualSet(a: readonly string[], b: readonly string[]): boolean {
           <span class="font-semibold bg-green-500/15 text-green-300 border border-green-500/30 rounded px-2 py-0.5" pTooltip="Empleados con menos de 30 días en la empresa" tooltipPosition="top">NUEVO</span>
           <span class="font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 rounded px-2 py-0.5" pTooltip="Empleado de otra sucursal cubriendo turnos aquí esta semana" tooltipPosition="top">COBERTURA</span>
           <span class="font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 rounded px-2 py-0.5" pTooltip="Personal rotativo (sincronizado con Horario Peluquería)" tooltipPosition="top">ROTATIVO</span>
+          <button
+            class="ml-2 h-7 px-2 rounded-md bg-neutral-800 border border-neutral-700/50 text-gray-300 flex items-center gap-1.5 text-xs hover:bg-neutral-700 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
+            (click)="openAuditHistoryDialog()"
+            pTooltip="Historial de cambios por día y usuario"
+            tooltipPosition="top"
+          >
+            <i class="pi pi-history text-xs"></i>
+            <span>Historial</span>
+          </button>
         </div>
       </div>
 
@@ -183,13 +192,15 @@ function arraysEqualSet(a: readonly string[], b: readonly string[]): boolean {
               <i class="pi pi-question-circle text-xs"></i>
             </button>
           }
+          <button
+            class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center hover:bg-neutral-700 transition-colors"
+            (click)="openAuditHistoryDialog()"
+            pTooltip="Historial de cambios"
+            tooltipPosition="bottom"
+          >
+            <i class="pi pi-history text-xs"></i>
+          </button>
           @if(!permissionsService.isStoreManager()) {
-            <button
-              class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-gray-400 flex items-center justify-center"
-              (click)="openAuditHistoryDialog()"
-            >
-              <i class="pi pi-history text-xs"></i>
-            </button>
             <button
               class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700/50 text-amber-400 flex items-center justify-center"
               (click)="showChangeRequestsMetrics.set(true)"
@@ -2032,7 +2043,10 @@ export class EmployeesTimetableComponent implements OnInit {
       const history = await firstValueFrom(
         this.auditService.getAllAuditHistory({ page: 1, pageSize: this.AUDIT_PAGE_SIZE })
       );
-      this.allAuditHistory.set(history || []);
+      const sorted = (history || []).slice().sort(
+        (a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+      );
+      this.allAuditHistory.set(sorted);
       if (!history || history.length < this.AUDIT_PAGE_SIZE) {
         this.hasMoreAuditHistory.set(false);
       }
@@ -2056,7 +2070,11 @@ export class EmployeesTimetableComponent implements OnInit {
         this.hasMoreAuditHistory.set(false);
       }
       if (more?.length) {
-        this.allAuditHistory.update(prev => [...prev, ...more]);
+        this.allAuditHistory.update(prev => {
+          const merged = [...prev, ...more];
+          merged.sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime());
+          return merged;
+        });
       }
     } catch (error) {
       console.error('Error cargando más auditoría:', error);

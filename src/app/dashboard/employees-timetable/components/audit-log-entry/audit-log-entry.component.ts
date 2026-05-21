@@ -39,31 +39,34 @@ import {
           </div>
 
           <div>
-            <!-- Who changed -->
-            <div class="flex items-center gap-2">
+            <!-- Frase clara: "Quien" {acción} "a Quién" -->
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-white font-semibold text-sm">
                 {{ log().changed_by_employee
                   ? log().changed_by_employee!.first_name + ' ' + log().changed_by_employee!.father_name
-                  : 'Usuario desconocido' }}
+                  : 'Sistema' }}
               </span>
-              <!-- Lock badge -->
+              <span [class]="getAuditActionColor(log().action) + ' text-xs font-medium lowercase'">
+                {{ actionVerb() }}
+              </span>
+              @if (showEmployee() && affectedEmployee()) {
+                <span class="text-gray-500 text-xs">el turno de</span>
+                <span class="text-cyan-300 font-semibold text-sm">{{ affectedEmployee() }}</span>
+              }
               @if (isLocked()) {
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/25 border border-amber-500/50 text-[10px] font-semibold text-amber-300 uppercase tracking-wide">
                   <i class="pi pi-lock text-[9px]"></i>
-                  Cal. Bloqueado
+                  Bloqueado
                 </span>
               }
             </div>
-            <!-- Action + affected employee -->
-            <div class="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-              <span [class]="getAuditActionColor(log().action) + ' font-medium'">
-                {{ getAuditActionLabel(log().action) }}
-              </span>
-              @if (showEmployee() && affectedEmployee()) {
-                <span class="text-gray-600">·</span>
-                <span class="text-gray-400">{{ affectedEmployee() }}</span>
-              }
-            </div>
+            <!-- Día afectado -->
+            @if (affectedDay()) {
+              <div class="text-xs text-gray-400 mt-0.5">
+                <i class="pi pi-calendar text-[10px]"></i>
+                Día {{ affectedDay() }}
+              </div>
+            }
           </div>
         </div>
 
@@ -77,40 +80,29 @@ import {
       <!-- Body: schedule cards -->
       <div class="px-4 py-3">
 
-        <!-- UPDATE / SPLIT: old → new schedule -->
+        <!-- UPDATE / SPLIT: antes → después -->
         @if ((log().action === 'updated' || log().action === 'split') && oldVal() && newVal()) {
-          <div class="flex items-center gap-2">
-            <!-- Old schedule chip -->
-            <div class="flex-1 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-              <i class="pi pi-calendar text-red-400 text-xs flex-shrink-0"></i>
-              <div class="min-w-0">
-                <div class="text-xs font-semibold text-red-300 truncate">{{ oldVal()?.schedule_name || '—' }}</div>
-                <div class="text-[11px] text-red-400/70">{{ oldVal()?.start_date_formatted }}@if (oldVal()?.start_date_formatted !== oldVal()?.end_date_formatted) { – {{ oldVal()?.end_date_formatted }}}</div>
-              </div>
+          <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+            <!-- ANTES -->
+            <div class="bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
+              <div class="text-[9px] uppercase tracking-wider text-red-400/80 font-bold mb-1">Antes</div>
+              <div class="text-sm font-semibold text-red-200">{{ oldVal()?.schedule_name || '—' }}</div>
+              @if (oldVal()?.branch_name && oldVal()?.branch_name !== newVal()?.branch_name) {
+                <div class="text-[11px] text-red-300/80 mt-0.5"><i class="pi pi-building text-[9px]"></i> {{ oldVal()?.branch_name }}</div>
+              }
             </div>
 
-            <i class="pi pi-arrow-right text-gray-500 text-xs flex-shrink-0"></i>
+            <i class="pi pi-arrow-right text-gray-500 text-base"></i>
 
-            <!-- New schedule chip -->
-            <div class="flex-1 flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
-              <i class="pi pi-calendar text-green-400 text-xs flex-shrink-0"></i>
-              <div class="min-w-0">
-                <div class="text-xs font-semibold text-green-300 truncate">{{ newVal()?.schedule_name || '—' }}</div>
-                <div class="text-[11px] text-green-400/70">{{ newVal()?.start_date_formatted }}@if (newVal()?.start_date_formatted !== newVal()?.end_date_formatted) { – {{ newVal()?.end_date_formatted }}}</div>
-              </div>
+            <!-- DESPUÉS -->
+            <div class="bg-green-500/10 border border-green-500/25 rounded-lg px-3 py-2">
+              <div class="text-[9px] uppercase tracking-wider text-green-400/80 font-bold mb-1">Después</div>
+              <div class="text-sm font-semibold text-green-200">{{ newVal()?.schedule_name || '—' }}</div>
+              @if (oldVal()?.branch_name !== newVal()?.branch_name && newVal()?.branch_name) {
+                <div class="text-[11px] text-green-300/80 mt-0.5"><i class="pi pi-building text-[9px]"></i> {{ newVal()?.branch_name }}</div>
+              }
             </div>
           </div>
-
-          <!-- Branch change (if different) -->
-          @if (oldVal()?.branch_name && oldVal()?.branch_name !== newVal()?.branch_name) {
-            <div class="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
-              <i class="pi pi-building text-gray-500 text-[10px]"></i>
-              <span class="text-gray-500">Sucursal:</span>
-              <span class="text-red-400/80 line-through">{{ oldVal()?.branch_name }}</span>
-              <i class="pi pi-arrow-right text-gray-600 text-[10px]"></i>
-              <span class="text-green-400/80">{{ newVal()?.branch_name }}</span>
-            </div>
-          }
         }
 
         <!-- CREATE: new schedule -->
@@ -226,6 +218,30 @@ export class AuditLogEntryComponent {
     const emp = this.log().employee_schedule?.employee;
     if (!emp) return null;
     return `${emp.first_name} ${emp.father_name}`;
+  });
+
+  public actionVerb = computed(() => {
+    const m: Record<string, string> = {
+      created: 'creó',
+      updated: 'modificó',
+      deleted: 'eliminó',
+      approved: 'aprobó',
+      rejected: 'rechazó',
+      split: 'reasignó',
+      split_range: 'recortó',
+    };
+    return m[this.log().action] ?? this.log().action;
+  });
+
+  /** Día del turno afectado (no la fecha del cambio). */
+  public affectedDay = computed(() => {
+    const v = this.newVal() ?? this.oldVal();
+    if (!v) return null;
+    const s = v.start_date_formatted;
+    const e = v.end_date_formatted;
+    if (!s) return null;
+    if (e && e !== s) return `${s} – ${e}`;
+    return s;
   });
 
   public actionBgColor = computed(() => {

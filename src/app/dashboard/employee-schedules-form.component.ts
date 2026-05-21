@@ -1069,6 +1069,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     const updateData: any = {
       ...formDataWithoutId,
+      cover_reason: value.cover_reason ?? null,
       start_date: value.start_date
         ? format(new Date(value.start_date), 'yyyy-MM-dd')
         : null,
@@ -1127,6 +1128,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // Crear requestData para single-day create
     const requestData: any = {
       ...value,
+      cover_reason: value.cover_reason ?? null,
       start_date: value.start_date
         ? format(new Date(value.start_date), 'yyyy-MM-dd')
         : null,
@@ -1414,6 +1416,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         start_date: format(day, 'yyyy-MM-dd'),
         end_date: format(day, 'yyyy-MM-dd'),
         approved: scheduleData.approved,
+        cover_reason: scheduleData.cover_reason ?? null,
         ...(scheduleData.approved ? { approved_by: this.store.currentEmployee()?.id || null } : {}),
       };
       if (companyId) {
@@ -1529,6 +1532,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         start_date: format(day, 'yyyy-MM-dd'),
         end_date: format(day, 'yyyy-MM-dd'),
         approved: scheduleData.approved,
+        cover_reason: scheduleData.cover_reason ?? null,
         ...(scheduleData.approved ? { approved_by: this.store.currentEmployee()?.id || null } : {}),
       };
       if (companyId) {

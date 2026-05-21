@@ -103,5 +103,12 @@ export function filterAuditHistory(input: AuditFilterInput): ScheduleAuditLog[] 
     });
   }
 
+  // Garantizar orden desc por changed_at (más reciente primero)
+  filtered.sort((a, b) => {
+    const da = new Date(a.changed_at).getTime();
+    const db = new Date(b.changed_at).getTime();
+    return db - da;
+  });
+
   return filtered;
 }

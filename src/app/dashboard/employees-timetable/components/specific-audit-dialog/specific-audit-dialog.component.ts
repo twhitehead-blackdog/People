@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   model,
 } from '@angular/core';
@@ -37,7 +38,7 @@ import { AuditLogEntryComponent } from '../audit-log-entry/audit-log-entry.compo
         </div>
         } @else {
         <div class="space-y-3 max-h-[60vh] overflow-y-auto">
-          @for (log of history(); track log.id) {
+          @for (log of sortedHistory(); track log.id) {
           <pt-audit-log-entry
             [log]="log"
             [showEmployee]="false"
@@ -56,4 +57,9 @@ export class SpecificAuditDialogComponent {
   public header = input<string>('');
   public history = input.required<ScheduleAuditLog[]>();
   public isLoading = input<boolean>(false);
+
+  // Garantizar orden cronológico descendente (más reciente primero)
+  public sortedHistory = computed(() =>
+    [...this.history()].sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime())
+  );
 }
