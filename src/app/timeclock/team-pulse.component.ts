@@ -26,7 +26,7 @@ interface BranchRollup {
   selector: 'pt-team-pulse',
   imports: [CommonModule],
   template: `
-    @if (rolledUp().length > 0) {
+    @if (showWidget() && rolledUp().length > 0) {
       <div class="tp-fab" [class.expanded]="open()" (click)="open.set(!open())">
         <!-- Compact: número total -->
         <div class="tp-fab-head">
@@ -227,6 +227,13 @@ export class TeamPulseComponent implements OnInit {
   public branchActivity = signal<BranchRollup[]>([]);
   public avgRating = signal<number | null>(null);
   public achievements = signal<{ id: string; icon: string; who: string; what: string }[]>([]);
+
+  /** Solo mostrar en portal empleado (/timeclock), no en kiosk */
+  public showWidget = computed(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    return !/\/timeclock-kiosk/.test(path);
+  });
 
   public rolledUp = computed(() => {
     return [...this.branchActivity()]

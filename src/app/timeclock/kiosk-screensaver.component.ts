@@ -17,7 +17,7 @@ type TimeMode = 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night';
   selector: 'pt-kiosk-screensaver',
   imports: [],
   template: `
-    @if (active()) {
+    @if (active() && enabled()) {
       <div
         class="ks-overlay"
         [attr.data-mode]="mode()"
@@ -211,11 +211,18 @@ type TimeMode = 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night';
 })
 export class KioskScreensaverComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
-  private readonly IDLE_MS = 60_000; // 1 minuto de inactividad
+  private readonly IDLE_MS = 5 * 60_000; // 5 minutos de inactividad
 
   public active = signal(false);
   public now = signal(new Date());
   private lastActivity = Date.now();
+
+  /** Habilitar solo en portal /timeclock, no en /timeclock-kiosk */
+  public enabled = computed(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    return !/\/timeclock-kiosk/.test(path);
+  });
 
   public timeStr = computed(() => {
     const d = this.now();
@@ -279,11 +286,19 @@ export class KioskScreensaverComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.now.set(new Date());
-        // Activar si llevamos IDLE_MS sin actividad y no está activo
-        if (!this.active() && Date.now() - this.lastActivity >= this.IDLE_MS) {
+        // Activar si llevamos IDLE_MS sin actividad, no está activo, y no hay modal/dropdown abierto
+        if (!this.active() && Date.now() - this.lastActivity >= this.IDLE_MS && !this.isModalOpen()) {
           this.active.set(true);
         }
       });
+  }
+
+  /** No activar screensaver si hay un modal/dropdown/dialog abierto */
+  private isModalOpen(): boolean {
+    if (typeof document === 'undefined') return false;
+    return !!document.querySelector(
+      '.p-dialog, .p-overlay, .p-popover, .p-select-overlay, .p-confirmdialog, .p-toast-message, [role="dialog"]:not([aria-hidden="true"])'
+    );
   }
 
   @HostListener('window:mousemove')
