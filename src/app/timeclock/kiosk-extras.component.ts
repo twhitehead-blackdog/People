@@ -777,12 +777,8 @@ export class KioskExtrasComponent implements OnInit {
 
   public visible = signal(false);
 
-  /** Ocultar el CTA en rutas de kiosk para no tapar los dropdowns */
-  public showCTA = computed(() => {
-    if (typeof window === 'undefined') return true;
-    const path = window.location.pathname;
-    return !/\/timeclock-kiosk/.test(path);
-  });
+  /** CTA siempre visible — el bloqueo histórico de dropdowns era ciclo DI, no este botón */
+  public showCTA = computed(() => true);
   public tab = signal<'leaderboard' | 'quiz' | 'recent'>('leaderboard');
   public loading = signal(false);
 
