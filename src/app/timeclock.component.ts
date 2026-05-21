@@ -5696,14 +5696,24 @@ export class TimeclockComponent implements OnDestroy {
   // IP warning modal signals
   public ipWarningVisible = signal(false);
 
-  // Aviso temporal post-incidente del 2026-05-21 (kiosk dropdowns NG0200)
-  private readonly OUTAGE_NOTICE_KEY = 'outage_notice_2026_05_21_dismissed';
-  public showOutageNoticeModal = signal(
-    typeof localStorage !== 'undefined' && !localStorage.getItem(this.OUTAGE_NOTICE_KEY)
-  );
+  // Aviso temporal post-incidente del 2026-05-21 (kiosk dropdowns NG0200).
+  // Aparece SIEMPRE durante el dia del incidente. Si el usuario lo cierra,
+  // vuelve a aparecer despues de 50 minutos.
+  private readonly OUTAGE_NOTICE_DATE = '2026-05-21';
+  private outageReshowTimer: ReturnType<typeof setTimeout> | null = null;
+  public showOutageNoticeModal = signal(this.isOutageNoticeDay());
+  private isOutageNoticeDay(): boolean {
+    const todayPanama = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Panama' });
+    return todayPanama === this.OUTAGE_NOTICE_DATE;
+  }
   dismissOutageNotice(): void {
     this.showOutageNoticeModal.set(false);
-    try { localStorage.setItem(this.OUTAGE_NOTICE_KEY, '1'); } catch {}
+    if (this.outageReshowTimer) clearTimeout(this.outageReshowTimer);
+    this.outageReshowTimer = setTimeout(() => {
+      if (this.isOutageNoticeDay()) {
+        this.showOutageNoticeModal.set(true);
+      }
+    }, 50 * 60 * 1000);
   }
   public ipWarningExiting = signal(false);
 
