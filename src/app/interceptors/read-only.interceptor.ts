@@ -13,8 +13,15 @@ import { ReadOnlyContextService } from '../services/read-only-context.service';
  * usar POST para autenticación o subida de avatares — filtramos por path de Supabase REST.
  */
 export const readOnlyInterceptor: HttpInterceptorFn = (req, next) => {
-  const readOnlyCtx = inject(ReadOnlyContextService);
-  const messageService = inject(MessageService, { optional: true });
+  // En kiosk no hay usuario logueado ni contexto de permisos. Además, inyectar
+  // ReadOnlyContextService dispara una cadena (PermissionsService → DashboardStore
+  // → EmployeesStore/BranchesStore/DepartmentsStore/SchedulesStore) cuyos onInit
+  // disparan http.get, que vuelve a entrar a este interceptor mientras todavía
+  // se está construyendo → NG0200 (DI circular). Saltar el interceptor en kiosk
+  // rompe el ciclo.
+  const isKioskPath = typeof window !== 'undefined' &&
+    /\/timeclock-kiosk(-mobile)?(\/|$|\?)/.test(window.location.pathname + window.location.search);
+  if (isKioskPath) return next(req);
 
   const method = req.method.toUpperCase();
   const isMutation = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
@@ -22,7 +29,14 @@ export const readOnlyInterceptor: HttpInterceptorFn = (req, next) => {
   // Solo nos interesan mutaciones contra la REST API de Supabase
   const isSupabaseRest = /\/rest\/v1\//.test(req.url);
 
-  if (isMutation && isSupabaseRest && readOnlyCtx.isReadOnly()) {
+  // Diferir la inyección al único caso que la necesita evita arrastrar la cadena
+  // de permisos en cada GET y reduce la superficie de ciclos DI.
+  if (!isMutation || !isSupabaseRest) return next(req);
+
+  const readOnlyCtx = inject(ReadOnlyContextService);
+  const messageService = inject(MessageService, { optional: true });
+
+  if (readOnlyCtx.isReadOnly()) {
     messageService?.add({
       severity: 'warn',
       summary: 'Solo lectura',
