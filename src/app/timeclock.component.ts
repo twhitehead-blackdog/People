@@ -129,14 +129,10 @@ interface TimeclockInfoData {
     DpInstallHelpModalComponent,
     AuthenticatorEnrollmentComponent,
     KioskExtrasComponent,
-    KioskScreensaverComponent,
-    TeamPulseComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
     <pt-kiosk-extras />
-    <pt-kiosk-screensaver />
-    <pt-team-pulse />
 
     <!-- ── Pending punches banner ─────────────────────────────────────
          Aparece automáticamente si quedaron marcaciones de emergencia sin
