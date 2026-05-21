@@ -4,7 +4,6 @@ import { AuthService } from '@auth0/auth0-angular';
 import { catchError, filter, Observable, of, switchMap, take, tap, throwError } from 'rxjs';
 import { ApiUrlService } from '../services/api-url.service';
 import { DiagnosticService } from '../services/diagnostic.service';
-import { AuditStampService } from '../services/audit-stamp.service';
 import { getEnv } from '../utils/env.utils';
 
 // Detectar si estamos en desarrollo (localhost)
@@ -180,29 +179,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       }
     }
 
-    // Audit stamp: para writes a employee_schedules añadir last_modified_by
-    let finalReq = req;
-    try {
-      const isWrite = ['POST','PATCH','PUT'].includes(req.method);
-      const isAuditedTable = /\/rest\/v1\/employee_schedules(\?|$)/.test(req.url);
-      if (isWrite && isAuditedTable) {
-        const stamp = inject(AuditStampService);
-        const uid = stamp.getId();
-        if (uid && req.body && typeof req.body === 'object') {
-          if (Array.isArray(req.body)) {
-            finalReq = req.clone({
-              body: req.body.map((row: any) => ({ ...row, last_modified_by: uid })),
-            });
-          } else {
-            finalReq = req.clone({
-              body: { ...(req.body as any), last_modified_by: uid },
-            });
-          }
-        }
-      }
-    } catch {}
-
-    const request = finalReq.clone({
+    const request = req.clone({
       headers,
     });
     return next(request).pipe(
