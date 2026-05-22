@@ -77,6 +77,8 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/work_permits',
   '/rest/v1/schedule_change_requests',
   '/rest/v1/schedule_lock_settings',
+  '/rest/v1/kiosk_versus_matches',
+  '/rest/v1/kiosk_versus_players',
 ]);
 // Prefijos que no se pueden resolver con Set (rutas parciales)
 const SERVICE_ROLE_PREFIXES = ['/rest/v1/rpc/', '/storage/v1/object/'];

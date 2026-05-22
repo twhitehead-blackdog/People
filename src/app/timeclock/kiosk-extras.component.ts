@@ -14,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import * as OTPAuth from 'otpauth';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { KioskVersusComponent } from './kiosk-versus.component';
 
 interface QuizQuestion {
   id: string;
@@ -44,7 +45,7 @@ interface LeaderboardRow {
 @Component({
   selector: 'pt-kiosk-extras',
   standalone: true,
-  imports: [CommonModule, Button, Dialog],
+  imports: [CommonModule, Button, Dialog, KioskVersusComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Botón CTA esquina superior derecha — pill animado con texto y pulse -->
@@ -90,6 +91,13 @@ interface LeaderboardRow {
             <span class="kx-tab__badge">¡AQUÍ!</span>
           }
         </button>
+        <button class="kx-tab kx-tab--versus" [class.active]="tab() === 'versus'" (click)="tab.set('versus')">
+          <i class="pi pi-bolt"></i>
+          <span>1v1 Versus</span>
+          @if (tab() !== 'versus') {
+            <span class="kx-tab__badge kx-tab__badge--new">NUEVO</span>
+          }
+        </button>
         <button class="kx-tab" [class.active]="tab() === 'leaderboard'" (click)="tab.set('leaderboard')">
           <i class="pi pi-trophy"></i>
           <span>Ranking</span>
@@ -99,6 +107,13 @@ interface LeaderboardRow {
           <span>Recientes</span>
         </button>
       </div>
+
+      <!-- ====== VERSUS ====== -->
+      @if (tab() === 'versus') {
+        <div class="kx-tab-body">
+          <pt-kiosk-versus [activeRoute]="tab() === 'versus' && visible()" />
+        </div>
+      }
 
       <!-- ====== LEADERBOARD ====== -->
       @if (tab() === 'leaderboard') {
@@ -459,6 +474,12 @@ interface LeaderboardRow {
       0%, 100% { transform: rotate(-8deg) scale(1); }
       50% { transform: rotate(8deg) scale(1.1); }
     }
+    .kx-tab__badge--new { background: #8b5cf6; box-shadow: 0 2px 6px rgba(139, 92, 246, 0.5); }
+    .kx-tab--versus:not(.active) {
+      color: #c4b5fd;
+      background: rgba(139, 92, 246, 0.06);
+    }
+    .kx-tab--versus.active { color: #ddd6fe; background: rgba(139, 92, 246, 0.18); }
 
     .kx-tab-body { max-height: 60vh; overflow-y: auto; padding: 0 4px; }
 
@@ -779,7 +800,7 @@ export class KioskExtrasComponent implements OnInit {
 
   /** CTA siempre visible — el bloqueo histórico de dropdowns era ciclo DI, no este botón */
   public showCTA = computed(() => true);
-  public tab = signal<'leaderboard' | 'quiz' | 'recent'>('leaderboard');
+  public tab = signal<'leaderboard' | 'quiz' | 'recent' | 'versus'>('leaderboard');
   public loading = signal(false);
 
   // Leaderboard
