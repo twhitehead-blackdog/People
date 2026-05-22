@@ -124,6 +124,8 @@ export async function uploadCompensatory(
           severity: 'error',
           summary: 'Error al Subir Archivo',
           detail: errorDetail,
+          life: 12000,
+          sticky: true,
         });
         setSubmitting(false);
         return;
@@ -222,10 +224,23 @@ export async function uploadCompensatory(
     setSubmitting(false);
   } catch (error: any) {
     console.error('Error uploading compensatory:', error);
+    // Mostrar el motivo real del error en vez de "ocurrió un error inesperado"
+    // Supabase/PostgREST devuelve detalles en error.error.message o error.error.hint
+    // Triggers PL/pgSQL devuelven RAISE EXCEPTION text en error.error.message
+    const realDetail =
+      error?.error?.message ||
+      error?.error?.error_description ||
+      error?.error?.hint ||
+      error?.error?.details ||
+      error?.message ||
+      'No se pudo guardar la solicitud. Revisa los datos e inténtalo de nuevo.';
+    const statusInfo = error?.status ? ` (HTTP ${error.status})` : '';
     messageService.add({
       severity: 'error',
-      summary: 'Error',
-      detail: 'Ocurrió un error inesperado. Inténtalo nuevamente.',
+      summary: 'No se pudo enviar la solicitud',
+      detail: `${realDetail}${statusInfo}`,
+      life: 12000,
+      sticky: true,
     });
     setSubmitting(false);
   }
