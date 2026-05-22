@@ -5,9 +5,11 @@ import {
   Component,
   computed,
   effect,
+  EventEmitter,
   inject,
   Input,
   OnDestroy,
+  Output,
   signal,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -437,6 +439,22 @@ export class KioskVersusComponent implements OnDestroy {
     this.active.set(!!v);
     if (!prev && v && this.employees().length === 0) this.loadEmployees();
   }
+
+  /** Código entrante desde un challenge banner — autopobla pick-join */
+  @Input() set incomingCode(code: string) {
+    if (!code) return;
+    // Si ya estoy en una partida activa, ignorar (el usuario debe salir primero)
+    if (this.match() && this.match()!.status !== 'finished' && this.match()!.status !== 'abandoned') return;
+    this.joinCode.set(code.toUpperCase());
+    this.selectedEmpId.set(null);
+    this.error.set('');
+    this.screen.set('pick-join');
+    // Cargar empleados si aún no
+    if (this.employees().length === 0) this.loadEmployees();
+    this.consumedIncomingCode.emit();
+  }
+  @Output() consumedIncomingCode = new EventEmitter<void>();
+
   private lastSeenTiebreakIdx = 0;
 
   // === Sub-screen state ===

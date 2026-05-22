@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   OnInit,
   signal,
@@ -14,7 +15,17 @@ import { firstValueFrom } from 'rxjs';
 import * as OTPAuth from 'otpauth';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { SupabaseRealtimeService } from '../services/supabase-realtime.service';
 import { KioskVersusComponent } from './kiosk-versus.component';
+
+interface IncomingChallenge {
+  matchId: string;
+  code: string;
+  hostName: string;
+  branchName: string;
+  hostEmployeeId: string;
+  createdAt: string;
+}
 
 interface QuizQuestion {
   id: string;
@@ -66,6 +77,29 @@ interface LeaderboardRow {
       </button>
     }
 
+    <!-- Challenge broadcast banner: alguien creó una sala en otro kiosk -->
+    @if (incomingChallenge(); as ch) {
+      <div class="kx-challenge-banner" role="alert">
+        <button class="kx-challenge-close" (click)="dismissChallenge()" title="Ignorar">
+          <i class="pi pi-times"></i>
+        </button>
+        <div class="kx-challenge-icon">⚡</div>
+        <div class="kx-challenge-text">
+          <div class="kx-challenge-title">¡Reto 1v1!</div>
+          <div class="kx-challenge-detail">
+            <strong>{{ ch.hostName }}</strong>
+            @if (ch.branchName) { <span> de <strong>{{ ch.branchName }}</strong></span> }
+            te está retando
+          </div>
+          <div class="kx-challenge-code">Sala {{ ch.code }}</div>
+        </div>
+        <button class="kx-challenge-accept" (click)="acceptChallenge(ch)">
+          <i class="pi pi-check-circle"></i>
+          <span>Aceptar</span>
+        </button>
+      </div>
+    }
+
     <p-dialog
       header="🏆 Black Dog Kiosk"
       [(visible)]="visible"
@@ -111,7 +145,11 @@ interface LeaderboardRow {
       <!-- ====== VERSUS ====== -->
       @if (tab() === 'versus') {
         <div class="kx-tab-body">
-          <pt-kiosk-versus [activeRoute]="tab() === 'versus' && visible()" />
+          <pt-kiosk-versus
+            [activeRoute]="tab() === 'versus' && visible()"
+            [incomingCode]="versusIncomingCode()"
+            (consumedIncomingCode)="versusIncomingCode.set('')"
+          />
         </div>
       }
 
@@ -481,6 +519,69 @@ interface LeaderboardRow {
     }
     .kx-tab--versus.active { color: #ddd6fe; background: rgba(139, 92, 246, 0.18); }
 
+    /* ====== Challenge broadcast banner ====== */
+    .kx-challenge-banner {
+      position: fixed;
+      top: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 100002;
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px 14px 20px;
+      min-width: 380px; max-width: min(560px, 94vw);
+      background: linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%);
+      border: 1px solid rgba(139, 92, 246, 0.5);
+      border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+      animation: kxChallengeIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes kxChallengeIn {
+      from { opacity: 0; transform: translate(-50%, -32px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    .kx-challenge-icon {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
+      animation: kxChallengePulse 1.2s ease-in-out infinite;
+    }
+    @keyframes kxChallengePulse {
+      0%, 100% { transform: scale(1) rotate(-6deg); }
+      50% { transform: scale(1.18) rotate(6deg); }
+    }
+    .kx-challenge-text { flex: 1; min-width: 0; }
+    .kx-challenge-title {
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #fbbf24;
+    }
+    .kx-challenge-detail {
+      font-size: 0.95rem; color: #f3f4f6; margin-top: 2px; line-height: 1.25;
+    }
+    .kx-challenge-detail strong { color: #fde68a; }
+    .kx-challenge-code {
+      margin-top: 4px; font-family: 'Orbitron', monospace; font-size: 0.75rem;
+      letter-spacing: 0.2em; color: #c4b5fd;
+    }
+    .kx-challenge-accept {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border-radius: 10px;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1f1408; font-weight: 800; font-size: 0.95rem;
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(251, 191, 36, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .kx-challenge-accept:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(251, 191, 36, 0.6); }
+    .kx-challenge-accept:active { transform: translateY(0); }
+    .kx-challenge-close {
+      position: absolute; top: 6px; right: 8px;
+      width: 24px; height: 24px;
+      background: transparent; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 12px;
+    }
+    .kx-challenge-close:hover { color: #f3f4f6; }
+    @media (max-width: 540px) {
+      .kx-challenge-banner { min-width: 0; width: calc(100vw - 24px); }
+    }
+
     .kx-tab-body { max-height: 60vh; overflow-y: auto; padding: 0 4px; }
 
     .kx-row {
@@ -795,6 +896,7 @@ export class KioskExtrasComponent implements OnInit {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private orgService = inject(OrganizationService);
+  private realtime = inject(SupabaseRealtimeService);
 
   public visible = signal(false);
 
@@ -802,6 +904,112 @@ export class KioskExtrasComponent implements OnInit {
   public showCTA = computed(() => true);
   public tab = signal<'leaderboard' | 'quiz' | 'recent' | 'versus'>('leaderboard');
   public loading = signal(false);
+
+  // === Challenge broadcast (reto entrante de otro kiosk) ===
+  public incomingChallenge = signal<IncomingChallenge | null>(null);
+  public versusIncomingCode = signal<string>('');
+  /** IDs de matches que el usuario descartó manualmente, no volver a mostrar */
+  private dismissedChallengeIds = new Set<string>();
+  /** Cache mínima de empleado/sucursal para resolver nombres del reto */
+  private branchNameCache = new Map<string, string>();
+  /** Suscripción persistente a kiosk_versus_matches para detectar retos */
+  private versusMatchesSig = this.realtime.subscribeToTable('kiosk_versus_matches');
+
+  constructor() {
+    effect(() => {
+      const batch = this.versusMatchesSig();
+      if (!batch) return;
+      for (const ev of batch.events) {
+        const rec: any = ev.record;
+        if (!rec) continue;
+        // Solo nos interesan INSERT con status='waiting' Y UPDATEs que cambien el status
+        if (ev.type === 'INSERT' && rec.status === 'waiting') {
+          // No mostrar retos viejos (más de 90s) al re-subscribirnos
+          const ageMs = Date.now() - new Date(rec.created_at).getTime();
+          if (ageMs > 90_000) continue;
+          this.maybeShowChallenge(rec).catch(() => {});
+        } else if (ev.type === 'UPDATE') {
+          const cur = this.incomingChallenge();
+          if (cur && cur.matchId === rec.id && rec.status !== 'waiting') {
+            // La sala ya no está abierta — alguien más entró o se canceló
+            this.incomingChallenge.set(null);
+          }
+        }
+      }
+    });
+  }
+
+  private async maybeShowChallenge(match: any): Promise<void> {
+    if (this.dismissedChallengeIds.has(match.id)) return;
+    // No reemplazar un reto ya visible (que el usuario decida sobre el primero)
+    if (this.incomingChallenge()) return;
+    try {
+      const hostName = await this.resolveEmployeeName(match.host_employee_id);
+      const branchName = match.host_branch_id ? await this.resolveBranchName(match.host_branch_id) : '';
+      // Re-chequear que la sala siga abierta (status pudo cambiar mientras resolvíamos)
+      if (this.incomingChallenge()) return;
+      this.incomingChallenge.set({
+        matchId: match.id,
+        code: match.code,
+        hostName: hostName || 'Compañero',
+        branchName,
+        hostEmployeeId: match.host_employee_id,
+        createdAt: match.created_at,
+      });
+      // Auto-dismiss después de 90s si nadie hace nada (la sala probablemente ya expiró)
+      setTimeout(() => {
+        const cur = this.incomingChallenge();
+        if (cur && cur.matchId === match.id) this.incomingChallenge.set(null);
+      }, 90_000);
+    } catch (e) {
+      console.error('[kiosk-extras] maybeShowChallenge error', e);
+    }
+  }
+
+  private async resolveEmployeeName(empId: string | null): Promise<string> {
+    if (!empId) return '';
+    try {
+      const url = this.apiUrl.build('rest/v1/employees', {
+        id: `eq.${empId}`, select: 'first_name,father_name', limit: 1,
+      });
+      const rows = await firstValueFrom(this.http.get<any[]>(url));
+      if (rows && rows[0]) return `${rows[0].first_name} ${rows[0].father_name}`.trim();
+    } catch {}
+    return '';
+  }
+
+  private async resolveBranchName(branchId: string | null): Promise<string> {
+    if (!branchId) return '';
+    const cached = this.branchNameCache.get(branchId);
+    if (cached !== undefined) return cached;
+    try {
+      const url = this.apiUrl.build('rest/v1/branches', {
+        id: `eq.${branchId}`, select: 'name,short_name', limit: 1,
+      });
+      const rows = await firstValueFrom(this.http.get<any[]>(url));
+      const name = rows?.[0]?.short_name || rows?.[0]?.name || '';
+      this.branchNameCache.set(branchId, name);
+      return name;
+    } catch {
+      this.branchNameCache.set(branchId, '');
+      return '';
+    }
+  }
+
+  public dismissChallenge(): void {
+    const cur = this.incomingChallenge();
+    if (cur) this.dismissedChallengeIds.add(cur.matchId);
+    this.incomingChallenge.set(null);
+  }
+
+  public acceptChallenge(ch: IncomingChallenge): void {
+    // Pre-poblar código y abrir modal en tab versus → la versus component
+    // hará pick-join automáticamente al recibir el incomingCode.
+    this.versusIncomingCode.set(ch.code);
+    this.incomingChallenge.set(null);
+    this.tab.set('versus');
+    this.visible.set(true);
+  }
 
   // Leaderboard
   public leaderboard = signal<LeaderboardRow[]>([]);
