@@ -148,6 +148,8 @@ interface LeaderboardRow {
           <pt-kiosk-versus
             [activeRoute]="tab() === 'versus' && visible()"
             [incomingCode]="versusIncomingCode()"
+            [incomingHostName]="versusIncomingHostName()"
+            [incomingBranchName]="versusIncomingBranchName()"
             (consumedIncomingCode)="versusIncomingCode.set('')"
           />
         </div>
@@ -908,6 +910,8 @@ export class KioskExtrasComponent implements OnInit {
   // === Challenge broadcast (reto entrante de otro kiosk) ===
   public incomingChallenge = signal<IncomingChallenge | null>(null);
   public versusIncomingCode = signal<string>('');
+  public versusIncomingHostName = signal<string>('');
+  public versusIncomingBranchName = signal<string>('');
   /** IDs de matches que el usuario descartó manualmente, no volver a mostrar */
   private dismissedChallengeIds = new Set<string>();
   /** Cache mínima de empleado/sucursal para resolver nombres del reto */
@@ -1003,8 +1007,10 @@ export class KioskExtrasComponent implements OnInit {
   }
 
   public acceptChallenge(ch: IncomingChallenge): void {
-    // Pre-poblar código y abrir modal en tab versus → la versus component
-    // hará pick-join automáticamente al recibir el incomingCode.
+    // Pasar info del reto al componente versus para que muestre la pantalla
+    // accept-challenge con lista de empleados (1 tap = se une).
+    this.versusIncomingHostName.set(ch.hostName);
+    this.versusIncomingBranchName.set(ch.branchName);
     this.versusIncomingCode.set(ch.code);
     this.incomingChallenge.set(null);
     this.tab.set('versus');

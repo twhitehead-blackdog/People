@@ -30,6 +30,7 @@ type Screen =
   | 'pick-create'
   | 'lobby'
   | 'pick-join'
+  | 'accept-challenge'
   | 'playing'
   | 'tiebreak'
   | 'results';
@@ -143,6 +144,41 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O/1/I/L
                 <span>Esperando rival…</span>
               </div>
               <button class="kv-btn kv-btn--ghost" (click)="cancelLobby()">Cancelar</button>
+            </div>
+          }
+
+          @case ('accept-challenge') {
+            <div class="kv-accept">
+              <button class="kv-back" (click)="screen.set('menu'); error.set('')">← Volver</button>
+              <div class="kv-accept-header">
+                <div class="kv-accept-emoji">⚡</div>
+                <div class="kv-accept-title">¡Acepta el reto!</div>
+                <div class="kv-accept-sub">
+                  <strong>{{ incomingHostName || 'Un compañero' }}</strong>
+                  @if (incomingBranchName) { <span> de <strong>{{ incomingBranchName }}</strong></span> }
+                  te está retando
+                </div>
+                <div class="kv-accept-code">Sala {{ joinCode() }}</div>
+              </div>
+              <div class="kv-accept-pick">Toca tu nombre para entrar:</div>
+              @if (error()) { <div class="kv-error">{{ error() }}</div> }
+              <div class="kv-emp-list">
+                @if (employees().length === 0) {
+                  <div class="kv-empty">Cargando empleados…</div>
+                }
+                @for (e of employees(); track e.id) {
+                  <button
+                    type="button"
+                    class="kv-emp-btn"
+                    [disabled]="busy()"
+                    (click)="acceptAndJoin(e.id)"
+                  >
+                    <span class="kv-emp-avatar">{{ (e.first_name?.[0] ?? '?').toUpperCase() }}</span>
+                    <span class="kv-emp-name">{{ e.first_name }} {{ e.father_name }}</span>
+                    <i class="pi pi-chevron-right kv-emp-arrow"></i>
+                  </button>
+                }
+              </div>
             </div>
           }
 
@@ -424,6 +460,67 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O/1/I/L
     .kv-result-score small { font-size: 1rem; color: #9ca3af; font-weight: 500; }
     .kv-vs { font-size: 1.2rem; font-weight: 800; color: #f59e0b; }
     .kv-result-actions { display: flex; gap: 0.75rem; }
+
+    /* ACCEPT-CHALLENGE */
+    .kv-accept { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.25rem; }
+    .kv-accept-header {
+      text-align: center;
+      padding: 0.9rem 1rem;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(168, 85, 247, 0.1));
+      border: 1px solid rgba(139, 92, 246, 0.45);
+      border-radius: 0.75rem;
+    }
+    .kv-accept-emoji {
+      font-size: 2.4rem;
+      filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.7));
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .kv-accept-title {
+      font-size: 1.2rem; font-weight: 800; color: #fbbf24;
+      margin-top: 0.25rem;
+    }
+    .kv-accept-sub {
+      color: #e5e7eb; font-size: 0.95rem; margin-top: 0.3rem; line-height: 1.3;
+    }
+    .kv-accept-sub strong { color: #fde68a; }
+    .kv-accept-code {
+      margin-top: 0.4rem;
+      font-family: 'Orbitron', monospace; font-size: 0.8rem;
+      letter-spacing: 0.25em; color: #c4b5fd;
+    }
+    .kv-accept-pick {
+      font-size: 0.85rem; color: #9ca3af; font-weight: 600;
+      padding: 0.2rem 0.1rem;
+    }
+    .kv-emp-list {
+      display: flex; flex-direction: column; gap: 0.4rem;
+      max-height: 360px; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .kv-emp-btn {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 0.65rem 0.85rem; border-radius: 0.6rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #f3f4f6; text-align: left; cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .kv-emp-btn:hover:not(:disabled) {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.5);
+      transform: translateX(2px);
+    }
+    .kv-emp-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .kv-emp-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1f1408; font-weight: 800; font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .kv-emp-name { flex: 1; font-weight: 600; }
+    .kv-emp-arrow { color: #9ca3af; font-size: 0.8rem; }
+    .kv-empty { text-align: center; color: #9ca3af; padding: 1rem; font-style: italic; }
   `],
 })
 export class KioskVersusComponent implements OnDestroy {
@@ -440,7 +537,7 @@ export class KioskVersusComponent implements OnDestroy {
     if (!prev && v && this.employees().length === 0) this.loadEmployees();
   }
 
-  /** Código entrante desde un challenge banner — autopobla pick-join */
+  /** Código entrante desde un challenge banner — salta directo a accept-challenge */
   @Input() set incomingCode(code: string) {
     if (!code) return;
     // Si ya estoy en una partida activa, ignorar (el usuario debe salir primero)
@@ -448,11 +545,13 @@ export class KioskVersusComponent implements OnDestroy {
     this.joinCode.set(code.toUpperCase());
     this.selectedEmpId.set(null);
     this.error.set('');
-    this.screen.set('pick-join');
-    // Cargar empleados si aún no
+    this.screen.set('accept-challenge');
     if (this.employees().length === 0) this.loadEmployees();
     this.consumedIncomingCode.emit();
   }
+  /** Info del retador para mostrar en la pantalla accept-challenge */
+  @Input() incomingHostName = '';
+  @Input() incomingBranchName = '';
   @Output() consumedIncomingCode = new EventEmitter<void>();
 
   private lastSeenTiebreakIdx = 0;
@@ -806,6 +905,13 @@ export class KioskVersusComponent implements OnDestroy {
   }
 
   // ============ Join room ============
+
+  /** Camino rápido desde el banner: 1 tap en el nombre = se une */
+  public async acceptAndJoin(empId: string): Promise<void> {
+    if (this.busy()) return;
+    this.selectedEmpId.set(empId);
+    await this.joinRoom();
+  }
 
   public async joinRoom(): Promise<void> {
     const empId = this.selectedEmpId();
