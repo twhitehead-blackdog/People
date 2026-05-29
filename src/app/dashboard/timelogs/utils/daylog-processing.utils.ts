@@ -827,6 +827,7 @@ export function buildBaseDayLogs(input: BaseDayLogInput): DayLog[] {
         invalid_ip: ((x as any).invalid_ip ?? false) || ipMissing,
         source: (x as any).source ?? null,
         ip: (x as any).ip ?? null,
+        auth_method: (x as any).auth_method ?? null,
       },
     };
   }

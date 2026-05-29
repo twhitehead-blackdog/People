@@ -3908,16 +3908,35 @@ body > .p-select-panel {
   background: rgba(251, 191, 36, 0.5) !important;
 }
 
-/* Soporte FAB — link al portal de tickets, visible en cualquier modo */
-.soporte-fab {
+/* FAB group top-right — agrupa Soporte, Usar PIN, etc.
+   En kiosk: top-right fixed. En modo no-kiosk: lo bajamos un poco para que
+   no tape el header global de la app (que ya tiene su barra superior). */
+.tc-fab-group {
   position: fixed;
   top: 16px;
   right: 16px;
   z-index: 90;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+/* Fuera del kiosk hay un navbar del dashboard arriba (64px desktop, 52px mobile).
+   Posicionamos los FABs justo debajo del navbar para que no lo tapen. */
+.tc-fab-group--non-kiosk {
+  top: 76px;          /* 64px navbar + 12px de gap */
+  right: 16px;
+}
+
+/* Soporte FAB — un único estilo unificado para todos los botones del grupo
+   (Soporte, Usar PIN, etc.). Mismo tamaño, mismo color, mismo padding. */
+.soporte-fab {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 8px 14px;
+  height: 36px;
+  min-width: 110px;
   background: rgba(251, 191, 36, 0.12);
   border: 1px solid rgba(251, 191, 36, 0.45);
   border-radius: 999px;
@@ -3928,6 +3947,10 @@ body > .p-select-panel {
   letter-spacing: 0.3px;
   backdrop-filter: blur(6px);
   transition: background-color 0.15s, transform 0.15s;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 .soporte-fab:hover {
   background: rgba(251, 191, 36, 0.22);
@@ -3937,42 +3960,268 @@ body > .p-select-panel {
   font-size: 14px;
 }
 @media (max-width: 600px) {
-  .soporte-fab {
+  .tc-fab-group {
     top: 10px;
     right: 10px;
+    gap: 6px;
+  }
+  .tc-fab-group--non-kiosk {
+    top: 62px;        /* 52px navbar mobile + 10px gap */
+  }
+  .soporte-fab {
     padding: 6px 10px;
     font-size: 12px;
+    height: 32px;
+    min-width: 92px;
   }
 }
 
-/* Face-first layout: card PIN + face panel lado a lado en desktop */
+/* Face-first layout: card PIN + face panel lado a lado en desktop.
+   El wrapper NO tiene fondo/borde propio — son dos cajas hermanas. */
 .tc-row-wide {
   width: 100%;
-  align-items: stretch !important;
   gap: 1rem;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 @media (min-width: 900px) {
   .tc-row-wide {
     flex-direction: row !important;
     justify-content: center;
-    max-width: 1200px;
+    align-items: stretch !important;     /* ambos cards estiran al mismo alto */
+    max-width: 980px;
     margin: 0 auto;
   }
   .tc-row-wide .timeclock-card {
     max-width: 460px !important;
     flex: 0 0 460px;
+    height: 520px;                       /* mismo alto que panel cámara */
+    display: flex;
+    flex-direction: column;
+  }
+  /* El p-card interno debe estirarse para llenar el alto del wrapper */
+  .tc-row-wide .timeclock-card ::ng-deep > .p-card,
+  .tc-row-wide .timeclock-card ::ng-deep .p-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .tc-row-wide .timeclock-card ::ng-deep .p-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .tc-row-wide .timeclock-card ::ng-deep .p-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  /* El form se centra verticalmente cuando el PIN se oculta — así no queda
+     el contenido pegado arriba con espacio vacío abajo. */
+  .tc-row-wide .timeclock-card form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .tc-face-panel {
-    flex: 1 1 auto;
-    max-width: 520px;
-    min-width: 360px;
+    flex: 0 0 460px;
+    max-width: 460px;
+    height: 520px;
+    background: #0a0a0a;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    overflow: hidden;
     display: flex;
-    align-items: stretch;
   }
-  .tc-face-panel pt-face-clock-modal {
-    display: block;
+  .tc-face-panel pt-face-clock-modal,
+  .tc-face-panel ::ng-deep .fcm-modal--inline {
+    flex: 1;
     width: 100%;
+    height: 100%;
   }
 }
+
+/* mobile / narrow: panel cámara debajo del form normal */
+.tc-face-inline { width: 100%; margin-top: 1rem; }
 .tc-face-panel { width: 100%; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Modal de confirmación — versión PRO (clean, profesional, sin emojis).
+   Sobrescribe el modal viejo con un diseño minimalista oscuro.
+   ════════════════════════════════════════════════════════════════════ */
+.confirm-modal-card--pro {
+  position: relative !important;
+  width: min(440px, 92vw) !important;
+  max-width: 440px !important;
+  padding: 2.5rem 2rem 1.5rem !important;
+  background: linear-gradient(180deg, #1f1f1f 0%, #161616 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 30px 80px -10px rgba(0, 0, 0, 0.75),
+    0 12px 30px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  text-align: center;
+  overflow: hidden;
+  animation: confirm-modal-pro-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.confirm-modal-card--pro::before,
+.confirm-modal-card--pro::after {
+  display: none !important;
+}
+.confirm-modal-card--pro.confirm-modal-exit {
+  animation: confirm-modal-pro-out 0.25s ease forwards;
+}
+@keyframes confirm-modal-pro-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes confirm-modal-pro-out {
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+/* Icono — círculo limpio con check o reloj */
+.confirm-modal-card--pro .confirm-modal-icon-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+  position: relative;
+}
+.confirm-modal-card--pro .confirm-modal-icon-wrap::after {
+  display: none !important;
+}
+.confirm-modal-card--pro .confirm-modal-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 32px;
+  position: relative;
+}
+.confirm-modal-card--pro .confirm-modal-icon--success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.16) 0%, rgba(22, 163, 74, 0.08) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  color: #22c55e;
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.18);
+}
+.confirm-modal-card--pro .confirm-modal-icon--success i {
+  font-size: 32px;
+  color: #22c55e;
+}
+.confirm-modal-card--pro .confirm-modal-icon--late {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.16) 0%, rgba(234, 88, 12, 0.08) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.32);
+  color: #fb923c;
+  box-shadow: 0 0 24px rgba(249, 115, 22, 0.18);
+}
+.confirm-modal-card--pro .confirm-modal-icon--late i {
+  font-size: 30px;
+  color: #fb923c;
+}
+
+/* Nombre del empleado */
+.confirm-modal-card--pro .confirm-modal-employee {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.2px;
+  text-shadow: none !important;
+}
+
+/* Tipo de marcación */
+.confirm-modal-card--pro .confirm-modal-title {
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  color: #9ca3af !important;
+  margin-bottom: 0.5rem !important;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  text-shadow: none !important;
+  background: none !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  animation: none !important;
+}
+
+/* Hora — destacada */
+.confirm-modal-card--pro .confirm-modal-time {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  color: #fbbf24 !important;
+  margin-bottom: 1rem !important;
+  letter-spacing: 1.5px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 12px rgba(251, 191, 36, 0.2);
+  background: none !important;
+  -webkit-text-fill-color: #fbbf24 !important;
+  animation: none !important;
+}
+
+/* Cajas de alerta (late / lunch overtime) */
+.confirm-modal-card--pro .confirm-modal-late-box {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(234, 88, 12, 0.04) 100%) !important;
+  border: 1px solid rgba(249, 115, 22, 0.25) !important;
+  border-radius: 12px !important;
+  padding: 0.85rem 1rem !important;
+  margin: 0.75rem 0 !important;
+  text-align: left;
+}
+.confirm-modal-card--pro .confirm-modal-late-box.very-late {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(220, 38, 38, 0.05) 100%) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+.confirm-modal-card--pro .confirm-modal-late-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fb923c;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.confirm-modal-card--pro .confirm-modal-late-header i {
+  font-size: 0.85rem;
+}
+.confirm-modal-card--pro .confirm-modal-late-detail {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+/* Progress bar */
+.confirm-modal-card--pro .confirm-modal-progress-track {
+  margin-top: 1.25rem;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.confirm-modal-card--pro .confirm-modal-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 2px;
+  width: 100%;
+  animation: confirm-modal-pro-progress 6s linear forwards;
+  transform-origin: left;
+}
+.confirm-modal-card--pro .confirm-modal-progress-bar.is-late {
+  background: linear-gradient(90deg, #fb923c 0%, #ea580c 100%);
+}
+@keyframes confirm-modal-pro-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* Overlay */
+.confirm-modal-overlay:has(.confirm-modal-card--pro) {
+  background: rgba(0, 0, 0, 0.72) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}

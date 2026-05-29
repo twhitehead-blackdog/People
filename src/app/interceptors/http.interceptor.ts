@@ -122,7 +122,14 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const method = req.method;
     const url = req.url.replace(apiUrl.baseUrl || '', '');
 
-    const needsServiceRoleKey = needsServiceRole(req.url);
+    // C3 fix: en kiosk anónimo NUNCA usar service-role key.
+    // Las RLS de employees/branches/companies/kiosk_* tienen policies que
+    // permiten anon SELECT. Las mutaciones críticas (process_timelog,
+    // face-clock-in, etc.) van por RPCs/edge functions con sus propios checks.
+    // Exponer service-role en el bundle del kiosk era un agujero de seguridad:
+    // cualquiera con acceso físico a la PC podía extraer la key y bypassear
+    // toda la RLS de la base de datos.
+    const needsServiceRoleKey = isKioskPath ? false : needsServiceRole(req.url);
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave

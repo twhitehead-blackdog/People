@@ -715,6 +715,18 @@ import {
                     inputId="use_timelog"
                   />
                 </div>
+                <div class="input-container">
+                  <label for="use_face">
+                    Reconocimiento facial
+                    <i class="pi pi-info-circle text-amber-400 text-xs ml-1"
+                       pTooltip="Habilita al empleado para marcar con su rostro. Luego el gerente debe enrolarlo desde la pestaña 'Rostro' del perfil."></i>
+                  </label>
+                  <p-checkbox
+                    [binary]="true"
+                    formControlName="use_face"
+                    inputId="use_face"
+                  />
+                </div>
                 }
               </div>
             </div>
@@ -1062,6 +1074,7 @@ export class EmployeeFormComponent implements OnInit {
       validators: [],
     }),
     use_timelog: new FormControl(false, { nonNullable: true }),
+    use_face: new FormControl(false, { nonNullable: true }),
     total_lunch_exceeded_minutes: new FormControl<number | undefined>(
       undefined,
       {

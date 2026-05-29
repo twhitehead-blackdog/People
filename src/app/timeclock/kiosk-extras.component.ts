@@ -6,6 +6,7 @@ import {
   computed,
   effect,
   inject,
+  OnDestroy,
   OnInit,
   signal,
 } from '@angular/core';
@@ -59,7 +60,7 @@ interface LeaderboardRow {
   imports: [CommonModule, Button, Dialog, KioskVersusComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Botón CTA esquina superior derecha — pill animado con texto y pulse -->
+    <!-- Botón CTA esquina superior derecha — pill simple, mismo estilo que Soporte -->
     @if (showCTA()) {
       <button
         type="button"
@@ -67,13 +68,8 @@ interface LeaderboardRow {
         (click)="open()"
         title="Quiz de mascotas y ranking"
       >
-        <span class="kiosk-extras-cta__pulse"></span>
-        <span class="kiosk-extras-cta__icon">🐕</span>
-        <span class="kiosk-extras-cta__text">
-          <span class="kiosk-extras-cta__title">Quiz Mascotas</span>
-          <span class="kiosk-extras-cta__sub">¡Juega y ranking!</span>
-        </span>
-        <i class="pi pi-chevron-right kiosk-extras-cta__arrow"></i>
+        <i class="pi pi-question-circle kiosk-extras-cta__icon"></i>
+        <span>Quiz Mascotas</span>
       </button>
     }
 
@@ -329,103 +325,63 @@ interface LeaderboardRow {
     </p-dialog>
   `,
   styles: [`
+    /* CTA Quiz: mismo estilo que el botón de Soporte para que se vean idénticos.
+       Posicionado al lado de Soporte (right: 16px + gap por el ancho de Soporte).
+       Si el host tiene la clase .kx-non-kiosk (estamos en /timeclock sin kiosk),
+       bajamos el botón para que no lo tape el navbar del dashboard. */
+    :host(.kx-non-kiosk) .kiosk-extras-cta {
+      top: 76px;             /* 64px navbar + 12px gap */
+    }
+    @media (max-width: 600px) {
+      :host(.kx-non-kiosk) .kiosk-extras-cta {
+        top: 62px;           /* 52px navbar mobile + 10px gap */
+      }
+    }
     .kiosk-extras-cta {
       position: fixed;
-      top: 76px;
-      right: 16px;
-      z-index: 50;
+      top: 16px;
+      right: 142px;          /* deja espacio para el botón Soporte (110px min + 16px right + gap) */
+      z-index: 90;
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 16px 10px 12px;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      height: 36px;
+      min-width: 110px;
+      box-sizing: border-box;
       border-radius: 999px;
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%);
-      color: #111;
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
       cursor: pointer;
-      backdrop-filter: blur(8px);
-      box-shadow:
-        0 10px 28px rgba(251, 191, 36, 0.45),
-        0 0 0 4px rgba(251, 191, 36, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(6px);
+      transition: background-color 0.15s, transform 0.15s;
       font-family: inherit;
-      animation: kx-cta-bounce 2.5s ease-in-out infinite;
-      overflow: hidden;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
     }
     .kiosk-extras-cta:hover {
-      transform: translateY(-2px) scale(1.04);
-      box-shadow:
-        0 16px 36px rgba(251, 191, 36, 0.6),
-        0 0 0 6px rgba(251, 191, 36, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
-      animation: none;
+      background: rgba(251, 191, 36, 0.22);
+      transform: translateY(-1px);
     }
-    .kiosk-extras-cta:active { transform: translateY(0) scale(0.98); }
-
     .kiosk-extras-cta__icon {
-      font-size: 22px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-      transition: transform 0.3s;
-    }
-    .kiosk-extras-cta:hover .kiosk-extras-cta__icon {
-      transform: rotate(-10deg) scale(1.15);
-    }
-
-    .kiosk-extras-cta__text {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      line-height: 1.1;
-      text-align: left;
-    }
-    .kiosk-extras-cta__title {
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.3px;
-      color: #111;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-    }
-    .kiosk-extras-cta__sub {
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(17, 17, 17, 0.7);
-      margin-top: 1px;
-    }
-    .kiosk-extras-cta__arrow {
-      font-size: 12px;
-      color: #111;
-      opacity: 0.8;
-      transition: transform 0.2s;
-    }
-    .kiosk-extras-cta:hover .kiosk-extras-cta__arrow {
-      transform: translateX(3px);
-      opacity: 1;
-    }
-
-    /* Pulse ring de fondo para llamar la atención */
-    .kiosk-extras-cta__pulse {
-      position: absolute;
-      inset: 0;
-      border-radius: 999px;
-      animation: kx-cta-pulse 2.5s ease-out infinite;
-      pointer-events: none;
-    }
-    @keyframes kx-cta-pulse {
-      0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5); }
-      80%, 100% { box-shadow: 0 0 0 14px rgba(251, 191, 36, 0); }
-    }
-    @keyframes kx-cta-bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px); }
+      font-size: 14px;
+      line-height: 1;
     }
 
     /* Mobile: compactar texto pero mantener visible */
-    @media (max-width: 480px) {
-      .kiosk-extras-cta { padding: 9px 12px 9px 10px; }
-      .kiosk-extras-cta__icon { font-size: 18px; }
-      .kiosk-extras-cta__title { font-size: 11px; }
-      .kiosk-extras-cta__sub { font-size: 9px; }
+    @media (max-width: 600px) {
+      .kiosk-extras-cta {
+        top: 10px;
+        right: 112px;          /* ajustado para Soporte mobile (92px + 10 + 10) */
+        padding: 6px 10px;
+        height: 32px;
+        min-width: 92px;
+        font-size: 12px;
+      }
     }
 
     /* Banner CTA superior */
@@ -894,7 +850,7 @@ interface LeaderboardRow {
     }
   `],
 })
-export class KioskExtrasComponent implements OnInit {
+export class KioskExtrasComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private orgService = inject(OrganizationService);
@@ -961,7 +917,9 @@ export class KioskExtrasComponent implements OnInit {
         createdAt: match.created_at,
       });
       // Auto-dismiss después de 90s si nadie hace nada (la sala probablemente ya expiró)
-      setTimeout(() => {
+      if (this.challengeDismissTimer) clearTimeout(this.challengeDismissTimer);
+      this.challengeDismissTimer = setTimeout(() => {
+        this.challengeDismissTimer = null;
         const cur = this.incomingChallenge();
         if (cur && cur.matchId === match.id) this.incomingChallenge.set(null);
       }, 90_000);
@@ -1058,6 +1016,7 @@ export class KioskExtrasComponent implements OnInit {
   }
   public timeLeft = signal(10);
   private timerHandle: any = null;
+  private challengeDismissTimer: any = null;
 
   private startTimer(): void {
     this.stopTimer();
@@ -1321,6 +1280,10 @@ export class KioskExtrasComponent implements OnInit {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    if (this.challengeDismissTimer) {
+      clearTimeout(this.challengeDismissTimer);
+      this.challengeDismissTimer = null;
+    }
   }
 
   public formatDuration(): string {

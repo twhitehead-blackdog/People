@@ -48,6 +48,7 @@ export type Employee = {
   use_timelog?: boolean;
   debts?: PayrollDebt[];
   has_portal_access?: boolean;
+  use_face?: boolean;
   account_approved?: boolean;
   total_lunch_exceeded_minutes?: number;
   frontend_permissions_override?: string | Record<string, unknown>;

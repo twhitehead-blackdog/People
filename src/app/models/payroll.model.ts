@@ -1,11 +1,10 @@
 import type { Branch, Company } from './company.model';
 import type { Employee } from './employee.model';
 
-export type Creditor = {
-  id: string;
-  name: string;
-  created_at?: Date;
-};
+// Creditor se movió a employee-debt.model.ts (rediseño 2026-05-29).
+// El nuevo tipo es superset del antiguo (id + name + más columnas).
+// Re-exportar para mantener compatibilidad con código viejo.
+export type { Creditor } from './employee-debt.model';
 
 export type Bank = {
   id: string;

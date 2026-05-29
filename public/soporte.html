@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Soporte · Black Dog</title>
+<link rel="icon" href="/favicon.png" />
+<link rel="stylesheet" href="https://unpkg.com/primeicons@7.0.0/primeicons.css" />
+<style>
+  :root {
+    --bg:#08070a; --surface:#141318; --surface-2:#1c1b22; --border:#2a2830;
+    --text:#e8e6ed; --muted:#9a98a6; --soft:#6b6976; --accent:#fbbf24; --accent-2:#fcd34d;
+    --error:#f87171; --ok:#34d399; --warn:#fbbf24; --blue:#60a5fa;
+    --it:#60a5fa; --ops:#34d399; --acc:#fbbf24; --hr:#a78bfa;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh; }
+
+  /* Ambient gradient orbs en el background */
+  body::before, body::after {
+    content:""; position:fixed; pointer-events:none; z-index:0;
+    border-radius:50%; filter:blur(120px); opacity:.35;
+  }
+  body::before { width:600px; height:600px; top:-200px; left:-150px; background:radial-gradient(circle, #f59e0b22, transparent 70%); }
+  body::after  { width:520px; height:520px; bottom:-180px; right:-120px; background:radial-gradient(circle, #6366f122, transparent 70%); }
+
+  .app { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HERO ───────────────────────────────────────────────────── */
+  .hero {
+    background:
+      linear-gradient(135deg, rgba(251,191,36,0.10) 0%, transparent 55%),
+      linear-gradient(180deg, #1a1820 0%, #0e0d12 100%);
+    border-bottom:1px solid var(--border);
+    padding:28px 32px 30px;
+  }
+  .hero-inner { max-width:1280px; margin:0 auto; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .hero-logo { display:flex; align-items:center; gap:14px; }
+  .hero-logo img { height:46px; }
+  .hero-title { font-size:1.45rem; font-weight:700; margin:0; letter-spacing:.2px; }
+  .hero-subtitle { font-size:.85rem; color:var(--muted); margin-top:2px; }
+  .hero-spacer { flex:1; }
+  .session-chip {
+    display:inline-flex; align-items:center; gap:10px;
+    padding:8px 14px; background:rgba(28,27,34,0.7); border:1px solid var(--border);
+    border-radius:12px; font-size:.85rem; color:var(--muted); backdrop-filter:blur(8px);
+  }
+  .session-chip strong { color:var(--text); }
+  .session-chip .dot { color:#4b5563; }
+  .session-chip button {
+    background:transparent; border:0; color:var(--muted); cursor:pointer;
+    padding:0 0 0 8px; font-size:.95rem; width:auto;
+  }
+  .session-chip button:hover { color:var(--error); }
+
+  /* ── LAYOUT GRID ─────────────────────────────────────────────── */
+  .layout {
+    flex:1; max-width:1280px; margin:0 auto; width:100%;
+    padding:26px 32px 40px;
+    display:grid; gap:22px;
+  }
+  .layout.cols-2 { grid-template-columns: 320px 1fr; }
+  .layout.cols-1 { grid-template-columns: 1fr; max-width:680px; }
+  @media (max-width: 900px) {
+    .layout.cols-2 { grid-template-columns: 1fr; }
+    .hero { padding:22px 18px 24px; }
+    .layout { padding:18px 16px 32px; }
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────────── */
+  .sidebar { display:flex; flex-direction:column; gap:14px; }
+  .sidebar-card {
+    background:linear-gradient(180deg, #1a1922 0%, #14131a 100%);
+    border:1px solid var(--border); border-radius:16px; padding:18px;
+  }
+  .sidebar-card.accent {
+    background:linear-gradient(135deg, rgba(251,191,36,0.10) 0%, rgba(28,27,34,0.7) 60%);
+    border-color:rgba(251,191,36,0.25);
+  }
+  .sidebar-label {
+    font-size:.7rem; font-weight:600; color:var(--soft);
+    text-transform:uppercase; letter-spacing:.7px; margin-bottom:8px;
+  }
+  .sidebar-value { font-size:1.05rem; font-weight:600; color:var(--text); line-height:1.3; }
+  .sidebar-meta { font-size:.78rem; color:var(--muted); margin-top:4px; }
+  .sidebar-icon-row { display:flex; align-items:center; gap:12px; }
+  .sidebar-icon {
+    width:42px; height:42px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(251,191,36,0.14); color:var(--accent); font-size:1.2rem;
+  }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  .stat-mini {
+    background:rgba(28,27,34,0.6); border:1px solid var(--border); border-radius:10px;
+    padding:10px 12px;
+  }
+  .stat-mini-label { font-size:.68rem; color:var(--soft); text-transform:uppercase; letter-spacing:.5px; }
+  .stat-mini-value { font-size:1.4rem; font-weight:700; color:var(--text); line-height:1.1; margin-top:2px; }
+  .stat-mini-value.open { color:var(--warn); }
+  .stat-mini-value.in_process { color:var(--blue); }
+  .stat-mini-value.resolved { color:var(--ok); }
+  .help-list { list-style:none; padding:0; margin:0; }
+  .help-list li {
+    font-size:.82rem; color:var(--muted); padding:6px 0;
+    display:flex; align-items:flex-start; gap:8px; line-height:1.4;
+  }
+  .help-list li .pi { color:var(--accent); font-size:.75rem; margin-top:3px; flex-shrink:0; }
+
+  /* ── MAIN ────────────────────────────────────────────────────── */
+  .main { display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:22px;
+  }
+  .card-lg { padding:28px; }
+  .panel-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:16px; gap:10px; flex-wrap:wrap;
+  }
+  .panel-title { font-size:1.15rem; font-weight:600; margin:0; display:flex; align-items:center; gap:10px; }
+  .panel-title .pi { color:var(--accent); }
+  .panel-subtitle { font-size:.82rem; color:var(--muted); margin:4px 0 0; }
+
+  /* Branch error card */
+  .branch-error-card {
+    background:linear-gradient(135deg, rgba(248,113,113,0.10), rgba(28,27,34,0.7));
+    border:1px solid rgba(248,113,113,0.3); border-radius:16px; padding:28px;
+    display:flex; align-items:center; gap:20px;
+  }
+  .branch-error-card .branch-icon {
+    width:64px; height:64px; flex-shrink:0; border-radius:16px;
+    background:rgba(248,113,113,0.18); color:#fca5a5;
+    display:flex; align-items:center; justify-content:center; font-size:1.8rem;
+  }
+  .branch-error-card .branch-name { font-size:1.2rem; font-weight:700; color:#fca5a5; }
+  .branch-error-card .branch-meta { font-size:.92rem; color:var(--muted); margin-top:6px; line-height:1.55; }
+
+  /* Form inputs */
+  label { display:block; font-size:.74rem; font-weight:600; color:var(--soft); margin-bottom:7px; text-transform:uppercase; letter-spacing:.6px; }
+  input, select, textarea {
+    width:100%; padding:13px 15px; background:var(--surface-2); border:1px solid var(--border); border-radius:11px;
+    color:var(--text); font-size:15px; font-family:inherit; outline:none;
+    transition:border-color .15s, background-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color:var(--accent); background-color:#252430;
+    box-shadow:0 0 0 3px rgba(251,191,36,0.10);
+  }
+  input::placeholder, textarea::placeholder { color:#6b6976; }
+  textarea { resize:vertical; min-height:110px; line-height:1.55; }
+
+  select {
+    -webkit-appearance:none; -moz-appearance:none; appearance:none;
+    background-color:var(--surface-2);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239a98a6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat !important;
+    background-position:right 16px center !important;
+    background-size:12px 8px !important;
+    padding-right:40px; cursor:pointer;
+  }
+  select:focus {
+    background-color:#252430;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23fbbf24' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+  select option { background-color:#1c1b22; color:var(--text); padding:10px; }
+  select option[value=""] { color:#6b6976; }
+
+  .field { margin-bottom:14px; }
+  .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  @media (max-width: 540px) { .row-2, .row-3 { grid-template-columns:1fr; } }
+
+  .otp-input {
+    text-align:center; letter-spacing:.65rem; font-size:1.7rem; font-weight:700;
+    padding:18px 8px; font-family:'SF Mono',Menlo,Consolas,monospace;
+  }
+
+  button {
+    width:100%; padding:14px 18px; background:var(--accent); color:#000; border:none; border-radius:11px;
+    font-size:15px; font-weight:600; cursor:pointer; transition:all .15s; font-family:inherit;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  }
+  button:hover:not(:disabled) { background:var(--accent-2); transform:translateY(-1px); }
+  button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  button.ghost:hover:not(:disabled) { background:var(--surface-2); color:var(--text); }
+  button.primary-outline { background:transparent; color:var(--accent); border:1px solid rgba(251,191,36,0.5); }
+  button.primary-outline:hover:not(:disabled) { background:rgba(251,191,36,0.08); }
+  button.lg { padding:16px 22px; font-size:16px; }
+
+  .err {
+    color:var(--error); font-size:.88rem; margin-top:10px;
+    padding:10px 12px; background:rgba(248,113,113,0.08);
+    border:1px solid rgba(248,113,113,0.2); border-radius:10px;
+  }
+  /* Acciones del solicitante (cancelar/reabrir) */
+  .owner-actions { margin-top:18px; }
+  .owner-actions-divider {
+    height:1px; background:linear-gradient(90deg, transparent, var(--border), transparent);
+    margin:0 0 14px;
+  }
+  .owner-actions-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .owner-btn {
+    width:auto; padding:9px 14px; border-radius:9px; border:1px solid;
+    background:transparent; font-size:.85rem; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px; transition:all .15s;
+  }
+  .owner-btn.danger { color:var(--error); border-color:rgba(248,113,113,0.4); }
+  .owner-btn.danger:hover:not(:disabled) { background:rgba(248,113,113,0.08); transform:none; }
+  .owner-btn.warning { color:var(--warn); border-color:rgba(245,158,11,0.4); }
+  .owner-btn.warning:hover:not(:disabled) { background:rgba(245,158,11,0.08); transform:none; }
+
+  /* Adjuntos: dropzone, previews, viewer */
+  .attach-dropzone {
+    border:2px dashed var(--border); border-radius:12px;
+    padding:18px 14px; text-align:center; transition:all .15s;
+    background:rgba(28,27,34,0.4);
+  }
+  .attach-dropzone.dragover { border-color:var(--accent); background:rgba(251,191,36,0.06); }
+  .attach-preview { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+  .attach-item {
+    position:relative; width:88px; height:88px; border-radius:10px; overflow:hidden;
+    background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .attach-item img { width:100%; height:100%; object-fit:cover; }
+  .attach-item .pi { color:var(--muted); font-size:1.8rem; }
+  .attach-item .file-label { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:var(--text); font-size:.65rem; padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .attach-item .remove-btn {
+    position:absolute; top:3px; right:3px; width:22px; height:22px; padding:0;
+    background:rgba(239,68,68,0.85); color:#fff; border:0; border-radius:50%;
+    font-size:.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .attach-item .remove-btn:hover { background:var(--error); transform:none; }
+  .attach-item.uploading { opacity:0.6; }
+  .attach-item .upload-progress {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.5);
+  }
+
+  /* Vista de adjuntos en detalle (más grande, clickeable para lightbox) */
+  .attach-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:10px; margin-top:8px; }
+  .attach-card {
+    position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden;
+    background:var(--surface-2); border:1px solid var(--border); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+  }
+  .attach-card:hover { border-color:var(--accent); transform:scale(1.02); }
+  .attach-card img { width:100%; height:100%; object-fit:cover; }
+  .attach-card .pdf-icon { color:var(--error); font-size:2.5rem; }
+  .attach-card .file-label { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); color:var(--text); font-size:.7rem; padding:3px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* Lightbox */
+  .lightbox {
+    position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.92);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .lightbox.show { opacity:1; pointer-events:auto; }
+  .lightbox img { max-width:100%; max-height:90vh; object-fit:contain; border-radius:8px; }
+  .lightbox .lb-close {
+    position:absolute; top:18px; right:18px; width:42px; height:42px; padding:0;
+    background:rgba(255,255,255,0.1); color:#fff; border:0; border-radius:50%;
+    font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox .lb-close:hover { background:rgba(255,255,255,0.2); transform:none; }
+
+  .type-toggle {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;
+  }
+  .type-opt {
+    display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    padding:14px 16px; border-radius:12px; cursor:pointer; text-align:left;
+    background:var(--surface-2); border:1.5px solid var(--border); color:var(--text);
+    transition:all .15s; width:100%;
+  }
+  .type-opt i { font-size:1.2rem; color:var(--soft); margin-bottom:4px; }
+  .type-opt span { font-weight:700; font-size:.9rem; }
+  .type-opt small { color:var(--muted); font-size:.72rem; }
+  .type-opt:hover { border-color:var(--blue); }
+  .type-opt.active {
+    border-color:var(--blue); background:linear-gradient(135deg, rgba(96,165,250,0.10), var(--surface-2));
+  }
+  .type-opt.active i { color:var(--blue); }
+  .type-opt.active.sug { border-color:#fbbf24; background:linear-gradient(135deg, rgba(251,191,36,0.10), var(--surface-2)); }
+  .type-opt.active.sug i { color:#fbbf24; }
+  .anon-check { display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500; }
+  .anon-check input { width:16px; height:16px; }
+  @media (max-width:560px){ .type-toggle { grid-template-columns:1fr; } }
+  .requester-banner {
+    display:flex; gap:14px; align-items:flex-start; margin-bottom:16px;
+    padding:14px 16px; background:linear-gradient(135deg, rgba(96,165,250,0.06), var(--surface-2));
+    border:1px solid rgba(96,165,250,0.25); border-left:4px solid var(--blue);
+    border-radius:12px;
+  }
+  .requester-icon {
+    width:38px; height:38px; flex-shrink:0; border-radius:10px;
+    background:rgba(96,165,250,0.18); color:var(--blue);
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+  }
+  .urgent-note {
+    display:flex; gap:12px; margin-top:10px; padding:12px 14px;
+    background:rgba(248,113,113,0.06);
+    border:1px solid rgba(248,113,113,0.20);
+    border-left:3px solid var(--error); border-radius:10px;
+    font-size:.82rem; color:#fecaca; line-height:1.5;
+  }
+  .urgent-note .pi { color:var(--error); font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+  .urgent-note strong { color:#fee2e2; }
+  .hint { font-size:.78rem; color:var(--muted); margin-top:6px; line-height:1.4; }
+
+  .spinner { display:inline-block; width:16px; height:16px; border:2px solid #00000040; border-top-color:#000; border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; }
+  .spinner.amber { border-color:rgba(251,191,36,0.25); border-top-color:var(--accent); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  footer { padding:18px 32px 22px; text-align:center; color:var(--soft); font-size:.74rem; border-top:1px solid var(--border); margin-top:auto; }
+
+  .step-num {
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--accent); color:#000; width:22px; height:22px; border-radius:50%;
+    font-weight:700; font-size:.78rem; margin-right:8px;
+  }
+  .hidden { display:none !important; }
+
+  /* Tabs */
+  .tabs {
+    display:flex; gap:4px; background:var(--surface-2); padding:4px;
+    border-radius:12px; border:1px solid var(--border);
+  }
+  .tab-btn {
+    flex:1; padding:11px 14px; background:transparent; color:var(--muted);
+    border:0; border-radius:9px; font-weight:600; font-size:.9rem; cursor:pointer;
+    transition:all .15s; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .tab-btn.active { background:var(--surface); color:var(--text); box-shadow:0 1px 0 rgba(255,255,255,0.04); }
+  .tab-btn:not(.active):hover { background:rgba(255,255,255,0.04); color:var(--text); transform:none; }
+  .tab-btn.active:hover { background:var(--surface); transform:none; }
+  .count-badge { background:#374151; color:#e5e7eb; font-size:.72rem; padding:2px 8px; border-radius:999px; min-width:22px; text-align:center; }
+  .tab-btn.active .count-badge { background:var(--accent); color:#000; }
+
+  /* Filters bar */
+  .filters-bar {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .filters-row { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:8px; align-items:stretch; }
+  .filters-row select, .filters-row input { padding:9px 12px; font-size:.85rem; }
+  .filters-row select { padding-right:32px; background-position:right 12px center !important; }
+  .filters-clear {
+    width:auto; padding:9px 12px; background:transparent; color:var(--muted);
+    border:1px solid var(--border); border-radius:11px; cursor:pointer; font-size:.85rem;
+  }
+  .filters-clear:hover:not(:disabled) { color:var(--accent); border-color:rgba(251,191,36,0.4); background:rgba(251,191,36,0.05); transform:none; }
+  .filters-meta { margin-top:8px; font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  .filters-meta .chip { background:rgba(251,191,36,0.10); color:var(--accent); padding:2px 8px; border-radius:6px; font-size:.72rem; }
+  @media (max-width: 900px) { .filters-row { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .filters-row { grid-template-columns: 1fr; } }
+
+  /* Ticket list */
+  .ticket-list { display:flex; flex-direction:column; gap:10px; }
+  .ticket-item {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:16px 18px; cursor:pointer; transition:all .15s; position:relative;
+  }
+  .ticket-item:hover { background:#1a1922; border-color:#3a3742; transform:translateX(2px); }
+
+  /* Highlight de tickets con actualizaciones no vistas */
+  .ticket-item.has-update {
+    border-color: rgba(251,191,36,0.55);
+    background: linear-gradient(135deg, rgba(251,191,36,0.06), var(--surface));
+    box-shadow: 0 0 0 1px rgba(251,191,36,0.18), 0 0 24px rgba(251,191,36,0.06);
+  }
+  .ticket-item.has-update::before {
+    content:""; position:absolute; left:-1px; top:14px; width:3px; height:calc(100% - 28px);
+    background:linear-gradient(180deg, var(--accent), transparent); border-radius:3px;
+  }
+  .update-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    background:var(--accent); color:#000; font-size:.65rem; font-weight:700;
+    padding:2px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:.5px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .update-badge::before { content:""; width:6px; height:6px; background:#000; border-radius:50%; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.5); }
+    50%      { box-shadow: 0 0 0 6px rgba(251,191,36,0); }
+  }
+
+  /* Tab count badge: rojo si hay updates */
+  .count-badge.has-news { background:var(--error); color:#fff; animation: pulse-red 1.6s ease-in-out infinite; }
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.5); }
+    50%      { box-shadow: 0 0 0 6px rgba(248,113,113,0); }
+  }
+
+  /* Toast de actualización */
+  .toast {
+    position:fixed; bottom:24px; right:24px; z-index:200;
+    background:linear-gradient(135deg, var(--surface), var(--surface-2));
+    border:1px solid rgba(251,191,36,0.4); border-left:4px solid var(--accent);
+    border-radius:12px; padding:14px 18px; display:flex; gap:12px; align-items:center;
+    box-shadow:0 12px 40px rgba(0,0,0,0.45), 0 0 24px rgba(251,191,36,0.10);
+    max-width:380px; min-width:260px;
+    transform:translateY(120%); opacity:0; transition:all .35s cubic-bezier(.22,.61,.36,1);
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast .toast-icon {
+    width:36px; height:36px; flex-shrink:0; border-radius:10px;
+    background:rgba(251,191,36,0.18); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+  }
+  .toast .toast-title { font-size:.85rem; font-weight:600; color:var(--text); }
+  .toast .toast-msg { font-size:.78rem; color:var(--muted); margin-top:2px; line-height:1.4; }
+  .toast .toast-close {
+    background:transparent; border:0; color:var(--muted); cursor:pointer;
+    width:auto; padding:4px; font-size:.95rem;
+  }
+  .toast .toast-close:hover { color:var(--text); transform:none; background:transparent; }
+  @media (max-width: 480px) {
+    .toast { right:12px; left:12px; bottom:12px; max-width:none; }
+  }
+  .ticket-item-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+  .ticket-id { color:var(--soft); font-size:.78rem; font-family:'SF Mono',Menlo,monospace; padding-top:2px; }
+  .ticket-title { color:var(--text); font-weight:600; font-size:1rem; flex:1; min-width:0; }
+  .ticket-meta { display:flex; gap:8px; flex-wrap:wrap; font-size:.76rem; color:var(--muted); align-items:center; }
+  .ticket-meta-sep { color:var(--soft); }
+
+  .badge { padding:3px 9px; border-radius:7px; font-size:.7rem; font-weight:600; white-space:nowrap; letter-spacing:.2px; }
+  .b-it     { background:rgba(96,165,250,0.16); color:var(--it); }
+  .b-ops    { background:rgba(52,211,153,0.16); color:var(--ops); }
+  .b-acc    { background:rgba(251,191,36,0.18); color:var(--acc); }
+  .b-hr     { background:rgba(167,139,250,0.18); color:var(--hr); }
+  .s-open       { background:rgba(251,191,36,0.18); color:var(--warn); }
+  .s-in_process { background:rgba(96,165,250,0.18); color:var(--blue); }
+  .s-resolved   { background:rgba(52,211,153,0.18); color:var(--ok); }
+  .s-cancelled  { background:#374151; color:#9ca3af; }
+  .p-urgent { background:rgba(248,113,113,0.18); color:#fca5a5; }
+  .p-high   { background:rgba(245,158,11,0.18); color:#fbbf24; }
+  .p-medium { background:rgba(96,165,250,0.16); color:#93c5fd; }
+  .p-low    { background:#374151; color:#9ca3af; }
+
+  .empty {
+    text-align:center; color:var(--muted); padding:60px 24px; font-size:.95rem;
+    background:linear-gradient(180deg, var(--surface) 0%, #131218 100%);
+    border:1px dashed var(--border); border-radius:16px;
+  }
+  .empty .pi { color:#3a3742; }
+  .empty button { max-width:260px; margin:18px auto 0; }
+
+  /* Detail */
+  .back-btn {
+    background:transparent; color:var(--muted); padding:8px 0;
+    text-align:left; border:0; cursor:pointer; font-size:.9rem;
+    width:auto; display:inline-flex; align-items:center; gap:6px;
+  }
+  .back-btn:hover { color:var(--text); background:transparent; transform:none; }
+  .detail-title { font-size:1.3rem; font-weight:700; margin:10px 0 14px; line-height:1.3; }
+  .detail-body {
+    background:var(--surface-2); border-radius:12px; padding:18px;
+    font-size:.95rem; white-space:pre-wrap; line-height:1.6; color:#d4d2db;
+    border:1px solid #221f28;
+  }
+  .comment {
+    background:var(--surface-2); border-radius:12px; padding:14px 16px;
+    border:1px solid #221f28;
+  }
+  .comment-list { display:flex; flex-direction:column; gap:8px; }
+  .timeline-list { display:flex; flex-direction:column; gap:6px; position:relative; padding-left:18px; }
+  .timeline-list::before {
+    content:""; position:absolute; left:7px; top:6px; bottom:6px;
+    width:2px; background:linear-gradient(180deg, transparent, var(--border), transparent);
+  }
+  .timeline-item { position:relative; padding:6px 0; }
+  .timeline-item::before {
+    content:""; position:absolute; left:-15px; top:11px; width:8px; height:8px;
+    border-radius:50%; background:var(--surface); border:2px solid var(--border);
+    box-shadow:0 0 0 3px var(--bg);
+  }
+  .timeline-item.event { color:var(--muted); font-size:.82rem; line-height:1.5; padding:8px 0; }
+  .timeline-item.event::before { background:var(--accent); border-color:var(--accent); }
+  .timeline-item.event strong { color:var(--text); font-weight:600; }
+  .timeline-item.event .ti-icon { color:var(--accent); margin-right:6px; }
+  .timeline-item.event .ti-time { color:var(--soft); font-size:.72rem; margin-left:8px; }
+  .timeline-item.comment { padding:0; }
+  .comment-author { font-size:.82rem; font-weight:600; color:var(--accent); }
+  .comment-time { font-size:.72rem; color:var(--soft); margin-left:6px; }
+  .comment-body { font-size:.92rem; color:#d4d2db; margin-top:6px; white-space:pre-wrap; line-height:1.55; }
+  .timeline-marker {
+    color:var(--soft); font-size:.72rem; margin:22px 0 8px;
+    text-transform:uppercase; letter-spacing:.7px; display:flex; align-items:center; gap:10px;
+  }
+  .timeline-marker::after { content:""; flex:1; height:1px; background:var(--border); }
+
+  /* Success view */
+  .success { text-align:center; padding:50px 24px; display:flex; flex-direction:column; align-items:center; }
+  .success-icon {
+    width:80px; height:80px; border-radius:50%;
+    background:rgba(52,211,153,0.14); color:var(--ok);
+    display:flex; align-items:center; justify-content:center;
+    font-size:2.5rem; margin-bottom:18px;
+  }
+  .success-title { font-size:1.3rem; font-weight:700; }
+  .ticket-id-big {
+    font-size:2.4rem; font-weight:800; color:var(--accent); margin:14px 0;
+    font-family:'SF Mono',Menlo,monospace; letter-spacing:.04em;
+  }
+  .success-msg { color:var(--muted); font-size:.95rem; max-width:420px; line-height:1.55; }
+  .success button { margin-top:24px; max-width:260px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ───────────────────────── HERO ───────────────────────── -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-logo">
+        <img src="/images/blackdog.png" alt="Black Dog" />
+        <div>
+          <h1 class="hero-title">Portal de Soporte</h1>
+          <div class="hero-subtitle">Reporta problemas y dale seguimiento</div>
+        </div>
+      </div>
+      <div class="hero-spacer"></div>
+      <div id="session-chip" class="session-chip hidden">
+        <i class="pi pi-user" style="font-size:.85rem;"></i>
+        <strong id="chip-name"></strong>
+        <span class="dot">·</span>
+        <span id="chip-branch"></span>
+        <button id="logout-btn" title="Cerrar sesión"><i class="pi pi-sign-out"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ───────────────────────── LAYOUT ───────────────────────── -->
+  <div id="layout-root" class="layout cols-1">
+    <!-- SIDEBAR (visible solo cuando hay sesión) -->
+    <aside id="sidebar" class="sidebar hidden">
+      <div class="sidebar-card accent">
+        <div class="sidebar-icon-row">
+          <div class="sidebar-icon"><i class="pi pi-map-marker"></i></div>
+          <div style="flex:1; min-width:0;">
+            <div class="sidebar-label">Tu sucursal</div>
+            <div class="sidebar-value" id="sb-branch"></div>
+            <div class="sidebar-meta">Validada por IP</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-icon-row">
+          <div class="sidebar-icon" style="background:rgba(96,165,250,0.14); color:var(--blue);">
+            <i class="pi pi-user"></i>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div class="sidebar-label">Identificado como</div>
+            <div class="sidebar-value" id="sb-name"></div>
+            <div class="sidebar-meta">Sesión activa por 5 horas</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-label">Resumen de la sucursal</div>
+        <div class="stats-grid">
+          <div class="stat-mini">
+            <div class="stat-mini-label">Abiertos</div>
+            <div class="stat-mini-value open" id="sb-stat-open">0</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">En Proceso</div>
+            <div class="stat-mini-value in_process" id="sb-stat-inprocess">0</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Resueltos</div>
+            <div class="stat-mini-value resolved" id="sb-stat-resolved">0</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Total</div>
+            <div class="stat-mini-value" id="sb-stat-total">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-label">Tips rápidos</div>
+        <ul class="help-list" style="margin-top:6px;">
+          <li><i class="pi pi-check"></i> Describe qué pasa, desde cuándo, y qué intentaste.</li>
+          <li><i class="pi pi-check"></i> Adjunta el número de caja o equipo si aplica.</li>
+          <li><i class="pi pi-check"></i> Si es urgente y bloquea ventas, marca prioridad <strong>Urgente</strong>.</li>
+          <li><i class="pi pi-check"></i> Cierra sesión al terminar para que otro pueda usar la pantalla.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <!-- VIEW: loading branch -->
+      <div id="v-loading" class="card card-lg" style="text-align:center;">
+        <div class="spinner amber" style="width:32px; height:32px;"></div>
+        <p style="color:var(--muted); margin:14px 0 0; font-size:.95rem;">Detectando tu sucursal…</p>
+      </div>
+
+      <!-- VIEW: branch error -->
+      <div id="v-branch-error" class="branch-error-card hidden">
+        <div class="branch-icon"><i class="pi pi-ban"></i></div>
+        <div>
+          <div class="branch-name">Fuera de la red de tienda</div>
+          <div class="branch-meta">
+            Tu conexión actual no corresponde a ninguna sucursal de Black Dog.
+            Conéctate al <strong>WiFi de tu sucursal</strong> e intenta de nuevo.
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: login -->
+      <div id="v-login" class="hidden">
+        <div class="card card-lg" style="background:linear-gradient(135deg, rgba(251,191,36,0.06), var(--surface)); border-color:rgba(251,191,36,0.20);">
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+            <div class="sidebar-icon"><i class="pi pi-map-marker"></i></div>
+            <div>
+              <div class="sidebar-label" style="margin-bottom:2px;">Sucursal detectada</div>
+              <div style="font-size:1.3rem; font-weight:700; color:var(--accent);" id="login-branch"></div>
+            </div>
+          </div>
+          <div style="font-size:.9rem; color:var(--muted); line-height:1.55;">
+            Identifícate con tu nombre y el código de Google Authenticator. Tu sesión durará 5 horas para que puedas reportar y dar seguimiento sin volver a entrar.
+          </div>
+        </div>
+
+        <div class="card card-lg">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title"><i class="pi pi-sign-in"></i> Identifícate</h2>
+              <div class="panel-subtitle">Dos pasos rápidos</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label><span class="step-num">1</span>¿Quién eres?</label>
+            <select id="login-employee" required>
+              <option value="">Selecciona tu nombre…</option>
+            </select>
+            <div class="hint">Si no apareces, pide a IT activar tu Google Authenticator.</div>
+          </div>
+
+          <div class="field">
+            <label><span class="step-num">2</span>Código Google Authenticator</label>
+            <input id="login-otp" class="otp-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="off" />
+            <div class="hint">6 dígitos que muestra tu app en este momento.</div>
+          </div>
+
+          <button id="login-btn" type="button" class="lg">
+            <i class="pi pi-sign-in"></i> Entrar al portal
+          </button>
+          <div id="login-err" class="err hidden"></div>
+        </div>
+      </div>
+
+      <!-- VIEW: dashboard -->
+      <div id="v-dash" class="hidden" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tickets" id="tab-tickets">
+            <i class="pi pi-list"></i> Tickets de la sucursal <span class="count-badge" id="count-tickets">0</span>
+          </button>
+          <button class="tab-btn" data-tab="new" id="tab-new">
+            <i class="pi pi-plus"></i> Nuevo Ticket
+          </button>
+        </div>
+
+        <!-- Tab: tickets list -->
+        <div id="tab-content-tickets">
+          <div id="filters-bar" class="filters-bar hidden">
+            <div class="filters-row">
+              <select id="f-status">
+                <option value="">Todos los estados</option>
+                <option value="open">Abierto</option>
+                <option value="in_process">En Proceso</option>
+                <option value="resolved">Resuelto</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+              <select id="f-dept">
+                <option value="">Todos los equipos</option>
+                <option value="it">IT</option>
+                <option value="operations">Operaciones</option>
+                <option value="accounting">Contabilidad</option>
+                <option value="hr">RRHH</option>
+              </select>
+              <select id="f-category">
+                <option value="">Todas las categorías</option>
+              </select>
+              <select id="f-date">
+                <option value="">Cualquier fecha</option>
+                <option value="today">Hoy</option>
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+                <option value="90d">Últimos 90 días</option>
+              </select>
+              <select id="f-priority">
+                <option value="">Cualquier prioridad</option>
+                <option value="urgent">Urgente</option>
+                <option value="high">Alta</option>
+                <option value="medium">Media</option>
+                <option value="low">Baja</option>
+              </select>
+              <input id="f-search" type="text" placeholder="Buscar en título o descripción…" />
+              <button class="filters-clear" type="button" id="f-clear" title="Limpiar filtros">
+                <i class="pi pi-filter-slash"></i>
+              </button>
+            </div>
+            <div class="filters-meta" id="f-meta"></div>
+          </div>
+          <div id="ticket-list" class="ticket-list"></div>
+          <div id="ticket-list-empty" class="empty hidden">
+            <i class="pi pi-inbox" style="font-size:3rem; display:block; margin-bottom:14px;"></i>
+            <div style="font-size:1.05rem; color:var(--text); font-weight:600;">Esta sucursal aún no tiene tickets</div>
+            <div style="margin-top:6px;">Cuando algo se rompa o necesites ayuda, crea uno desde aquí.</div>
+            <button class="primary-outline" onclick="switchTab('new')">
+              <i class="pi pi-plus"></i> Crear el primero
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab: new ticket form -->
+        <form id="tab-content-new" class="card card-lg hidden">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" id="form-title"><i class="pi pi-pencil"></i> Reportar problema o solicitud</h2>
+              <div class="panel-subtitle" id="form-subtitle">Llega directo al equipo correcto</div>
+            </div>
+          </div>
+
+          <!-- Selector de tipo: Soporte vs Sugerencia -->
+          <div class="type-toggle" id="type-toggle">
+            <button type="button" class="type-opt active" data-mode="ticket">
+              <i class="pi pi-wrench"></i>
+              <span>Problema / Solicitud</span>
+              <small>Algo no funciona o necesito ayuda</small>
+            </button>
+            <button type="button" class="type-opt" data-mode="suggestion">
+              <i class="pi pi-lightbulb"></i>
+              <span>Sugerencia / Idea de mejora</span>
+              <small>Una idea para mejorar el trabajo</small>
+            </button>
+          </div>
+
+          <div class="requester-banner">
+            <div class="requester-icon"><i class="pi pi-user"></i></div>
+            <div style="flex:1; min-width:0;">
+              <label style="margin:0 0 4px;">¿Quién reporta este ticket?</label>
+              <select id="ticket-requester" required>
+                <option value="">Selecciona tu nombre…</option>
+              </select>
+              <div class="hint" style="margin-top:6px;">El kiosko es compartido entre la sucursal — confirma quién es la persona que vive el problema.</div>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label>Equipo</label>
+              <select id="department" required>
+                <option value="">¿A qué equipo va?</option>
+                <option value="it">IT · Soporte Técnico</option>
+                <option value="operations">Operaciones</option>
+                <option value="accounting">Contabilidad</option>
+                <option value="hr">Recursos Humanos</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Categoría</label>
+              <select id="category" required>
+                <option value="">Primero elige el equipo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field" id="priority-field">
+            <label>Prioridad</label>
+            <select id="priority" required>
+              <option value="low">Baja · Puede esperar varios días</option>
+              <option value="medium" selected>Media · Molesta pero puedo seguir trabajando</option>
+              <option value="high">Alta · Me limita pero la tienda sigue vendiendo</option>
+              <option value="urgent">URGENTE · Bloquea ventas AHORA MISMO</option>
+            </select>
+            <div class="urgent-note">
+              <i class="pi pi-exclamation-triangle"></i>
+              <div>
+                <strong>"Urgente" significa específicamente: la tienda no puede vender en este momento.</strong>
+                No es urgente porque tú lo sientas urgente. Si las ventas no están bloqueadas, marca <strong>Alta</strong> o <strong>Media</strong>. Marcar todo como urgente hace que los verdaderos urgentes no se atiendan a tiempo.
+              </div>
+            </div>
+          </div>
+
+          <!-- Solo sugerencias: impacto -->
+          <div class="field hidden" id="impact-field">
+            <label>Impacto esperado de la mejora</label>
+            <select id="impact">
+              <option value="low">Bajo · pequeña mejora</option>
+              <option value="medium" selected>Medio · ayuda notable al equipo</option>
+              <option value="high">Alto · gran impacto / ahorro</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label id="title-label">Título corto</label>
+            <input id="title" type="text" placeholder="Ej: Impresora de caja 2 no enciende" maxlength="120" required />
+          </div>
+
+          <div class="field">
+            <label>Descripción detallada</label>
+            <textarea id="description" placeholder="¿Qué pasa? ¿Desde cuándo? ¿Qué intentaste? Cualquier detalle ayuda al equipo a resolver más rápido." maxlength="2000" required></textarea>
+          </div>
+
+          <!-- Solo sugerencias: enviar anónimo -->
+          <div class="field hidden" id="anon-field">
+            <label class="anon-check">
+              <input type="checkbox" id="is-anonymous" />
+              <span>Enviar de forma anónima (no se guarda tu nombre como autor)</span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label>Fotos o archivos (opcional)</label>
+            <div class="attach-dropzone" id="attach-dropzone">
+              <input type="file" id="attach-input" multiple accept="image/*,application/pdf" capture="environment" style="display:none;" />
+              <i class="pi pi-camera" style="font-size:1.8rem; color:var(--soft);"></i>
+              <div style="margin-top:8px;">
+                <button type="button" class="ghost" style="max-width:200px;" onclick="document.getElementById('attach-input').click()">
+                  <i class="pi pi-paperclip"></i> Subir archivo
+                </button>
+              </div>
+              <div class="hint" style="margin-top:8px;">Imágenes o PDF · máx 10MB por archivo · una foto vale más que mil palabras</div>
+            </div>
+            <div id="attach-preview" class="attach-preview"></div>
+          </div>
+
+          <button type="submit" id="submit-btn" class="lg">
+            <i class="pi pi-send"></i> Enviar ticket
+          </button>
+          <div id="form-err" class="err hidden"></div>
+        </form>
+      </div>
+
+      <!-- VIEW: ticket detail -->
+      <div id="v-detail" class="hidden">
+        <button class="back-btn" id="back-to-list"><i class="pi pi-arrow-left"></i> Volver a mis tickets</button>
+        <div class="card card-lg" style="margin-top:6px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <span class="ticket-id" id="d-id">#—</span>
+            <span class="badge" id="d-dept"></span>
+            <span class="badge" id="d-status"></span>
+            <span class="badge" id="d-priority"></span>
+          </div>
+          <div class="detail-title" id="d-title"></div>
+          <div style="font-size:.82rem; color:var(--muted); margin-bottom:14px;" id="d-meta"></div>
+          <div class="detail-body" id="d-desc"></div>
+
+          <div id="d-attachments-wrap" class="hidden">
+            <div class="timeline-marker"><i class="pi pi-paperclip"></i> <span id="d-attachments-count">0</span> Archivos adjuntos</div>
+            <div id="d-attachments" class="attach-grid"></div>
+          </div>
+
+          <div class="timeline-marker"><i class="pi pi-history"></i> Historial y conversación</div>
+          <div id="d-timeline" class="timeline-list"></div>
+
+          <div class="field" style="margin-top:20px;">
+            <label>Agregar comentario o información</label>
+            <textarea id="d-new-comment" placeholder="Actualización, respuesta, info adicional…" maxlength="1000"></textarea>
+          </div>
+          <button id="d-comment-btn" class="primary-outline">
+            <i class="pi pi-send"></i> Publicar comentario
+          </button>
+          <div id="d-comment-err" class="err hidden"></div>
+
+          <!-- Acciones del solicitante: solo visibles si la sesión coincide con el requester -->
+          <div id="d-owner-actions" class="owner-actions hidden">
+            <div class="owner-actions-divider"></div>
+            <div class="hint" style="margin-bottom:8px;">Como solicitante de este ticket también puedes:</div>
+            <div class="owner-actions-buttons">
+              <button id="d-cancel-btn" type="button" class="owner-btn danger hidden">
+                <i class="pi pi-times-circle"></i> Cancelar este ticket
+              </button>
+              <button id="d-reopen-btn" type="button" class="owner-btn warning hidden">
+                <i class="pi pi-replay"></i> Reabrir ticket
+              </button>
+            </div>
+            <div id="d-owner-err" class="err hidden"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: success -->
+      <div id="v-success" class="card card-lg hidden">
+        <div class="success">
+          <div class="success-icon"><i class="pi pi-check"></i></div>
+          <div class="success-title">Ticket enviado</div>
+          <div class="ticket-id-big" id="success-id">#—</div>
+          <div class="success-msg">El equipo correspondiente fue notificado y dará seguimiento. Puedes verlo en <strong>Mis Tickets</strong>.</div>
+          <button class="ghost" id="success-back">
+            <i class="pi pi-list"></i> Ver mis tickets
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer>Black Dog · Solo accesible desde la red de tienda · Sesión 5h</footer>
+</div>
+
+<!-- Lightbox para ver imágenes ampliadas -->
+<div id="lightbox" class="lightbox" onclick="if(event.target.id==='lightbox')closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()"><i class="pi pi-times"></i></button>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<!-- Toast de actualizaciones -->
+<div id="toast" class="toast" role="status" aria-live="polite">
+  <div class="toast-icon"><i class="pi pi-bell"></i></div>
+  <div style="flex:1; min-width:0;">
+    <div class="toast-title" id="toast-title">Actualización</div>
+    <div class="toast-msg" id="toast-msg">Tienes novedades en tus tickets.</div>
+  </div>
+  <button class="toast-close" id="toast-close" aria-label="Cerrar"><i class="pi pi-times"></i></button>
+</div>
+
+<script>
+'use strict';
+
+const CATEGORIES = {
+  it: [
+    {v:'hardware', l:'Hardware (PC, impresora, etc.)'},
+    {v:'software', l:'Software / Acceso / Contraseña'},
+    {v:'network',  l:'Red / Internet'},
+    {v:'other',    l:'Otro técnico'},
+  ],
+  operations: [
+    {v:'supply',      l:'Insumos / Material'},
+    {v:'maintenance', l:'Mantenimiento'},
+    {v:'logistics',   l:'Logística / Entrega'},
+    {v:'process',     l:'Procesos / Calidad'},
+    {v:'other',       l:'Otro operativo'},
+  ],
+  accounting: [
+    {v:'invoice', l:'Facturación'},
+    {v:'payment', l:'Pago / Cobro'},
+    {v:'expense', l:'Gastos / Reembolsos'},
+    {v:'tax',     l:'Impuestos / Reportes'},
+    {v:'other',   l:'Otro contable'},
+  ],
+  hr: [
+    {v:'payroll',  l:'Planilla / Pago'},
+    {v:'vacation', l:'Vacaciones / Permisos'},
+    {v:'document', l:'Cartas / Documentos'},
+    {v:'benefits', l:'Beneficios'},
+    {v:'other',    l:'Otro RRHH'},
+  ],
+};
+const DEPT_META = {
+  it:         { label: 'IT',           cls: 'b-it' },
+  operations: { label: 'Operaciones',  cls: 'b-ops' },
+  accounting: { label: 'Contabilidad', cls: 'b-acc' },
+  hr:         { label: 'RRHH',         cls: 'b-hr' },
+};
+const STATUS_LABEL = { open:'Abierto', in_process:'En Proceso', resolved:'Resuelto', cancelled:'Cancelado' };
+const PRIORITY_LABEL = { low:'Baja', medium:'Media', high:'Alta', urgent:'Urgente' };
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => $(id).classList.remove('hidden');
+const hide = (id) => $(id).classList.add('hidden');
+
+let SESSION = null;
+let ALL_TICKETS = []; // cache de los tickets cargados, para filtrar client-side
+let BRANCH_EMPLOYEES = []; // empleados de la sucursal (id + name) para selects
+let PENDING_ATTACHMENTS = []; // [{file, dataUrl, mime, name, size}] — adjuntos seleccionados antes del submit
+const FILTERS = { status:'', dept:'', category:'', date:'', priority:'', search:'' };
+
+// Tracking de tickets vistos: localStorage[ticket_id] = ISO timestamp de última visita
+const LAST_SEEN_KEY = 'soporte_last_seen';
+function loadLastSeen() {
+  try { return JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveLastSeen(map) {
+  try { localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(map)); } catch {}
+}
+function markSeen(ticketId, ts) {
+  const m = loadLastSeen();
+  m[ticketId] = ts || new Date().toISOString();
+  saveLastSeen(m);
+}
+function hasUpdate(t) {
+  const m = loadLastSeen();
+  const seen = m[t.id];
+  if (!seen) return true; // nunca visto
+  return new Date(t.updated_at).getTime() > new Date(seen).getTime();
+}
+
+let POLL_INTERVAL_ID = null;
+let CURRENT_VIEW = null; // 'login' | 'dash' | 'detail' | 'success'
+
+function startPolling() {
+  if (POLL_INTERVAL_ID) return;
+  POLL_INTERVAL_ID = setInterval(() => {
+    if (!SESSION) { stopPolling(); return; }
+    pollForUpdates();
+  }, 60_000);
+}
+function stopPolling() {
+  if (POLL_INTERVAL_ID) { clearInterval(POLL_INTERVAL_ID); POLL_INTERVAL_ID = null; }
+}
+
+async function pollForUpdates() {
+  try {
+    const r = await fetch('/api/soporte/my-tickets', { headers: authHeader() });
+    if (!r.ok) return;
+    const data = await r.json();
+    const fresh = data.tickets || [];
+    // Detectar updates nuevos comparando contra ALL_TICKETS actual
+    const prevById = Object.fromEntries(ALL_TICKETS.map(t => [t.id, t.updated_at]));
+    const newUpdates = fresh.filter(t => {
+      const prev = prevById[t.id];
+      if (!prev) return false; // ticket nuevo (creado por mí, no es "actualización")
+      return new Date(t.updated_at).getTime() > new Date(prev).getTime();
+    });
+    ALL_TICKETS = fresh;
+    if (CURRENT_VIEW === 'dash') renderTicketList();
+    updateStatsSidebar();
+    if (newUpdates.length > 0) {
+      const first = newUpdates[0];
+      const title = first.title.length > 50 ? first.title.slice(0, 48) + '…' : first.title;
+      showToast(
+        newUpdates.length === 1 ? 'Tu ticket fue actualizado' : `${newUpdates.length} tickets actualizados`,
+        newUpdates.length === 1 ? `${fmtTicketId(first.id)} — ${title}` : 'Revisa la lista para ver los cambios.'
+      );
+    }
+  } catch {}
+}
+
+function updateStatsSidebar() {
+  const open = ALL_TICKETS.filter(t => t.status === 'open').length;
+  const inProc = ALL_TICKETS.filter(t => t.status === 'in_process').length;
+  const resolved = ALL_TICKETS.filter(t => t.status === 'resolved').length;
+  $('sb-stat-open').textContent = open;
+  $('sb-stat-inprocess').textContent = inProc;
+  $('sb-stat-resolved').textContent = resolved;
+  $('sb-stat-total').textContent = ALL_TICKETS.length;
+}
+
+function updateTabBadge() {
+  const updates = ALL_TICKETS.filter(hasUpdate).length;
+  const badge = $('count-tickets');
+  badge.textContent = updates > 0 ? updates : ALL_TICKETS.length;
+  badge.classList.toggle('has-news', updates > 0);
+  badge.title = updates > 0 ? `${updates} actualización${updates===1?'':'es'} sin ver` : '';
+}
+
+let TOAST_HIDE_TID = null;
+function showToast(title, msg, ms = 6000) {
+  $('toast-title').textContent = title;
+  $('toast-msg').textContent = msg;
+  $('toast').classList.add('show');
+  if (TOAST_HIDE_TID) clearTimeout(TOAST_HIDE_TID);
+  TOAST_HIDE_TID = setTimeout(hideToast, ms);
+}
+function hideToast() {
+  $('toast').classList.remove('show');
+  if (TOAST_HIDE_TID) { clearTimeout(TOAST_HIDE_TID); TOAST_HIDE_TID = null; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const close = $('toast-close');
+  if (close) close.addEventListener('click', hideToast);
+});
+// (Tambien attach inmediato por si DOMContentLoaded ya pasó)
+setTimeout(() => {
+  const close = $('toast-close');
+  if (close && !close._wired) {
+    close.addEventListener('click', hideToast);
+    close._wired = true;
+  }
+}, 0);
+
+function persistSession(s) {
+  if (s) sessionStorage.setItem('soporte_session', JSON.stringify(s));
+  else sessionStorage.removeItem('soporte_session');
+}
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem('soporte_session');
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.expiresAt && Date.now() < s.expiresAt) return s;
+    sessionStorage.removeItem('soporte_session');
+  } catch {}
+  return null;
+}
+function authHeader() { return SESSION ? { Authorization: 'Bearer ' + SESSION.token } : {}; }
+
+function fmtTicketId(n) {
+  if (n == null) return 'T—';
+  const s = String(n).padStart(6, '0');
+  return `T${s.slice(0,3)}-${s.slice(3)}`;
+}
+
+function fmtDate(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  const now = new Date();
+  const diffMin = (now - d) / 60000;
+  if (diffMin < 1) return 'ahora';
+  if (diffMin < 60) return `hace ${Math.floor(diffMin)} min`;
+  if (diffMin < 60*24) return `hace ${Math.floor(diffMin/60)} h`;
+  return d.toLocaleString('es-PA', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+
+function setLayoutCols(n) {
+  const layout = $('layout-root');
+  layout.classList.remove('cols-1', 'cols-2');
+  layout.classList.add(n === 2 ? 'cols-2' : 'cols-1');
+}
+
+async function init() {
+  SESSION = loadSession();
+  if (SESSION) {
+    hide('v-loading');
+    enterDashboard();
+    return;
+  }
+  try {
+    const r = await fetch('/api/soporte/branch-by-ip', { cache: 'no-store' });
+    const data = await r.json().catch(() => ({}));
+    hide('v-loading');
+    if (!r.ok) { show('v-branch-error'); return; }
+    $('login-branch').textContent = data.branch_name;
+    await loadEmployeesForLogin();
+    show('v-login');
+  } catch {
+    hide('v-loading');
+    show('v-branch-error');
+  }
+}
+
+async function loadEmployeesForLogin() {
+  try {
+    const r = await fetch('/api/soporte/employees', { cache: 'no-store' });
+    if (!r.ok) return;
+    const data = await r.json();
+    BRANCH_EMPLOYEES = data.employees || [];
+    const sel = $('login-employee');
+    for (const e of BRANCH_EMPLOYEES) {
+      const opt = document.createElement('option');
+      opt.value = e.id; opt.textContent = e.name;
+      sel.appendChild(opt);
+    }
+  } catch {}
+}
+
+function populateRequesterSelect() {
+  const sel = $('ticket-requester');
+  sel.innerHTML = '<option value="">Selecciona tu nombre…</option>';
+  for (const e of BRANCH_EMPLOYEES) {
+    const opt = document.createElement('option');
+    opt.value = e.id; opt.textContent = e.name;
+    sel.appendChild(opt);
+  }
+}
+
+/** Cuando ya hay sesión activa, recargar empleados de la sucursal aunque venga de sessionStorage. */
+async function ensureBranchEmployees() {
+  if (BRANCH_EMPLOYEES.length > 0) return;
+  try {
+    const r = await fetch('/api/soporte/employees', { cache: 'no-store' });
+    if (!r.ok) return;
+    const data = await r.json();
+    BRANCH_EMPLOYEES = data.employees || [];
+  } catch {}
+}
+
+$('login-otp').addEventListener('input', (ev) => {
+  ev.target.value = ev.target.value.replace(/\D/g, '').slice(0, 6);
+});
+
+$('login-btn').addEventListener('click', async () => {
+  const employeeId = $('login-employee').value;
+  const otp = $('login-otp').value;
+  const errBox = $('login-err');
+  hide('login-err');
+  if (!employeeId || otp.length !== 6) {
+    errBox.textContent = 'Selecciona tu nombre y escribe los 6 dígitos.';
+    show('login-err'); return;
+  }
+  $('login-btn').disabled = true;
+  $('login-btn').innerHTML = '<span class="spinner"></span> Entrando…';
+  try {
+    const r = await fetch('/api/soporte/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_id: employeeId, totp_code: otp }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.message || data.error || 'No pudimos iniciar sesión.');
+    SESSION = {
+      token: data.token,
+      employee: data.employee,
+      branch: data.branch,
+      expiresAt: Date.now() + (data.ttl_seconds * 1000) - 30_000,
+    };
+    persistSession(SESSION);
+    hide('v-login');
+    enterDashboard();
+  } catch (e) {
+    errBox.textContent = e.message;
+    show('login-err');
+  } finally {
+    $('login-btn').disabled = false;
+    $('login-btn').innerHTML = '<i class="pi pi-sign-in"></i> Entrar al portal';
+  }
+});
+
+function logout() {
+  stopPolling();
+  hideToast();
+  SESSION = null; persistSession(null);
+  ALL_TICKETS = [];
+  hide('session-chip'); hide('v-dash'); hide('v-detail'); hide('v-success'); hide('sidebar');
+  setLayoutCols(1);
+  $('login-employee').value = ''; $('login-otp').value = '';
+  show('v-login');
+  CURRENT_VIEW = 'login';
+}
+$('logout-btn').addEventListener('click', logout);
+
+async function enterDashboard() {
+  $('chip-name').textContent = SESSION.employee.name;
+  $('chip-branch').textContent = SESSION.branch.name;
+  $('sb-name').textContent = SESSION.employee.name;
+  $('sb-branch').textContent = SESSION.branch.name;
+  show('session-chip');
+  show('sidebar');
+  setLayoutCols(2);
+  show('v-dash');
+  CURRENT_VIEW = 'dash';
+  await ensureBranchEmployees();
+  populateRequesterSelect();
+  switchTab('tickets');
+  loadMyTickets();
+  startPolling();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  if (tab === 'tickets') { show('tab-content-tickets'); hide('tab-content-new'); loadMyTickets(); }
+  else { hide('tab-content-tickets'); show('tab-content-new'); }
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+function applyFilters(tickets) {
+  let now = Date.now();
+  let dateCutoff = 0;
+  if (FILTERS.date === 'today') {
+    const d = new Date(); d.setHours(0,0,0,0); dateCutoff = d.getTime();
+  } else if (FILTERS.date === '7d')  dateCutoff = now - 7*86400000;
+  else if (FILTERS.date === '30d')   dateCutoff = now - 30*86400000;
+  else if (FILTERS.date === '90d')   dateCutoff = now - 90*86400000;
+  const q = (FILTERS.search || '').trim().toLowerCase();
+  return tickets.filter(t => {
+    if (FILTERS.status   && t.status     !== FILTERS.status)   return false;
+    if (FILTERS.dept     && t.department !== FILTERS.dept)     return false;
+    if (FILTERS.category && t.category   !== FILTERS.category) return false;
+    if (FILTERS.priority && t.priority   !== FILTERS.priority) return false;
+    if (dateCutoff && new Date(t.created_at).getTime() < dateCutoff) return false;
+    if (q && !((t.title || '').toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function activeFilterCount() {
+  return Object.values(FILTERS).filter(v => v && String(v).length > 0).length;
+}
+
+function refreshCategoryFilter() {
+  const sel = $('f-category');
+  const current = FILTERS.category;
+  sel.innerHTML = '<option value="">Todas las categorías</option>';
+  const dept = FILTERS.dept;
+  if (dept && CATEGORIES[dept]) {
+    for (const c of CATEGORIES[dept]) {
+      const opt = document.createElement('option');
+      opt.value = c.v; opt.textContent = c.l; sel.appendChild(opt);
+    }
+    sel.disabled = false;
+  } else {
+    sel.disabled = true;
+  }
+  // Resetear category si el depto cambió y la cat no aplica
+  if (current && dept && !CATEGORIES[dept]?.some(c => c.v === current)) {
+    FILTERS.category = '';
+  } else {
+    sel.value = FILTERS.category;
+  }
+}
+
+function renderTicketList() {
+  const list = $('ticket-list');
+  const filtered = applyFilters(ALL_TICKETS);
+  list.innerHTML = '';
+  // Empty states
+  if (ALL_TICKETS.length === 0) { show('ticket-list-empty'); hide('filters-bar'); return; }
+  show('filters-bar');
+  const meta = $('f-meta');
+  const count = activeFilterCount();
+  meta.innerHTML = count > 0
+    ? `Mostrando ${filtered.length} de ${ALL_TICKETS.length} <span class="chip">${count} filtro${count===1?'':'s'} activo${count===1?'':'s'}</span>`
+    : `${ALL_TICKETS.length} ticket${ALL_TICKETS.length===1?'':'s'} en total`;
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><i class="pi pi-filter" style="font-size:2rem; display:block; margin-bottom:10px;"></i><div>Ningún ticket coincide con los filtros</div><button class="primary-outline" style="max-width:200px;" onclick="clearFilters()">Limpiar filtros</button></div>`;
+    return;
+  }
+  for (const t of filtered) {
+    const isNew = hasUpdate(t);
+    const div = document.createElement('div');
+    div.className = 'ticket-item' + (isNew ? ' has-update' : '');
+    div.onclick = () => openDetail(t.id);
+    const dept = DEPT_META[t.department] || { label: t.department, cls: '' };
+    const requesterName = t.requester ? `${(t.requester.first_name||'').trim()} ${(t.requester.father_name||'').trim()}`.trim() : null;
+    const assigneeName  = t.assignee  ? `${(t.assignee.first_name||'').trim()} ${(t.assignee.father_name||'').trim()}`.trim() : null;
+    div.innerHTML = `
+      <div class="ticket-item-head">
+        <span class="ticket-id">${fmtTicketId(t.id)}</span>
+        <span class="ticket-title">${escapeHtml(t.title)}</span>
+        ${isNew ? '<span class="update-badge">Nuevo</span>' : ''}
+      </div>
+      <div class="ticket-meta">
+        <span class="badge ${dept.cls}">${dept.label}</span>
+        <span class="badge s-${t.status}">${STATUS_LABEL[t.status] || t.status}</span>
+        <span class="badge p-${t.priority}">${PRIORITY_LABEL[t.priority] || t.priority}</span>
+        ${requesterName ? `<span class="ticket-meta-sep">·</span><span>reportado por <strong style="color:var(--text);">${escapeHtml(requesterName)}</strong></span>` : ''}
+        <span class="ticket-meta-sep">·</span>
+        <span>${fmtDate(t.updated_at || t.created_at)}</span>
+        ${assigneeName ? `<span class="ticket-meta-sep">·</span><span>asignado a ${escapeHtml(assigneeName)}</span>` : ''}
+      </div>
+    `;
+    list.appendChild(div);
+  }
+  updateTabBadge();
+}
+
+async function loadMyTickets() {
+  const list = $('ticket-list');
+  list.innerHTML = '<div class="empty"><span class="spinner amber" style="width:24px;height:24px;"></span></div>';
+  hide('ticket-list-empty');
+  try {
+    const r = await fetch('/api/soporte/my-tickets', { headers: authHeader() });
+    if (r.status === 401 || r.status === 403) { logout(); return; }
+    if (!r.ok) throw new Error('load_fail');
+    const data = await r.json();
+    ALL_TICKETS = data.tickets || [];
+    // Stats sidebar
+    const open = ALL_TICKETS.filter(t => t.status === 'open').length;
+    const inProc = ALL_TICKETS.filter(t => t.status === 'in_process').length;
+    const resolved = ALL_TICKETS.filter(t => t.status === 'resolved').length;
+    $('sb-stat-open').textContent = open;
+    $('sb-stat-inprocess').textContent = inProc;
+    $('sb-stat-resolved').textContent = resolved;
+    $('sb-stat-total').textContent = ALL_TICKETS.length;
+    $('count-tickets').textContent = ALL_TICKETS.length;
+    refreshCategoryFilter();
+    renderTicketList();
+  } catch {
+    list.innerHTML = '<div class="empty"><i class="pi pi-exclamation-triangle" style="font-size:2rem; display:block;"></i><div style="margin-top:10px;">No pudimos cargar tus tickets.</div></div>';
+  }
+}
+
+function clearFilters() {
+  Object.keys(FILTERS).forEach(k => FILTERS[k] = '');
+  $('f-status').value = ''; $('f-dept').value = ''; $('f-date').value = '';
+  $('f-priority').value = ''; $('f-search').value = '';
+  refreshCategoryFilter();
+  renderTicketList();
+}
+
+// Wire filter inputs
+$('f-status').addEventListener('change',   (e) => { FILTERS.status   = e.target.value; renderTicketList(); });
+$('f-dept').addEventListener('change',     (e) => { FILTERS.dept     = e.target.value; FILTERS.category = ''; refreshCategoryFilter(); renderTicketList(); });
+$('f-category').addEventListener('change', (e) => { FILTERS.category = e.target.value; renderTicketList(); });
+$('f-date').addEventListener('change',     (e) => { FILTERS.date     = e.target.value; renderTicketList(); });
+$('f-priority').addEventListener('change', (e) => { FILTERS.priority = e.target.value; renderTicketList(); });
+$('f-search').addEventListener('input',    (e) => { FILTERS.search   = e.target.value; renderTicketList(); });
+$('f-clear').addEventListener('click', clearFilters);
+
+async function openDetail(id) {
+  hide('v-dash'); hide('v-success'); show('v-detail');
+  CURRENT_VIEW = 'detail';
+  // Marcar como visto AHORA — usamos la timestamp del ticket si la tenemos
+  const ticketInList = ALL_TICKETS.find(t => t.id === id);
+  markSeen(id, ticketInList?.updated_at || new Date().toISOString());
+  $('d-id').textContent = fmtTicketId(id);
+  $('d-title').textContent = '…';
+  $('d-desc').textContent = 'Cargando…';
+  $('d-comments').innerHTML = '';
+  $('d-new-comment').value = '';
+  hide('d-comment-err');
+  try {
+    const r = await fetch(`/api/soporte/ticket/${id}`, { headers: authHeader() });
+    if (r.status === 401 || r.status === 403) { logout(); return; }
+    if (!r.ok) throw new Error('load_fail');
+    const data = await r.json();
+    const t = data.ticket;
+    const dept = DEPT_META[t.department] || { label: t.department, cls: '' };
+    const requesterName = t.requester ? `${(t.requester.first_name||'').trim()} ${(t.requester.father_name||'').trim()}`.trim() : '—';
+    const assigneeName  = t.assignee  ? `${(t.assignee.first_name||'').trim()} ${(t.assignee.father_name||'').trim()}`.trim() : 'sin asignar todavía';
+    $('d-dept').className = 'badge ' + dept.cls; $('d-dept').textContent = dept.label;
+    $('d-status').className = 'badge s-' + t.status; $('d-status').textContent = STATUS_LABEL[t.status] || t.status;
+    $('d-priority').className = 'badge p-' + t.priority; $('d-priority').textContent = PRIORITY_LABEL[t.priority] || t.priority;
+    $('d-title').textContent = t.title;
+    $('d-meta').textContent = `Reportado por ${requesterName} · Creado ${fmtDate(t.created_at)} · Última actualización ${fmtDate(t.updated_at)} · Asignado a ${assigneeName}`;
+    $('d-desc').textContent = t.description || '—';
+    renderTimeline(data.comments || [], data.history || []);
+    renderAttachments(data.attachments || []);
+    renderOwnerActions(t, id);
+    $('d-comment-btn').onclick = () => postComment(id);
+  } catch {
+    $('d-desc').textContent = 'No pudimos cargar el ticket.';
+  }
+}
+$('back-to-list').addEventListener('click', () => { hide('v-detail'); show('v-dash'); CURRENT_VIEW = 'dash'; loadMyTickets(); });
+
+async function postComment(id) {
+  const text = $('d-new-comment').value.trim();
+  if (text.length < 2) return;
+  $('d-comment-btn').disabled = true;
+  $('d-comment-btn').innerHTML = '<span class="spinner"></span> Publicando…';
+  try {
+    const r = await fetch(`/api/soporte/ticket/${id}/comment`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text }),
+    });
+    if (r.status === 401 || r.status === 403) { logout(); return; }
+    if (!r.ok) throw new Error('comment_fail');
+    $('d-new-comment').value = '';
+    await openDetail(id);
+  } catch {
+    $('d-comment-err').textContent = 'No pudimos publicar el comentario.';
+    show('d-comment-err');
+  } finally {
+    $('d-comment-btn').disabled = false;
+    $('d-comment-btn').innerHTML = '<i class="pi pi-send"></i> Publicar comentario';
+  }
+}
+
+$('department').addEventListener('change', (ev) => {
+  const dept = ev.target.value;
+  const sel = $('category');
+  sel.innerHTML = '<option value="">¿De qué se trata?</option>';
+  if (CATEGORIES[dept]) for (const c of CATEGORIES[dept]) {
+    const opt = document.createElement('option');
+    opt.value = c.v; opt.textContent = c.l; sel.appendChild(opt);
+  }
+});
+
+// ── Toggle Soporte / Sugerencia ──────────────────────────────────
+let FORM_MODE = 'ticket'; // 'ticket' | 'suggestion'
+function setFormMode(mode) {
+  FORM_MODE = mode;
+  const isSug = mode === 'suggestion';
+  // Botones activos
+  document.querySelectorAll('#type-toggle .type-opt').forEach(b => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle('active', on);
+    b.classList.toggle('sug', on && isSug);
+  });
+  // Títulos
+  $('form-title').innerHTML = isSug
+    ? '<i class="pi pi-lightbulb"></i> Enviar una sugerencia'
+    : '<i class="pi pi-pencil"></i> Reportar problema o solicitud';
+  $('form-subtitle').textContent = isSug
+    ? 'Comparte una idea para mejorar el trabajo de tu equipo'
+    : 'Llega directo al equipo correcto';
+  // Campos exclusivos
+  $('priority-field').classList.toggle('hidden', isSug);
+  $('impact-field').classList.toggle('hidden', !isSug);
+  $('anon-field').classList.toggle('hidden', !isSug);
+  $('priority').required = !isSug;
+  // Departamento: agregar/quitar opción "General" para sugerencias
+  const deptSel = $('department');
+  const hasGeneral = !!deptSel.querySelector('option[value="general"]');
+  if (isSug && !hasGeneral) {
+    const opt = document.createElement('option');
+    opt.value = 'general'; opt.textContent = 'General · Toda la empresa';
+    deptSel.appendChild(opt);
+  } else if (!isSug && hasGeneral) {
+    if (deptSel.value === 'general') deptSel.value = '';
+    deptSel.querySelector('option[value="general"]').remove();
+  }
+  // Labels y placeholder
+  $('title-label').textContent = isSug ? 'Título de la idea' : 'Título corto';
+  $('title').placeholder = isSug ? 'Ej: Tablet adicional para agilizar el cobro' : 'Ej: Impresora de caja 2 no enciende';
+  $('description').placeholder = isSug
+    ? '¿Qué propones? ¿Qué problema resuelve? ¿Cómo ayudaría al equipo?'
+    : '¿Qué pasa? ¿Desde cuándo? ¿Qué intentaste? Cualquier detalle ayuda al equipo a resolver más rápido.';
+  // Botón
+  const btn = $('submit-btn');
+  btn.innerHTML = isSug ? '<i class="pi pi-send"></i> Enviar sugerencia' : '<i class="pi pi-send"></i> Enviar ticket';
+}
+document.querySelectorAll('#type-toggle .type-opt').forEach(b => {
+  b.addEventListener('click', () => setFormMode(b.dataset.mode));
+});
+
+// ── Adjuntos: selección, preview, upload ─────────────────────────
+const ALLOWED_MIMES_CLIENT = ['image/jpeg','image/png','image/webp','image/heic','image/gif','application/pdf'];
+
+$('attach-input').addEventListener('change', async (ev) => {
+  const files = Array.from(ev.target.files || []);
+  for (const file of files) {
+    if (PENDING_ATTACHMENTS.length >= 5) {
+      alert('Máximo 5 archivos por ticket.');
+      break;
+    }
+    if (!ALLOWED_MIMES_CLIENT.includes(file.type)) {
+      alert(`Tipo no permitido: ${file.name}`);
+      continue;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`Archivo muy grande (máx 10MB): ${file.name}`);
+      continue;
+    }
+    const dataUrl = await fileToDataUrl(file);
+    PENDING_ATTACHMENTS.push({ file, dataUrl, mime: file.type, name: file.name, size: file.size });
+  }
+  ev.target.value = ''; // reset
+  renderPendingAttachments();
+});
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function renderPendingAttachments() {
+  const root = $('attach-preview');
+  root.innerHTML = '';
+  PENDING_ATTACHMENTS.forEach((att, idx) => {
+    const div = document.createElement('div');
+    div.className = 'attach-item';
+    const isImage = att.mime.startsWith('image/');
+    div.innerHTML = `
+      ${isImage ? `<img src="${att.dataUrl}" alt="${escapeHtml(att.name)}" />` : `<i class="pi pi-file-pdf"></i>`}
+      <span class="file-label">${escapeHtml(att.name)}</span>
+      <button type="button" class="remove-btn" onclick="removePendingAttachment(${idx})"><i class="pi pi-times" style="font-size:.65rem;"></i></button>
+    `;
+    root.appendChild(div);
+  });
+}
+
+function removePendingAttachment(idx) {
+  PENDING_ATTACHMENTS.splice(idx, 1);
+  renderPendingAttachments();
+}
+
+async function uploadAttachmentsToTicket(ticketId, requesterId) {
+  // Sube en paralelo (máx 5) y devuelve la lista de subidos OK
+  const uploaded = [];
+  for (const att of PENDING_ATTACHMENTS) {
+    try {
+      const r = await fetch(`/api/soporte/ticket/${ticketId}/attachment`, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_name: att.name,
+          mime_type: att.mime,
+          base64: att.dataUrl,
+          uploader_id: requesterId,
+        }),
+      });
+      if (r.ok) uploaded.push(att.name);
+      else console.warn('Upload falló:', att.name, await r.text());
+    } catch (e) {
+      console.warn('Upload error:', att.name, e);
+    }
+  }
+  PENDING_ATTACHMENTS = [];
+  renderPendingAttachments();
+  return uploaded;
+}
+
+// ── Lightbox ─────────────────────────────────────────────────────
+function openLightbox(url) {
+  $('lightbox-img').src = url;
+  $('lightbox').classList.add('show');
+}
+function closeLightbox() {
+  $('lightbox').classList.remove('show');
+  $('lightbox-img').src = '';
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+async function openAttachmentSignedUrl(attachmentId, mime) {
+  try {
+    const r = await fetch(`/api/soporte/attachment/${attachmentId}/signed-url`, { headers: authHeader() });
+    if (!r.ok) throw new Error('signed_url_fail');
+    const data = await r.json();
+    if (mime && mime.startsWith('image/')) {
+      openLightbox(data.signed_url);
+    } else {
+      // PDF u otro → abre en pestaña nueva
+      window.open(data.signed_url, '_blank', 'noopener');
+    }
+  } catch (e) {
+    alert('No pudimos abrir el archivo.');
+  }
+}
+
+$('tab-content-new').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const errBox = $('form-err'); hide('form-err');
+  const isSug = FORM_MODE === 'suggestion';
+  const isAnon = isSug && $('is-anonymous').checked;
+
+  const payload = {
+    requester_id: $('ticket-requester').value,
+    department:   $('department').value,
+    category:     $('category').value,
+    title:        $('title').value.trim(),
+    description:  $('description').value.trim(),
+  };
+  // requester sigue siendo necesario para validar sucursal aunque sea anónima
+  if (!payload.requester_id) {
+    errBox.textContent = 'Selecciona quién reporta.'; show('form-err'); return;
+  }
+  if (!payload.department || !payload.title || !payload.description) {
+    errBox.textContent = 'Completa todos los campos.'; show('form-err'); return;
+  }
+
+  const btn = $('submit-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Enviando…';
+  try {
+    if (isSug) {
+      // ── Sugerencia ──
+      const r = await fetch('/api/soporte/submit-suggestion', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, impact: $('impact').value, is_anonymous: isAnon }),
+      });
+      if (r.status === 401 || r.status === 403) { logout(); return; }
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || data.error || 'No pudimos enviar.');
+      $('success-id').textContent = 'Sugerencia #' + (data.suggestion_id ?? '');
+    } else {
+      // ── Ticket ──
+      const r = await fetch('/api/soporte/submit-authed', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, priority: $('priority').value }),
+      });
+      if (r.status === 401 || r.status === 403) { logout(); return; }
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.message || data.error || 'No pudimos enviar.');
+
+      // Subir adjuntos pendientes (solo tickets)
+      if (PENDING_ATTACHMENTS.length > 0) {
+        btn.innerHTML = '<span class="spinner"></span> Subiendo archivos…';
+        await uploadAttachmentsToTicket(data.ticket_id, payload.requester_id);
+      }
+      $('success-id').textContent = fmtTicketId(data.ticket_id);
+    }
+
+    hide('v-dash'); show('v-success');
+    document.getElementById('tab-content-new').reset();
+    $('category').innerHTML = '<option value="">¿De qué se trata?</option>';
+    PENDING_ATTACHMENTS = [];
+    renderPendingAttachments();
+    setFormMode('ticket');
+  } catch (e) {
+    errBox.textContent = e.message; show('form-err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = FORM_MODE === 'suggestion' ? '<i class="pi pi-send"></i> Enviar sugerencia' : '<i class="pi pi-send"></i> Enviar ticket';
+  }
+});
+
+$('success-back').addEventListener('click', () => {
+  hide('v-success'); show('v-dash'); switchTab('tickets'); loadMyTickets();
+});
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]));
+}
+
+const HISTORY_ICONS = {
+  created:            { icon: 'pi-flag',        label: 'creó este ticket' },
+  status_changed:     { icon: 'pi-sync',        label: 'cambió el estado' },
+  assignee_changed:   { icon: 'pi-user-edit',   label: 'reasignó el ticket' },
+  priority_changed:   { icon: 'pi-exclamation-circle', label: 'cambió la prioridad' },
+  category_changed:   { icon: 'pi-tag',         label: 'cambió la categoría' },
+  department_changed: { icon: 'pi-share-alt',   label: 'transfirió a otro equipo' },
+  reopened:           { icon: 'pi-replay',      label: 'reabrió el ticket' },
+  cancelled:          { icon: 'pi-times-circle', label: 'canceló el ticket' },
+  attachment_added:   { icon: 'pi-paperclip',   label: 'adjuntó un archivo' },
+};
+
+function describeEvent(ev) {
+  const meta = HISTORY_ICONS[ev.action] || { icon: 'pi-circle', label: ev.action };
+  const actor = ev.actor_name?.trim() || 'El sistema';
+  let detail = '';
+  if (ev.action === 'status_changed') {
+    detail = ` <strong>${STATUS_LABEL[ev.to_value] || ev.to_value}</strong>` +
+             (ev.from_value ? ` <span style="color:var(--soft);">(antes ${STATUS_LABEL[ev.from_value] || ev.from_value})</span>` : '');
+  } else if (ev.action === 'priority_changed') {
+    detail = ` a <strong>${PRIORITY_LABEL[ev.to_value] || ev.to_value}</strong>`;
+  } else if (ev.action === 'assignee_changed') {
+    detail = ev.to_value ? ` a <strong>${escapeHtml(ev.to_value)}</strong>` : ' (sin asignado)';
+  } else if (ev.action === 'category_changed' || ev.action === 'department_changed') {
+    detail = ev.to_value ? ` a <strong>${escapeHtml(ev.to_value)}</strong>` : '';
+  }
+  return { icon: meta.icon, html: `<strong>${escapeHtml(actor)}</strong> ${meta.label}${detail}` };
+}
+
+function renderOwnerActions(ticket, ticketId) {
+  const wrap = $('d-owner-actions');
+  const cancelBtn = $('d-cancel-btn');
+  const reopenBtn = $('d-reopen-btn');
+  hide('d-owner-actions');
+  cancelBtn.classList.add('hidden');
+  reopenBtn.classList.add('hidden');
+  hide('d-owner-err');
+
+  if (!SESSION || !ticket?.requester_id) return;
+  if (ticket.requester_id !== SESSION.employee.id) return; // solo el solicitante
+
+  let showAny = false;
+  if (ticket.status === 'open') {
+    cancelBtn.classList.remove('hidden');
+    showAny = true;
+  }
+  if (ticket.status === 'resolved' || ticket.status === 'cancelled') {
+    reopenBtn.classList.remove('hidden');
+    showAny = true;
+  }
+  if (showAny) show('d-owner-actions');
+
+  cancelBtn.onclick = () => changeTicketStatus(ticketId, 'cancelled', '¿Cancelar este ticket? Esto cierra el caso. Si vuelve a pasar, créalo de nuevo.');
+  reopenBtn.onclick = () => changeTicketStatus(ticketId, 'open', 'Volverá a estar abierto para que el equipo lo retome. Cuéntale qué pasó.');
+}
+
+async function changeTicketStatus(ticketId, target, promptMsg) {
+  const reason = prompt(promptMsg + '\n\nMotivo (opcional pero recomendado):') || '';
+  // null = cancelado el prompt → no hacer nada
+  if (reason === null) return;
+  const errBox = $('d-owner-err');
+  hide('d-owner-err');
+  const allBtns = document.querySelectorAll('.owner-btn');
+  allBtns.forEach(b => b.disabled = true);
+  try {
+    const r = await fetch(`/api/soporte/ticket/${ticketId}/status`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: target, reason }),
+    });
+    if (r.status === 401 || r.status === 403) {
+      const data = await r.json().catch(() => ({}));
+      throw new Error(data.message || data.error || 'No permitido.');
+    }
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      throw new Error(data.message || data.error || 'No pudimos cambiar el estado.');
+    }
+    // Refrescar el detalle
+    await openDetail(ticketId);
+    showToast(target === 'cancelled' ? 'Ticket cancelado' : 'Ticket reabierto', 'El equipo verá el cambio.', 4000);
+  } catch (e) {
+    errBox.textContent = e.message;
+    show('d-owner-err');
+  } finally {
+    allBtns.forEach(b => b.disabled = false);
+  }
+}
+
+function renderAttachments(attachments) {
+  const wrap = $('d-attachments-wrap');
+  const grid = $('d-attachments');
+  if (!attachments || attachments.length === 0) {
+    wrap.classList.add('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+  $('d-attachments-count').textContent = attachments.length;
+  grid.innerHTML = '';
+  for (const att of attachments) {
+    const card = document.createElement('div');
+    card.className = 'attach-card';
+    const isImage = (att.mime_type || '').startsWith('image/');
+    card.onclick = () => openAttachmentSignedUrl(att.id, att.mime_type);
+    card.innerHTML = isImage
+      ? `<img src="" data-att-id="${att.id}" alt="${escapeHtml(att.file_name)}" loading="lazy" />
+         <span class="file-label">${escapeHtml(att.file_name)}</span>`
+      : `<i class="pi pi-file-pdf pdf-icon"></i>
+         <span class="file-label">${escapeHtml(att.file_name)}</span>`;
+    grid.appendChild(card);
+    // Cargar el src del thumbnail vía signed URL (async, no bloquea render)
+    if (isImage) {
+      fetch(`/api/soporte/attachment/${att.id}/signed-url`, { headers: authHeader() })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d?.signed_url) {
+            const img = card.querySelector('img');
+            if (img) img.src = d.signed_url;
+          }
+        })
+        .catch(() => {});
+    }
+  }
+}
+
+function renderTimeline(comments, history) {
+  const items = [
+    ...history.map(h => ({ type: 'event', ts: new Date(h.created_at).getTime(), data: h })),
+    ...comments.map(c => ({ type: 'comment', ts: new Date(c.created_at).getTime(), data: c })),
+  ].sort((a, b) => a.ts - b.ts);
+  const root = $('d-timeline');
+  if (items.length === 0) {
+    root.innerHTML = '<div style="color:var(--muted); font-size:.88rem; padding:8px;">Sin actividad todavía.</div>';
+    return;
+  }
+  root.innerHTML = '';
+  for (const it of items) {
+    const wrap = document.createElement('div');
+    if (it.type === 'event') {
+      wrap.className = 'timeline-item event';
+      const { icon, html } = describeEvent(it.data);
+      wrap.innerHTML = `<i class="pi ${icon} ti-icon"></i>${html}<span class="ti-time">${fmtDate(it.data.created_at)}</span>`;
+    } else {
+      wrap.className = 'timeline-item comment';
+      const c = it.data;
+      const author = c.author ? `${(c.author.first_name||'').trim()} ${(c.author.father_name||'').trim()}`.trim() : '—';
+      wrap.innerHTML = `
+        <div class="comment">
+          <div><span class="comment-author">${escapeHtml(author)}</span><span class="comment-time">· ${fmtDate(c.created_at)}</span></div>
+          <div class="comment-body">${escapeHtml(c.content)}</div>
+        </div>
+      `;
+    }
+    root.appendChild(wrap);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

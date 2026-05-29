@@ -52,6 +52,7 @@ import { TrimPipe } from './pipes/trim.pipe';
 import { ApiUrlService } from './services/api-url.service';
 import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
+import { DeviceFingerprintService } from './shared/services/device-fingerprint.service';
 import { OrganizationService } from './services/organization.service';
 import { PunchQueueService } from './services/punch-queue.service';
 import { TimeclockPhrasesService } from './services/timeclock-phrases.service';
@@ -65,6 +66,7 @@ import { CatAnimationComponent } from './dashboard/components/cat.component';
 import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import { DpInstallHelpModalComponent } from './shared/components/dp-install-help-modal.component';
 import { AuthenticatorEnrollmentComponent } from './dashboard/authenticator-enrollment/authenticator-enrollment.component';
+import { FaceEnrollKioskComponent } from './timeclock/face-enroll-kiosk.component';
 import { KioskExtrasComponent } from './timeclock/kiosk-extras.component';
 import { FaceClockModalComponent, FaceClockSuccess } from './shared/components/face-clock-modal.component';
 import {
@@ -128,20 +130,29 @@ interface TimeclockInfoData {
     DpEnrollDialogComponent,
     DpInstallHelpModalComponent,
     AuthenticatorEnrollmentComponent,
+    FaceEnrollKioskComponent,
     FaceClockModalComponent,
     KioskExtrasComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
-    <pt-kiosk-extras />
+    <pt-kiosk-extras [class.kx-non-kiosk]="!isKioskMode()" />
 
-    <!-- Acceso directo al Portal de Soporte (visible siempre, top-right).
-         La IP de la sucursal ya validó al usuario aquí, así que en /soporte
-         entra directo al flujo de ticket. -->
-    <a href="/soporte" class="soporte-fab" title="Portal de Soporte">
-      <i class="pi pi-headphones"></i>
-      <span>Soporte</span>
-    </a>
+    <!-- Acceso directo al Portal de Soporte y "Usar PIN" (top-right).
+         "Usar PIN" SOLO en kiosk + face-first; Soporte siempre visible.
+         Cuando no estamos en kiosk, el botón Soporte queda como un FAB normal. -->
+    <div class="tc-fab-group" [class.tc-fab-group--non-kiosk]="!isKioskMode()">
+      @if (isKioskMode() && faceFirstMode()) {
+        <button type="button" class="soporte-fab" (click)="toggleShowPin()" title="Marcar con PIN">
+          <i class="pi pi-key"></i>
+          <span>Usar PIN</span>
+        </button>
+      }
+      <a href="/soporte" class="soporte-fab" title="Portal de Soporte">
+        <i class="pi pi-headphones"></i>
+        <span>Soporte</span>
+      </a>
+    </div>
 
     <!-- ── Pending punches banner ─────────────────────────────────────
          Aparece automáticamente si quedaron marcaciones de emergencia sin
@@ -230,215 +241,18 @@ interface TimeclockInfoData {
       </div>
     }
 
-    <!-- Custom Success Confirmation Modal -->
+    <!-- Success Confirmation Modal — versión profesional sin efectos.
+         Diseño limpio: ícono, nombre, tipo de marcación, hora, alertas, progress bar. -->
     @if (confirmModalVisible()) {
       <div class="confirm-modal-overlay" (click)="dismissConfirmModal()">
-        <div class="confirm-modal-card"
+        <div class="confirm-modal-card confirm-modal-card--pro"
           [class.confirm-modal-exit]="confirmModalExiting()"
           [class.is-late]="confirmModalData()?.isLate"
-          [class.is-birthday]="confirmModalData()?.isBirthday"
-          [class.is-matrix]="confirmModalData()?.isMatrix"
-          [class.is-moto]="confirmModalData()?.isMoto"
-          [class.is-batman]="confirmModalData()?.isBatman"
-          [class.is-starwars]="confirmModalData()?.isStarWars"
-          [class.is-corridos]="confirmModalData()?.isCorridos"
-          [class.is-watchdogs]="confirmModalData()?.isWatchDogs"
-          [class.fx-shake]="confirmModalData()?.randomEffect === 'shake'"
-          [class.fx-jackpot]="confirmModalData()?.randomEffect === 'jackpot'"
-          [class.fx-rainbow]="confirmModalData()?.randomEffect === 'rainbow'"
-          [class.fx-fire]="confirmModalData()?.randomEffect === 'fire'"
-          [class.fx-tornado-card]="confirmModalData()?.randomEffect === 'tornado'"
-          [class.fx-glitch-card]="confirmModalData()?.randomEffect === 'glitch'"
-          [class.fx-disco-card]="confirmModalData()?.randomEffect === 'disco'"
-          [class.fx-vhs-card]="confirmModalData()?.randomEffect === 'vhs'"
-          [class.fx-boom-card]="confirmModalData()?.randomEffect === 'boom'">
+          (click)="$event.stopPropagation()">
 
-          <!-- Birthday confetti particles -->
-          @if (confirmModalData()?.isBirthday) {
-            <div class="confetti-container">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]; track i) {
-                <div class="confetti-piece" [style.--i]="i"></div>
-              }
-            </div>
-          }
-
-          <!-- Random effects overlays -->
-          @if (confirmModalData()?.randomEffect === 'paw_rain') {
-            <div class="fx-overlay fx-paw-rain">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; track i) {
-                <span class="fx-paw" [style.--i]="i">🐾</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'emoji_explosion') {
-            <div class="fx-overlay fx-emoji-explosion">
-              @for (e of EMOJI_EXPLOSION_LIST; track $index) {
-                <span class="fx-emoji" [style.--i]="$index">{{ e }}</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'jackpot') {
-            <div class="fx-overlay fx-jackpot-overlay">
-              <div class="fx-jackpot-text">¡JACKPOT!</div>
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]; track i) {
-                <span class="fx-coin" [style.--i]="i">🪙</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'unicorn') {
-            <div class="fx-overlay fx-unicorn">
-              <span class="fx-unicorn-glyph">🦄</span>
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
-                <span class="fx-sparkle" [style.--i]="i">✨</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'pizza') {
-            <div class="fx-overlay fx-pizza-rain">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
-                <span class="fx-pizza" [style.--i]="i">🍕</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'fireworks') {
-            <div class="fx-overlay fx-fireworks">
-              @for (i of [1,2,3,4,5,6,7,8]; track i) {
-                <span class="fx-firework" [style.--i]="i">🎆</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'fire') {
-            <div class="fx-overlay fx-fire-overlay">
-              @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
-                <span class="fx-flame" [style.--i]="i">🔥</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'money_rain') {
-            <div class="fx-overlay fx-money-rain">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]; track i) {
-                <span class="fx-bill" [style.--i]="i">💵</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'heart_burst') {
-            <div class="fx-overlay fx-heart-burst">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]; track i) {
-                <span class="fx-heart" [style.--i]="i">❤️</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'disco') {
-            <div class="fx-overlay fx-disco">
-              <span class="fx-disco-ball">🪩</span>
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'lightning') {
-            <div class="fx-overlay fx-lightning">
-              @for (i of [1,2,3,4,5]; track i) {
-                <span class="fx-bolt" [style.--i]="i">⚡</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'tornado') {
-            <div class="fx-overlay fx-tornado"></div>
-          }
-          @if (confirmModalData()?.randomEffect === 'glitch') {
-            <div class="fx-overlay fx-glitch"></div>
-          }
-          @if (confirmModalData()?.randomEffect === 'boom') {
-            <div class="fx-overlay fx-boom">
-              <span class="fx-boom-text">¡BOOM!</span>
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'stars_warp') {
-            <div class="fx-overlay fx-stars-warp">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]; track i) {
-                <span class="fx-star" [style.--i]="i">✦</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'confetti_cannon') {
-            <div class="fx-overlay fx-confetti-cannon">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]; track i) {
-                <span class="fx-confetti" [style.--i]="i" [style.--side]="i % 2 === 0 ? '1' : '-1'"></span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'dragon_energy') {
-            <div class="fx-overlay fx-dragon-energy">
-              <div class="fx-aura fx-aura-1"></div>
-              <div class="fx-aura fx-aura-2"></div>
-              <div class="fx-aura fx-aura-3"></div>
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'panama_flag') {
-            <div class="fx-overlay fx-panama">
-              @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
-                <span class="fx-flag" [style.--i]="i">🇵🇦</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'vhs') {
-            <div class="fx-overlay fx-vhs">
-              <div class="fx-vhs-noise"></div>
-              <div class="fx-vhs-scanline"></div>
-              <div class="fx-vhs-text">► REC ●</div>
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'laser_show') {
-            <div class="fx-overlay fx-laser-show">
-              @for (i of [1,2,3,4,5,6,7,8]; track i) {
-                <span class="fx-laser" [style.--i]="i"></span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomEffect === 'beer') {
-            <div class="fx-overlay fx-beer">
-              @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
-                <span class="fx-beer-mug" [style.--i]="i">🍻</span>
-              }
-            </div>
-          }
-          @if (confirmModalData()?.randomBadge) {
-            <div class="fx-badge">{{ confirmModalData()?.randomBadge }}</div>
-          }
-
-          <!-- Icon -->
+          <!-- Icon: solo check verde o reloj naranja si tarde -->
           <div class="confirm-modal-icon-wrap">
-            @if (confirmModalData()?.isBirthday) {
-              <div class="confirm-modal-icon confirm-modal-icon--birthday">
-                <span class="birthday-icon-emoji">🎂</span>
-              </div>
-            } @else if (confirmModalData()?.isCorridos) {
-              <div class="confirm-modal-icon confirm-modal-icon--corridos">
-                <span class="corridos-icon-char">🎸</span>
-              </div>
-            } @else if (confirmModalData()?.isStarWars) {
-              <div class="confirm-modal-icon confirm-modal-icon--starwars">
-                <span class="starwars-icon-char">⚔️</span>
-              </div>
-            } @else if (confirmModalData()?.isBatman) {
-              <div class="confirm-modal-icon confirm-modal-icon--batman">
-                <span class="batman-icon-char">🦇</span>
-              </div>
-            } @else if (confirmModalData()?.isMoto) {
-              <div class="confirm-modal-icon confirm-modal-icon--moto">
-                <span class="moto-icon-emoji">🏍️</span>
-              </div>
-            } @else if (confirmModalData()?.isWatchDogs) {
-              <div class="confirm-modal-icon confirm-modal-icon--watchdogs">
-                <span class="watchdogs-icon-char">🦊</span>
-              </div>
-            } @else if (confirmModalData()?.isMatrix) {
-              <div class="confirm-modal-icon confirm-modal-icon--matrix">
-                <span class="matrix-icon-char">></span>
-              </div>
-            } @else if (confirmModalData()?.isVip) {
-              <div class="confirm-modal-icon confirm-modal-icon--vip">
-                <span class="vip-icon-emoji">{{ getVipFace() }}</span>
-              </div>
-            } @else if (confirmModalData()?.isLate) {
+            @if (confirmModalData()?.isLate) {
               <div class="confirm-modal-icon confirm-modal-icon--late">
                 <i class="pi pi-clock"></i>
               </div>
@@ -449,92 +263,53 @@ interface TimeclockInfoData {
             }
           </div>
 
-          <!-- Birthday greeting -->
-          @if (confirmModalData()?.isBirthday) {
-            <div class="confirm-modal-birthday-greeting">
-              ¡Feliz Cumpleaños, {{ confirmModalData()?.employeeName }}!
+          <!-- Nombre empleado -->
+          @if (confirmModalData()?.employeeName) {
+            <div class="confirm-modal-employee">
+              {{ confirmModalData()?.employeeName }}
             </div>
           }
 
-          <!-- Type + Time -->
+          <!-- Tipo de marcación -->
           <div class="confirm-modal-title">
-            {{ confirmModalData()?.typeLabel }} registrada exitosamente
-          </div>
-          <div class="confirm-modal-time">
-            a las {{ confirmModalData()?.time }}
+            {{ confirmModalData()?.typeLabel }} registrada
           </div>
 
-          <!-- Tardiness info -->
+          <!-- Hora -->
+          <div class="confirm-modal-time">
+            {{ confirmModalData()?.time }}
+          </div>
+
+          <!-- Tardanza -->
           @if (confirmModalData()?.isLate) {
             <div class="confirm-modal-late-box" [class.very-late]="confirmModalData()?.isVeryLate">
               <div class="confirm-modal-late-header">
-                <i class="pi pi-clock"></i> Llegó tarde
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>Llegó tarde</span>
               </div>
               <div class="confirm-modal-late-detail">
-                Tardanza: {{ confirmModalData()?.delayText }}
+                {{ confirmModalData()?.delayText }}
               </div>
-            </div>
-            @if (confirmModalData()?.isVeryLate) {
-              <div class="confirm-modal-verylate-box">
-                <div class="confirm-modal-verylate-header">
-                  <i class="pi pi-exclamation-triangle"></i> Atención
-                </div>
-                <div class="confirm-modal-verylate-detail">
-                  Tardanza mayor a 1 hora. Verifique con el gerente si el horario está configurado correctamente.
-                </div>
-              </div>
-            }
-          }
-
-          <!-- Streak -->
-          @if (confirmModalData()?.streak && confirmModalData()!.streak >= 2) {
-            <div class="confirm-modal-streak-box">
-              {{ getStreakFires(confirmModalData()!.streak) }} Racha de {{ confirmModalData()!.streak }} {{ confirmModalData()!.streak === 1 ? 'día' : 'días' }} {{ getStreakFires(confirmModalData()!.streak) }}
             </div>
           }
 
-          <!-- Lunch overtime warning -->
+          <!-- Almuerzo excedido -->
           @if (confirmModalData()?.isLunchOvertime) {
-            <div class="confirm-modal-late-box" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%);">
+            <div class="confirm-modal-late-box">
               <div class="confirm-modal-late-header">
-                <i class="pi pi-clock"></i> Almuerzo excedido
+                <i class="pi pi-clock"></i>
+                <span>Almuerzo excedido</span>
               </div>
               <div class="confirm-modal-late-detail">
-                Se excedió {{ confirmModalData()?.lunchExceededMinutes }} minuto{{ confirmModalData()!.lunchExceededMinutes !== 1 ? 's' : '' }} de almuerzo
+                +{{ confirmModalData()?.lunchExceededMinutes }} min sobre lo permitido
               </div>
             </div>
           }
-
-          <!-- Motivational phrase -->
-          <div class="confirm-modal-phrase-box"
-            [class.birthday-phrase]="confirmModalData()?.isBirthday"
-            [class.vip-phrase]="confirmModalData()?.isVip"
-            [class.is-matrix-phrase]="confirmModalData()?.isMatrix"
-            [class.is-moto-phrase]="confirmModalData()?.isMoto"
-            [class.is-batman-phrase]="confirmModalData()?.isBatman"
-            [class.is-starwars-phrase]="confirmModalData()?.isStarWars"
-            [class.is-corridos-phrase]="confirmModalData()?.isCorridos"
-            [class.is-watchdogs-phrase]="confirmModalData()?.isWatchDogs">
-            @if (confirmModalData()?.isBirthday) {
-              <span class="birthday-phrase-icon">🎉</span>
-            }
-            @if (confirmModalData()?.isVip) {
-              <span class="vip-phrase-icon">✨</span>
-            }
-            "{{ confirmModalData()?.phrase }}"
-            @if (confirmModalData()?.isVip) {
-              <span class="vip-phrase-icon">✨</span>
-            }
-            @if (confirmModalData()?.isBirthday) {
-              <span class="birthday-phrase-icon">🎉</span>
-            }
-          </div>
 
           <!-- Progress bar -->
           <div class="confirm-modal-progress-track">
             <div class="confirm-modal-progress-bar"
-              [class.is-late]="confirmModalData()?.isLate"
-              [class.is-birthday]="confirmModalData()?.isBirthday"></div>
+              [class.is-late]="confirmModalData()?.isLate"></div>
           </div>
         </div>
       </div>
@@ -891,6 +666,28 @@ interface TimeclockInfoData {
               </div>
             }
 
+            <!-- Banner: empleado con use_face=true pero sin rostro enrolado -->
+            @if (selectedEmployee() && needsFaceEnrollment()) {
+              <div class="w-full" style="
+                display:flex; align-items:center; gap:0.6rem;
+                padding:0.65rem 0.85rem; margin-bottom: 0.5rem;
+                background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.4);
+                border-radius: 0.5rem; color: #60a5fa; font-size: 0.78rem;
+              ">
+                <i class="pi pi-camera"></i>
+                <div style="flex:1">
+                  <strong>Sin rostro enrolado</strong> — un gerente debe capturar el rostro.
+                </div>
+                <p-button
+                  label="Enrolar rostro"
+                  icon="pi pi-camera"
+                  size="small"
+                  severity="info"
+                  (onClick)="openFaceEnrollment()"
+                />
+              </div>
+            }
+
             <!-- Auth Method Toggle: solo visible si fingerprintFeatureEnabled. -->
             @if (selectedEmployee() && fingerprintFeatureEnabled()) {
               <div class="auth-method-toggle w-full">
@@ -910,8 +707,10 @@ interface TimeclockInfoData {
               </div>
             }
 
-            <!-- PIN Input Section: visible siempre que authMethod sea 'pin'. -->
-            @if (authMethod() === 'pin') {
+            <!-- PIN Input Section: visible siempre que authMethod sea 'pin'.
+                 Si el empleado tiene rostro enrolado y estamos en faceFirstMode,
+                 ocultamos el PIN (excepto si el user clickeó "usar PIN" => showPinFlow). -->
+            @if (authMethod() === 'pin' && !(faceFirstMode())) {
             <div
               class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
             >
@@ -938,33 +737,23 @@ interface TimeclockInfoData {
                 >
                   <i class="pi pi-th-large"></i>
                 </button>
-                <button
-                  type="button"
-                  class="otp-side-btn flex md:hidden"
-                  (click)="pasteFromClipboard()"
-                  title="Pegar código"
-                >
-                  <i class="pi pi-clipboard"></i>
-                </button>
               </div>
 
-              <!-- Lector status chip + Info button (reemplaza el botón de teclado) -->
-              <div class="w-full flex items-center gap-2 mt-1">
-                <button type="button"
-                        class="dp-status-chip dp-status-chip--inline flex-1"
-                        [class.dp-status-chip--off]="!dpReaderConnected()"
-                        [class.dp-status-chip--clickable]="!dpReaderConnected()"
-                        (click)="!dpReaderConnected() && openDpInstallHelp()">
-                  <span class="dp-status-dot"></span>
-                  <i class="pi pi-fingerprint"></i>
-                  <span class="dp-status-text">{{ dpReaderConnected() ? 'Lector conectado' : 'Lector desconectado' }}</span>
-                </button>
-                @if (showInfoButton()) {
-                  <button type="button" class="info-btn" (click)="openInfoModal()" title="Ver estado del día">
-                    <i class="pi pi-info-circle"></i>
+              <!-- Lector status chip (sólo si la feature de huella está activa).
+                   Info button oculto a pedido del usuario. -->
+              @if (fingerprintFeatureEnabled()) {
+                <div class="w-full flex items-center gap-2 mt-1">
+                  <button type="button"
+                          class="dp-status-chip dp-status-chip--inline flex-1"
+                          [class.dp-status-chip--off]="!dpReaderConnected()"
+                          [class.dp-status-chip--clickable]="!dpReaderConnected()"
+                          (click)="!dpReaderConnected() && openDpInstallHelp()">
+                    <span class="dp-status-dot"></span>
+                    <i class="pi pi-fingerprint"></i>
+                    <span class="dp-status-text">{{ dpReaderConnected() ? 'Lector conectado' : 'Lector desconectado' }}</span>
                   </button>
-                }
-              </div>
+                </div>
+              }
             </div>
             }
 
@@ -1022,8 +811,12 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Botón "Marcar con cara" (solo se muestra en mobile / pantalla angosta) -->
-            @if (companyHasFaceEnrolments() && !isDesktopWide()) {
+            <!-- Botón "Marcar con cara" (mobile / pantalla angosta).
+                 C4 fix: dependemos del flag por-empleado en kiosk, no de
+                 companyHasFaceEnrolments (que requiere JWT y no funciona en kiosk
+                 anónimo). Si el empleado seleccionado tiene rostro enrolado activo,
+                 el botón aparece y el modal puede usar su work_email como caller. -->
+            @if ((selectedEmployeeHasFace() || companyHasFaceEnrolments()) && !isDesktopWide()) {
               <div class="w-full" style="margin-top: 0.5rem;">
                 <p-button
                   [disabled]="isProcessing() || isLoadingType() || !form.get('type')?.value"
@@ -1068,6 +861,7 @@ interface TimeclockInfoData {
               [displayMode]="'inline'"
               [type]="$any(form.get('type')?.value || 'entry')"
               [branchId]="form.get('branch_id')?.value || null"
+              [callerEmailInput]="selectedEmployee()?.work_email || null"
               (success)="onFaceClockSuccess($event)"
               (closed)="facePanelOpen.set(false)"
             />
@@ -1376,11 +1170,23 @@ interface TimeclockInfoData {
       />
     }
 
+    <!-- Face enrollment wizard (autoriza con PIN de admin) -->
+    @if (selectedEmployee()) {
+      <pt-face-enroll-kiosk
+        [visible]="faceEnrollmentVisible()"
+        [employeeId]="$any(selectedEmployee()?.id) || ''"
+        [employeeName]="(selectedEmployee()?.first_name || '') + ' ' + (selectedEmployee()?.father_name || '')"
+        (finished)="onFaceEnrollmentFinished()"
+        (cancelled)="faceEnrollmentVisible.set(false)"
+      />
+    }
+
     <!-- Face Clock Modal (independent: identifica + crea timelog automáticamente) -->
     <pt-face-clock-modal
       [open]="faceModalOpen()"
       [type]="$any(form.get('type')?.value || 'entry')"
       [branchId]="form.get('branch_id')?.value || null"
+      [callerEmailInput]="selectedEmployee()?.work_email || null"
       (success)="onFaceClockSuccess($event)"
       (closed)="faceModalOpen.set(false)"
     />`,
@@ -1397,6 +1203,7 @@ export class TimeclockComponent implements OnDestroy {
   private ipMonitor = inject(IpMonitorService);
   private organizationService = inject(OrganizationService);
   private timeSync = inject(TimeSyncService);
+  private deviceFp = inject(DeviceFingerprintService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
   private phrases = inject(TimeclockPhrasesService);
@@ -1461,8 +1268,27 @@ export class TimeclockComponent implements OnDestroy {
   public enrollmentVisible = signal<boolean>(false);
   public needsEnrollment = computed<boolean>(() => {
     const e: any = this.selectedEmployee();
+    // El PIN sigue siendo útil como fallback aunque tenga cara enrolada.
     return !!e && e.authenticator_enrolled === false;
   });
+
+  /** True cuando el empleado tiene use_face=true pero no tiene rostro enrolado. */
+  public needsFaceEnrollment = computed<boolean>(() => {
+    const e: any = this.selectedEmployee();
+    if (!e?.use_face) return false;
+    // Si selectedEmployeeHasFace ya fue chequeado por RPC y dio false, falta enrollment
+    return !this.selectedEmployeeHasFace();
+  });
+
+  /** Modal de enrollment facial desde el kiosk */
+  public faceEnrollmentVisible = signal<boolean>(false);
+  public openFaceEnrollment(): void { this.faceEnrollmentVisible.set(true); }
+  public onFaceEnrollmentFinished(): void {
+    this.faceEnrollmentVisible.set(false);
+    this.selectedEmployeeHasFace.set(true);
+    const e: any = this.selectedEmployee();
+    if (e) this.checkEmployeeFaceEnrollment(e.id);
+  }
   public enrollmentEmployee = computed(() => {
     const e: any = this.selectedEmployee() || {};
     return {
@@ -1489,25 +1315,77 @@ export class TimeclockComponent implements OnDestroy {
   public faceModalOpen = signal<boolean>(false);
   public facePanelOpen = signal<boolean>(true);            // panel inline always open en desktop
   public companyHasFaceEnrolments = signal<boolean>(false); // si hay caras enroladas en la company
+  public selectedEmployeeHasFace = signal<boolean>(false); // si el empleado seleccionado tiene rostro enrolado
   public showPinFlow = signal<boolean>(false);              // forzar mostrar PIN si face falla
   public isDesktopWide = signal<boolean>(typeof window !== 'undefined' && window.innerWidth >= 900);
   private resizeWatchHandle: any = null;
 
-  // Mostrar panel face inline en desktop wide. La validación de enrolments la hace el server.
+  /** Idle-reset del kiosk: si nadie interactúa por 30s, deselecciona empleado
+   *  y limpia el form para volver al estado inicial (privacidad + UX). */
+  private idleTimer: any = null;
+  private readonly IDLE_RESET_MS = 30_000;
+  private idleListenerHandle: any = null;
+  public resetKioskState(): void {
+    if (!this.isKioskMode()) return;
+    this.selectedEmployee.set(undefined);
+    this.selectedEmployeeHasFace.set(false);
+    this.form.get('employee')?.reset();
+    this.form.get('otp')?.reset();
+    this.form.get('type')?.setValue('entry');
+    this.showPinFlow.set(false);
+    this.faceModalOpen.set(false);
+    this.faceEnrollmentVisible.set(false);
+    this.enrollmentVisible.set(false);
+  }
+  private bumpIdleTimer(): void {
+    if (!this.isKioskMode()) return;
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => {
+      if (this.selectedEmployee()) this.resetKioskState();
+    }, this.IDLE_RESET_MS);
+  }
+
+  // Mostrar panel face inline solo si:
+  //  - estamos en desktop wide,
+  //  - no se forzó el flow de PIN,
+  //  - el empleado seleccionado TIENE rostro enrolado.
+  // Si no hay empleado o no está enrolado → no mostrar el panel.
   public faceFirstMode = computed(() =>
-    !this.showPinFlow() && this.isDesktopWide()
+    !this.showPinFlow() &&
+    this.isDesktopWide() &&
+    !!this.selectedEmployee() &&
+    this.selectedEmployeeHasFace()
   );
 
-  /** Suscribir Auth0 + chequeo de enrolments al iniciar el componente (llamado desde ngOnInit existente o constructor). */
+  /** C2 fix: Suscribir Auth0 con takeUntilDestroyed para evitar leaks.
+   * Los effect() se mueven al constructor para que estén en injection context.
+   * El resize listener se cancela en ngOnDestroy (ver A3 fix). */
   private subscribeAuth0AndFace(): void {
-    this.auth0.user$.subscribe((u) => {
-      const email = u?.email?.toLowerCase() || null;
-      this.callerEmailForFace.set(email);
-      if (email) this.checkFaceEnrolments();
-    });
+    this.auth0.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((u) => {
+        const email = u?.email?.toLowerCase() || null;
+        this.callerEmailForFace.set(email);
+        if (email) this.checkFaceEnrolments();
+      });
     if (typeof window !== 'undefined') {
       this.resizeWatchHandle = () => this.isDesktopWide.set(window.innerWidth >= 900);
       window.addEventListener('resize', this.resizeWatchHandle);
+    }
+  }
+
+  /** Chequea si un empleado específico tiene rostro enrolado activo.
+   * Usa RPC pública porque face_enrollments tiene RLS estricta (current_company_id())
+   * y el kiosk corre sin sesión Auth0. */
+  private async checkEmployeeFaceEnrollment(employeeId: string): Promise<void> {
+    try {
+      const url = this.apiUrl.build('rest/v1/rpc/face_has_active_enrollment');
+      const res = await firstValueFrom(
+        this.http.post<boolean>(url, { p_employee_id: employeeId })
+      );
+      this.selectedEmployeeHasFace.set(res === true);
+    } catch {
+      this.selectedEmployeeHasFace.set(false);
     }
   }
 
@@ -1538,12 +1416,35 @@ export class TimeclockComponent implements OnDestroy {
 
   public onFaceClockSuccess(result: FaceClockSuccess): void {
     this.faceModalOpen.set(false);
-    this.message.add({
-      severity: 'success',
-      summary: '✓ Marcación facial',
-      detail: `${result.employee_name} · ${this.typeLabel(result.timelog_type)} · ${(result.similarity * 100).toFixed(0)}%`,
-      life: 5000,
-    });
+    // Mostrar el modal grande de confirmación (mismo que el flow PIN).
+    // Antes solo mostraba un toast chico → el usuario no se daba cuenta que
+    // la marcación pasó.
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+    const typeLabel = this.typeLabel(result.timelog_type);
+    this.showConfirmationDialogWithSound(
+      `${result.employee_name} · ${typeLabel}`,
+      false,
+      result.employee_id,
+      {
+        typeLabel,
+        time: timeStr,
+        phrase: '',
+        delayText: '',
+        isVeryLate: false,
+        isBirthday: false,
+        isVip: false,
+        isMatrix: false,
+        isMoto: false,
+        isBatman: false,
+        isStarWars: false,
+        isCorridos: false,
+        isWatchDogs: false,
+        employeeName: result.employee_name || '',
+        isLunchOvertime: false,
+        lunchExceededMinutes: 0,
+      }
+    );
     try { playSuccessSound(result.employee_id); } catch { /* no-op */ }
     try { vibrateForMarking(result.timelog_type); } catch { /* no-op */ }
   }
@@ -1779,17 +1680,34 @@ export class TimeclockComponent implements OnDestroy {
   // Update time every second
   constructor() {
     // Bootstrap de la cola persistente de punches.
-    // Esto programa auto-sync cada 30s, en evento 'online', en visibilitychange,
-    // y un drain inmediato. Imprescindible: si hubo un deploy o caída de Supabase
-    // y quedaron punches en IDB/localStorage del kiosk, se suben SOLOS al abrir
-    // la app sin que nadie tenga que ir a Settings.
     this.punchQueue.bootstrap();
+
+    // Captura y persiste fingerprint del dispositivo (idle, no bloquea UI).
+    // Se hace una sola vez al cargar el kiosk; el UPSERT en server resuelve duplicados.
+    queueMicrotask(() => {
+      const companyId = this.organizationService.getCurrentCompanyId();
+      this.deviceFp.persist({ company_id: companyId ?? undefined, branch_id: this.selectedBranchId() ?? null });
+    });
 
     // Suscribir Auth0 + chequear si la company tiene rostros enrolados (face-first mode)
     this.subscribeAuth0AndFace();
 
-    // Monitorear estado del lector DP
-    this.dp.startStatusPolling(5000);
+    // C2 fix: effects al constructor (injection context garantizado).
+    // Antes estaban en subscribeAuth0AndFace() que se llama desde aquí, pero
+    // si se llamaba desde un callback async (ngOnInit, subscribe, etc.) los
+    // effect() levantaban NG0203.
+    effect(() => {
+      const emp = this.selectedEmployee();
+      if (!emp?.id) { this.selectedEmployeeHasFace.set(false); return; }
+      this.checkEmployeeFaceEnrollment(emp.id);
+    });
+
+    // Monitorear estado del lector DP — solo si la feature de huellas está activa.
+    // Si está desactivada, no hace falta hacer polling a 127.0.0.1:52181 (genera errores
+    // ERR_CONNECTION_REFUSED en consola en PCs sin el DP Lite client).
+    if (this.fingerprintFeatureEnabled()) {
+      this.dp.startStatusPolling(5000);
+    }
     this.dp.onConnectionChange((c) => {
       this.dpReaderConnected.set(c);
       // Si el lector cae mientras el empleado solo tiene DP enrolada,
@@ -1840,6 +1758,15 @@ export class TimeclockComponent implements OnDestroy {
     } else if (isKioskRoute && this.isNazCompany()) {
       // Para Naz, siempre considerar la IP como válida
       this.isIPValid.set(true);
+    }
+
+    // Idle reset listeners — solo en kiosk para evitar PII residual
+    if (isKioskRoute && typeof window !== 'undefined') {
+      this.idleListenerHandle = () => this.bumpIdleTimer();
+      ['click', 'keydown', 'touchstart', 'mousemove'].forEach((ev) =>
+        window.addEventListener(ev, this.idleListenerHandle, { capture: true, passive: true })
+      );
+      this.bumpIdleTimer();
     }
 
     // Monitorear errores de recursos httpResource
@@ -2051,6 +1978,21 @@ export class TimeclockComponent implements OnDestroy {
     if (this.ipOverrideCountdownTimer) {
       clearInterval(this.ipOverrideCountdownTimer);
     }
+    // A3 fix: quitar el listener de resize. Sin esto, cada navegación a
+    // /timeclock agregaba un nuevo listener que disparaba isDesktopWide.set()
+    // sobre componentes ya destruidos → memory leak + warnings.
+    if (this.resizeWatchHandle && typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.resizeWatchHandle);
+      this.resizeWatchHandle = null;
+    }
+    // Limpiar idle timer + listeners
+    if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
+    if (this.idleListenerHandle && typeof window !== 'undefined') {
+      ['click', 'keydown', 'touchstart', 'mousemove'].forEach((ev) =>
+        window.removeEventListener(ev, this.idleListenerHandle, { capture: true } as any)
+      );
+      this.idleListenerHandle = null;
+    }
     // Detener polling del DP reader: si no, sigue spamming /get_connection
     // a 127.0.0.1:52181 desde cualquier otra ruta de la app.
     this.dp.stopStatusPolling();
@@ -2115,9 +2057,9 @@ export class TimeclockComponent implements OnDestroy {
       return;
     }
 
-    // Validate TOTP
+    // Validate TOTP (window:1 → tolera ±30s de drift del reloj del kiosk)
     const totp = OTPAuth.URI.parse(emp.code_uri);
-    if (totp.validate({ token: otp }) === null) {
+    if (totp.validate({ token: otp, window: 1 }) === null) {
       this.ipOverrideError.set('Código incorrecto');
       this.ipOverrideOtp.set('');
       return;
@@ -2535,7 +2477,7 @@ export class TimeclockComponent implements OnDestroy {
   public employeesResource = httpResource<Partial<Employee>[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: 'id,first_name,father_name,code_uri,birth_date,branch_id,gender,authenticator_enrolled',
+      select: 'id,first_name,father_name,work_email,code_uri,birth_date,branch_id,gender,authenticator_enrolled,use_face',
       order: 'father_name',
       is_active: 'eq.true',
     };
@@ -2821,6 +2763,8 @@ export class TimeclockComponent implements OnDestroy {
             matrix = theme === 'matrix';
             batman = theme === 'batman';
             starwars = theme === 'starwars';
+            // M2 fix: incrementar índice para que rote en el siguiente trigger
+            this.gustavoThemeIndex = (this.gustavoThemeIndex + 1) % this.gustavoThemes.length;
           } else if (mx && !isEder && !isRicardo && !isLiliana && !isTristan) {
             matrix = true;
           }
@@ -3124,7 +3068,7 @@ export class TimeclockComponent implements OnDestroy {
     if (otp.length !== 6) return;
 
     const totp = OTPAuth.URI.parse(employee.code_uri);
-    const validation = totp.validate({ token: otp });
+    const validation = totp.validate({ token: otp, window: 1 });
     if (validation === null) {
       playFailureSound();
       this.infoOtpError.set('Código incorrecto');
@@ -3395,7 +3339,7 @@ export class TimeclockComponent implements OnDestroy {
 
     if (employee?.code_uri) {
       const totp = OTPAuth.URI.parse(employee.code_uri);
-      const validation = totp.validate({ token: otp });
+      const validation = totp.validate({ token: otp, window: 1 });
       if (validation === null) {
         this.isProcessing.set(false);
         // Reproducir sonido de error
@@ -3454,7 +3398,7 @@ export class TimeclockComponent implements OnDestroy {
     }
   }
 
-  private processTimelog(
+  private async processTimelog(
     employeeId: string,
     branchId: string,
     companyId: string,
@@ -3468,6 +3412,13 @@ export class TimeclockComponent implements OnDestroy {
   ) {
     // Prevenir duplicados: rechazar si el mismo empleado marcó hace menos de 30 segundos
     const now = Date.now();
+    // A8 fix: purgar entradas viejas (>60s) para evitar leak de memoria
+    // y consultar antes de validar, pero MARCAR (set) sólo después de validar
+    // todo — así si falla la validación el usuario no queda bloqueado 30s
+    // sin haber marcado nada.
+    for (const [empId, ts] of this.recentPunches) {
+      if (now - ts > 60000) this.recentPunches.delete(empId);
+    }
     const lastPunch = this.recentPunches.get(employeeId);
     if (lastPunch && now - lastPunch < 30000) {
       this.isProcessing.set(false);
@@ -3479,7 +3430,6 @@ export class TimeclockComponent implements OnDestroy {
       });
       return;
     }
-    this.recentPunches.set(employeeId, now);
 
     // Validar IP - bypass for specific employees
     const invalidValue = this.IP_BYPASS_EMPLOYEE_IDS.has(employeeId) ? false : !this.validIP();
@@ -3498,6 +3448,8 @@ export class TimeclockComponent implements OnDestroy {
       });
       return;
     }
+    // Validaciones OK → ahora sí marcamos el dedup
+    this.recentPunches.set(employeeId, now);
 
     // ── STORE-AND-FORWARD ──────────────────────────────────────────────
     // Registramos la marca en la cola local ANTES de enviarla. Si el envío
@@ -3506,8 +3458,11 @@ export class TimeclockComponent implements OnDestroy {
     // al beacon — que es idempotente, así que nunca duplica. Garantiza que
     // ninguna marca se pierda "sin rastro" como pasó con Andrés Pérez.
     const sfPunchedAt = punchedAt || new Date().toISOString();
-    let sfQueueId: string | null = null;
-    void this.punchQueue.enqueueQuiet({
+    // C1 fix: await el enqueue ANTES de disparar el RPC.
+    // Antes: void .then(...) hacía que sfQueueId fuera null cuando el RPC
+    // respondía rápido → remove() nunca corría → cola crecía con duplicados
+    // que el beacon reenviaba 30s después.
+    const sfQueueId: string | null = await this.punchQueue.enqueueQuiet({
       employee_id: employeeId,
       employee_name: employeeName,
       branch_id: branchId,
@@ -3519,7 +3474,7 @@ export class TimeclockComponent implements OnDestroy {
       invalid_ip: invalidValue,
       auth_method: authMethod ?? null,
       reason: 'Store-and-forward (respaldo local de marcación de kiosko)',
-    }).then((id) => { sfQueueId = id; });
+    }).catch(() => null);
 
     // Usar RPC para procesar todo en una sola transacción
     this.http
@@ -3551,6 +3506,10 @@ export class TimeclockComponent implements OnDestroy {
           p_type: type,
           p_ip: this.getIP(),
           p_invalid_ip: invalidValue,
+          p_device_id: this.deviceFp.getDeviceId(),
+          ...(this.deviceFp['cached']?.combined_hash
+            ? { p_device_combined_hash: this.deviceFp['cached'].combined_hash }
+            : {}),
           ...(authMethod ? { p_auth_method: authMethod } : {}),
           ...(punchedAt ? { p_punched_at: punchedAt } : {}),
           ...(this.ipOverrideActive() && this.ipOverrideManager()

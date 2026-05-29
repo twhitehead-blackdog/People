@@ -96,7 +96,9 @@ export class PunchQueueService {
     });
 
     // Si el usuario está a punto de cerrar la pestaña y aún hay cola → sendBeacon.
-    window.addEventListener('pagehide', () => { void this.flushViaSendBeacon(); });
+    // A2 fix: NO usar await aquí — el browser puede matar la tarea async antes
+    // de que IDB termine de leer. Usamos el mirror SÍNCRONO de localStorage.
+    window.addEventListener('pagehide', () => { this.flushViaSendBeaconSync(); });
 
     // Drain inmediato al boot — aquí es donde recuperamos las marcaciones perdidas
     // durante el último deploy.
@@ -250,11 +252,29 @@ export class PunchQueueService {
     }
   }
 
-  /** Al pagehide: si hay cola, mandar todo con sendBeacon (best-effort). */
+  /** Al pagehide: si hay cola, mandar todo con sendBeacon (best-effort).
+   * Mantenemos la versión async para llamadas desde código no-pagehide. */
   private async flushViaSendBeacon(): Promise<void> {
     const items = await this.getAll();
     for (const it of items) {
       this.sendBeaconFireAndForget(it);
+    }
+  }
+
+  /** A2 fix: variante SÍNCRONA para pagehide.
+   * Lee SOLO el mirror de localStorage (síncrono) y dispara sendBeacon de una.
+   * Sin esto, en pagehide el `await getAll()` puede no completar antes de que
+   * el browser descarte la pestaña → las marcaciones pendientes nunca llegan
+   * al servidor. */
+  private flushViaSendBeaconSync(): void {
+    try {
+      const items = this.readMirrorFromLocalStorage();
+      for (const it of items) {
+        this.sendBeaconFireAndForget(it);
+      }
+    } catch (e) {
+      // pagehide es best-effort; no rompemos nada si falla
+      console.warn('[PunchQueue] flushViaSendBeaconSync error', e);
     }
   }
 

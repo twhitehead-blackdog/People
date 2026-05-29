@@ -114,7 +114,7 @@ export class TimelogsApiService {
     // Se elimina !inner y el filtro de is_active para ver historial completo
     // Solo los campos que realmente se usan en el procesamiento de DayLogs
     const select =
-      'id,employee_id,type,created_at,punched_at,branch_id,ip,invalid_ip,source,is_manual,manual_reason,manual_created_by,db_user_at_insert,reason,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name),branch:branches(id,name,short_name)';
+      'id,employee_id,type,created_at,punched_at,branch_id,ip,invalid_ip,source,is_manual,manual_reason,manual_created_by,db_user_at_insert,reason,auth_method,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name),branch:branches(id,name,short_name)';
 
     const params: Record<string, string> = {
       select: select,

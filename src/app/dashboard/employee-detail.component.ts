@@ -39,6 +39,7 @@ import { TimeOffsComponent } from './time-offs.component';
 import { CredentialDevice, FingerprintStatus, WebAuthnService } from '../services/webauthn.service';
 import { DpFingerprintService } from '../services/dp-fingerprint.service';
 import { DpEnrollDialogComponent } from '../components/dp-enroll-dialog.component';
+import { FaceEnrollTabComponent } from './face-enroll-tab.component';
 
 @Component({
   selector: 'pt-employee-detail',
@@ -58,6 +59,7 @@ import { DpEnrollDialogComponent } from '../components/dp-enroll-dialog.componen
     RouterLink,
     Tooltip,
     DpEnrollDialogComponent,
+    FaceEnrollTabComponent,
   ],
   providers: [
     DynamicDialogRef,
@@ -310,8 +312,17 @@ import { DpEnrollDialogComponent } from '../components/dp-enroll-dialog.componen
           }
           <!-- SCORE -->
           @case (7) { @if(employee_id()) { <div class="p-4 md:p-6"><pt-employee-credit-score [employeeId]="employee_id()!" /></div> } }
-          <!-- HUELLA -->
+          <!-- ROSTRO -->
           @case (8) {
+            @if(employee_id()) {
+              <pt-face-enroll-tab
+                [employeeId]="employee_id()!"
+                [useFace]="!!currentEmployee()?.use_face"
+              />
+            }
+          }
+          <!-- HUELLA (desactivada) -->
+          @case (9) {
             <div class="p-4 md:p-6 space-y-4">
               @if (fingerprintStatusLoading()) {
                 <p-skeleton height="4rem" /><p-skeleton height="4rem" styleClass="mt-2" />
@@ -714,6 +725,7 @@ export class EmployeeDetailComponent implements OnInit {
     { id: 'portal', label: 'Portal', icon: 'pi pi-user' },
     { id: 'historial', label: 'Historial', icon: 'pi pi-history' },
     { id: 'score', label: 'Score', icon: 'pi pi-chart-bar' },
+    { id: 'rostro', label: 'Rostro', icon: 'pi pi-camera' },
     // { id: 'huella', label: 'Huella', icon: 'pi pi-fingerprint' }, // desactivado 2026-05-28
   ];
   public cardQrDataUrl = signal<string | null>(null);
@@ -727,7 +739,7 @@ export class EmployeeDetailComponent implements OnInit {
     const companyId = this.organizationService.getCurrentCompanyId();
 
     // Usar tablas compartidas con relaciones
-    const selectQuery = `id, department:departments(id, name), branch:branches(id, name), position:positions(id, name), company:companies(id, name), first_name,father_name, middle_name, mother_name,document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, company_id, has_portal_access, total_lunch_exceeded_minutes`;
+    const selectQuery = `id, department:departments(id, name), branch:branches(id, name), position:positions(id, name), company:companies(id, name), first_name,father_name, middle_name, mother_name,document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, company_id, has_portal_access, total_lunch_exceeded_minutes, use_face`;
 
     const params: any = {
       select: selectQuery,
@@ -986,6 +998,11 @@ export class EmployeeDetailComponent implements OnInit {
       dismissableMask: true, // Cerrar al hacer clic fuera
       closeOnEscape: true,   // Cerrar con tecla Escape
       data: { employee: this.currentEmployee() },
+    });
+    // Recargar el empleado al cerrar el modal para reflejar cambios
+    // (use_face, datos, etc.) sin tener que refrescar la página.
+    this.ref?.onClose.subscribe(() => {
+      this.employee.reload();
     });
   }
 

@@ -136,6 +136,20 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.DeviceInventoryComponent
               ),
           },
+          {
+            path: 'face-alerts',
+            loadComponent: () =>
+              import('./face-alerts.component').then(
+                (x) => x.FaceAlertsComponent
+              ),
+          },
+          {
+            path: 'devices',
+            loadComponent: () =>
+              import('./device-fingerprints.component').then(
+                (x) => x.DeviceFingerprintsComponent
+              ),
+          },
           // Legacy: redirige a tickets-it
           {
             path: 'it-tickets',
@@ -388,6 +402,13 @@ export const DASHBOARD_ROUTES: Routes = [
             loadComponent: () =>
               import('./modules/personnel-movements/ui/personnel-movements.component').then(
                 (x) => x.PersonnelMovementsComponent
+              ),
+          },
+          {
+            path: 'employee-debts',
+            loadComponent: () =>
+              import('./modules/employee-debts/ui/employee-debts.component').then(
+                (x) => x.EmployeeDebtsComponent
               ),
           },
 

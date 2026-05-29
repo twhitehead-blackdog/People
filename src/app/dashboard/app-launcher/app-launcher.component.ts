@@ -69,6 +69,8 @@ const EXTERNAL_MODULES: readonly Module[] = [
   { id: 'scorecard',  label: 'Scorecard',           description: 'Puntaje por sucursal',      icon: 'pi-trophy',         target: 'scorecard', moduleId: 'services', subModuleId: 'scorecard_access', accent: 'fuchsia' },
   { id: 'tickets',    label: 'Tickets',             description: 'Resolver y dar seguimiento',  icon: 'pi-ticket',         target: '__tickets__',          accent: 'indigo' },
   { id: 'suggestions',label: 'Sugerencias',         description: 'Buzón de ideas y mejoras',    icon: 'pi-lightbulb',      target: 'admin/suggestions',    moduleId: 'admin', subModuleId: 'suggestions_admin', accent: 'amber'  },
+  { id: 'face_alerts',label: 'Alertas Face',        description: 'Seguridad de reconocimiento', icon: 'pi-shield',         target: 'admin/face-alerts',                                                          accent: 'rose'   },
+  { id: 'devices',    label: 'Dispositivos',        description: 'PCs y celulares registrados', icon: 'pi-desktop',        target: 'admin/devices',                                                              accent: 'cyan'   },
   { id: 'it',         label: 'BD IT',               description: 'Inventario y soporte',      icon: 'pi-desktop',        target: 'https://it.blackdogpanama.com',     external: true, accent: 'slate'  },
   { id: 'deploy',     label: 'Deploy',              description: 'CI/CD',                     icon: 'pi-upload',         target: 'https://deploy.blackdogpanama.com', external: true, accent: 'pink'   },
   { id: 'agent',      label: 'Agente IA',           description: 'Asistente inteligente',     icon: 'pi-android',        target: 'https://agent.blackdogpanama.com',  external: true, accent: 'purple' },

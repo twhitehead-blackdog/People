@@ -92,6 +92,18 @@ import { DeviceService } from '../services/device.service';
                   [class.text-amber-300]="isActiveRoute('tickets-it')">
                   <i class="pi pi-desktop text-sm"></i><span>Tickets IT</span>
                 </a>
+                <a routerLink="face-alerts"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('face-alerts')"
+                  [class.text-amber-300]="isActiveRoute('face-alerts')">
+                  <i class="pi pi-shield text-sm"></i><span>Alertas Face</span>
+                </a>
+                <a routerLink="devices"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('devices')"
+                  [class.text-amber-300]="isActiveRoute('devices')">
+                  <i class="pi pi-desktop text-sm"></i><span>Dispositivos</span>
+                </a>
                 <a routerLink="it-mobile-lines"
                   class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
                   [class.bg-neutral-700]="isActiveRoute('it-mobile-lines')"
@@ -356,6 +368,8 @@ import { DeviceService } from '../services/device.service';
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
             <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
             <a routerLink="tickets-it" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('tickets-it')" [class.text-amber-300]="isActiveRoute('tickets-it')"><i class="pi pi-desktop text-sm"></i><span>Tickets IT</span></a>
+            <a routerLink="face-alerts" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('face-alerts')" [class.text-amber-300]="isActiveRoute('face-alerts')"><i class="pi pi-shield text-sm"></i><span>Alertas Face</span></a>
+            <a routerLink="devices" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('devices')" [class.text-amber-300]="isActiveRoute('devices')"><i class="pi pi-desktop text-sm"></i><span>Dispositivos</span></a>
             <a routerLink="it-mobile-lines" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-mobile-lines')" [class.text-amber-300]="isActiveRoute('it-mobile-lines')"><i class="pi pi-phone text-sm"></i><span>Líneas Móviles</span></a>
             <a routerLink="it-licenses" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-licenses')" [class.text-amber-300]="isActiveRoute('it-licenses')"><i class="pi pi-key text-sm"></i><span>Licencias</span></a>
             <a routerLink="it-cameras" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-cameras')" [class.text-amber-300]="isActiveRoute('it-cameras')"><i class="pi pi-video text-sm"></i><span>Cámaras NVR</span></a>

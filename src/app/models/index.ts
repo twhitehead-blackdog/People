@@ -4,6 +4,7 @@ export * from './employee.model';
 export * from './schedule.model';
 export * from './timelog.model';
 export * from './payroll.model';
+export * from './employee-debt.model';
 export * from './vacation.model';
 export * from './liquidation.model';
 export * from './recruitment.model';
