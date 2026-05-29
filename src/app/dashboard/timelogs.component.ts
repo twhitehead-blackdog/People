@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   effect,
+  HostListener,
   inject,
   Injector,
   model,
@@ -12,12 +13,28 @@ import {
   signal,
 } from '@angular/core';
 import { useRealtimeTrigger } from '../utils/realtime-trigger.utils';
-import { addDays, differenceInMinutes, format, isEqual, isSameDay, startOfDay, startOfMonth } from 'date-fns';
+import {
+  addDays,
+  differenceInMinutes,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isEqual,
+  isSameDay,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  subDays,
+  subMonths,
+} from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { Tooltip } from 'primeng/tooltip';
 import {
@@ -54,15 +71,25 @@ import { filterDayLogs } from './timelogs/utils/daylog-filter.utils';
 import { mapDayLogsToReportRows } from './timelogs/utils/timelogs-report.utils';
 import { matchesEmployeeSearch } from './timelogs/utils/employee-search.utils';
 import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/utils/timelogs-constants';
+import {
+  addView,
+  generateViewId,
+  loadSavedViews,
+  removeView,
+  TimelogSavedView,
+} from './timelogs/utils/saved-views.utils';
 
 @Component({
   selector: 'pt-timelogs',
   imports: [
     CommonModule,
+    FormsModule,
+    DatePipe,
     Button,
     Card,
     ToastModule,
     Dialog,
+    InputTextModule,
     Tooltip,
     TimelogsFiltersComponent,
     TimelogsTableComponent,
@@ -83,13 +110,95 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
           </div>
           <div class="flex items-center gap-2 flex-wrap justify-end">
             <p-button
+              [icon]="tableDensity() === 'compact' ? 'pi pi-bars' : 'pi pi-align-justify'"
+              severity="secondary"
+              [text]="true"
+              rounded
+              (click)="toggleDensity()"
+              [pTooltip]="tableDensity() === 'compact' ? 'Densidad: Compacta (click para Normal)' : 'Densidad: Normal (click para Compacta)'"
+              tooltipPosition="bottom"
+            />
+            <p-button
               icon="pi pi-info-circle"
               severity="info"
               [text]="true"
               rounded
               (click)="infoDialogVisible.set(true)"
-              pTooltip="Cómo funciona el sistema"
+              pTooltip="Cómo funciona el sistema (?)"
               tooltipPosition="bottom"
+            />
+            <!-- Menú de vistas guardadas -->
+            <div class="relative">
+              <p-button
+                icon="pi pi-bookmark"
+                severity="secondary"
+                [outlined]="true"
+                rounded
+                (click)="viewsMenuVisible.set(!viewsMenuVisible())"
+                [label]="savedViews().length > 0 ? 'Vistas (' + savedViews().length + ')' : 'Vistas'"
+                pTooltip="Aplicar o guardar combinaciones de filtros"
+                tooltipPosition="bottom"
+                class="min-h-[44px]"
+              />
+              @if (viewsMenuVisible()) {
+                <div
+                  class="absolute top-full mt-1 right-0 z-50 min-w-[260px] max-w-[320px] bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl overflow-hidden"
+                  (click)="$event.stopPropagation()"
+                >
+                  <div class="p-2 border-b border-neutral-800 flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold text-gray-300 uppercase">Mis vistas</span>
+                    <p-button
+                      icon="pi pi-plus"
+                      size="small"
+                      severity="secondary"
+                      [text]="true"
+                      (click)="openSaveViewDialog()"
+                      pTooltip="Guardar filtros actuales"
+                      tooltipPosition="left"
+                    />
+                  </div>
+                  @if (savedViews().length === 0) {
+                    <div class="p-4 text-center text-sm text-gray-500">
+                      <i class="pi pi-info-circle block mb-2 text-lg"></i>
+                      Sin vistas guardadas.
+                      <br />
+                      <span class="text-xs">Aplica filtros y guárdalos con el botón +</span>
+                    </div>
+                  } @else {
+                    <div class="max-h-[320px] overflow-y-auto">
+                      @for (v of savedViews(); track v.id) {
+                        <button
+                          type="button"
+                          class="w-full text-left px-3 py-2 hover:bg-neutral-800/60 transition-colors flex items-center justify-between gap-2 group border-b border-neutral-800/60 last:border-b-0"
+                          (click)="applyView(v)"
+                        >
+                          <div class="min-w-0 flex-1">
+                            <div class="text-sm text-white truncate">{{ v.name }}</div>
+                            <div class="text-[10px] text-gray-500">
+                              {{ v.createdAt | date : 'dd/MM/yy' }}
+                            </div>
+                          </div>
+                          <i
+                            class="pi pi-trash text-xs text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            (click)="deleteView(v, $event)"
+                          ></i>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <p-button
+              [icon]="onlyProblems() ? 'pi pi-exclamation-triangle' : 'pi pi-flag'"
+              [severity]="onlyProblems() ? 'warn' : 'secondary'"
+              [outlined]="!onlyProblems()"
+              rounded
+              (click)="onlyProblems.set(!onlyProblems())"
+              [label]="onlyProblems() ? 'Mostrando problemas' : 'Solo problemas'"
+              [pTooltip]="onlyProblems() ? 'Mostrando filas con retrasos, errores, almuerzo excedido, salida temprana o sin horario. Click para desactivar.' : 'Mostrar solo filas con problemas (Shift+P)'"
+              tooltipPosition="bottom"
+              class="min-h-[44px]"
             />
             @if (hasActiveFilters()) {
               <p-button
@@ -98,8 +207,20 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
                 [outlined]="true"
                 rounded
                 (click)="clearAllFilters()"
-                [label]="'Limpiar filtros (' + getActiveFiltersCount() + ')'"
-                pTooltip="Volver al mes actual sin filtros"
+                [label]="'Limpiar (' + getActiveFiltersCount() + ')'"
+                pTooltip="Volver al mes actual sin filtros (Esc)"
+                tooltipPosition="bottom"
+                class="min-h-[44px]"
+              />
+            }
+            @if (store.isAdmin() && pendingOvertimeLogs().length > 0) {
+              <p-button
+                icon="pi pi-check-square"
+                severity="warn"
+                rounded
+                (click)="openBulkApprove()"
+                [label]="'Aprobar extras (' + pendingOvertimeLogs().length + ')'"
+                pTooltip="Aprobar todas las horas extras pendientes visibles en la tabla actual"
                 tooltipPosition="bottom"
                 class="min-h-[44px]"
               />
@@ -110,8 +231,22 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
               (click)="generateReport()"
               severity="success"
               [disabled]="timelogsReport().length === 0"
-              label="Exportar Excel"
+              label="Excel"
               rounded
+              pTooltip="Exportar a Excel (Shift+E)"
+              tooltipPosition="bottom"
+              class="min-h-[44px]"
+            />
+            <p-button
+              icon="pi pi-file-pdf"
+              [loading]="pdfLoading()"
+              (click)="generatePdf()"
+              severity="danger"
+              [disabled]="timelogsReport().length === 0"
+              label="PDF"
+              rounded
+              pTooltip="Exportar a PDF para imprimir/firmar"
+              tooltipPosition="bottom"
               class="min-h-[44px]"
             />
           </div>
@@ -139,6 +274,25 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
         [activeFiltersCount]="getActiveFiltersCount"
         (searchRequested)="onEmployeeSearchEnter()"
       ></pt-timelogs-filters>
+
+      <!-- Presets rápidos de fecha — atajos sin abrir el datepicker -->
+      <div class="flex flex-wrap items-center gap-1.5 mb-3 -mt-1 text-xs">
+        <span class="text-gray-500 mr-1">Rangos:</span>
+        @for (preset of datePresets(); track preset.label) {
+          <button
+            type="button"
+            (click)="applyDatePreset(preset.range)"
+            class="px-2.5 py-1 rounded-full border transition-colors"
+            [class.bg-amber-500/20]="isDatePresetActive(preset.range)"
+            [class.border-amber-500/60]="isDatePresetActive(preset.range)"
+            [class.text-amber-300]="isDatePresetActive(preset.range)"
+            [class.bg-neutral-800/60]="!isDatePresetActive(preset.range)"
+            [class.border-neutral-700/60]="!isDatePresetActive(preset.range)"
+            [class.text-gray-300]="!isDatePresetActive(preset.range)"
+            [class.hover:border-neutral-500]="!isDatePresetActive(preset.range)"
+          >{{ preset.label }}</button>
+        }
+      </div>
 
       <!-- Resumen del empleado seleccionado -->
       @if(selectedEmployee()) {
@@ -243,8 +397,11 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
         [maxExitTagWidth]="maxExitTagWidth()"
         [maxHoursTagWidth]="maxHoursTagWidth()"
         [isAdmin]="store.isAdmin()"
+        [density]="tableDensity()"
         (overtimeAction)="onOvertimeAction($event)"
         (clearFiltersRequested)="clearAllFilters()"
+        (employeeClicked)="onEmployeeClickedInTable($event)"
+        (dayClicked)="openDayDrillDown($event)"
       ></pt-timelogs-table>
       <!-- Alertas de seguridad de marcaciones (solo Tristan) -->
       @if (canSeeSecurityAlerts()) {
@@ -333,6 +490,209 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
         </div>
       </div>
     </p-dialog>
+
+    <!-- Bulk approve overtime: confirmación + progreso -->
+    <p-dialog
+      header="Aprobar horas extras pendientes"
+      [(visible)]="bulkConfirmVisible"
+      [modal]="true"
+      [closable]="!bulkProcessing()"
+      [dismissableMask]="!bulkProcessing()"
+      [style]="{ width: '460px' }"
+    >
+      @if (!bulkProcessing()) {
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+            <i class="pi pi-exclamation-triangle text-amber-400 text-xl"></i>
+            <div class="flex-1">
+              <div class="text-sm font-semibold text-white">
+                {{ pendingOvertimeLogs().length }} registros con extras pendientes
+              </div>
+              <div class="text-xs text-gray-400">
+                Total: {{ getBulkTotalHours().toFixed(2) }} h extras
+              </div>
+            </div>
+          </div>
+          <p class="text-sm text-gray-300 m-0">
+            Se aprobarán <strong>todas las horas extras pendientes visibles en la tabla actual</strong>.
+            Esta acción procesará una por una y dejará un registro de auditoría.
+          </p>
+          <p class="text-xs text-gray-500 m-0 italic">
+            Si quieres rechazar alguna o cambiar las horas, usa el botón individual en cada fila.
+          </p>
+        </div>
+        <ng-template pTemplate="footer">
+          <div class="flex justify-end gap-2">
+            <p-button label="Cancelar" severity="secondary" [text]="true" (click)="bulkConfirmVisible.set(false)" />
+            <p-button
+              label="Aprobar todas"
+              icon="pi pi-check"
+              severity="success"
+              (click)="confirmBulkApprove()"
+            />
+          </div>
+        </ng-template>
+      } @else {
+        <div class="flex flex-col gap-3 items-center py-4">
+          <i class="pi pi-spin pi-spinner text-3xl text-amber-400"></i>
+          <div class="text-sm text-white">
+            Procesando: {{ bulkProgress().done }} / {{ bulkProgress().total }}
+          </div>
+          @if (bulkProgress().failed > 0) {
+            <div class="text-xs text-red-400">
+              {{ bulkProgress().failed }} con error (se reintentará al finalizar)
+            </div>
+          }
+          <div class="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+            <div
+              class="h-full bg-amber-500 transition-all"
+              [style.width]="(bulkProgress().total > 0 ? (bulkProgress().done / bulkProgress().total * 100) : 0) + '%'"
+            ></div>
+          </div>
+        </div>
+      }
+    </p-dialog>
+
+    <!-- Drill-down: detalle del día -->
+    <p-dialog
+      [header]="drillDownLog() ?
+        ((drillDownLog()!.employee.first_name || '') + ' ' + (drillDownLog()!.employee.father_name || '') + ' — ' + (drillDownLog()!.day))
+        : 'Detalle del día'"
+      [(visible)]="drillDownVisible"
+      [modal]="true"
+      [style]="{ width: '640px', maxWidth: '95vw' }"
+      [dismissableMask]="true"
+    >
+      @if (drillDownLog(); as log) {
+        <div class="flex flex-col gap-4">
+          <!-- Metadata -->
+          <div class="flex flex-wrap gap-4 p-3 bg-neutral-800/40 rounded-lg border border-neutral-800">
+            <div>
+              <div class="text-[10px] uppercase text-gray-500">Horario</div>
+              <div class="text-sm font-semibold text-white">{{ log.schedule?.schedule?.name || 'Sin horario' }}</div>
+            </div>
+            @if (log.totalHours) {
+              <div>
+                <div class="text-[10px] uppercase text-gray-500">Horas trabajadas</div>
+                <div class="text-sm font-semibold"
+                  [class.text-green-400]="!log.insufficientHours"
+                  [class.text-red-400]="log.insufficientHours"
+                >{{ log.totalHours.toFixed(2) }}h</div>
+              </div>
+            }
+            @if (log.overtimeHours && log.overtimeHours > 0) {
+              <div>
+                <div class="text-[10px] uppercase text-gray-500">Extras</div>
+                <div class="text-sm font-semibold text-cyan-400">{{ log.overtimeHours.toFixed(2) }}h</div>
+              </div>
+            }
+            @if (log.delay) {
+              <div>
+                <div class="text-[10px] uppercase text-gray-500">Retraso</div>
+                <div class="text-sm font-semibold text-red-400">{{ log.delay }} min</div>
+              </div>
+            }
+            @if (log.alert) {
+              <div>
+                <div class="text-[10px] uppercase text-gray-500">Alerta</div>
+                <div class="text-sm font-semibold text-amber-400">{{ log.alert }}</div>
+              </div>
+            }
+          </div>
+
+          <!-- Timeline visual de marcaciones -->
+          <div class="flex flex-col gap-2">
+            <div class="text-xs uppercase text-gray-500 font-semibold mb-1">Marcaciones</div>
+            @for (mark of getDayMarks(log); track mark.type) {
+              <div class="p-3 bg-neutral-800/60 rounded-lg border border-neutral-700/50 flex items-start gap-3">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                  [style.background]="mark.color + '22'"
+                >
+                  <i class="pi text-sm" [ngClass]="mark.icon" [style.color]="mark.color"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <span class="text-sm font-semibold text-white">{{ mark.label }}</span>
+                    <span class="text-sm font-mono text-amber-300">
+                      {{ mark.punch?.date | date : 'HH:mm:ss' : '-0500' }}
+                    </span>
+                  </div>
+                  <div class="flex flex-wrap gap-3 text-[11px] text-gray-400">
+                    @if (mark.punch?.branch?.name) {
+                      <span><i class="pi pi-building mr-1 text-[10px]"></i>{{ mark.punch?.branch?.name }}</span>
+                    }
+                    @if (mark.punch?.is_manual) {
+                      <span class="text-amber-300">
+                        <i class="pi pi-pencil mr-1 text-[10px]"></i>
+                        Manual: {{ mark.punch?.manual_reason || 'sin motivo' }}
+                      </span>
+                    }
+                    @if (mark.punch?.invalid_ip) {
+                      <span class="text-orange-400">
+                        <i class="pi pi-exclamation-triangle mr-1 text-[10px]"></i>
+                        IP inválida: {{ mark.punch?.ip || '—' }}
+                      </span>
+                    } @else if (mark.punch?.ip) {
+                      <span><i class="pi pi-globe mr-1 text-[10px]"></i>{{ mark.punch?.ip }}</span>
+                    }
+                    @if (mark.punch?.source) {
+                      <span><i class="pi pi-tag mr-1 text-[10px]"></i>{{ mark.punch?.source }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="p-4 text-center text-sm text-gray-500 bg-neutral-800/40 rounded-lg">
+                <i class="pi pi-info-circle mr-1"></i>
+                Sin marcaciones registradas para este día.
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </p-dialog>
+
+    <!-- Dialog para nombrar y guardar una vista -->
+    <p-dialog
+      header="Guardar vista"
+      [(visible)]="saveViewDialogVisible"
+      [modal]="true"
+      [style]="{ width: '400px' }"
+      [dismissableMask]="true"
+    >
+      <div class="flex flex-col gap-3">
+        <p class="text-sm text-gray-400 m-0">
+          Dale un nombre descriptivo a los filtros actuales para volver a ellos
+          con un solo clic más tarde.
+        </p>
+        <input
+          type="text"
+          pInputText
+          placeholder="Ej. Tardanzas este mes — Park Plaza"
+          [ngModel]="newViewName()"
+          (ngModelChange)="newViewName.set($event)"
+          (keyup.enter)="saveCurrentView()"
+          maxlength="60"
+          class="w-full"
+          autofocus
+        />
+      </div>
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            [text]="true"
+            (click)="saveViewDialogVisible.set(false)"
+          />
+          <p-button
+            label="Guardar"
+            icon="pi pi-bookmark"
+            (click)="saveCurrentView()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   </div>`,
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
@@ -386,8 +746,30 @@ export class TimelogsComponent {
   public onlyWithMarcaciones = signal(false);
   public delayToleranceMinutes = signal(5);
   public delayRange = signal<string | null>(null);
+  // Toggle combinado: activa retrasos + errores + salida temprana + almuerzo
+  public onlyProblems = signal(false);
+  // Densidad de la tabla: 'normal' (44px por fila) o 'compact' (28px).
+  // Persiste en localStorage para que cada usuario mantenga su preferencia.
+  public tableDensity = signal<'normal' | 'compact'>(
+    (typeof localStorage !== 'undefined' &&
+      (localStorage.getItem('timelogs-density') as 'normal' | 'compact')) ||
+      'normal',
+  );
   public filtersExpanded = signal(false);
   public loading = signal(false);
+  public pdfLoading = signal(false);
+  // Vistas guardadas (filtros recurrentes que el usuario nombra)
+  public savedViews = signal<TimelogSavedView[]>([]);
+  public viewsMenuVisible = signal(false);
+  public saveViewDialogVisible = signal(false);
+  public newViewName = signal('');
+  // Drill-down: detalle completo de un DayLog (timeline visual)
+  public drillDownVisible = signal(false);
+  public drillDownLog = signal<DayLog | null>(null);
+  // Bulk approve overtime
+  public bulkConfirmVisible = signal(false);
+  public bulkProcessing = signal(false);
+  public bulkProgress = signal({ done: 0, total: 0, failed: 0 });
 
   // Overtime dialog state
   public overtimeDialogVisible = signal(false);
@@ -420,6 +802,45 @@ export class TimelogsComponent {
     { label: '5-10 min', value: '5-10' },
     { label: '10+ min', value: '10+' },
   ];
+
+  // ─── Quick date presets ────────────────────────────────────
+  // El usuario casi siempre quiere uno de estos rangos. Los botones aplican
+  // directamente sin pasar por el datepicker.
+  public datePresets = computed(() => {
+    const today = new Date();
+    const yesterday = subDays(today, 1);
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });   // lunes
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });       // domingo
+    const lastWeekStart = subDays(weekStart, 7);
+    const lastWeekEnd = subDays(weekEnd, 7);
+    const thisMonth = startOfMonth(today);
+    const lastMonth = startOfMonth(subMonths(today, 1));
+    const lastMonthEnd = endOfMonth(subMonths(today, 1));
+    return [
+      { label: 'Hoy', range: [today, today], shortcut: 'D' },
+      { label: 'Ayer', range: [yesterday, yesterday], shortcut: 'Y' },
+      { label: 'Esta semana', range: [weekStart, today], shortcut: 'W' },
+      { label: 'Semana pasada', range: [lastWeekStart, lastWeekEnd], shortcut: '' },
+      { label: 'Este mes', range: [thisMonth, today], shortcut: 'M' },
+      { label: 'Mes pasado', range: [lastMonth, lastMonthEnd], shortcut: '' },
+      { label: 'Últimos 7 días', range: [subDays(today, 6), today], shortcut: '' },
+      { label: 'Últimos 30 días', range: [subDays(today, 29), today], shortcut: '' },
+    ];
+  });
+
+  /**
+   * Aplica un preset de fechas — atajo común para evitar el datepicker.
+   */
+  public applyDatePreset(range: Date[]): void {
+    this.dateRange.set([startOfDay(range[0]), startOfDay(range[1])]);
+  }
+
+  /** True si el rango actual coincide exactamente con el preset. */
+  public isDatePresetActive(range: Date[]): boolean {
+    const current = this.dateRange();
+    if (!current || current.length < 2) return false;
+    return isSameDay(current[0], range[0]) && isSameDay(current[1], range[1]);
+  }
 
   // ─── Tag width computeds (UI layout) ──────────────────────
   public maxEmployeeTagWidth = computed(() => {
@@ -526,6 +947,7 @@ export class TimelogsComponent {
       this.onlyEarlyExit() ||
       this.onlyLunchExceeded() ||
       this.onlyWithMarcaciones() ||
+      this.onlyProblems() ||
       !!this.employeeId() ||
       !!this.branchId() ||
       !!this.employeeSearch() ||
@@ -539,6 +961,7 @@ export class TimelogsComponent {
     if (this.onlyEarlyExit()) count++;
     if (this.onlyLunchExceeded()) count++;
     if (this.onlyWithMarcaciones()) count++;
+    if (this.onlyProblems()) count++;
     if (this.employeeId()) count++;
     if (this.branchId()) count++;
     if (this.employeeSearch()) count++;
@@ -830,8 +1253,22 @@ export class TimelogsComponent {
       onlyLunchExceeded: this.onlyLunchExceeded(),
       lunchExceededRange: this.lunchExceededRange(),
       onlyErrors: this.onlyErrors(),
+      onlyProblems: this.onlyProblems(),
     })
   );
+
+  /**
+   * DayLogs visibles con extras pendientes de aprobación (overtimeHours > 0
+   * y NO confirmed/rejected). Sirve para el botón de "Aprobar todas".
+   */
+  public pendingOvertimeLogs = computed(() => {
+    return this.filteredDaylogs().filter(
+      (dl) =>
+        !!dl.overtimeHours &&
+        dl.overtimeHours > 0 &&
+        (!dl.overtimeRecord || dl.overtimeRecord.status === 'pending'),
+    );
+  });
 
   // ─── Computed: Totals for selected employee ────────────────
   // filteredDaylogs ya está acotado al rango por buildBaseDayLogs; no se
@@ -963,6 +1400,13 @@ export class TimelogsComponent {
 
   // ─── Constructor: Effects ──────────────────────────────────
   constructor() {
+    // Cargar vistas guardadas del localStorage al iniciar
+    try {
+      this.savedViews.set(loadSavedViews());
+    } catch {
+      /* localStorage inaccesible, vacío */
+    }
+
     // Realtime: reload httpResources when timelogs or schedules change
     effect(() => {
       const batch = this.timelogChanges();
@@ -1063,6 +1507,300 @@ export class TimelogsComponent {
     this.employeeSearch.set(this.employeeSearchInput());
   };
 
+  // ─── Bulk approve overtime ─────────────────────────────────
+
+  /** Total de horas extras pendientes en los DayLogs visibles. */
+  public getBulkTotalHours(): number {
+    return this.pendingOvertimeLogs().reduce(
+      (acc, dl) => acc + (dl.overtimeHours ?? 0),
+      0,
+    );
+  }
+
+  /** Abre el dialog de confirmación de aprobación masiva. */
+  public openBulkApprove(): void {
+    if (this.pendingOvertimeLogs().length === 0) return;
+    this.bulkConfirmVisible.set(true);
+  }
+
+  /**
+   * Procesa la aprobación de todas las extras pendientes una por una.
+   * Si una falla, continúa con las demás y al final reporta cuántas OK/error.
+   * Cada operación es atómica en Supabase — no hay riesgo de estado parcial
+   * dentro de un mismo record.
+   */
+  public async confirmBulkApprove(): Promise<void> {
+    const logs = this.pendingOvertimeLogs();
+    if (logs.length === 0) return;
+
+    const currentEmployeeId = this.store.auth.currentEmployeeId();
+    if (!currentEmployeeId) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar el usuario actual.',
+      });
+      return;
+    }
+
+    this.bulkProcessing.set(true);
+    this.bulkProgress.set({ done: 0, total: logs.length, failed: 0 });
+
+    let okCount = 0;
+    let failCount = 0;
+
+    for (const log of logs) {
+      try {
+        const existing = log.overtimeRecord;
+        if (existing?.id) {
+          await this.overtimeService.confirm({
+            recordId: existing.id,
+            confirmedBy: currentEmployeeId,
+            hours: log.overtimeHours,
+            reason: 'Aprobación masiva',
+          });
+        } else if (log.employee?.id) {
+          const newRecord = await this.overtimeService.save({
+            employee_id: log.employee.id,
+            timelog_date: log.day,
+            hours: log.overtimeHours ?? 0,
+            status: 'confirmed',
+            reason: 'Aprobación masiva',
+          });
+          await this.overtimeService.confirm({
+            recordId: newRecord.id,
+            confirmedBy: currentEmployeeId,
+            hours: log.overtimeHours,
+            reason: 'Aprobación masiva',
+          });
+        }
+        okCount++;
+      } catch (error) {
+        failCount++;
+        this.logger.error(
+          '[TimelogsComponent] Error aprobando overtime en bulk',
+          {
+            employee_id: log.employee?.id,
+            day: log.day,
+            error,
+          },
+        );
+      } finally {
+        this.bulkProgress.update((p) => ({
+          done: p.done + 1,
+          total: p.total,
+          failed: failCount,
+        }));
+      }
+    }
+
+    this.bulkProcessing.set(false);
+    this.bulkConfirmVisible.set(false);
+    this.overtimeRecords.reload();
+
+    if (failCount === 0) {
+      this.message.add({
+        severity: 'success',
+        summary: 'Extras aprobadas',
+        detail: `${okCount} registros confirmados correctamente.`,
+        life: 4000,
+      });
+    } else {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Aprobación parcial',
+        detail: `${okCount} aprobadas, ${failCount} con error. Revisa el log y vuelve a intentarlo.`,
+        life: 6000,
+      });
+    }
+  }
+
+  /** Abre el modal de drill-down con detalle completo del día. */
+  public openDayDrillDown(log: DayLog): void {
+    this.drillDownLog.set(log);
+    this.drillDownVisible.set(true);
+  }
+
+  /**
+   * Retorna las marcaciones del día ordenadas para el drill-down con
+   * metadata visual (icono, color, etiqueta).
+   */
+  public getDayMarks(log: DayLog) {
+    const marks: Array<{
+      type: 'entry' | 'lunch_start' | 'lunch_end' | 'exit';
+      label: string;
+      icon: string;
+      color: string;
+      punch: DayLog['entry'];
+    }> = [];
+    if (log.entry) {
+      marks.push({
+        type: 'entry',
+        label: 'Entrada',
+        icon: 'pi-sign-in',
+        color: '#22C55E',
+        punch: log.entry,
+      });
+    }
+    if (log.lunch_start) {
+      marks.push({
+        type: 'lunch_start',
+        label: 'Inicio de almuerzo',
+        icon: 'pi-clock',
+        color: '#F59E0B',
+        punch: log.lunch_start,
+      });
+    }
+    if (log.lunch_end) {
+      marks.push({
+        type: 'lunch_end',
+        label: 'Fin de almuerzo',
+        icon: 'pi-clock',
+        color: '#F59E0B',
+        punch: log.lunch_end,
+      });
+    }
+    if (log.exit) {
+      marks.push({
+        type: 'exit',
+        label: 'Salida',
+        icon: 'pi-sign-out',
+        color: '#3B82F6',
+        punch: log.exit,
+      });
+    }
+    return marks;
+  }
+
+  // ─── Vistas guardadas ──────────────────────────────────────
+
+  /** Abre el dialog para nombrar y guardar la vista actual. */
+  public openSaveViewDialog(): void {
+    this.newViewName.set('');
+    this.saveViewDialogVisible.set(true);
+  }
+
+  /** Persiste la vista actual con el nombre dado. */
+  public saveCurrentView(): void {
+    const name = this.newViewName().trim();
+    if (!name) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Nombre requerido',
+        detail: 'Dale un nombre a tu vista para guardarla.',
+      });
+      return;
+    }
+
+    const range = this.dateRange();
+    const view: TimelogSavedView = {
+      id: generateViewId(),
+      name,
+      createdAt: new Date().toISOString(),
+      filters: {
+        dateRange:
+          range && range.length === 2
+            ? {
+                start: format(range[0], 'yyyy-MM-dd'),
+                end: format(range[1] ?? range[0], 'yyyy-MM-dd'),
+              }
+            : null,
+        employeeId: this.employeeId(),
+        branchId: this.branchId(),
+        employeeSearch: this.employeeSearch() || undefined,
+        onlyDelayed: this.onlyDelayed(),
+        onlyErrors: this.onlyErrors(),
+        onlyEarlyExit: this.onlyEarlyExit(),
+        onlyLunchExceeded: this.onlyLunchExceeded(),
+        onlyWithMarcaciones: this.onlyWithMarcaciones(),
+        onlyProblems: this.onlyProblems(),
+        delayRange: this.delayRange(),
+        lunchExceededRange: this.lunchExceededRange(),
+        delayToleranceMinutes: this.delayToleranceMinutes(),
+      },
+    };
+
+    this.savedViews.set(addView(view));
+    this.saveViewDialogVisible.set(false);
+    this.message.add({
+      severity: 'success',
+      summary: 'Vista guardada',
+      detail: `"${name}" disponible en el menú de vistas.`,
+      life: 2500,
+    });
+  }
+
+  /** Aplica una vista guardada como filtros activos. */
+  public applyView(view: TimelogSavedView): void {
+    const f = view.filters;
+    if (f.dateRange) {
+      this.dateRange.set([
+        new Date(f.dateRange.start + 'T00:00:00'),
+        new Date(f.dateRange.end + 'T00:00:00'),
+      ]);
+    }
+    this.employeeId.set(f.employeeId);
+    this.branchId.set(f.branchId);
+    this.employeeSearch.set(f.employeeSearch ?? '');
+    this.employeeSearchInput.set(f.employeeSearch ?? '');
+    this.onlyDelayed.set(f.onlyDelayed);
+    this.onlyErrors.set(f.onlyErrors);
+    this.onlyEarlyExit.set(f.onlyEarlyExit);
+    this.onlyLunchExceeded.set(f.onlyLunchExceeded);
+    this.onlyWithMarcaciones.set(f.onlyWithMarcaciones);
+    this.onlyProblems.set(f.onlyProblems);
+    this.delayRange.set(f.delayRange ?? null);
+    this.lunchExceededRange.set(f.lunchExceededRange ?? null);
+    if (typeof f.delayToleranceMinutes === 'number') {
+      this.delayToleranceMinutes.set(f.delayToleranceMinutes);
+    }
+    this.viewsMenuVisible.set(false);
+    this.message.add({
+      severity: 'info',
+      summary: `Vista aplicada: ${view.name}`,
+      detail: 'Filtros restaurados.',
+      life: 2000,
+    });
+  }
+
+  /** Elimina una vista guardada del localStorage. */
+  public deleteView(view: TimelogSavedView, event: Event): void {
+    event.stopPropagation();
+    this.savedViews.set(removeView(view.id));
+    this.message.add({
+      severity: 'info',
+      summary: 'Vista eliminada',
+      detail: `"${view.name}" fue borrada.`,
+      life: 2000,
+    });
+  }
+
+  public toggleDensity(): void {
+    const next = this.tableDensity() === 'compact' ? 'normal' : 'compact';
+    this.tableDensity.set(next);
+    try {
+      localStorage.setItem('timelogs-density', next);
+    } catch {
+      /* localStorage no disponible (SSR), seguir */
+    }
+  }
+
+  /**
+   * Handler: el usuario hizo clic en el nombre de un empleado en la tabla.
+   * Lo selecciona como filtro y limpia la búsqueda de texto para evitar
+   * conflicto. Si ya está seleccionado, lo deselecciona (toggle).
+   */
+  public onEmployeeClickedInTable(employeeId: string | undefined): void {
+    if (!employeeId) return;
+    if (this.employeeId() === employeeId) {
+      this.employeeId.set(undefined);
+    } else {
+      this.employeeId.set(employeeId);
+      this.employeeSearch.set('');
+      this.employeeSearchInput.set('');
+    }
+  }
+
   /**
    * Reset de todos los filtros UI a su valor default. El rango de fechas
    * vuelve al mes actual hasta hoy. No toca el dataset crudo — el rebuild
@@ -1079,6 +1817,7 @@ export class TimelogsComponent {
     this.onlyEarlyExit.set(false);
     this.onlyLunchExceeded.set(false);
     this.onlyWithMarcaciones.set(false);
+    this.onlyProblems.set(false);
     this.delayRange.set(null);
     this.lunchExceededRange.set(null);
     this.message.add({
@@ -1168,6 +1907,65 @@ export class TimelogsComponent {
       });
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /**
+   * Exporta el reporte de marcaciones a un PDF profesional, orientación
+   * horizontal con tabla detallada, totales por empleado y líneas de firma.
+   * Apropiado para imprimir o adjuntar al expediente del empleado.
+   */
+  async generatePdf(): Promise<void> {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Fecha requerida',
+        detail: 'Por favor selecciona un rango de fechas',
+      });
+      return;
+    }
+
+    try {
+      this.pdfLoading.set(true);
+      const { exportTimelogsPdf } = await import(
+        './timelogs/utils/timelogs-pdf-export.utils'
+      );
+
+      const sel = this.selectedEmployee();
+      const scopeName = sel?.short_name
+        ? sel.short_name.toUpperCase().trim()
+        : 'GLOBAL';
+
+      await exportTimelogsPdf({
+        filteredDayLogs: this.filteredDaylogs(),
+        start,
+        end,
+        timezone: this.TIMEZONE,
+        scopeName,
+        companyName: this.organizationService.isNaz()
+          ? 'Naz'
+          : 'Black Dog Panamá',
+        generatedByEmail:
+          this.store.currentEmployee()?.work_email ||
+          this.store.currentEmployee()?.email ||
+          undefined,
+      });
+
+      this.message.add({
+        severity: 'success',
+        summary: 'PDF generado',
+        detail: 'El archivo PDF se descargó correctamente.',
+      });
+    } catch (error) {
+      this.logger.error('Error generating PDF:', error);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo generar el PDF. Por favor, intente nuevamente.',
+      });
+    } finally {
+      this.pdfLoading.set(false);
     }
   }
 
@@ -1294,5 +2092,96 @@ export class TimelogsComponent {
     // para invalidar todo el árbol reactivo, ahora podemos pedir solo lo que
     // cambió.
     this.overtimeRecords.reload();
+  }
+
+  // ─── Atajos de teclado ────────────────────────────────────
+  // Mejoran la productividad de power-users (RRHH, gerentes que revisan
+  // marcaciones todo el día):
+  //  - "/"            → enfocar la búsqueda
+  //  - Cmd/Ctrl+K     → ídem, estilo command palette moderno
+  //  - Esc            → limpiar filtros (si los hay) o cerrar dialogs
+  //  - Shift+E        → exportar Excel
+  //  - Shift+P        → toggle "Solo problemas"
+  @HostListener('window:keydown', ['$event'])
+  public handleShortcuts(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const isTyping =
+      !!target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+
+    // Cmd/Ctrl+K: enfocar búsqueda (siempre, hasta dentro de inputs)
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.focusEmployeeSearch();
+      return;
+    }
+
+    // Esc: si hay dialogs abiertos, los cerramos. Si no, limpia filtros.
+    if (event.key === 'Escape') {
+      if (this.drillDownVisible()) {
+        this.drillDownVisible.set(false);
+        return;
+      }
+      if (this.saveViewDialogVisible()) {
+        this.saveViewDialogVisible.set(false);
+        return;
+      }
+      if (this.viewsMenuVisible()) {
+        this.viewsMenuVisible.set(false);
+        return;
+      }
+      if (this.summaryDialogVisible()) {
+        this.summaryDialogVisible.set(false);
+        return;
+      }
+      if (this.infoDialogVisible()) {
+        this.infoDialogVisible.set(false);
+        return;
+      }
+      if (this.overtimeDialogVisible()) {
+        this.overtimeDialogVisible.set(false);
+        return;
+      }
+      if (!isTyping && this.hasActiveFilters()) {
+        event.preventDefault();
+        this.clearAllFilters();
+      }
+      return;
+    }
+
+    // Resto de atajos: solo si NO estamos escribiendo en un input
+    if (isTyping) return;
+
+    if (event.key === '/') {
+      event.preventDefault();
+      this.focusEmployeeSearch();
+      return;
+    }
+
+    if (event.shiftKey && event.key.toLowerCase() === 'e') {
+      event.preventDefault();
+      this.generateReport();
+      return;
+    }
+
+    if (event.shiftKey && event.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      this.onlyProblems.set(!this.onlyProblems());
+      return;
+    }
+  }
+
+  private focusEmployeeSearch(): void {
+    // Busca el input del autocomplete y le da focus. Es defensivo porque la
+    // estructura interna del autocomplete de PrimeNG puede cambiar.
+    const el = document.querySelector(
+      'pt-timelogs-filters input[type="text"]',
+    ) as HTMLInputElement | null;
+    if (el) {
+      el.focus();
+      el.select?.();
+    }
   }
 }

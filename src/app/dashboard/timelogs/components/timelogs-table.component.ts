@@ -75,9 +75,19 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div style="display:flex;align-items:center;gap:0.35rem;min-width:0;flex:1;">
                   <span class="text-[10px] font-mono text-gray-500">{{ log.employee.employee_number }}</span>
-                  <span class="mobile-card-item__title" style="font-size:0.75rem;">{{ log.employee.first_name }} {{ log.employee.father_name }}</span>
+                  <button
+                    type="button"
+                    class="mobile-card-item__title hover:text-amber-300 transition-colors"
+                    style="font-size:0.75rem;text-align:left;background:none;border:0;padding:0;color:inherit;"
+                    (click)="employeeClicked.emit(log.employee.id)"
+                  >{{ log.employee.first_name }} {{ log.employee.father_name }}</button>
                 </div>
-                <span class="text-[10px] text-gray-500 shrink-0">{{ log.day | panamaDate : 'shortDate' }}</span>
+                <button
+                  type="button"
+                  class="text-[10px] text-gray-500 shrink-0 hover:text-amber-300 transition-colors"
+                  style="background:none;border:0;padding:0;cursor:pointer;"
+                  (click)="dayClicked.emit(log)"
+                >{{ log.day | panamaDate : 'shortDate' }}</button>
               </div>
               <!-- Row 2: Schedule + Alert -->
               <div style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;">
@@ -152,7 +162,7 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
       }
     </div>
     <!-- Desktop table view -->
-    <div class="hidden md:block overflow-x-auto">
+    <div class="hidden md:block overflow-x-auto" [class.timelogs-compact]="density === 'compact'">
       <p-table
         [value]="logs()"
         [rows]="isMobile() ? 10 : 25"
@@ -196,7 +206,13 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
                     class="text-xs text-gray-400 font-mono"
                     >{{ log.employee.employee_number }}</span
                   >
-                  {{ log.employee.first_name }} {{ log.employee.father_name }}
+                  <button
+                    type="button"
+                    class="text-left hover:text-amber-300 hover:underline transition-colors"
+                    [pTooltip]="'Click para filtrar solo ' + log.employee.first_name + ' ' + log.employee.father_name"
+                    tooltipPosition="top"
+                    (click)="employeeClicked.emit(log.employee.id)"
+                  >{{ log.employee.first_name }} {{ log.employee.father_name }}</button>
                   <p-tag
                     *ngIf="!log.scheduleError && log.alert"
                     [value]="log.alert"
@@ -214,7 +230,16 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
                 </div>
               </div>
             </td>
-            <td>{{ log.day | panamaDate : 'mediumDate' }}</td>
+            <td>
+              <button
+                type="button"
+                class="hover:text-amber-300 hover:underline transition-colors"
+                style="background:none;border:0;padding:0;color:inherit;cursor:pointer;"
+                [pTooltip]="'Ver detalle completo del día'"
+                tooltipPosition="top"
+                (click)="dayClicked.emit(log)"
+              >{{ log.day | panamaDate : 'mediumDate' }}</button>
+            </td>
             <td>
               <span
                 *ngIf="log.scheduleError; else scheduleCell"
@@ -612,6 +637,23 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
       transform: translateY(-1px);
     }
     .tl-photo-btn i { font-size: 11px; }
+
+    /* Densidad compacta: reduce padding de celdas, fuente ligeramente menor.
+       Permite ver ~50% más filas por pantalla sin cambiar el layout. */
+    :host ::ng-deep .timelogs-compact .p-datatable .p-datatable-thead > tr > th,
+    :host ::ng-deep .timelogs-compact .p-datatable .p-datatable-tbody > tr > td {
+      padding: 0.35rem 0.5rem !important;
+      font-size: 0.8rem;
+    }
+    :host ::ng-deep .timelogs-compact .p-datatable .p-avatar {
+      width: 1.4rem !important;
+      height: 1.4rem !important;
+      font-size: 0.7rem;
+    }
+    :host ::ng-deep .timelogs-compact .p-datatable .p-tag {
+      padding: 0.15rem 0.4rem !important;
+      font-size: 0.7rem;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -657,11 +699,18 @@ export class TimelogsTableComponent {
   @Input() public maxExitTagWidth!: string;
   @Input() public maxHoursTagWidth!: string;
   @Input() public isAdmin = false;
+  /** Densidad visual de la tabla. 'compact' reduce el padding de las celdas. */
+  @Input() public density: 'normal' | 'compact' = 'normal';
 
   // Output for overtime action button click
   public overtimeAction = output<DayLog>();
   /** Emitido cuando el usuario hace clic en "Limpiar filtros" desde el empty state. */
   public clearFiltersRequested = output<void>();
+  /** Emitido cuando el usuario hace clic en el nombre de un empleado. El padre
+   *  lo setea como filtro. */
+  public employeeClicked = output<string | undefined>();
+  /** Emitido cuando el usuario hace clic en el día → abre drill-down modal. */
+  public dayClicked = output<DayLog>();
 
   public colorVariants = colorVariants;
   public alertSeverity = getAlertSeverity;

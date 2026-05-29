@@ -12,6 +12,12 @@ export interface DayLogFilterInput {
   onlyLunchExceeded: boolean;
   lunchExceededRange: string | null;
   onlyErrors: boolean;
+  /**
+   * Toggle "Solo problemas": combina los 4 filtros de problema con OR.
+   * Tiene prioridad sobre los flags individuales — si está activo, ignora
+   * los otros y muestra cualquier fila con al menos un problema.
+   */
+  onlyProblems?: boolean;
 }
 
 /**
@@ -30,6 +36,7 @@ export function filterDayLogs(input: DayLogFilterInput): DayLog[] {
     onlyLunchExceeded,
     lunchExceededRange,
     onlyErrors,
+    onlyProblems,
   } = input;
 
   return dayLogs.filter((x: DayLog) => {
@@ -51,6 +58,23 @@ export function filterDayLogs(input: DayLogFilterInput): DayLog[] {
     if (onlyWithMarcaciones) {
       const hasMarcaciones = x.entry || x.lunch_start || x.lunch_end || x.exit;
       if (!hasMarcaciones) return false;
+    }
+
+    // Filtro combinado "Solo problemas" — atajo para gerentes. Si está
+    // activo, muestra cualquier fila con al menos un problema visible. Tiene
+    // prioridad sobre los flags individuales y los rangos.
+    if (onlyProblems) {
+      const hasProblem =
+        typeof x.delay === 'number' ||
+        x.earlyExit === true ||
+        x.lunchExceeded === true ||
+        x.insufficientHours === true ||
+        x.scheduleError === true ||
+        x.shiftMismatch === true ||
+        x.alert === 'Sin Horario' ||
+        x.alert === 'Día Libre' ||
+        x.alert === 'Feriado';
+      return hasProblem;
     }
 
     // Filtro: Solo retrasados.
