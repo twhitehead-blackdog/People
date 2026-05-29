@@ -10,11 +10,12 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { startOfDay } from 'date-fns';
+import { format, set, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
+import { InputText } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
@@ -25,6 +26,13 @@ import { OrganizationService } from '../../services/organization.service';
 import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
 import { notifyBranchManagers } from '../../utils/manager-notification.utils';
 
+interface CorrectionRow {
+  id: string;
+  date: Date | null;
+  type: 'entry' | 'lunch_start' | 'lunch_end' | 'exit';
+  time: string;
+}
+
 @Component({
   selector: 'pt-timelog-correction-gestion-form',
   standalone: true,
@@ -34,6 +42,7 @@ import { notifyBranchManagers } from '../../utils/manager-notification.utils';
     Button,
     DatePicker,
     FileUpload,
+    InputText,
     Textarea,
     Select,
     TooltipModule,
@@ -42,65 +51,102 @@ import { notifyBranchManagers } from '../../utils/manager-notification.utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-5">
-      <!-- Paso 1: Fecha y Tipo de Marcación -->
-      <div
-        class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
-      >
-        <div class="flex items-center gap-3 mb-4">
-          <div
-            class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center"
-          >
-            <i class="pi pi-calendar text-orange-400"></i>
+      <!-- Paso 1: Marcaciones a corregir (multi-fila) -->
+      <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <i class="pi pi-calendar text-orange-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white m-0">
+              Paso 1: Marcaciones a corregir
+            </h3>
           </div>
-          <h3 class="text-lg font-semibold text-white m-0">
-            Paso 1: Fecha y Tipo de Marcación
-          </h3>
+          <span class="text-xs text-gray-400">{{ rows().length }} marcación(es)</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium text-gray-300"
-              >Fecha de la Omisión de Marcación</label
-            >
-            <p-datepicker
-              [ngModel]="correctionDate()"
-              (ngModelChange)="correctionDate.set($event)"
-              [showIcon]="true"
-              dateFormat="dd/mm/yy"
-              placeholder="Selecciona la fecha"
-              [maxDate]="today"
-              styleClass="w-full"
-              appendTo="body"
-              ptTutorialStep="timelog-correction-date"
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium text-gray-300"
-              >Tipo de Marcación</label
-            >
-            <p-select
-              [ngModel]="correctionType()"
-              (ngModelChange)="correctionType.set($event)"
-              [options]="typeOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Selecciona el tipo"
-              styleClass="w-full"
-              appendTo="body"
-              ptTutorialStep="timelog-correction-type"
-            />
-          </div>
+
+        <p class="text-xs text-amber-300 mb-3">
+          <i class="pi pi-exclamation-circle mr-1"></i>
+          Cada marcación requiere fecha, tipo y <strong>hora exacta</strong> obligatoria.
+          Puede agregar varias filas si el empleado olvidó marcar varias veces.
+        </p>
+
+        <div class="space-y-3">
+          @for (row of rows(); track row.id; let i = $index) {
+            <div class="p-3 rounded-lg bg-neutral-900/40 border border-neutral-700/40">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs uppercase tracking-wide text-gray-500">Marcación #{{ i + 1 }}</span>
+                @if (rows().length > 1) {
+                  <button type="button"
+                    class="text-rose-300 hover:text-rose-200 text-xs"
+                    (click)="removeRow(row.id)">
+                    <i class="pi pi-trash text-[10px] mr-1"></i>Quitar
+                  </button>
+                }
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-medium text-gray-300">Fecha</label>
+                  <p-datepicker
+                    [ngModel]="row.date"
+                    (ngModelChange)="updateRow(row.id, 'date', $event)"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Fecha"
+                    [maxDate]="today"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-medium text-gray-300">Tipo</label>
+                  <p-select
+                    [ngModel]="row.type"
+                    (ngModelChange)="updateRow(row.id, 'type', $event)"
+                    [options]="typeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Tipo"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-medium text-gray-300">Hora exacta *</label>
+                  <input
+                    pInputText
+                    type="text"
+                    inputmode="numeric"
+                    [ngModel]="row.time"
+                    (ngModelChange)="updateRowTime(row.id, $event)"
+                    placeholder="HHMM (ej 0800)"
+                    maxlength="4"
+                    class="w-full"
+                  />
+                  @if (rowTimePreview(row); as preview) {
+                    <span class="text-sm font-bold text-orange-300">{{ preview }}</span>
+                  } @else {
+                    <span class="text-[11px] text-amber-400">⚠ Hora obligatoria</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
         </div>
-        @if (correctionDate() && correctionType()) {
-        <div
-          class="mt-3 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg"
-        >
-          <p class="text-sm text-orange-300">
-            <i class="pi pi-info-circle mr-2"></i>
-            Solicitud de corrección para:
-            <strong>{{ getTypeLabel() }}</strong>
-          </p>
+
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button type="button"
+            class="px-3 py-1.5 text-xs rounded-md bg-orange-500/10 border border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
+            (click)="addRow()">
+            <i class="pi pi-plus text-[10px] mr-1"></i>Agregar otra marcación
+          </button>
+          <button type="button"
+            class="px-3 py-1.5 text-xs rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-200 hover:bg-amber-500/20"
+            (click)="addFullDayRows()"
+            title="Agrega entrada, inicio almuerzo, fin almuerzo y salida para el día seleccionado">
+            <i class="pi pi-list text-[10px] mr-1"></i>Día completo (4 marcaciones)
+          </button>
         </div>
-        }
       </div>
 
       <!-- Paso 2: Motivo -->
@@ -221,13 +267,73 @@ export class TimelogCorrectionGestionFormComponent {
 
   public today = startOfDay(new Date());
 
-  public correctionDate = signal<Date | null>(null);
-  public correctionType = signal<'entry' | 'lunch_start' | 'lunch_end' | 'exit'>('entry');
+  public rows = signal<CorrectionRow[]>([this.newEmptyRow()]);
   public reason = signal<string>('');
   public file = signal<File | null>(null);
   public docUrl = signal<string | null>(null);
   public uploadingDoc = signal<boolean>(false);
   public submitting = signal<boolean>(false);
+
+  private newEmptyRow(): CorrectionRow {
+    return {
+      id: crypto.randomUUID(),
+      date: null,
+      type: 'entry',
+      time: '',
+    };
+  }
+
+  public addRow(): void {
+    this.rows.update(list => [...list, this.newEmptyRow()]);
+  }
+
+  public addFullDayRows(): void {
+    // Si hay una fila con fecha válida, úsala; si no, hoy
+    const sourceDate = this.rows().find(r => r.date)?.date || new Date();
+    const types: Array<CorrectionRow['type']> = ['entry', 'lunch_start', 'lunch_end', 'exit'];
+    const existing = this.rows().filter(r => r.date && r.time);
+    const newRows: CorrectionRow[] = types.map(t => ({
+      id: crypto.randomUUID(),
+      date: sourceDate,
+      type: t,
+      time: '',
+    }));
+    // Si el usuario ya tenía filas válidas (con time), las preservamos al inicio
+    this.rows.set(existing.length > 0 ? [...existing, ...newRows] : newRows);
+  }
+
+  public removeRow(id: string): void {
+    this.rows.update(list => list.length > 1 ? list.filter(r => r.id !== id) : list);
+  }
+
+  public updateRow(id: string, field: 'date' | 'type', value: any): void {
+    this.rows.update(list => list.map(r => r.id === id ? { ...r, [field]: value } : r));
+  }
+
+  public updateRowTime(id: string, value: string): void {
+    const clean = value.replace(/\D/g, '').slice(0, 4);
+    this.rows.update(list => list.map(r => r.id === id ? { ...r, time: clean } : r));
+  }
+
+  public rowTimePreview(row: CorrectionRow): string | null {
+    const parsed = this.parseTimeDigits(row.time);
+    if (!parsed) return null;
+    return format(set(new Date(), { hours: parsed.hours, minutes: parsed.minutes, seconds: 0, milliseconds: 0 }), 'h:mm a');
+  }
+
+  private parseTimeDigits(digits: string): { hours: number; minutes: number } | null {
+    const clean = (digits || '').replace(/\D/g, '');
+    if (clean.length < 3) return null;
+    const padded = clean.padStart(4, '0');
+    const h = parseInt(padded.slice(0, 2), 10);
+    const m = parseInt(padded.slice(2, 4), 10);
+    if (h > 23 || m > 59) return null;
+    return { hours: h, minutes: m };
+  }
+
+  private isRowComplete(r: CorrectionRow): boolean {
+    return !!(r.date && r.type && this.parseTimeDigits(r.time));
+  }
 
   public typeOptions = [
     { label: 'Entrada', value: 'entry' },
@@ -237,12 +343,14 @@ export class TimelogCorrectionGestionFormComponent {
   ];
 
   public canSubmit = computed(() => {
-    return !!(this.correctionDate() && this.correctionType() && this.reason().trim());
+    const rows = this.rows();
+    if (rows.length === 0) return false;
+    if (!this.reason().trim()) return false;
+    return rows.every(r => this.isRowComplete(r));
   });
 
   public getTypeLabel(): string {
-    const option = this.typeOptions.find((o) => o.value === this.correctionType());
-    return option?.label || this.correctionType() || 'Marcación';
+    return 'Marcación';
   }
 
   public async onFileSelect(event: any): Promise<void> {
@@ -286,8 +394,6 @@ export class TimelogCorrectionGestionFormComponent {
 
     try {
       const employee = this.selectedEmployee();
-      const date = this.correctionDate()!;
-      const type = this.correctionType();
       const f = this.file();
       let attachmentUrl = this.docUrl();
 
@@ -300,32 +406,45 @@ export class TimelogCorrectionGestionFormComponent {
         attachmentUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${fileName}`;
       }
 
-      const typeLabel = this.typeOptions.find((opt) => opt.value === type)?.label || type;
+      const rows = this.rows();
+      const companyId = this.organizationService.getCurrentCompanyId();
+      const branchId = employee.branch?.id || this.currentBranch()?.id || null;
+      const batchId = crypto.randomUUID();
 
-      const data = {
-        employee_id: employee.id,
-        document_type: 'timelog_correction',
-        reason: this.reason(),
-        status: 'pending',
-        created_by: this.currentEmployee()?.id || null,
-        company_id: this.organizationService.getCurrentCompanyId(),
-        metadata: {
-          timelog_date: date.toISOString().split('T')[0],
-          timelog_type: type,
-          branch_id: employee.branch?.id || this.currentBranch()?.id || null,
-          attachment_url: attachmentUrl,
-        },
-      };
+      // Construye payloads — uno por marcación
+      const payloads = rows.map(r => {
+        const parsed = this.parseTimeDigits(r.time)!;
+        const timeStr = `${String(parsed.hours).padStart(2, '0')}:${String(parsed.minutes).padStart(2, '0')}`;
+        const dateStr = r.date!.toISOString().split('T')[0];
+        return {
+          employee_id: employee.id,
+          document_type: 'timelog_correction',
+          reason: this.reason(),
+          status: 'pending',
+          created_by: this.currentEmployee()?.id || null,
+          company_id: companyId,
+          metadata: {
+            timelog_date: dateStr,
+            timelog_type: r.type,
+            timelog_time: timeStr,
+            branch_id: branchId,
+            attachment_url: attachmentUrl,
+            batch_id: batchId,
+            batch_size: rows.length,
+          },
+        };
+      });
 
-      await firstValueFrom(this.http.post(this.apiUrl.build('rest/v1/document_requests'), data));
+      // Inserción en batch (PostgREST acepta array)
+      await firstValueFrom(this.http.post(this.apiUrl.build('rest/v1/document_requests'), payloads));
 
-      // Notificar a gerentes de la sucursal
+      // Notificar a gerentes de la sucursal una sola vez por el lote
       notifyBranchManagers({
         http: this.http,
         apiUrl: this.apiUrl,
         employee,
         title: 'Nueva Corrección de Marcación',
-        message: `${employee.first_name} ${employee.father_name} solicitó una corrección de marcación (${typeLabel}).`,
+        message: `${employee.first_name} ${employee.father_name} solicitó ${rows.length} corrección(es) de marcación.`,
         relatedType: 'timelog_correction',
         messageType: 'timelog_correction_manager',
       });
@@ -333,7 +452,7 @@ export class TimelogCorrectionGestionFormComponent {
       this.messageService.add({
         severity: 'success',
         summary: 'Solicitud Enviada',
-        detail: `Corrección de marcación (${typeLabel}) para ${employee.first_name} ${employee.father_name} enviada correctamente`,
+        detail: `${rows.length} corrección(es) enviada(s) para ${employee.first_name} ${employee.father_name}.`,
       });
 
       this.requestCreated.emit();

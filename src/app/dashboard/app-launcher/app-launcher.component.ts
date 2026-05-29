@@ -1,7 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { PermissionsService } from '../../services/permissions.service';
 import { DashboardStore } from '../../stores/dashboard.store';
+import { ApiUrlService } from '../../services/api-url.service';
+import { OrganizationService } from '../../services/organization.service';
 
 interface Module {
   readonly id: string;
@@ -49,6 +53,7 @@ const PEOPLE_MODULES: readonly Module[] = [
   { id: 'home',            label: 'Dashboard',           description: 'KPIs y métricas',         icon: 'pi-chart-bar',     target: 'admin/home',       moduleId: 'home',            accent: 'blue'    },
   { id: 'admin',           label: 'Administración',      description: 'Empleados y posiciones',  icon: 'pi-building',      target: 'admin',            moduleId: 'admin',           accent: 'violet'  },
   { id: 'time_management', label: 'Gestión de tiempo',   description: 'Horarios y turnos',       icon: 'pi-clock',         target: 'time-management',  moduleId: 'time_management', accent: 'emerald' },
+  { id: 'marcacion_manual',label: 'Marcación Manual',    description: 'Registrar marcas perdidas',icon: 'pi-stopwatch',     target: 'marcacion-manual',                              accent: 'cyan'    },
   { id: 'payroll',         label: 'Planilla',            description: 'Nóminas y décimo',        icon: 'pi-wallet',        target: 'payroll',          moduleId: 'payroll',         accent: 'amber'   },
   { id: 'timeclock',       label: 'Reloj',               description: 'Entradas y salidas',      icon: 'pi-stopwatch',     target: 'timeclock',        moduleId: 'timeclock',       accent: 'rose'    },
   { id: 'branch_manager',  label: 'Gerente de Sucursal', description: 'Gestión de sucursal',     icon: 'pi-sitemap',       target: 'branch-manager',   moduleId: 'branch_manager',  accent: 'orange'  },
@@ -62,6 +67,8 @@ const EXTERNAL_MODULES: readonly Module[] = [
   { id: 'stock',      label: 'Stock',               description: 'Top100, rotación, salud',   icon: 'pi-box',            target: 'stock',     moduleId: 'services', subModuleId: 'stock_access',     accent: 'lime'    },
   { id: 'respond',    label: 'Respond',             description: 'Conversaciones en vivo',    icon: 'pi-comments',       target: 'respond',   moduleId: 'services', subModuleId: 'respond_access',   accent: 'cyan'    },
   { id: 'scorecard',  label: 'Scorecard',           description: 'Puntaje por sucursal',      icon: 'pi-trophy',         target: 'scorecard', moduleId: 'services', subModuleId: 'scorecard_access', accent: 'fuchsia' },
+  { id: 'tickets',    label: 'Tickets',             description: 'Resolver y dar seguimiento',  icon: 'pi-ticket',         target: '__tickets__',          accent: 'indigo' },
+  { id: 'suggestions',label: 'Sugerencias',         description: 'Buzón de ideas y mejoras',    icon: 'pi-lightbulb',      target: 'admin/suggestions',    moduleId: 'admin', subModuleId: 'suggestions_admin', accent: 'amber'  },
   { id: 'it',         label: 'BD IT',               description: 'Inventario y soporte',      icon: 'pi-desktop',        target: 'https://it.blackdogpanama.com',     external: true, accent: 'slate'  },
   { id: 'deploy',     label: 'Deploy',              description: 'CI/CD',                     icon: 'pi-upload',         target: 'https://deploy.blackdogpanama.com', external: true, accent: 'pink'   },
   { id: 'agent',      label: 'Agente IA',           description: 'Asistente inteligente',     icon: 'pi-android',        target: 'https://agent.blackdogpanama.com',  external: true, accent: 'purple' },
@@ -114,6 +121,11 @@ const EXTERNAL_MODULES: readonly Module[] = [
                 <span class="card-label">{{ mod.label }}</span>
                 <span class="card-desc">{{ mod.description }}</span>
                 <span class="card-arrow" aria-hidden="true"><i class="pi pi-arrow-up-right"></i></span>
+                @if (badgeFor(mod.id) > 0) {
+                  <span class="card-badge" [attr.aria-label]="badgeFor(mod.id) + ' pendientes'">
+                    {{ badgeFor(mod.id) > 99 ? '99+' : badgeFor(mod.id) }}
+                  </span>
+                }
               </button>
             }
           </div>
@@ -149,6 +161,11 @@ const EXTERNAL_MODULES: readonly Module[] = [
               <span class="card-desc">{{ mod.description }}</span>
               @if (mod.external) {
                 <span class="card-ext-badge" aria-hidden="true"><i class="pi pi-external-link"></i></span>
+              }
+              @if (badgeFor(mod.id) > 0) {
+                <span class="card-badge" [attr.aria-label]="badgeFor(mod.id) + ' pendientes'">
+                  {{ badgeFor(mod.id) > 99 ? '99+' : badgeFor(mod.id) }}
+                </span>
               }
             </button>
           }
@@ -370,6 +387,33 @@ const EXTERNAL_MODULES: readonly Module[] = [
     }
     .card--ext:hover .card-ext-badge { color: var(--accent-text); }
 
+    /* ─── Notification badge (pendientes) ─── */
+    .card-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border: 1.5px solid rgba(10, 10, 10, 0.9);
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
+      z-index: 3;
+      animation: badge-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+    }
+    @keyframes badge-pop {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
     /* ─── Animations ─── */
     @keyframes hero-in {
       from { opacity: 0; transform: translateY(-8px); }
@@ -400,19 +444,93 @@ export class AppLauncherComponent {
   private readonly router = inject(Router);
   private readonly permissions = inject(PermissionsService);
   private readonly store = inject(DashboardStore);
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = inject(ApiUrlService);
+  private readonly orgService = inject(OrganizationService);
+
+  // Contadores de pendientes por módulo (badge tipo notificación)
+  protected readonly badges = signal<Record<string, number>>({});
+
+  protected badgeFor(modId: string): number {
+    return this.badges()[modId] || 0;
+  }
+
+  constructor() {
+    this.loadBadges();
+  }
+
+  private async loadBadges(): Promise<void> {
+    const companyId = this.orgService.getCurrentCompanyId();
+
+    // Helper: cuenta filas vía Prefer: count=exact (HEAD-like, sin traer datos)
+    const countRows = async (path: string, params: Record<string, string>): Promise<number> => {
+      try {
+        const resp = await firstValueFrom(
+          this.http.get(this.apiUrl.build(path, { ...params, select: 'id', limit: '1' }), {
+            observe: 'response',
+            headers: { Prefer: 'count=exact' },
+          })
+        );
+        const cr = resp.headers.get('content-range') || '';
+        const total = cr.split('/')[1];
+        return total && total !== '*' ? parseInt(total, 10) : 0;
+      } catch {
+        return 0;
+      }
+    };
+
+    // Marcación manual → gestiones de corrección pendientes
+    if (this.store.canManageSchedules()) {
+      const n = await countRows('rest/v1/document_requests', {
+        document_type: 'eq.timelog_correction',
+        status: 'eq.pending',
+        company_id: `eq.${companyId}`,
+      });
+      this.badges.update(b => ({ ...b, marcacion_manual: n }));
+    }
+
+    // Tickets → tickets abiertos/en proceso de los departamentos visibles
+    if (this.canViewAllTickets() || this.firstAvailableTicketDept() !== null) {
+      const n = await countRows('rest/v1/tickets', {
+        status: 'in.(open,in_process)',
+        company_id: `eq.${companyId}`,
+      });
+      this.badges.update(b => ({ ...b, tickets: n }));
+    }
+  }
 
   protected readonly firstName = computed(
     () => this.store.currentEmployee()?.first_name?.trim() || null,
   );
 
   protected readonly visiblePeopleModules = computed(() =>
-    PEOPLE_MODULES.filter(
-      (m) => !m.moduleId || this.permissions.canAccessModule(m.moduleId),
-    ),
+    PEOPLE_MODULES.filter((m) => {
+      if (m.id === 'marcacion_manual') {
+        return this.store.canManageSchedules();
+      }
+      return !m.moduleId || this.permissions.canAccessModule(m.moduleId);
+    }),
   );
+
+  /** Departamentos de tickets que el usuario puede gestionar, en orden de prioridad. */
+  private readonly TICKET_DEPTS = ['it', 'operations', 'accounting', 'hr'] as const;
+
+  private canViewAllTickets(): boolean {
+    return this.permissions.canAccessSubModule('admin', 'tickets_view_all');
+  }
+
+  private firstAvailableTicketDept(): typeof this.TICKET_DEPTS[number] | null {
+    for (const d of this.TICKET_DEPTS) {
+      if (this.permissions.canAccessSubModule('admin', `tickets_${d}`)) return d;
+    }
+    return null;
+  }
 
   protected readonly visibleExternalModules = computed(() =>
     EXTERNAL_MODULES.filter((m) => {
+      if (m.id === 'tickets') {
+        return this.canViewAllTickets() || this.firstAvailableTicketDept() !== null;
+      }
       if (m.moduleId && m.subModuleId) {
         return this.permissions.canAccessSubModule(m.moduleId, m.subModuleId);
       }
@@ -440,8 +558,18 @@ export class AppLauncherComponent {
   protected open(mod: Module): void {
     if (mod.external) {
       window.location.href = mod.target;
-    } else {
-      this.router.navigate(['/' + mod.target]);
+      return;
     }
+    if (mod.target === '__tickets__') {
+      // Si el usuario ve todo (Tristan/Ricardo/Michael), abre la vista global con KPIs.
+      if (this.canViewAllTickets()) {
+        this.router.navigate(['/admin/tickets-all']);
+        return;
+      }
+      const dept = this.firstAvailableTicketDept();
+      if (dept) this.router.navigate([`/admin/tickets-${dept}`]);
+      return;
+    }
+    this.router.navigate(['/' + mod.target]);
   }
 }

@@ -615,8 +615,16 @@ export class SuperAdminMenuComponent implements OnInit, OnDestroy {
       this.lastRealId = realId;
       return;
     }
-    // Real cambió (logout o cambio de sesión) → limpiar
-    if (this.lastRealId !== realId && this.impersonation.isImpersonating()) {
+    // IMPORTANTE: ignorar la transición inicial null → id. Al recargar, entities
+    // carga async y realEmployee pasa de null (no cargado) a Tristan. Eso NO es un
+    // cambio de sesión — antes esto borraba la emulación recién iniciada y te
+    // devolvía a tu usuario. Solo limpiamos si HABÍA un real previo (no-null) que
+    // cambió a otro distinto (logout real o cambio de cuenta).
+    if (
+      this.lastRealId !== null &&
+      this.lastRealId !== realId &&
+      this.impersonation.isImpersonating()
+    ) {
       this.impersonation.stopImpersonation();
     }
     this.lastRealId = realId;
@@ -670,23 +678,25 @@ export class SuperAdminMenuComponent implements OnInit, OnDestroy {
       acceptLabel: 'Sí, emular',
       rejectLabel: 'Cancelar',
       acceptButtonStyleClass: 'p-button-warning',
-      accept: () => this.start(employee.id),
+      accept: () => this.start(employee),
     });
   }
 
-  public async start(employeeId: string): Promise<void> {
-    const realId = this.store.realEmployee()?.id;
-    if (!realId) return;
-    await this.impersonation.startImpersonation(employeeId, realId);
+  public async start(employee: any): Promise<void> {
+    // realId es solo para el log de auditoría; NO debe bloquear la emulación.
+    const realId = this.store.realEmployee()?.id ?? null;
+    // Guardamos el objeto COMPLETO del empleado (con position/permisos) para que
+    // la emulación funcione aunque no esté en entities tras el reload.
+    await this.impersonation.startImpersonation(employee, realId);
     this.dialogVisible.set(false);
     setTimeout(() => window.location.assign('/my-portal'), 200);
   }
 
   /** Variante para activación por query param (sin confirm). */
   private async startById(employeeId: string): Promise<void> {
-    const realId = this.store.realEmployee()?.id;
-    if (!realId) return;
-    await this.impersonation.startImpersonation(employeeId, realId);
+    const realId = this.store.realEmployee()?.id ?? null;
+    const emp = (this.store.employees.entities() as any[]).find((e) => e.id === employeeId) ?? employeeId;
+    await this.impersonation.startImpersonation(emp, realId);
     setTimeout(() => window.location.assign('/my-portal'), 200);
   }
 

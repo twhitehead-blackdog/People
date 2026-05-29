@@ -86,10 +86,10 @@ import { DeviceService } from '../services/device.service';
                   [class.text-amber-300]="isActiveRoute('device-inventory')">
                   <i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span>
                 </a>
-                <a routerLink="it-tickets"
+                <a routerLink="tickets-it"
                   class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
-                  [class.bg-neutral-700]="isActiveRoute('it-tickets')"
-                  [class.text-amber-300]="isActiveRoute('it-tickets')">
+                  [class.bg-neutral-700]="isActiveRoute('tickets-it')"
+                  [class.text-amber-300]="isActiveRoute('tickets-it')">
                   <i class="pi pi-desktop text-sm"></i><span>Tickets IT</span>
                 </a>
                 <a routerLink="it-mobile-lines"
@@ -116,6 +116,76 @@ import { DeviceService } from '../services/device.service';
                   [class.bg-neutral-700]="isActiveRoute('user-management')"
                   [class.text-amber-300]="isActiveRoute('user-management')">
                   <i class="pi pi-user-edit text-sm"></i><span>Gestión de Usuarios</span>
+                </a>
+                }
+              </div>
+            </div>
+            }
+
+            <!-- Tickets & Sugerencias Dropdown -->
+            @if (canViewTicketsModule()) {
+            <div class="relative group cursor-pointer select-none"
+              (mouseenter)="openDropdown('tickets')" (mouseleave)="closeDropdown()">
+              <div class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                [class.selected]="isActiveRoute('tickets-operations') || isActiveRoute('tickets-accounting') || isActiveRoute('tickets-hr') || isActiveRoute('suggestions')">
+                <i class="pi pi-ticket text-base"></i><span>Tickets</span>
+              </div>
+              <div class="absolute left-0 top-full hidden group-hover:block bg-neutral-800/95 border border-neutral-600/40 shadow-xl rounded-md w-60 z-50 overflow-hidden"
+                style="margin-top: -1px;"
+                [class.block]="isDropdownOpen('tickets')"
+                (mouseenter)="openDropdown('tickets')" (mouseleave)="closeDropdown()">
+                @if (adminSubs().tickets_view_all) {
+                <a routerLink="tickets-all"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('tickets-all')"
+                  [class.text-amber-300]="isActiveRoute('tickets-all')">
+                  <i class="pi pi-globe text-sm text-amber-400"></i><span>Vista Global (todos)</span>
+                </a>
+                <a routerLink="tickets-analytics"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('tickets-analytics')"
+                  [class.text-amber-300]="isActiveRoute('tickets-analytics')">
+                  <i class="pi pi-chart-bar text-sm text-emerald-400"></i><span>Analytics & SLA</span>
+                </a>
+                }
+                @if (adminSubs().tickets_my_branch) {
+                <a routerLink="tickets-my-store"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('tickets-my-store')"
+                  [class.text-amber-300]="isActiveRoute('tickets-my-store')">
+                  <i class="pi pi-building text-sm text-blue-400"></i><span>Mi sucursal</span>
+                </a>
+                }
+                @if (adminSubs().tickets_operations) {
+                <a routerLink="tickets-operations"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('tickets-operations')"
+                  [class.text-amber-300]="isActiveRoute('tickets-operations')">
+                  <i class="pi pi-cog text-sm text-emerald-400"></i><span>Operaciones</span>
+                </a>
+                }
+                @if (adminSubs().tickets_accounting) {
+                <a routerLink="tickets-accounting"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('tickets-accounting')"
+                  [class.text-amber-300]="isActiveRoute('tickets-accounting')">
+                  <i class="pi pi-dollar text-sm text-amber-400"></i><span>Contabilidad</span>
+                </a>
+                }
+                @if (adminSubs().tickets_hr) {
+                <a routerLink="tickets-hr"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                  [class.bg-neutral-700]="isActiveRoute('tickets-hr')"
+                  [class.text-amber-300]="isActiveRoute('tickets-hr')">
+                  <i class="pi pi-users text-sm text-purple-400"></i><span>RRHH</span>
+                </a>
+                }
+                @if (adminSubs().suggestions_admin) {
+                <a routerLink="suggestions"
+                  class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2 border-t border-neutral-700/40"
+                  [class.bg-neutral-700]="isActiveRoute('suggestions')"
+                  [class.text-amber-300]="isActiveRoute('suggestions')">
+                  <i class="pi pi-lightbulb text-sm text-yellow-300"></i><span>Sugerencias</span>
                 </a>
                 }
               </div>
@@ -285,12 +355,27 @@ import { DeviceService } from '../services/device.service';
             @if (canViewITModule()) {
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
             <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
-            <a routerLink="it-tickets" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-tickets')" [class.text-amber-300]="isActiveRoute('it-tickets')"><i class="pi pi-desktop text-sm"></i><span>Tickets IT</span></a>
+            <a routerLink="tickets-it" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('tickets-it')" [class.text-amber-300]="isActiveRoute('tickets-it')"><i class="pi pi-desktop text-sm"></i><span>Tickets IT</span></a>
             <a routerLink="it-mobile-lines" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-mobile-lines')" [class.text-amber-300]="isActiveRoute('it-mobile-lines')"><i class="pi pi-phone text-sm"></i><span>Líneas Móviles</span></a>
             <a routerLink="it-licenses" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-licenses')" [class.text-amber-300]="isActiveRoute('it-licenses')"><i class="pi pi-key text-sm"></i><span>Licencias</span></a>
             <a routerLink="it-cameras" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('it-cameras')" [class.text-amber-300]="isActiveRoute('it-cameras')"><i class="pi pi-video text-sm"></i><span>Cámaras NVR</span></a>
             @if (adminSubs().user_management) {
             <a routerLink="user-management" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('user-management')" [class.text-amber-300]="isActiveRoute('user-management')"><i class="pi pi-user-edit text-sm"></i><span>Gestión de Usuarios</span></a>
+            }
+            }
+            @if (canViewTicketsModule()) {
+            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">Tickets</div>
+            @if (adminSubs().tickets_operations) {
+            <a routerLink="tickets-operations" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('tickets-operations')" [class.text-amber-300]="isActiveRoute('tickets-operations')"><i class="pi pi-cog text-sm text-emerald-400"></i><span>Operaciones</span></a>
+            }
+            @if (adminSubs().tickets_accounting) {
+            <a routerLink="tickets-accounting" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('tickets-accounting')" [class.text-amber-300]="isActiveRoute('tickets-accounting')"><i class="pi pi-dollar text-sm text-amber-400"></i><span>Contabilidad</span></a>
+            }
+            @if (adminSubs().tickets_hr) {
+            <a routerLink="tickets-hr" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('tickets-hr')" [class.text-amber-300]="isActiveRoute('tickets-hr')"><i class="pi pi-users text-sm text-purple-400"></i><span>RRHH</span></a>
+            }
+            @if (adminSubs().suggestions_admin) {
+            <a routerLink="suggestions" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('suggestions')" [class.text-amber-300]="isActiveRoute('suggestions')"><i class="pi pi-lightbulb text-sm text-yellow-300"></i><span>Sugerencias</span></a>
             }
             }
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">RRHH</div>
@@ -398,6 +483,12 @@ export class AdminComponent implements OnInit, OnDestroy {
     permissions: this.permissionsService.canAccessSubModule('admin', 'permissions'),
     job_applications: this.permissionsService.canAccessSubModule('admin', 'job_applications'),
     audit_tasks: this.permissionsService.canAccessSubModule('admin', 'audit_tasks'),
+    tickets_view_all: this.permissionsService.canAccessSubModule('admin', 'tickets_view_all'),
+    tickets_my_branch: this.permissionsService.canAccessSubModule('admin', 'tickets_my_branch'),
+    tickets_operations: this.permissionsService.canAccessSubModule('admin', 'tickets_operations'),
+    tickets_accounting: this.permissionsService.canAccessSubModule('admin', 'tickets_accounting'),
+    tickets_hr: this.permissionsService.canAccessSubModule('admin', 'tickets_hr'),
+    suggestions_admin: this.permissionsService.canAccessSubModule('admin', 'suggestions_admin'),
   }));
 
   public hrSubs = computed(() => ({
@@ -414,10 +505,16 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.permissionsService.canAccessModule('compras')
   );
 
+  public canViewTicketsModule = computed(() => {
+    if (this.permissionsService.canCurrentUser('admin')) return true;
+    const subs = ['tickets_view_all', 'tickets_my_branch', 'tickets_operations', 'tickets_accounting', 'tickets_hr', 'suggestions_admin'];
+    return subs.some(s => this.permissionsService.canAccessSubModule('admin', s));
+  });
+
   public canViewITModule = computed(() => {
     // Cualquiera con admin legacy o algún submódulo IT habilitado ve el dropdown IT
     if (this.permissionsService.canCurrentUser('admin')) return true;
-    const itSubs = ['device_inventory', 'it_tickets', 'it_mobile_lines', 'it_licenses', 'user_management'];
+    const itSubs = ['device_inventory', 'tickets_it', 'it_mobile_lines', 'it_licenses', 'user_management'];
     if (itSubs.some(s => this.permissionsService.canAccessSubModule('admin', s))) return true;
 
     // Fallback histórico: emails/cargos de soporte

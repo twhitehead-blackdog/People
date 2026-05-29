@@ -11,4 +11,6 @@ export * from './audit.model';
 export * from './device.model';
 export * from './survey.model';
 export * from './it-ticket.model';
+export * from './ticket.model';
+export * from './suggestion.model';
 export * from './ui.model';

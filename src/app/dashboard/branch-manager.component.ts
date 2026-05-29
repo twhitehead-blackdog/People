@@ -36,6 +36,7 @@ import { BranchManagerRemindersTabComponent } from './modules/branch-manager/ui/
 import { BranchManagerRequestsTabComponent } from './modules/branch-manager/ui/branch-manager-requests-tab.component';
 import { BranchManagerTimelogsTabComponent } from './modules/branch-manager/ui/branch-manager-timelogs-tab.component';
 import { BranchManagerItTicketsTabComponent } from './modules/branch-manager/ui/branch-manager-it-tickets-tab.component';
+import { BranchManagerSuggestionsTabComponent } from './modules/branch-manager/ui/branch-manager-suggestions-tab.component';
 import { RequestDetailsDialogComponent } from './modules/branch-manager/ui/request-details-dialog.component';
 import {
   processTimelogsForDisplay,
@@ -62,6 +63,7 @@ import {
     BranchManagerRequestsTabComponent,
     BranchManagerTimelogsTabComponent,
     BranchManagerItTicketsTabComponent,
+    BranchManagerSuggestionsTabComponent,
     RequestDetailsDialogComponent,
   ],
   providers: [MessageService],
@@ -299,10 +301,15 @@ import {
               </span>
               }
             </p-tab>
-            <p-tab value="it-tickets">
-              <i class="pi pi-desktop mr-1 md:mr-2"></i>
-              <span class="hidden sm:inline">Tickets IT</span>
-              <span class="sm:hidden">IT</span>
+            <p-tab value="tickets">
+              <i class="pi pi-ticket mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Tickets</span>
+              <span class="sm:hidden">Tickets</span>
+            </p-tab>
+            <p-tab value="suggestions">
+              <i class="pi pi-lightbulb mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Sugerencias</span>
+              <span class="sm:hidden">Ideas</span>
             </p-tab>
           </p-tablist>
 
@@ -365,8 +372,11 @@ import {
               (create)="createReminderFromTab($event)"
             />
           </p-tabpanel>
-          <p-tabpanel value="it-tickets">
+          <p-tabpanel value="tickets">
             <pt-branch-manager-it-tickets-tab />
+          </p-tabpanel>
+          <p-tabpanel value="suggestions">
+            <pt-branch-manager-suggestions-tab />
           </p-tabpanel>
         </p-tabs>
       </p-card>

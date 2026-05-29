@@ -16,6 +16,10 @@ type PunchType = 'entry' | 'lunch_start' | 'lunch_end' | 'exit';
   providers: [MessageService],
   template: `
 <p-toast />
+<a href="/soporte" class="dp-soporte-fab" title="Portal de Soporte">
+  <i class="pi pi-headphones"></i>
+  <span>Soporte</span>
+</a>
 <div class="dp-kiosk">
   <header>
     <h1>Reloj de marcación</h1>
@@ -145,6 +149,10 @@ type PunchType = 'entry' | 'lunch_start' | 'lunch_end' | 'exit';
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: linear-gradient(135deg, #0f1729 0%, #1a2438 100%); color: #fff; }
+    .dp-soporte-fab { position: fixed; top: 14px; right: 14px; z-index: 95; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: rgba(99,179,237,0.14); border: 1px solid rgba(99,179,237,0.5); color: #93c5fd; text-decoration: none; font-weight: 600; font-size: 13px; backdrop-filter: blur(6px); transition: background-color 0.15s, transform 0.15s; }
+    .dp-soporte-fab:hover { background: rgba(99,179,237,0.24); transform: translateY(-1px); }
+    .dp-soporte-fab i { font-size: 14px; }
+    @media (max-width: 600px) { .dp-soporte-fab { top:10px; right:10px; padding:6px 10px; font-size:12px; } }
     .dp-kiosk { min-height: 100vh; display: flex; flex-direction: column; max-width: 800px; margin: 0 auto; padding: 24px; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     header h1 { margin: 0; font-size: 22px; font-weight: 600; }

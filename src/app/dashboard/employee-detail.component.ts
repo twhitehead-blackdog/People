@@ -714,7 +714,7 @@ export class EmployeeDetailComponent implements OnInit {
     { id: 'portal', label: 'Portal', icon: 'pi pi-user' },
     { id: 'historial', label: 'Historial', icon: 'pi pi-history' },
     { id: 'score', label: 'Score', icon: 'pi pi-chart-bar' },
-    { id: 'huella', label: 'Huella', icon: 'pi pi-fingerprint' },
+    // { id: 'huella', label: 'Huella', icon: 'pi pi-fingerprint' }, // desactivado 2026-05-28
   ];
   public cardQrDataUrl = signal<string | null>(null);
   public portalUrl = `${getEnv('ENV_APP_URL') || window.location.origin

@@ -100,6 +100,11 @@ interface TimeclockInfoData {
     </p-confirmDialog>
     <p-toast />
 
+    <a href="/soporte" class="naz-soporte-fab" title="Portal de Soporte">
+      <i class="pi pi-headphones"></i>
+      <span>Soporte</span>
+    </a>
+
     <!-- Custom Success Confirmation Modal -->
     @if (confirmModalVisible()) {
       <div class="confirm-modal-overlay" (click)="dismissConfirmModal()">
@@ -435,9 +440,8 @@ interface TimeclockInfoData {
               />
             </div>
 
-            <!-- Auth Method Toggle: visible cuando no hay huella usable.
-                 DP requiere lector conectado; sin lector, dejamos PIN como fallback. -->
-            @if (selectedEmployee() && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
+            <!-- Auth Method Toggle: oculto si fingerprintFeatureEnabled = false. -->
+            @if (fingerprintFeatureEnabled() && selectedEmployee() && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> Autenticador
@@ -455,8 +459,8 @@ interface TimeclockInfoData {
               </div>
             }
 
-            <!-- PIN Input Section -->
-            @if (authMethod() === 'pin' && !employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())) {
+            <!-- PIN Input Section: con feature flag off, siempre PIN cuando authMethod=='pin'. -->
+            @if (authMethod() === 'pin' && (!fingerprintFeatureEnabled() || (!employeeHasFingerprint() && (!employeeHasDp() || !dpReaderConnected())))) {
             <div
               class="w-full flex flex-col gap-0.5 items-center justify-center"
             >
@@ -516,11 +520,11 @@ interface TimeclockInfoData {
             <div class="w-full flex justify-center items-center">
               <p-button
                 [disabled]="
-                  form.invalid || isProcessing() || !form.get('employee')?.value
+                  form.invalid || isProcessing() || isLoadingType() || !form.get('employee')?.value
                 "
-                [loading]="isProcessing()"
+                [loading]="isProcessing() || isLoadingType()"
                 (onClick)="validateOtp()"
-                [label]="isProcessing() ? 'Procesando...' : 'Marcar'"
+                [label]="isLoadingType() ? 'Cargando...' : (isProcessing() ? 'Procesando...' : 'Marcar')"
                 [icon]="
                   isProcessing()
                     ? 'pi pi-spin pi-spinner'
@@ -544,9 +548,8 @@ interface TimeclockInfoData {
             </div>
             }
 
-            <!-- Fingerprint Section: solo si la huella es usable
-                 (WebAuthn siempre, DP sólo cuando el lector está conectado) -->
-            @if (authMethod() === 'fingerprint' && (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected()))) {
+            <!-- Fingerprint Section: solo si la huella es usable Y feature flag on. -->
+            @if (fingerprintFeatureEnabled() && authMethod() === 'fingerprint' && (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected()))) {
               <div class="w-full flex flex-col items-center gap-3">
                 @if (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected())) {
                   <div class="fp-scanner" [class.fp-scanner--scanning]="isProcessing()" [class.fp-scanner--ready]="!isProcessing()">
@@ -678,9 +681,12 @@ export class NazTimeclockComponent implements OnDestroy {
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
+  public isLoadingType = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
   public showKeypadPanel = signal<boolean>(false);
   public authMethod = signal<'pin' | 'fingerprint'>('pin');
+  // Feature flag — fingerprint auth desactivada (2026-05-28). Cambiar a true para reactivar.
+  public readonly fingerprintFeatureEnabled = signal(false);
   public employeeHasFingerprint = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
@@ -746,7 +752,7 @@ export class NazTimeclockComponent implements OnDestroy {
       if (!c && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'fingerprint') {
         this.authMethod.set('pin');
       }
-      if (c && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'pin') {
+      if (c && this.fingerprintFeatureEnabled() && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'pin') {
         this.authMethod.set('fingerprint');
         this.maybeAutoStartFingerprint();
       }
@@ -848,7 +854,9 @@ export class NazTimeclockComponent implements OnDestroy {
       clearTimeout(this.autoFingerprintTimer);
       this.autoFingerprintTimer = null;
     }
+    if (!this.fingerprintFeatureEnabled()) return;
     if (this.isProcessing()) return;
+    if (this.isLoadingType()) return;
     if (this.authMethod() !== 'fingerprint') return;
     const v = this.form.getRawValue();
     if (!v.employee || !v.type || !v.branch_id) return;
@@ -1295,7 +1303,11 @@ export class NazTimeclockComponent implements OnDestroy {
     this.authMethod.set('pin');
     this.employeeHasFingerprint.set(false);
     this.employeeHasDp.set(false);
+    // Safety: prevent stale type from previous employee being submitted.
+    this.form.get('type')?.setValue('entry');
+    this.updateAvailableTypes(null);
     if (employee?.id) {
+      this.isLoadingType.set(true);
       // Esperamos AMBOS chequeos antes de elegir método y auto-disparar
       Promise.all([
         this.webAuthn.getCredentialStatus(employee.id).catch(() => ({ hasCredential: false } as any)),
@@ -1315,8 +1327,10 @@ export class NazTimeclockComponent implements OnDestroy {
         // Forzar huella sólo si está realmente disponible:
         //   - WebAuthn no requiere lector externo.
         //   - DP requiere Lite Client conectado en esta PC; sino, fallback a PIN.
-        const fingerprintUsable = this.employeeHasFingerprint() ||
-          (this.employeeHasDp() && this.dpReaderConnected());
+        const fingerprintUsable = this.fingerprintFeatureEnabled() && (
+          this.employeeHasFingerprint() ||
+          (this.employeeHasDp() && this.dpReaderConnected())
+        );
         if (fingerprintUsable) {
           this.authMethod.set('fingerprint');
           this.maybeAutoStartFingerprint();
@@ -1330,14 +1344,13 @@ export class NazTimeclockComponent implements OnDestroy {
           const nextType = this.getNextTimelogType(lastTimelog?.type || null);
           this.updateAvailableTypes(lastTimelog?.type || null);
           this.form.get('type')?.setValue(nextType);
-          // Focus OTP input when employee is selected
+          this.isLoadingType.set(false);
           this.focusOtpInput();
         },
         error: () => {
-          // Default to entry if error
           this.updateAvailableTypes(null);
           this.form.get('type')?.setValue('entry');
-          // Focus OTP input when employee is selected
+          this.isLoadingType.set(false);
           this.focusOtpInput();
         },
       });
@@ -1485,6 +1498,10 @@ export class NazTimeclockComponent implements OnDestroy {
 
   validateOtp() {
     if (this.isProcessing()) return;
+    if (this.isLoadingType()) {
+      this.message.add({ severity: 'warn', summary: 'Cargando', detail: 'Verificando tipo de marcación, intente de nuevo en 1 segundo.', life: 3000 });
+      return;
+    }
 
     this.isProcessing.set(true);
     const { employee, otp, branch_id, company_id, type } =
@@ -1553,6 +1570,7 @@ export class NazTimeclockComponent implements OnDestroy {
 
   async validateFingerprint() {
     if (this.isProcessing()) return;
+    if (this.isLoadingType()) return;
     const { employee, branch_id, company_id, type } = this.form.getRawValue();
     if (!employee) return;
 
@@ -1813,6 +1831,8 @@ export class NazTimeclockComponent implements OnDestroy {
           // Immediately reset form fields so button is disabled during modal display
           this.form.get('otp')?.reset();
           this.form.get('employee')?.reset();
+          this.form.get('type')?.setValue('entry');
+          this.updateAvailableTypes(null);
 
           // Show custom modal
           this.confirmModalData.set({

@@ -1314,7 +1314,13 @@ export class HomeComponent {
   }
 
   public openCurrentMonthHiresExitsDialog(): void {
-    this.openMonthHiresExitsDialog(this.currentMonth(), getMonth(new Date()));
+    // The headcount chart shows the last 24 months ending at the current month,
+    // so the current month is always the LAST entry in `labels` — not getMonth()
+    // (which would index from the start of the chart, ~24 months back).
+    const data: any = this.headcountChartData();
+    const labels = data?.labels || [];
+    const currentMonthIndex = labels.length - 1;
+    this.openMonthHiresExitsDialog(this.currentMonth(), currentMonthIndex);
   }
 
   // Get hires list for selected month from headcount chart

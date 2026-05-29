@@ -130,9 +130,14 @@ export const DashboardStore = signalStore(
         const real = realEmployee();
         const impId = impersonation.impersonatedEmployeeId();
         if (impId && impersonation.isSuperAdmin(real?.id, real?.work_email ?? real?.email)) {
+          // 1) Preferir el empleado en entities (datos frescos)
           const allEmployees = employees.entities();
           const imp = allEmployees.find((x) => x.id === impId);
           if (imp) return imp;
+          // 2) Fallback: objeto completo guardado al iniciar la emulación
+          //    (sobrevive el reload aunque entities aún no lo tenga / sea de otra empresa)
+          const stored = impersonation.impersonatedEmployee();
+          if (stored) return stored;
         }
         return real;
       });
@@ -250,8 +255,19 @@ export const DashboardStore = signalStore(
 
       // Método unificado: verifica si el usuario puede gestionar horarios
       // Incluye: Admin, Schedule Admin, Schedule Approver, y personal de Administración
+      // Allowlist explícita de empleados con permiso para marcaciones manuales
+      // (además de los criterios por rol/departamento).
+      const MANUAL_TIMELOG_APPROVERS = new Set<string>([
+        '9428d70c-9943-416b-a936-6220474c81d9', // Elena Conte
+      ]);
+
       const canManageSchedules = computed(() => {
         const employee = currentEmployee();
+
+        // Allowlist explícita por ID
+        if (employee?.id && MANUAL_TIMELOG_APPROVERS.has(employee.id)) {
+          return true;
+        }
 
         // Verificar si es Admin
         if (isAdmin()) {

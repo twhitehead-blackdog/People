@@ -1578,6 +1578,9 @@ export class DashboardComponent {
           'analytics',
           'live',
           'my-portal',
+          'marcacion-manual',
+      'face-test',
+          'face-test',
         ];
         let route = 'launcher'; // default
 
@@ -1608,6 +1611,8 @@ export class DashboardComponent {
       'time-management',
       'timeclock',
       'branch-manager',
+      'marcacion-manual',
+      'face-test',
     ];
     let route = 'home'; // default
 

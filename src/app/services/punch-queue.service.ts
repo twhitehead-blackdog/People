@@ -122,6 +122,33 @@ export class PunchQueueService {
     return entry.id;
   }
 
+  /**
+   * Store-and-forward: encola SIN disparar drain inmediato.
+   * Se usa para registrar la marca localmente ANTES de intentar el envío normal
+   * (process_timelog). Si el envío confirma éxito, se llama remove(id) y nunca
+   * llega al beacon. Si algo falla (red, cierre de pestaña, respuesta perdida),
+   * el auto-sync la mandará al beacon — que es idempotente, así que no duplica.
+   */
+  public async enqueueQuiet(input: Omit<QueuedPunch, 'id' | 'enqueued_at' | 'attempts'>): Promise<string> {
+    const entry: QueuedPunch = {
+      id: uuid(),
+      enqueued_at: new Date().toISOString(),
+      attempts: 0,
+      ...input,
+    };
+    await this.writeToIDB(entry);
+    this.writeToLocalStorageMirror(entry);
+    await this.refreshPendingCount();
+    return entry.id;
+  }
+
+  /** Quita una entrada de la cola por id (cuando el envío normal confirmó éxito). */
+  public async remove(id: string): Promise<void> {
+    await this.removeFromIDB(id);
+    this.removeFromLocalStorageMirror(id);
+    await this.refreshPendingCount();
+  }
+
   /** Llamada por la UI al presionar "Sincronizar ahora". */
   public async drainNow(): Promise<{ drained: number; remaining: number; failed: number }> {
     return this.drain('manual');

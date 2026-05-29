@@ -2,6 +2,7 @@ import { Component, signal, computed, ViewChild, ElementRef, AfterViewInit } fro
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { Router } from '@angular/router';
 import { DeviceService } from '../../services/device.service';
 
 interface NavItem {
@@ -11,6 +12,8 @@ interface NavItem {
   route: string;
   section?: string;
   isSvg?: 'scissors' | 'stethoscope' | 'meta' | 'csat';
+  /** Si está presente, al click navega en Angular en vez de cambiar la URL del iframe */
+  nativeRoute?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -197,7 +200,14 @@ export class AnalyticsEmbedComponent {
 
   public externalUrl = computed(() => `/analytics/${this.activeRoute()}`);
 
+  private router = inject(Router);
+
   navigateTo(item: NavItem): void {
+    // Si es ruta nativa de People (no iframe), navega y sale del layout
+    if (item.nativeRoute) {
+      this.router.navigateByUrl(item.nativeRoute);
+      return;
+    }
     this.activeRoute.set(item.id);
     // Navigate inside the iframe without destroying it
     const frame = this.frameRef?.nativeElement;

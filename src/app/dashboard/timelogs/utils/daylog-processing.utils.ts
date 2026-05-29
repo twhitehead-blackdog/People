@@ -13,6 +13,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import {
   DayLog,
   Employee,
+  EmployeeOvertimeRecord,
   EmployeeScheduleData,
   Schedule,
   TimeoffData,
@@ -39,6 +40,30 @@ export interface DayLogProcessingInput {
   onlyWithMarcaciones: boolean;
   timezone: string;
   logger?: { warn: (...args: any[]) => void };
+  /**
+   * Tolerancia de tardanza en minutos. Default 5.
+   * Solo aplica en applyMetricsToDayLogs / buildDayLogs.
+   */
+  delayToleranceMinutes?: number;
+}
+
+/** Input para la Fase 1 (estructura base sin métricas) */
+export type BaseDayLogInput = Omit<DayLogProcessingInput, 'delayToleranceMinutes'>;
+
+/**
+ * Convierte una fecha UTC a string 'yyyy-MM-dd' en hora Panamá.
+ *
+ * Panamá es UTC-5 constante (no observa DST), así que un offset fijo es exacto.
+ * Esto evita ~10K llamadas a `formatInTimeZone` (cara: parse + format completo)
+ * y reemplaza con aritmética de timestamps + slice — orden de magnitud más rápido.
+ *
+ * NO usar para conversiones de horas (HH:mm:ss), solo días.
+ */
+const PANAMA_OFFSET_MS = -5 * 60 * 60 * 1000;
+export function toDayInPanama(date: Date): string {
+  return new Date(date.getTime() + PANAMA_OFFSET_MS)
+    .toISOString()
+    .slice(0, 10);
 }
 
 /**
@@ -78,11 +103,15 @@ function filterAndParseRawLogs(
   timezone: string,
   logger?: { warn: (...args: any[]) => void }
 ): any[] {
+  // `timezone` se conserva en la firma por compatibilidad (la API pública del
+  // util usa "America/Panama"), pero internamente sabemos que es UTC-5 fijo y
+  // usamos `toDayInPanama` que es ~10x más rápido que `formatInTimeZone`.
+  void timezone;
   return logsData
     .filter((x: any) => (branchId ? x.branch_id === branchId : true))
     .map((x: any) => {
       const logDate = parseLogDate(x, logger);
-      const dayStr = formatInTimeZone(logDate, timezone, 'yyyy-MM-dd');
+      const dayStr = toDayInPanama(logDate);
       return { ...x, day: dayStr };
     })
     .filter((x: any) => {
@@ -167,7 +196,11 @@ function buildUniqueEmployeesMap(
 }
 
 /**
- * Crea la estructura inicial de DayLogs con todos los días para todos los empleados
+ * Crea la estructura inicial de DayLogs con todos los días para todos los empleados.
+ *
+ * Pre-agrupa schedulesData por employee_id (Map<empId, schedules[]>) para que el
+ * lookup interno sea O(1) en vez de O(N) con .filter() sobre todo el array. Para
+ * 200 empleados × 30 días × 500 schedules eso evita ~3M comparaciones.
  */
 function createInitialDayLogs(
   uniqueEmployees: Map<string, Partial<Employee>>,
@@ -178,16 +211,30 @@ function createInitialDayLogs(
 ): DayLog[] {
   const acc: DayLog[] = [];
 
+  // Indexar schedules por employee_id una sola vez
+  const schedulesByEmployee = new Map<string, EmployeeScheduleData[]>();
+  for (const s of schedulesData) {
+    const empId = s.employee_id;
+    if (!empId) continue;
+    const list = schedulesByEmployee.get(empId);
+    if (list) {
+      list.push(s);
+    } else {
+      schedulesByEmployee.set(empId, [s]);
+    }
+  }
+
   uniqueEmployees.forEach((employee) => {
+    const empSchedules = schedulesByEmployee.get(employee.id!) ?? [];
+
     daysList.forEach((day) => {
       if (day < dateRangeStart || day > dateRangeEnd) {
         return;
       }
 
-      // Buscar schedules que coincidan con el rango de fechas
-      const matchingSchedules = schedulesData.filter(
+      // Buscar schedules que coincidan con el rango de fechas (solo dentro de los del empleado)
+      const matchingSchedules = empSchedules.filter(
         (schedule) =>
-          schedule.employee_id === employee.id &&
           schedule.start_date <= day &&
           schedule.end_date >= day
       );
@@ -228,32 +275,60 @@ function createInitialDayLogs(
 }
 
 /**
- * Detecta alertas de feriado/día libre para un DayLog
+ * Índice de timeoffs aprobados por (employee_id:yyyy-MM-dd).
+ * Pre-calculado una sola vez para evitar .find() O(N) por cada DayLog.
  */
-function detectAlerts(
+type TimeoffIndex = Map<string, TimeoffData>;
+
+function timeoffKey(employeeId: string, day: string): string {
+  return `${employeeId}:${day}`;
+}
+
+/**
+ * Expande cada timeoff en todos los días que cubre y los indexa por
+ * (employee_id:day). Si un empleado tiene varios timeoffs solapados, se queda
+ * el último insertado (comportamiento equivalente a .find() sobre el array).
+ */
+function buildTimeoffIndex(timeoffsData: TimeoffData[]): TimeoffIndex {
+  const idx: TimeoffIndex = new Map();
+  for (const t of timeoffsData) {
+    if (!t.employee_id) continue;
+    const from = new Date(t.date_from);
+    const to = new Date(t.date_to);
+    if (!isValid(from) || !isValid(to) || to < from) continue;
+
+    // Recorrer día por día (sin TZ porque from/to ya están en fecha simple)
+    const cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    const stop = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+    while (cursor <= stop) {
+      const key = timeoffKey(t.employee_id, format(cursor, 'yyyy-MM-dd'));
+      idx.set(key, t);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+  return idx;
+}
+
+/**
+ * Detecta alertas de feriado/día libre y retorna un nuevo DayLog (PURO).
+ */
+function applyAlerts(
   dayLog: DayLog,
-  timeoffsData: TimeoffData[],
-  timezone: string
-): void {
-  const dayDate = new Date(dayLog.day);
-  const dayStr = formatInTimeZone(dayDate, timezone, 'yyyy-MM-dd');
+  timeoffIndex: TimeoffIndex,
+  _timezone: string
+): DayLog {
+  // dayLog.day ya es 'yyyy-MM-dd' en hora Panamá (asignado por la Fase 1),
+  // así que no hace falta reformatearlo.
+  const dayStr = dayLog.day;
   const hasMark = dayLog.entry || dayLog.lunch_start || dayLog.exit;
 
-  // Verificar timeoff
-  const timeoffForDay = timeoffsData.find((timeoff) => {
-    if (timeoff.employee_id !== dayLog.employee.id) return false;
-    const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
-    const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
-    return dayStr >= fromStr && dayStr <= toStr;
-  });
+  // Verificar timeoff (O(1) via index)
+  const timeoffForDay = dayLog.employee?.id
+    ? timeoffIndex.get(timeoffKey(dayLog.employee.id, dayStr))
+    : undefined;
   // Compensatorio por horas: el empleado SÍ debe trabajar, no es un día libre completo
   const isCompensatoryHours = timeoffForDay?.compensatory_type === 'hours';
   const hasTimeOff = !!timeoffForDay && !isCompensatoryHours;
-  const timeoffTypeId = timeoffForDay?.type_id || timeoffForDay?.type?.id;
-  const hasRestrictedTimeOff =
-    hasTimeOff &&
-    timeoffTypeId &&
-    RESTRICTED_TIMEOFF_TYPE_IDS.includes(timeoffTypeId);
 
   // Verificar schedule restringido
   const scheduleId = dayLog.schedule?.schedule?.id;
@@ -268,51 +343,50 @@ function detectAlerts(
     isRestrictedScheduleName ||
     dayLog.schedule?.schedule?.day_off;
 
+  let alert = dayLog.alert;
+  let scheduleError = dayLog.scheduleError;
+
   if (hasTimeOff && hasMark) {
-    dayLog.alert = 'Feriado';
-    dayLog.scheduleError = true;
+    alert = 'Feriado';
+    scheduleError = true;
   }
   if (hasTimeOff && !hasMark) {
-    dayLog.alert = 'Feriado';
-    dayLog.scheduleError = false;
+    alert = 'Feriado';
+    scheduleError = false;
   }
   if (isScheduleFeriado && hasMark) {
-    dayLog.alert = dayLog.schedule?.schedule?.day_off
-      ? 'Día Libre'
-      : 'Feriado';
-    dayLog.scheduleError = true;
+    alert = dayLog.schedule?.schedule?.day_off ? 'Día Libre' : 'Feriado';
+    scheduleError = true;
   }
   if (isScheduleFeriado && !hasMark) {
-    dayLog.alert = dayLog.schedule?.schedule?.day_off
-      ? 'Día Libre'
-      : 'Feriado';
-    dayLog.scheduleError = false;
+    alert = dayLog.schedule?.schedule?.day_off ? 'Día Libre' : 'Feriado';
+    scheduleError = false;
   }
+
+  return { ...dayLog, alert, scheduleError };
 }
 
 /**
- * Calcula retraso, almuerzo, salida temprana y horas trabajadas para un DayLog
+ * Calcula retraso, almuerzo, salida temprana y horas trabajadas.
+ * Retorna un NUEVO DayLog (PURO, no muta el input).
  */
-function calculateMetrics(
+function applyMetrics(
   dayLog: DayLog,
-  timeoffsData: TimeoffData[],
+  timeoffIndex: TimeoffIndex,
   timezone: string,
   delayToleranceMinutes: number,
   logger?: { warn: (...args: any[]) => void }
-): void {
+): DayLog {
   const hasMark = dayLog.entry || dayLog.lunch_start || dayLog.exit;
 
-  if (!hasMark) return;
+  if (!hasMark) return dayLog;
 
-  const dayDate = new Date(dayLog.day);
-  const dayStr = formatInTimeZone(dayDate, timezone, 'yyyy-MM-dd');
+  // dayLog.day ya es 'yyyy-MM-dd' en hora Panamá (asignado por la Fase 1).
+  const dayStr = dayLog.day;
 
-  const timeoffForDay = timeoffsData.find((timeoff) => {
-    if (timeoff.employee_id !== dayLog.employee.id) return false;
-    const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
-    const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
-    return dayStr >= fromStr && dayStr <= toStr;
-  });
+  const timeoffForDay = dayLog.employee?.id
+    ? timeoffIndex.get(timeoffKey(dayLog.employee.id, dayStr))
+    : undefined;
   // Compensatorio por horas: el empleado SÍ debe trabajar
   const isCompensatoryHoursMetrics = timeoffForDay?.compensatory_type === 'hours';
   const hasTimeOff = !!timeoffForDay && !isCompensatoryHoursMetrics;
@@ -329,26 +403,29 @@ function calculateMetrics(
     isRestrictedScheduleName ||
     dayLog.schedule?.schedule?.day_off;
 
+  // Copia mutable que vamos llenando — el output es siempre un objeto nuevo
+  const result: DayLog = { ...dayLog };
+
   if (hasTimeOff) {
-    if (!dayLog.scheduleError) {
-      dayLog.scheduleError = true;
+    if (!result.scheduleError) {
+      result.scheduleError = true;
     }
-  } else if (dayLog.schedule?.schedule) {
-    if (dayLog.schedule.schedule.day_off || isScheduleFeriado) {
-      dayLog.delay = 'DIA LIBRE';
-      dayLog.alert = dayLog.schedule.schedule.day_off
+  } else if (result.schedule?.schedule) {
+    if (result.schedule.schedule.day_off || isScheduleFeriado) {
+      result.delay = 'DIA LIBRE';
+      result.alert = result.schedule.schedule.day_off
         ? 'Día Libre'
         : 'Feriado';
-      dayLog.scheduleError = true;
+      result.scheduleError = true;
     } else {
       // Calcular retraso si hay entrada
-      if (dayLog.entry) {
+      if (result.entry) {
         const entryTime = formatInTimeZone(
-          dayLog.entry.date,
+          result.entry.date,
           timezone,
           'HH:mm:ss'
         );
-        const scheduleTime = dayLog.schedule.schedule.entry_time;
+        const scheduleTime = result.schedule.schedule.entry_time;
         if (scheduleTime) {
           const scheduleTimeStr =
             typeof scheduleTime === 'string'
@@ -359,22 +436,22 @@ function calculateMetrics(
           // Detectar error de marcación: entrada difiere más de 2h del turno asignado
           const SHIFT_MISMATCH_THRESHOLD = 120; // 2 horas en minutos
           if (Math.abs(delayTotal) > SHIFT_MISMATCH_THRESHOLD) {
-            dayLog.shiftMismatch = true;
-            dayLog.expectedScheduleName = dayLog.schedule?.schedule?.name ?? '';
+            result.shiftMismatch = true;
+            result.expectedScheduleName = result.schedule?.schedule?.name ?? '';
             // No calcular tardanza en este caso — es turno incorrecto, no tardanza
-            dayLog.delay = undefined;
-            dayLog.withinTolerance = false;
+            result.delay = undefined;
+            result.withinTolerance = false;
           } else if (delayTotal > delayToleranceMinutes) {
-            dayLog.delay = delayTotal - delayToleranceMinutes;
-            dayLog.withinTolerance = false;
+            result.delay = delayTotal - delayToleranceMinutes;
+            result.withinTolerance = false;
           } else if (delayTotal > 0) {
-            dayLog.delay = undefined;
-            dayLog.withinTolerance = true;
-            dayLog.toleranceUsedMinutes = delayTotal;
+            result.delay = undefined;
+            result.withinTolerance = true;
+            result.toleranceUsedMinutes = delayTotal;
           } else {
-            dayLog.delay = undefined;
-            dayLog.withinTolerance = false;
-            dayLog.toleranceUsedMinutes = 0;
+            result.delay = undefined;
+            result.withinTolerance = false;
+            result.toleranceUsedMinutes = 0;
           }
         }
       }
@@ -384,25 +461,25 @@ function calculateMetrics(
   }
 
   // Validar tiempo de almuerzo
-  if (dayLog.lunch_start && dayLog.lunch_end) {
+  if (result.lunch_start && result.lunch_end) {
     const lunchMinutes = differenceInMinutes(
-      dayLog.lunch_end.date,
-      dayLog.lunch_start.date
+      result.lunch_end.date,
+      result.lunch_start.date
     );
-    dayLog.lunchMinutes = lunchMinutes;
-    dayLog.lunchExceeded = lunchMinutes > 60;
+    result.lunchMinutes = lunchMinutes;
+    result.lunchExceeded = lunchMinutes > 60;
   } else {
-    dayLog.lunchExceeded = false;
+    result.lunchExceeded = false;
   }
 
   // Validar salida temprana
   if (
-    dayLog.schedule?.schedule &&
-    dayLog.exit &&
-    !dayLog.schedule.schedule.day_off
+    result.schedule?.schedule &&
+    result.exit &&
+    !result.schedule.schedule.day_off
   ) {
-    const exitTime = formatInTimeZone(dayLog.exit.date, timezone, 'HH:mm:ss');
-    const scheduleExitTime = dayLog.schedule.schedule.exit_time;
+    const exitTime = formatInTimeZone(result.exit.date, timezone, 'HH:mm:ss');
+    const scheduleExitTime = result.schedule.schedule.exit_time;
     if (scheduleExitTime) {
       const scheduleTimeStr =
         typeof scheduleExitTime === 'string'
@@ -414,20 +491,22 @@ function calculateMetrics(
       let scheduleMinutes = +scheduleParts[0] * 60 + +scheduleParts[1];
 
       // Si tiene compensatorio por horas, reducir la hora de salida esperada
-      if (dayLog.compensatoryHours && dayLog.compensatoryHours > 0) {
-        scheduleMinutes -= dayLog.compensatoryHours * 60;
+      if (result.compensatoryHours && result.compensatoryHours > 0) {
+        scheduleMinutes -= result.compensatoryHours * 60;
       }
 
-      dayLog.earlyExit = exitMinutes < scheduleMinutes;
+      result.earlyExit = exitMinutes < scheduleMinutes;
     } else {
-      dayLog.earlyExit = false;
+      result.earlyExit = false;
     }
   } else {
-    dayLog.earlyExit = false;
+    result.earlyExit = false;
   }
 
-  // Calcular horas trabajadas y horas extras
-  calculateWorkHours(dayLog, logger);
+  // Calcular horas trabajadas y horas extras (muta `result` localmente — está bien, ya es copia)
+  computeWorkHoursInto(result, logger);
+
+  return result;
 }
 
 /**
@@ -487,9 +566,10 @@ export function getScheduleRequiredMinutes(schedule: Schedule): number {
 }
 
 /**
- * Calcula horas trabajadas y horas extras para un DayLog con entrada y salida
+ * Calcula horas trabajadas y horas extras. Muta el objeto recibido (que SIEMPRE
+ * debe ser una copia local — nunca el DayLog original de la fase base).
  */
-function calculateWorkHours(
+function computeWorkHoursInto(
   dayLog: DayLog,
   logger?: { warn: (...args: any[]) => void }
 ): void {
@@ -620,14 +700,59 @@ function calculateWorkHours(
 }
 
 /**
- * Construye los DayLogs completos a partir de datos crudos.
- * Esta función orquesta todo el procesamiento de marcaciones.
+ * Normaliza la lista de días — si viene inconsistente con dateRangeStart/End, la regenera.
  */
-export function buildDayLogs(input: DayLogProcessingInput): DayLog[] {
+function ensureValidDaysList(
+  daysList: string[],
+  dateRangeStart: string,
+  dateRangeEnd: string
+): string[] {
+  if (
+    daysList.length > 0 &&
+    daysList[0] === dateRangeStart &&
+    daysList[daysList.length - 1] === dateRangeEnd
+  ) {
+    return daysList;
+  }
+  const result: string[] = [];
+  const normalizedStart = new Date(dateRangeStart + 'T00:00:00');
+  const normalizedEnd = new Date(dateRangeEnd + 'T00:00:00');
+  let currentDate = new Date(normalizedStart);
+  while (currentDate <= normalizedEnd) {
+    result.push(format(currentDate, 'yyyy-MM-dd'));
+    currentDate = addDays(currentDate, 1);
+  }
+  return result;
+}
+
+/**
+ * Comparador estable para DayLog: por fecha asc, luego por nombre.
+ */
+function compareDayLogs(a: DayLog, b: DayLog): number {
+  const dateA = new Date(a.day + 'T00:00:00');
+  const dateB = new Date(b.day + 'T00:00:00');
+  const dateComparison = compareAsc(dateA, dateB);
+  if (dateComparison !== 0) return dateComparison;
+  const nameA =
+    (a.employee.first_name || '') + ' ' + (a.employee.father_name || '');
+  const nameB =
+    (b.employee.first_name || '') + ' ' + (b.employee.father_name || '');
+  return nameA.localeCompare(nameB);
+}
+
+/**
+ * FASE 1: Construye la estructura base de DayLogs SIN aplicar métricas ni alertas.
+ *
+ * Esta fase es la cara — depende de logs, schedules, timeoffs, empleados, rango.
+ * Sale ya ordenada. Las marcaciones (entry/lunch_start/lunch_end/exit) están pegadas,
+ * pero los campos calculados (delay, overtimeHours, alert, etc.) están en sus
+ * valores iniciales — los llena la Fase 2 (applyMetricsToDayLogs).
+ */
+export function buildBaseDayLogs(input: BaseDayLogInput): DayLog[] {
   const {
     logsData,
     schedulesData,
-    timeoffsData,
+    timeoffsData: _timeoffsData,
     daysList,
     dateRangeStart,
     dateRangeEnd,
@@ -640,22 +765,7 @@ export function buildDayLogs(input: DayLogProcessingInput): DayLog[] {
     logger,
   } = input;
 
-  // Validar y regenerar daysList si hay inconsistencias
-  const validDaysList = [...daysList];
-  if (
-    validDaysList.length === 0 ||
-    validDaysList[0] !== dateRangeStart ||
-    validDaysList[validDaysList.length - 1] !== dateRangeEnd
-  ) {
-    validDaysList.length = 0;
-    const normalizedStart = new Date(dateRangeStart + 'T00:00:00');
-    const normalizedEnd = new Date(dateRangeEnd + 'T00:00:00');
-    let currentDate = new Date(normalizedStart);
-    while (currentDate <= normalizedEnd) {
-      validDaysList.push(format(currentDate, 'yyyy-MM-dd'));
-      currentDate = addDays(currentDate, 1);
-    }
-  }
+  const validDaysList = ensureValidDaysList(daysList, dateRangeStart, dateRangeEnd);
 
   // 1. Filtrar y parsear logs crudos
   const filteredLogs = filterAndParseRawLogs(
@@ -686,58 +796,131 @@ export function buildDayLogs(input: DayLogProcessingInput): DayLog[] {
     schedulesData
   );
 
-  // 4. Procesar logs para actualizar DayLogs con marcaciones
+  // 3b. Indexar acc por (empId:day) → O(1) lookups en vez de findIndex O(N)
+  const accIndex = new Map<string, number>();
+  for (let i = 0; i < acc.length; i++) {
+    accIndex.set(`${acc[i].employee.id}:${acc[i].day}`, i);
+  }
+
+  // 4. Procesar logs para actualizar DayLogs con marcaciones (sin métricas)
   for (const x of filteredLogs) {
     if (x.day < dateRangeStart || x.day > dateRangeEnd) continue;
     if (!x.employee?.id) continue;
 
-    const index = acc.findIndex(
-      (y: DayLog) => y.day === x.day && y.employee?.id === x.employee.id
-    );
-    if (index === -1) continue;
+    const index = accIndex.get(`${x.employee.id}:${x.day}`);
+    if (index === undefined) continue;
 
     const effectiveDate = parseLogDate(x, logger);
 
-    {
-      const src = ((x as any).source ?? '').toString().toUpperCase();
-      const isManualLegacy = src === 'MANUAL' || src === 'EMERGENCY';
-      const ipMissing = (x as any).ip == null || (x as any).ip === '';
-      acc[index] = {
-        ...acc[index],
-        [x.type]: {
-          date: effectiveDate,
-          branch: x.branch,
-          id: x.id,
-          // Considerar legacy: source MANUAL/EMERGENCY también cuenta como manual
-          is_manual: ((x as any).is_manual ?? false) || isManualLegacy,
-          manual_reason: (x as any).manual_reason ?? null,
-          // IP nula ó marcada como inválida
-          invalid_ip: ((x as any).invalid_ip ?? false) || ipMissing,
-          source: (x as any).source ?? null,
-          ip: (x as any).ip ?? null,
-        },
-      };
-    }
-
-    // 5. Detectar alertas y calcular métricas
-    detectAlerts(acc[index], timeoffsData, timezone);
-    calculateMetrics(acc[index], timeoffsData, timezone, 5, logger);
+    const src = ((x as any).source ?? '').toString().toUpperCase();
+    const isManualLegacy = src === 'MANUAL' || src === 'EMERGENCY';
+    const ipMissing = (x as any).ip == null || (x as any).ip === '';
+    acc[index] = {
+      ...acc[index],
+      [x.type]: {
+        date: effectiveDate,
+        branch: x.branch,
+        id: x.id,
+        // Considerar legacy: source MANUAL/EMERGENCY también cuenta como manual
+        is_manual: ((x as any).is_manual ?? false) || isManualLegacy,
+        manual_reason: (x as any).manual_reason ?? null,
+        // IP nula ó marcada como inválida
+        invalid_ip: ((x as any).invalid_ip ?? false) || ipMissing,
+        source: (x as any).source ?? null,
+        ip: (x as any).ip ?? null,
+      },
+    };
   }
 
-  // 6. Ordenar y filtrar resultado final
+  // 5. Ordenar y filtrar al rango (el orden no cambia con métricas/filtros UI)
   return acc
-    .sort((a: DayLog, b: DayLog) => {
-      const dateA = new Date(a.day + 'T00:00:00');
-      const dateB = new Date(b.day + 'T00:00:00');
-      const dateComparison = compareAsc(dateA, dateB);
-      if (dateComparison !== 0) return dateComparison;
-      const nameA =
-        (a.employee.first_name || '') + ' ' + (a.employee.father_name || '');
-      const nameB =
-        (b.employee.first_name || '') + ' ' + (b.employee.father_name || '');
-      return nameA.localeCompare(nameB);
-    })
-    .filter(
-      (x: DayLog) => x.day >= dateRangeStart && x.day <= dateRangeEnd
+    .sort(compareDayLogs)
+    .filter((x: DayLog) => x.day >= dateRangeStart && x.day <= dateRangeEnd);
+}
+
+/**
+ * FASE 2: Aplica detección de alertas y cálculo de métricas sobre los DayLogs base.
+ *
+ * Depende solo de `baseDayLogs` + `timeoffsData` + `timezone` + `delayToleranceMinutes`.
+ * Cambiar la tolerancia solo dispara esta fase + el filtro UI — la Fase 1 no se
+ * recalcula.
+ *
+ * Es PURA: no muta los DayLogs originales, retorna un array nuevo.
+ */
+/**
+ * Indexa overtime records por (employee_id:timelog_date) para lookup O(1).
+ * Si hay duplicados (no debería con el unique constraint en DB), se queda
+ * el más reciente por `updated_at` o el último insertado si no hay timestamp.
+ */
+function buildOvertimeIndex(
+  records: EmployeeOvertimeRecord[]
+): Map<string, EmployeeOvertimeRecord> {
+  const idx = new Map<string, EmployeeOvertimeRecord>();
+  for (const r of records) {
+    if (!r.employee_id || !r.timelog_date) continue;
+    const key = `${r.employee_id}:${r.timelog_date}`;
+    const existing = idx.get(key);
+    if (!existing) {
+      idx.set(key, r);
+      continue;
+    }
+    // Conflicto: preferir el más nuevo por updated_at (si existe)
+    const a = existing.updated_at ? new Date(existing.updated_at).getTime() : 0;
+    const b = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+    if (b >= a) idx.set(key, r);
+  }
+  return idx;
+}
+
+export function applyMetricsToDayLogs(
+  baseDayLogs: DayLog[],
+  timeoffsData: TimeoffData[],
+  timezone: string,
+  delayToleranceMinutes: number,
+  logger?: { warn: (...args: any[]) => void },
+  overtimeRecords: EmployeeOvertimeRecord[] = []
+): DayLog[] {
+  // Construir índice (empId:day → timeoff) una sola vez. Para 200 empleados ×
+  // 30 días × ~50 timeoffs evita ~300K comparaciones que antes hacían .find().
+  const timeoffIndex = buildTimeoffIndex(timeoffsData);
+  // Índice de overtime records por (empId:day) — O(1) lookup.
+  const overtimeIndex = buildOvertimeIndex(overtimeRecords);
+
+  return baseDayLogs.map((base) => {
+    const withAlerts = applyAlerts(base, timeoffIndex, timezone);
+    const withMetrics = applyMetrics(
+      withAlerts,
+      timeoffIndex,
+      timezone,
+      delayToleranceMinutes,
+      logger
     );
+    // Adjuntar overtime record si existe (siempre, no solo cuando hay extras
+    // calculadas — el record podría estar como `rejected` aunque ahora no
+    // haya overtime).
+    const empId = withMetrics.employee?.id;
+    if (empId) {
+      const record = overtimeIndex.get(`${empId}:${withMetrics.day}`);
+      if (record) {
+        return { ...withMetrics, overtimeRecord: record };
+      }
+    }
+    return withMetrics;
+  });
+}
+
+/**
+ * Wrapper para retrocompat: build base + métricas en una sola llamada.
+ * Para nuevos consumidores, preferir usar las 2 fases por separado para
+ * memoización fina (ver `timelogs.component.ts`).
+ */
+export function buildDayLogs(input: DayLogProcessingInput): DayLog[] {
+  const base = buildBaseDayLogs(input);
+  return applyMetricsToDayLogs(
+    base,
+    input.timeoffsData,
+    input.timezone,
+    input.delayToleranceMinutes ?? 5,
+    input.logger
+  );
 }

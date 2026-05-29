@@ -169,3 +169,27 @@ export const combinedPermissionGuard = (
   };
 };
 
+/**
+ * Guard que permite el paso si el usuario puede gestionar horarios
+ * (admin, schedule admin/approver, Administración, gerentes de tienda).
+ * Es el mismo criterio que controla la pestaña de "Marcación Manual".
+ */
+export const manageSchedulesGuard: CanActivateFn = async () => {
+  const router = inject(Router);
+  const dashboardStore = inject(DashboardStore);
+  const permissions = inject(PermissionsService);
+
+  const loaded = await waitForEmployee(dashboardStore);
+  if (!loaded) {
+    router.navigate(['/my-portal']);
+    return false;
+  }
+
+  if (dashboardStore.canManageSchedules()) {
+    return true;
+  }
+
+  router.navigate([findFirstAvailableRoute(permissions)]);
+  return false;
+};
+

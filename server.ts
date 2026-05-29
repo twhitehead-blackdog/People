@@ -7,6 +7,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlink
 import helmet from 'helmet';
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import nodemailer from 'nodemailer';
+import * as OTPAuth from 'otpauth';
 import path from 'path';
 import {
   generateRegistrationOptions,
@@ -280,11 +281,44 @@ export function app(): express.Express {
     if (!existsSync(BEACON_DIR)) mkdirSync(BEACON_DIR, { recursive: true, mode: 0o755 });
   } catch (e) { safeLogger.error('No se pudo crear BEACON_DIR', e); }
 
-  async function insertBeaconToSupabase(entry: Record<string, unknown>): Promise<{ ok: boolean; status?: number; err?: string }> {
+  async function insertBeaconToSupabase(entry: Record<string, unknown>): Promise<{ ok: boolean; status?: number; err?: string; deduped?: boolean }> {
     try {
       const supabaseUrl = process.env['ENV_SUPABASE_URL'];
       const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || process.env['ENV_SUPABASE_ANON_KEY'];
       if (!supabaseUrl || !serviceKey) return { ok: false, err: 'missing supabase config' };
+
+      // DEDUP: si ya existe una marca del mismo empleado + tipo en el mismo día
+      // (hora Panamá), NO insertamos. Esto hace el beacon idempotente y permite
+      // el patrón store-and-forward sin riesgo de duplicados cuando process_timelog
+      // sí insertó pero la respuesta se perdió.
+      try {
+        const punchedAtIso = String(entry['punched_at']);
+        const d = new Date(punchedAtIso);
+        if (!isNaN(d.getTime())) {
+          // Día en Panamá (UTC-5, sin DST): rango [00:00, 24:00) local → UTC
+          const panamaOffsetMs = 5 * 60 * 60 * 1000;
+          const local = new Date(d.getTime() - panamaOffsetMs);
+          const dayStartLocal = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()));
+          const dayStartUtc = new Date(dayStartLocal.getTime() + panamaOffsetMs);
+          const dayEndUtc = new Date(dayStartUtc.getTime() + 24 * 60 * 60 * 1000);
+          const checkUrl = `${supabaseUrl}/rest/v1/timelogs?select=id`
+            + `&employee_id=eq.${entry['employee_id']}`
+            + `&type=eq.${entry['type']}`
+            + `&punched_at=gte.${encodeURIComponent(dayStartUtc.toISOString())}`
+            + `&punched_at=lt.${encodeURIComponent(dayEndUtc.toISOString())}`
+            + `&limit=1`;
+          const checkR = await fetch(checkUrl, {
+            headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` },
+          });
+          if (checkR.ok) {
+            const rows = await checkR.json().catch(() => []);
+            if (Array.isArray(rows) && rows.length > 0) {
+              return { ok: true, deduped: true };
+            }
+          }
+        }
+      } catch { /* si el check falla, seguimos al insert normal */ }
+
       const body = {
         employee_id: entry['employee_id'],
         company_id: entry['company_id'],
@@ -608,7 +642,17 @@ export function app(): express.Express {
     }
   });
 
+  // Token interno para calls server-to-server (ej: /api/soporte/submit-authed → /api/notifications/it-ticket-urgent)
+  // Se deriva del SUPABASE_TOKEN para no requerir env extra.
+  const INTERNAL_AUTH_TOKEN = (process.env['ENV_SUPABASE_TOKEN'] || 'no-internal-token').slice(-32);
+
   const requireAuth: express.RequestHandler = async (req, res, next) => {
+    // Bypass para calls internos del propio server (con token compartido).
+    const internalHeader = req.headers['x-internal-token'];
+    if (internalHeader && internalHeader === INTERNAL_AUTH_TOKEN) {
+      next();
+      return;
+    }
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ error: 'Authorization header required' });
@@ -3092,30 +3136,45 @@ export function app(): express.Express {
   // ============================================================
   server.post('/api/notifications/it-ticket-urgent', async (req, res) => {
     try {
-      const { ticketId, title, description, category, branchName, requesterName } = req.body as {
+      const { ticketId, title, description, category, branchName, requesterName, department, force_notify } = req.body as {
         ticketId?: number;
         title: string;
         description?: string;
         category?: string;
         branchName?: string;
         requesterName?: string;
+        department?: 'it' | 'operations' | 'accounting' | 'hr';
+        force_notify?: boolean;
       };
 
       if (!title) {
         return res.status(400).json({ error: 'title es requerido' });
       }
 
+      const dept = (department ?? 'it') as 'it' | 'operations' | 'accounting' | 'hr';
+      const DEPT_META: Record<typeof dept, { label: string; settingKey: string; route: string; defaultRecipients: string[] }> = {
+        it:         { label: 'IT',           settingKey: 'tickets_recipients_it',         route: 'tickets-it',         defaultRecipients: ['soporte2@blackdogpanama.com'] },
+        operations: { label: 'Operaciones',  settingKey: 'tickets_recipients_operations', route: 'tickets-operations', defaultRecipients: ['operaciones@blackdogpanama.com'] },
+        accounting: { label: 'Contabilidad', settingKey: 'tickets_recipients_accounting', route: 'tickets-accounting', defaultRecipients: ['contabilidad@blackdogpanama.com'] },
+        hr:         { label: 'RRHH',         settingKey: 'tickets_recipients_hr',         route: 'tickets-hr',         defaultRecipients: ['rrhh@blackdogpanama.com'] },
+      };
+      const meta = DEPT_META[dept];
+
       const supabaseUrl = process.env['ENV_SUPABASE_URL'];
       const supabaseKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_API_KEY'];
 
       let emailMasterEnabled = true;
       let typeEnabled = true;
-      let recipients = ['soporte2@blackdogpanama.com'];
+      let recipients = meta.defaultRecipients;
+
+      // Legacy fallback: para IT lee también la setting antigua
+      const legacyKey = dept === 'it' ? 'it_email_recipients_urgent' : null;
+      const settingsKeys = ['email_enabled', 'tickets_email_notify_urgent', meta.settingKey, legacyKey].filter(Boolean).join(',');
 
       if (supabaseUrl && supabaseKey) {
         try {
           const settingsRes = await fetch(
-            `${supabaseUrl}/rest/v1/settings?key=in.(email_enabled,it_email_notify_urgent,it_email_recipients_urgent)&select=key,value`,
+            `${supabaseUrl}/rest/v1/settings?key=in.(${settingsKeys})&select=key,value`,
             {
               headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
               signal: AbortSignal.timeout(5000),
@@ -3123,56 +3182,69 @@ export function app(): express.Express {
           );
           if (settingsRes.ok) {
             const settings: Array<{ key: string; value: string }> = await settingsRes.json();
+            let legacyRecipients: string[] | null = null;
             for (const s of settings) {
               if (s.key === 'email_enabled') emailMasterEnabled = s.value !== 'false';
-              if (s.key === 'it_email_notify_urgent') typeEnabled = s.value !== 'false';
-              if (s.key === 'it_email_recipients_urgent' && s.value) {
+              if (s.key === 'tickets_email_notify_urgent') typeEnabled = s.value !== 'false';
+              if (s.key === meta.settingKey && s.value) {
                 recipients = s.value.split(',').map(r => r.trim()).filter(Boolean);
               }
+              if (legacyKey && s.key === legacyKey && s.value) {
+                legacyRecipients = s.value.split(',').map(r => r.trim()).filter(Boolean);
+              }
+            }
+            // Si la nueva no está pero la legacy sí (solo IT), usa la legacy
+            if (legacyRecipients && recipients === meta.defaultRecipients) {
+              recipients = legacyRecipients;
             }
           }
         } catch {
-          // Usar defaults si falla la lectura
+          // Usar defaults si falla
         }
       }
 
       if (!emailMasterEnabled) {
         return res.json({ sent: false, reason: 'email deshabilitado' });
       }
-      if (!typeEnabled) {
-        return res.json({ sent: false, reason: 'notificaciones IT urgentes deshabilitadas' });
+      // force_notify (usado por /soporte) bypassea el gate de urgentes — siempre notifica al gestor.
+      if (!typeEnabled && !force_notify) {
+        return res.json({ sent: false, reason: 'notificaciones de tickets urgentes deshabilitadas' });
       }
 
-      const catLabels: Record<string, string> = {
-        hardware: 'Hardware',
-        software: 'Software / Acceso',
-        network:  'Red / Internet',
-        other:    'Otro',
-      };
       const now = new Date().toLocaleString('es-PA', { timeZone: 'America/Panama' });
       const escape = (s: string) => String(s ?? '').replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c] as string));
 
-      const subject = `[URGENTE] Ticket IT #${ticketId ?? '—'} — ${escape(title)}`;
+      const fmtTicketId = (n: number | undefined): string => {
+        if (n == null) return 'T—';
+        const s = String(n).padStart(6, '0');
+        return `T${s.slice(0,3)}-${s.slice(3)}`;
+      };
+      const ticketCode = fmtTicketId(ticketId);
+      const subject = `[URGENTE] Ticket ${meta.label} ${ticketCode} — ${escape(title)}`;
       const html = `
         <div style="font-family:system-ui,sans-serif;max-width:600px;background:#0f0f0f;color:#e4e4e7;padding:24px;border-radius:8px;">
           <div style="background:#dc2626;color:#fff;padding:8px 12px;border-radius:6px;display:inline-block;font-weight:600;font-size:13px;letter-spacing:0.5px;">
-            PRIORIDAD URGENTE
+            PRIORIDAD URGENTE · ${meta.label.toUpperCase()}
           </div>
-          <h2 style="margin:12px 0 4px;color:#fff;">Ticket IT #${ticketId ?? '—'}</h2>
+          <h2 style="margin:12px 0 4px;color:#fff;">Ticket ${meta.label} ${ticketCode}</h2>
           <p style="margin:0 0 16px;color:#71717a;font-size:14px;">${now}</p>
           <h3 style="margin:8px 0;color:#fafafa;">${escape(title)}</h3>
           <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;">
             ${requesterName ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Solicitante</td><td style="padding:4px 12px;">${escape(requesterName)}</td></tr>` : ''}
             ${branchName ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Sucursal</td><td style="padding:4px 12px;">${escape(branchName)}</td></tr>` : ''}
-            ${category ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Categoría</td><td style="padding:4px 12px;">${catLabels[category] || category}</td></tr>` : ''}
+            ${category ? `<tr><td style="padding:4px 12px;color:#a1a1aa;">Categoría</td><td style="padding:4px 12px;">${escape(category)}</td></tr>` : ''}
           </table>
           ${description ? `<div style="background:#18181b;border-radius:6px;padding:12px;margin-top:14px;font-size:13px;white-space:pre-wrap;">${escape(description)}</div>` : ''}
           <p style="margin-top:20px;font-size:13px;">
-            <a href="https://people.blackdogpanama.com/admin/it-tickets" style="color:#fbbf24;text-decoration:none;">
-              → Abrir bandeja IT en People
+            <a href="https://people.blackdogpanama.com/admin/${meta.route}${ticketId ? `?ticket=${ticketId}` : ''}" style="color:#fbbf24;text-decoration:none;font-weight:600;">
+              → Abrir este ticket en People
+            </a>
+            <br/>
+            <a href="https://people.blackdogpanama.com/admin/${meta.route}" style="color:#a1a1aa;font-size:12px;text-decoration:none;">
+              → Ver toda la bandeja ${meta.label}
             </a>
           </p>
-          <p style="margin-top:12px;color:#52525b;font-size:12px;">— People IT</p>
+          <p style="margin-top:12px;color:#52525b;font-size:12px;">— People · Tickets</p>
         </div>`;
 
       const notifUser = process.env['ENV_NOTIFICATIONS_SMTP_USER'] || '';
@@ -3181,14 +3253,91 @@ export function app(): express.Express {
         ? { user: notifUser, pass: notifPass, from: notifUser }
         : undefined;
 
-      console.error('[IT Urgent] Enviando a:', recipients, '| ticket:', ticketId);
+      console.error(`[Ticket Urgent · ${meta.label}] Enviando a:`, recipients, '| ticket:', ticketId);
       const sent = await sendEmailMS365(recipients, subject, html, smtpOpts);
-      console.error('[IT Urgent] Resultado:', sent ? '✅ enviado' : '❌ falló');
+      console.error(`[Ticket Urgent · ${meta.label}] Resultado:`, sent ? '✅ enviado' : '❌ falló');
 
+      return res.json({ sent, department: dept });
+    } catch (error: any) {
+      console.error('[Ticket Urgent] Error:', error.message);
+      return res.status(500).json({ error: 'Error al enviar notificación urgente' });
+    }
+  });
+
+  // ============================================================
+  // Signed URL para descargar attachment desde el admin (Auth0 JWT)
+  // ============================================================
+  server.get('/api/admin/ticket-attachment/:id/signed-url', requireAuth, async (req, res) => {
+    try {
+      const idParam = req.params['id'];
+      const attachmentId = parseInt(Array.isArray(idParam) ? idParam[0] : (idParam || ''), 10);
+      if (!Number.isFinite(attachmentId)) {
+        return res.status(400).json({ error: 'invalid_id' });
+      }
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
+      if (!supabaseUrl || !serviceKey) {
+        return res.status(500).json({ error: 'supabase_missing' });
+      }
+      const aRes = await fetch(
+        `${supabaseUrl}/rest/v1/ticket_attachments?id=eq.${attachmentId}&select=id,storage_path,file_name,mime_type&limit=1`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+      );
+      if (!aRes.ok) return res.status(500).json({ error: 'supabase_error' });
+      const rows: any[] = await aRes.json();
+      const att = rows[0];
+      if (!att) return res.status(404).json({ error: 'not_found' });
+
+      const signRes = await fetch(`${supabaseUrl}/storage/v1/object/sign/ticket-attachments/${att.storage_path}`, {
+        method: 'POST',
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiresIn: 3600 }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!signRes.ok) return res.status(500).json({ error: 'sign_fail' });
+      const signData = await signRes.json();
+      const signedUrl = `${supabaseUrl}/storage/v1${signData.signedURL || signData.signedUrl || signData.url}`;
+      return res.json({ signed_url: signedUrl, file_name: att.file_name, mime_type: att.mime_type });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'server_error', message: err?.message });
+    }
+  });
+
+  // ============================================================
+  // Notificación al solicitante (requester) cuando hay update.
+  // Llamado por el cron interno con X-Internal-Token.
+  // Reusa sendEmailMS365 (SMTP + Graph API fallback).
+  // ============================================================
+  server.post('/api/notifications/ticket-requester-update', async (req, res) => {
+    try {
+      const { to, subject, html } = req.body as { to?: string; subject?: string; html?: string };
+      if (!to || !subject || !html) {
+        return res.status(400).json({ error: 'to, subject y html son requeridos' });
+      }
+      // Wrap el cuerpo en un layout consistente
+      const wrapped = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif; max-width:580px; margin:auto; padding:20px;">
+        <div style="text-align:center; margin-bottom:18px;">
+          <strong style="color:#fbbf24; letter-spacing:1px;">BLACK DOG · SOPORTE</strong>
+        </div>
+        ${html}
+        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;" />
+        <p style="font-size:11px; color:#999; text-align:center;">
+          Recibiste este correo porque reportaste un ticket en el Portal de Soporte.
+          No respondas a este email — usa el portal en
+          <a href="${(process.env['ENV_APP_URL'] || 'https://people.blackdogpanama.com').replace(/\/$/, '')}/soporte" style="color:#fbbf24;">el Portal de Soporte</a>.
+        </p>
+      </div>`;
+      // Usar credenciales dedicadas de notificaciones si están configuradas
+      const notifUser = process.env['ENV_NOTIFICATIONS_SMTP_USER'] || '';
+      const notifPass = process.env['ENV_NOTIFICATIONS_SMTP_PASSWORD'] || '';
+      const smtpOpts = notifUser && notifPass
+        ? { user: notifUser, pass: notifPass, from: notifUser }
+        : undefined;
+      const sent = await sendEmailMS365([to], subject, wrapped, smtpOpts);
       return res.json({ sent });
     } catch (error: any) {
-      console.error('[IT Urgent] Error:', error.message);
-      return res.status(500).json({ error: 'Error al enviar notificación IT urgent' });
+      console.error('[Ticket Requester Update] Error:', error.message);
+      return res.status(500).json({ error: 'Error al notificar al solicitante' });
     }
   });
 
@@ -3495,6 +3644,1028 @@ export function app(): express.Express {
     server.use('/go2rtc', go2rtcProxy);
 
     console.error('[Cameras] ✓ NVR endpoints + cron registered (go2rtc:', GO2RTC_API, ')');
+  }
+
+  // ============================================================
+  // SOPORTE PORTAL — ticket submission desde tiendas (IP-gated + TOTP)
+  // Auth: branches.ip + employees.code_uri (Google Authenticator)
+  // NO requiere login Auth0. Endpoints en /api/soporte/* + page /soporte
+  // ============================================================
+  {
+    const soporteRateLimiter = rateLimit({
+      windowMs: 60 * 1000,
+      max: 30,                      // 30 req/min/IP (generoso: incluye lookups + submits)
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: 'Demasiadas solicitudes. Espera un minuto.' },
+    });
+    server.use('/api/soporte/', soporteRateLimiter);
+
+    // Secret HS256 para tokens de sesión del portal /soporte.
+    // Si no se define ENV_SOPORTE_JWT_SECRET, se deriva del SUPABASE_TOKEN
+    // (suficiente para uso interno kiosko, no expuesto en cliente).
+    const SOPORTE_JWT_SECRET = new TextEncoder().encode(
+      process.env['ENV_SOPORTE_JWT_SECRET'] ||
+      (process.env['ENV_SUPABASE_TOKEN'] || 'fallback-dev-soporte-secret').slice(0, 64).padEnd(64, '0')
+    );
+    const SOPORTE_TOKEN_TTL_SECONDS = 5 * 60 * 60; // 5 horas — turno típico de tienda
+
+    async function issueSoporteToken(payload: { employee_id: string; branch_id: string; ip: string }): Promise<string> {
+      return await new SignJWT(payload as any)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setIssuer('soporte-portal')
+        .setExpirationTime(`${SOPORTE_TOKEN_TTL_SECONDS}s`)
+        .sign(SOPORTE_JWT_SECRET);
+    }
+
+    async function verifySoporteToken(token: string): Promise<{ employee_id: string; branch_id: string; ip: string } | null> {
+      try {
+        const { payload } = await jwtVerify(token, SOPORTE_JWT_SECRET, { issuer: 'soporte-portal' });
+        if (!payload['employee_id'] || !payload['branch_id']) return null;
+        return { employee_id: String(payload['employee_id']), branch_id: String(payload['branch_id']), ip: String(payload['ip'] || '') };
+      } catch {
+        return null;
+      }
+    }
+
+    /** Middleware que extrae y valida el Bearer token de las rutas autenticadas. */
+    async function requireSoporteSession(req: express.Request, res: express.Response): Promise<{ employee_id: string; branch_id: string; ip: string } | null> {
+      const auth = req.headers.authorization || '';
+      const m = /^Bearer\s+(.+)$/.exec(auth);
+      if (!m) {
+        res.status(401).json({ error: 'no_session' });
+        return null;
+      }
+      const session = await verifySoporteToken(m[1]);
+      if (!session) {
+        res.status(401).json({ error: 'invalid_or_expired_session' });
+        return null;
+      }
+      // Anti-hijack mínimo: la IP en el token debe seguir matcheando la sucursal.
+      const currentIp = getSoporteClientIp(req);
+      const branch = await findBranchByIp(currentIp);
+      if (!branch || branch.id !== session.branch_id) {
+        res.status(403).json({ error: 'ip_branch_mismatch' });
+        return null;
+      }
+      return session;
+    }
+
+    function getSoporteClientIp(req: express.Request): string {
+      const fwd = req.headers['x-forwarded-for'];
+      if (fwd) {
+        const first = (Array.isArray(fwd) ? fwd[0] : fwd).split(',')[0].trim();
+        if (first) return first;
+      }
+      const real = req.headers['x-real-ip'];
+      if (real) return (Array.isArray(real) ? real[0] : real).trim();
+      return (req.ip || '').replace(/^::ffff:/, '').trim();
+    }
+
+    async function soporteAudit(
+      ip: string,
+      action: string,
+      success: boolean,
+      extra: Partial<{ branch_id: string | null; employee_id: string | null; ticket_id: number | null; reason: string; metadata: unknown; user_agent: string }> = {}
+    ): Promise<void> {
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
+        if (!supabaseUrl || !serviceKey) return;
+        await fetch(`${supabaseUrl}/rest/v1/soporte_audit`, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            ip,
+            action,
+            success,
+            branch_id: extra.branch_id ?? null,
+            employee_id: extra.employee_id ?? null,
+            ticket_id: extra.ticket_id ?? null,
+            reason: extra.reason ?? null,
+            metadata: extra.metadata ?? null,
+            user_agent: extra.user_agent ?? null,
+          }),
+          signal: AbortSignal.timeout(3000),
+        });
+      } catch {
+        /* never throw from audit */
+      }
+    }
+
+    /** Devuelve la sucursal cuya IP pública coincide con la del cliente, o 403. */
+    async function findBranchByIp(ip: string): Promise<{ id: string; name: string } | null> {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
+      if (!supabaseUrl || !serviceKey || !ip) return null;
+      const r = await fetch(
+        `${supabaseUrl}/rest/v1/branches?ip=eq.${encodeURIComponent(ip)}&is_active=eq.true&select=id,name&limit=1`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+      );
+      if (!r.ok) return null;
+      const rows: Array<{ id: string; name: string }> = await r.json();
+      return rows[0] || null;
+    }
+
+    /** Valida un TOTP de 6 dígitos contra el code_uri (otpauth URI) del empleado. window:1 = ±30s. */
+    function verifyEmployeeTotp(codeUri: string, code: string): boolean {
+      try {
+        if (!codeUri || !/^\d{6}$/.test(code)) return false;
+        const totp = OTPAuth.URI.parse(codeUri);
+        const delta = totp.validate({ token: code, window: 1 });
+        return delta !== null;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── 1) GET /api/soporte/branch-by-ip ────────────────────────────
+    // Detecta la sucursal del visitante. Sin payload.
+    server.get('/api/soporte/branch-by-ip', async (req, res) => {
+      const ip = getSoporteClientIp(req);
+      const ua = String(req.headers['user-agent'] || '').slice(0, 300);
+      try {
+        const branch = await findBranchByIp(ip);
+        if (!branch) {
+          await soporteAudit(ip, 'branch_lookup', false, { reason: 'ip_no_match', user_agent: ua });
+          res.status(403).json({ error: 'fuera_de_red', message: 'Tu IP no corresponde a ninguna sucursal. Conéctate al WiFi de la tienda.' });
+          return;
+        }
+        await soporteAudit(ip, 'branch_lookup', true, { branch_id: branch.id, user_agent: ua });
+        res.json({ branch_id: branch.id, branch_name: branch.name });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await soporteAudit(ip, 'branch_lookup', false, { reason: `error: ${msg}`, user_agent: ua });
+        res.status(500).json({ error: 'server_error' });
+      }
+    });
+
+    // ── 2) GET /api/soporte/employees ───────────────────────────────
+    // Lista empleados activos + enrolados de la sucursal del visitante.
+    // Re-valida IP→branch para que no se pueda pasar branch_id arbitrario.
+    server.get('/api/soporte/employees', async (req, res) => {
+      const ip = getSoporteClientIp(req);
+      const ua = String(req.headers['user-agent'] || '').slice(0, 300);
+      try {
+        const branch = await findBranchByIp(ip);
+        if (!branch) {
+          res.status(403).json({ error: 'fuera_de_red' });
+          return;
+        }
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        const r = await fetch(
+          `${supabaseUrl}/rest/v1/employees?branch_id=eq.${branch.id}&is_active=eq.true&authenticator_enrolled=eq.true&select=id,first_name,father_name,mother_name&order=first_name.asc`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!r.ok) {
+          res.status(500).json({ error: 'supabase_error' });
+          return;
+        }
+        const rows: Array<{ id: string; first_name: string; father_name?: string; mother_name?: string }> = await r.json();
+        const employees = rows.map((e) => ({
+          id: e.id,
+          name: [e.first_name, e.father_name, e.mother_name].map(s => (s || '').trim()).filter(Boolean).join(' '),
+        }));
+        await soporteAudit(ip, 'employee_list', true, { branch_id: branch.id, metadata: { count: employees.length }, user_agent: ua });
+        res.json({ branch_id: branch.id, branch_name: branch.name, employees });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await soporteAudit(ip, 'employee_list', false, { reason: `error: ${msg}`, user_agent: ua });
+        res.status(500).json({ error: 'server_error' });
+      }
+    });
+
+    // ── 3) POST /api/soporte/submit ─────────────────────────────────
+    // Crea el ticket. Validaciones en orden: IP, empleado, TOTP, payload.
+    server.post('/api/soporte/submit', async (req, res) => {
+      const ip = getSoporteClientIp(req);
+      const ua = String(req.headers['user-agent'] || '').slice(0, 300);
+      const body = (req.body || {}) as {
+        employee_id?: string;
+        totp_code?: string;
+        department?: 'it' | 'operations' | 'accounting' | 'hr';
+        category?: string;
+        priority?: 'low' | 'medium' | 'high' | 'urgent';
+        title?: string;
+        description?: string;
+      };
+
+      try {
+        // a) Validar IP → sucursal
+        const branch = await findBranchByIp(ip);
+        if (!branch) {
+          await soporteAudit(ip, 'submit_fail', false, { reason: 'ip_no_match', user_agent: ua });
+          res.status(403).json({ error: 'fuera_de_red' });
+          return;
+        }
+
+        // b) Payload básico
+        const VALID_DEPTS = ['it', 'operations', 'accounting', 'hr'] as const;
+        const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+        if (!body.employee_id || !body.totp_code || !body.department || !body.title || !body.description ||
+            !VALID_DEPTS.includes(body.department) ||
+            !VALID_PRIORITIES.includes(body.priority ?? 'medium')) {
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, employee_id: body.employee_id ?? null, reason: 'invalid_payload', user_agent: ua });
+          res.status(400).json({ error: 'payload_inválido' });
+          return;
+        }
+        const title = String(body.title).trim().slice(0, 200);
+        const description = String(body.description).trim().slice(0, 5000);
+        const priority = body.priority ?? 'medium';
+        const category = body.category ? String(body.category).slice(0, 50) : null;
+        if (title.length < 3 || description.length < 5) {
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, employee_id: body.employee_id, reason: 'texto_muy_corto', user_agent: ua });
+          res.status(400).json({ error: 'texto_muy_corto', message: 'Título y descripción son requeridos.' });
+          return;
+        }
+
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+
+        // c) Validar empleado pertenece a la sucursal + está enrolado + activo
+        const empRes = await fetch(
+          `${supabaseUrl}/rest/v1/employees?id=eq.${body.employee_id}&select=id,first_name,father_name,branch_id,company_id,is_active,authenticator_enrolled,code_uri&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!empRes.ok) {
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, reason: 'supabase_emp_fail', user_agent: ua });
+          res.status(500).json({ error: 'supabase_error' });
+          return;
+        }
+        const employees: Array<{ id: string; first_name: string; father_name: string; branch_id: string; company_id: string; is_active: boolean; authenticator_enrolled: boolean; code_uri: string }> = await empRes.json();
+        const emp = employees[0];
+        if (!emp || !emp.is_active || emp.branch_id !== branch.id) {
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, employee_id: body.employee_id, reason: 'empleado_no_pertenece', user_agent: ua });
+          res.status(403).json({ error: 'empleado_no_válido' });
+          return;
+        }
+        if (!emp.authenticator_enrolled || !emp.code_uri) {
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, employee_id: emp.id, reason: 'no_enrolado', user_agent: ua });
+          res.status(403).json({ error: 'no_enrolado', message: 'Pide a IT activar tu Google Authenticator antes de enviar tickets.' });
+          return;
+        }
+
+        // d) Validar TOTP
+        if (!verifyEmployeeTotp(emp.code_uri, body.totp_code)) {
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, employee_id: emp.id, reason: 'totp_invalido', user_agent: ua });
+          res.status(401).json({ error: 'totp_invalido', message: 'Código de Google Authenticator incorrecto o expirado.' });
+          return;
+        }
+
+        // e) Resolver assignee según settings
+        // - tickets_assignee_{dept}            → empleado fijo (single)
+        // - tickets_assignee_{dept}_pool       → CSV de empleados; gana el que menos tickets ABIERTOS tenga
+        let assigneeId: string | null = null;
+        try {
+          const singleKey = `tickets_assignee_${body.department}`;
+          const poolKey = `tickets_assignee_${body.department}_pool`;
+          const settingsRes = await fetch(
+            `${supabaseUrl}/rest/v1/settings?key=in.(${singleKey},${poolKey})&select=key,value`,
+            { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+          );
+          if (settingsRes.ok) {
+            const rows: Array<{ key: string; value: string }> = await settingsRes.json();
+            const single = rows.find(r => r.key === singleKey)?.value?.trim();
+            const poolCsv = rows.find(r => r.key === poolKey)?.value?.trim();
+            if (single && /^[0-9a-f-]{36}$/i.test(single)) {
+              assigneeId = single;
+            } else if (poolCsv) {
+              const pool = poolCsv.split(',').map(s => s.trim()).filter(s => /^[0-9a-f-]{36}$/i.test(s));
+              if (pool.length === 1) {
+                assigneeId = pool[0];
+              } else if (pool.length > 1) {
+                // Carga = tickets en estado open/in_process asignados a c/u
+                const loadRes = await fetch(
+                  `${supabaseUrl}/rest/v1/tickets?assignee_id=in.(${pool.join(',')})&status=in.(open,in_process)&select=assignee_id`,
+                  { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+                );
+                const loadRows: Array<{ assignee_id: string }> = loadRes.ok ? await loadRes.json() : [];
+                const counts: Record<string, number> = Object.fromEntries(pool.map(id => [id, 0]));
+                for (const r of loadRows) counts[r.assignee_id] = (counts[r.assignee_id] || 0) + 1;
+                // Menor carga (empate: orden de declaración del pool)
+                let best = pool[0];
+                for (const id of pool) if (counts[id] < counts[best]) best = id;
+                assigneeId = best;
+              }
+            }
+          }
+        } catch (e) {
+          safeLogger.error('[soporte] error resolviendo assignee, continuamos sin asignar', e);
+        }
+
+        // f) Insertar ticket via service_role
+        const insertRes = await fetch(`${supabaseUrl}/rest/v1/tickets`, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            department: body.department,
+            category,
+            priority,
+            status: 'open',
+            branch_id: branch.id,
+            company_id: emp.company_id,
+            requester_id: emp.id,
+            assignee_id: assigneeId,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!insertRes.ok) {
+          const errText = await insertRes.text().catch(() => '');
+          await soporteAudit(ip, 'submit_fail', false, { branch_id: branch.id, employee_id: emp.id, reason: `insert_fail: ${errText.slice(0,200)}`, user_agent: ua });
+          res.status(500).json({ error: 'insert_failed' });
+          return;
+        }
+        const created: Array<{ id: number }> = await insertRes.json();
+        const ticketId = created[0]?.id;
+
+        // g) Notificación email al gestor del depto (fire-and-forget)
+        (async () => {
+          try {
+            const notifyUrl = `http://localhost:${process.env['PORT'] || 3001}/api/notifications/it-ticket-urgent`;
+            await fetch(notifyUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Internal-Token': INTERNAL_AUTH_TOKEN },
+              body: JSON.stringify({
+                ticketId,
+                title,
+                description,
+                category,
+                branchName: branch.name,
+                requesterName: `${emp.first_name} ${emp.father_name}`.trim(),
+                department: body.department,
+                force_notify: true,
+              }),
+              signal: AbortSignal.timeout(8000),
+            });
+          } catch (e) {
+            safeLogger.error('[soporte] email notify failed', e);
+          }
+        })();
+
+        await soporteAudit(ip, 'submit_ok', true, { branch_id: branch.id, employee_id: emp.id, ticket_id: ticketId ?? null, metadata: { department: body.department, priority }, user_agent: ua });
+        const fmt = (n: number | undefined) => { if (n == null) return 'T—'; const s = String(n).padStart(6,'0'); return `T${s.slice(0,3)}-${s.slice(3)}`; };
+        res.json({ ok: true, ticket_id: ticketId, ticket_code: fmt(ticketId), message: `Ticket ${fmt(ticketId)} recibido. El equipo te contactará pronto.` });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await soporteAudit(ip, 'submit_fail', false, { reason: `error: ${msg}`, user_agent: ua });
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 4) POST /api/soporte/login ──────────────────────────────────
+    // Devuelve un token de sesión (JWT 30min) si IP+empleado+TOTP son válidos.
+    // Body: { employee_id, totp_code }
+    server.post('/api/soporte/login', async (req, res) => {
+      const ip = getSoporteClientIp(req);
+      const ua = String(req.headers['user-agent'] || '').slice(0, 300);
+      try {
+        const branch = await findBranchByIp(ip);
+        if (!branch) {
+          res.status(403).json({ error: 'fuera_de_red' });
+          return;
+        }
+        const { employee_id, totp_code } = (req.body || {}) as { employee_id?: string; totp_code?: string };
+        if (!employee_id || !totp_code) {
+          res.status(400).json({ error: 'payload_invalido' });
+          return;
+        }
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        const empRes = await fetch(
+          `${supabaseUrl}/rest/v1/employees?id=eq.${employee_id}&select=id,first_name,father_name,branch_id,company_id,is_active,authenticator_enrolled,code_uri&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!empRes.ok) { res.status(500).json({ error: 'supabase_error' }); return; }
+        const rows: Array<{ id: string; first_name: string; father_name: string; branch_id: string; company_id: string; is_active: boolean; authenticator_enrolled: boolean; code_uri: string }> = await empRes.json();
+        const emp = rows[0];
+        if (!emp || !emp.is_active || emp.branch_id !== branch.id) {
+          await soporteAudit(ip, 'login_fail', false, { branch_id: branch.id, employee_id, reason: 'empleado_no_pertenece', user_agent: ua });
+          res.status(403).json({ error: 'empleado_no_valido' });
+          return;
+        }
+        if (!emp.authenticator_enrolled || !emp.code_uri) {
+          await soporteAudit(ip, 'login_fail', false, { branch_id: branch.id, employee_id: emp.id, reason: 'no_enrolado', user_agent: ua });
+          res.status(403).json({ error: 'no_enrolado', message: 'Pide a IT activar tu Google Authenticator.' });
+          return;
+        }
+        if (!verifyEmployeeTotp(emp.code_uri, totp_code)) {
+          await soporteAudit(ip, 'login_fail', false, { branch_id: branch.id, employee_id: emp.id, reason: 'totp_invalido', user_agent: ua });
+          res.status(401).json({ error: 'totp_invalido' });
+          return;
+        }
+        const token = await issueSoporteToken({ employee_id: emp.id, branch_id: branch.id, ip });
+        await soporteAudit(ip, 'login_ok', true, { branch_id: branch.id, employee_id: emp.id, user_agent: ua });
+        res.json({
+          token,
+          ttl_seconds: SOPORTE_TOKEN_TTL_SECONDS,
+          employee: {
+            id: emp.id,
+            name: `${emp.first_name} ${emp.father_name}`.trim(),
+          },
+          branch: { id: branch.id, name: branch.name },
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await soporteAudit(ip, 'login_fail', false, { reason: `error: ${msg}`, user_agent: ua });
+        res.status(500).json({ error: 'server_error' });
+      }
+    });
+
+    // ── 5) GET /api/soporte/my-tickets ──────────────────────────────
+    // Lista los tickets de la SUCURSAL (no solo del logueado).
+    // El portal en kiosko es compartido — cualquier empleado de la sucursal
+    // puede haber reportado, y todos deben ver el estado.
+    server.get('/api/soporte/my-tickets', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        const r = await fetch(
+          `${supabaseUrl}/rest/v1/tickets?branch_id=eq.${session.branch_id}&order=created_at.desc&select=id,title,description,department,category,priority,status,branch_id,requester_id,created_at,updated_at,requester:employees!tickets_requester_id_fkey(first_name,father_name),assignee:employees!tickets_assignee_id_fkey(first_name,father_name)`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!r.ok) { res.status(500).json({ error: 'supabase_error' }); return; }
+        const tickets = await r.json();
+        res.json({ tickets });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 6) GET /api/soporte/ticket/:id ──────────────────────────────
+    // Detalle del ticket + comentarios públicos (is_internal=false).
+    // Solo accesible si el requester es el empleado logueado.
+    server.get('/api/soporte/ticket/:id', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const ticketId = parseInt(req.params.id, 10);
+      if (!Number.isFinite(ticketId)) { res.status(400).json({ error: 'invalid_id' }); return; }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        const tRes = await fetch(
+          `${supabaseUrl}/rest/v1/tickets?id=eq.${ticketId}&branch_id=eq.${session.branch_id}&select=id,title,description,department,category,priority,status,branch_id,requester_id,created_at,updated_at,requester:employees!tickets_requester_id_fkey(first_name,father_name),assignee:employees!tickets_assignee_id_fkey(first_name,father_name)&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!tRes.ok) { res.status(500).json({ error: 'supabase_error' }); return; }
+        const tickets: any[] = await tRes.json();
+        const ticket = tickets[0];
+        if (!ticket) { res.status(404).json({ error: 'no_encontrado' }); return; }
+        // Solo comentarios públicos (no is_internal)
+        const cRes = await fetch(
+          `${supabaseUrl}/rest/v1/ticket_comments?ticket_id=eq.${ticketId}&is_internal=eq.false&order=created_at.asc&select=id,content,is_internal,created_at,author:employees(first_name,father_name)`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const comments = cRes.ok ? await cRes.json() : [];
+
+        // Historial cronológico (excluye 'commented' porque ya viene en comments,
+        // y excluye changes triviales como title_changed/description_changed para no abrumar)
+        const hRes = await fetch(
+          `${supabaseUrl}/rest/v1/ticket_history?ticket_id=eq.${ticketId}&action=in.(created,status_changed,assignee_changed,priority_changed,category_changed,department_changed,reopened,cancelled,attachment_added)&order=created_at.asc&select=id,action,from_value,to_value,actor_id,actor_name,created_at,metadata`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const history = hRes.ok ? await hRes.json() : [];
+
+        // Attachments del ticket
+        const aRes = await fetch(
+          `${supabaseUrl}/rest/v1/ticket_attachments?ticket_id=eq.${ticketId}&order=created_at.asc&select=id,file_name,file_size,mime_type,uploaded_by_name,created_at`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const attachments = aRes.ok ? await aRes.json() : [];
+
+        res.json({ ticket, comments, history, attachments });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 7) Adjuntos ─────────────────────────────────────────────────
+    // POST /api/soporte/ticket/:id/attachment — sube archivo base64
+    // body: { file_name, mime_type, base64, uploader_id? }
+    // Sin auth header con multipart; usamos JSON base64 (más simple).
+    server.post('/api/soporte/ticket/:id/attachment', express.json({ limit: '15mb' }), async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const ticketId = parseInt(req.params.id, 10);
+      const body = (req.body || {}) as { file_name?: string; mime_type?: string; base64?: string; uploader_id?: string };
+      if (!Number.isFinite(ticketId) || !body.file_name || !body.mime_type || !body.base64) {
+        res.status(400).json({ error: 'payload_invalido' });
+        return;
+      }
+      const ALLOWED_MIMES = ['image/jpeg','image/png','image/webp','image/heic','image/gif','application/pdf'];
+      if (!ALLOWED_MIMES.includes(body.mime_type)) {
+        res.status(400).json({ error: 'mime_no_permitido', message: 'Solo imágenes JPG/PNG/WebP/HEIC/GIF o PDF.' });
+        return;
+      }
+      // Decodificar base64 (acepta data URL o pure base64)
+      const b64 = body.base64.replace(/^data:[^;]+;base64,/, '');
+      const buf = Buffer.from(b64, 'base64');
+      if (buf.length > 10 * 1024 * 1024) {
+        res.status(400).json({ error: 'too_large', message: 'Máximo 10 MB por archivo.' });
+        return;
+      }
+      if (buf.length < 100) {
+        res.status(400).json({ error: 'empty_file' });
+        return;
+      }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        // Ticket debe pertenecer a la sucursal del kiosko
+        const tRes = await fetch(
+          `${supabaseUrl}/rest/v1/tickets?id=eq.${ticketId}&branch_id=eq.${session.branch_id}&select=id&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const owned: any[] = tRes.ok ? await tRes.json() : [];
+        if (!owned[0]) { res.status(403).json({ error: 'not_in_branch' }); return; }
+
+        // Determinar uploader: si vino uploader_id, validar; sino usar session.employee_id
+        let uploaderId = session.employee_id;
+        if (body.uploader_id && body.uploader_id !== session.employee_id) {
+          const uRes = await fetch(
+            `${supabaseUrl}/rest/v1/employees?id=eq.${body.uploader_id}&branch_id=eq.${session.branch_id}&is_active=eq.true&select=id&limit=1`,
+            { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+          );
+          const ok: any[] = uRes.ok ? await uRes.json() : [];
+          if (ok[0]) uploaderId = body.uploader_id;
+        }
+        // Resolver nombre del uploader
+        const eRes = await fetch(
+          `${supabaseUrl}/rest/v1/employees?id=eq.${uploaderId}&select=first_name,father_name&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+        );
+        const empArr: any[] = eRes.ok ? await eRes.json() : [];
+        const uploaderName = empArr[0] ? `${(empArr[0].first_name||'').trim()} ${(empArr[0].father_name||'').trim()}`.trim() : null;
+
+        // Path en bucket: tickets/{ticketId}/{uuid}-{file_name}
+        const safeName = body.file_name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
+        const ext = safeName.includes('.') ? safeName.split('.').pop() : '';
+        const uuid = (typeof globalThis.crypto?.randomUUID === 'function') ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
+        const storagePath = `tickets/${ticketId}/${uuid}${ext ? '.' + ext : ''}`;
+
+        // Upload a Supabase Storage
+        const upRes = await fetch(`${supabaseUrl}/storage/v1/object/ticket-attachments/${storagePath}`, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': body.mime_type,
+            'x-upsert': 'false',
+          },
+          body: new Uint8Array(buf),
+          signal: AbortSignal.timeout(20000),
+        });
+        if (!upRes.ok) {
+          const text = await upRes.text().catch(() => '');
+          safeLogger.error('[soporte attachment] storage upload fail', text);
+          res.status(500).json({ error: 'storage_upload_fail', detail: text.slice(0, 200) });
+          return;
+        }
+
+        // Insertar metadata
+        const insertRes = await fetch(`${supabaseUrl}/rest/v1/ticket_attachments`, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json', Prefer: 'return=representation',
+          },
+          body: JSON.stringify({
+            ticket_id: ticketId,
+            file_name: safeName,
+            file_size: buf.length,
+            mime_type: body.mime_type,
+            storage_path: storagePath,
+            uploaded_by: uploaderId,
+            uploaded_by_name: uploaderName,
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!insertRes.ok) {
+          const text = await insertRes.text().catch(() => '');
+          safeLogger.error('[soporte attachment] metadata insert fail', text);
+          res.status(500).json({ error: 'metadata_fail', detail: text.slice(0, 200) });
+          return;
+        }
+        const inserted: any[] = await insertRes.json();
+        res.json({ ok: true, attachment: inserted[0] });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        safeLogger.error('[soporte attachment] error', msg);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // GET /api/soporte/attachment/:id/signed-url — devuelve URL firmada para descargar
+    server.get('/api/soporte/attachment/:id/signed-url', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const attachmentId = parseInt(req.params.id, 10);
+      if (!Number.isFinite(attachmentId)) { res.status(400).json({ error: 'invalid_id' }); return; }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        // Verify ticket belongs to session branch
+        const aRes = await fetch(
+          `${supabaseUrl}/rest/v1/ticket_attachments?id=eq.${attachmentId}&select=id,storage_path,file_name,mime_type,ticket:tickets(branch_id)&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!aRes.ok) { res.status(500).json({ error: 'supabase_error' }); return; }
+        const rows: any[] = await aRes.json();
+        const att = rows[0];
+        if (!att || att.ticket?.branch_id !== session.branch_id) {
+          res.status(403).json({ error: 'not_in_branch' });
+          return;
+        }
+        // Crear signed URL (60 min)
+        const signRes = await fetch(`${supabaseUrl}/storage/v1/object/sign/ticket-attachments/${att.storage_path}`, {
+          method: 'POST',
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expiresIn: 3600 }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!signRes.ok) { res.status(500).json({ error: 'sign_fail' }); return; }
+        const signData = await signRes.json();
+        const signedUrl = `${supabaseUrl}/storage/v1${signData.signedURL || signData.signedUrl || signData.url}`;
+        res.json({ signed_url: signedUrl, file_name: att.file_name, mime_type: att.mime_type });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 7b) POST /api/soporte/ticket/:id/status ─────────────────────
+    // El requester puede cancelar su ticket (si está open) o reabrir
+    // (si está resolved/cancelled). Solo el dueño del ticket.
+    server.post('/api/soporte/ticket/:id/status', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const ticketId = parseInt(req.params['id'], 10);
+      const body = (req.body || {}) as { status?: string; reason?: string };
+      const target = body.status;
+      if (!Number.isFinite(ticketId) || !target || !['open','cancelled'].includes(target)) {
+        res.status(400).json({ error: 'payload_invalido' });
+        return;
+      }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        // Ticket debe pertenecer al requester de la sesión Y a la sucursal
+        const tRes = await fetch(
+          `${supabaseUrl}/rest/v1/tickets?id=eq.${ticketId}&branch_id=eq.${session.branch_id}&requester_id=eq.${session.employee_id}&select=id,status&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (!tRes.ok) { res.status(500).json({ error: 'supabase_error' }); return; }
+        const rows: any[] = await tRes.json();
+        const ticket = rows[0];
+        if (!ticket) { res.status(403).json({ error: 'no_owner', message: 'Solo el solicitante puede cambiar el estado.' }); return; }
+
+        // Reglas de transición
+        const current = ticket.status;
+        if (target === 'cancelled') {
+          if (current !== 'open') {
+            res.status(400).json({ error: 'cant_cancel', message: 'Solo se puede cancelar mientras está abierto. Si ya empezaron a atenderlo, pide al gestor.' });
+            return;
+          }
+        } else if (target === 'open') {
+          if (!['resolved','cancelled'].includes(current)) {
+            res.status(400).json({ error: 'cant_reopen', message: 'Solo se reabre desde Resuelto o Cancelado.' });
+            return;
+          }
+        }
+
+        // Set GUC para que el trigger registre el actor correcto
+        try {
+          await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, { method: 'POST', headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({}) , signal: AbortSignal.timeout(2000) });
+        } catch { /* no exec_sql custom, sigue */ }
+
+        // Update via PostgREST con un header app.actor_id (se honra solo si el GUC está disponible);
+        // sin GUC el trigger registra actor=NULL pero el evento queda.
+        const upRes = await fetch(`${supabaseUrl}/rest/v1/tickets?id=eq.${ticketId}`, {
+          method: 'PATCH',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ status: target, updated_at: new Date().toISOString() }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!upRes.ok) {
+          res.status(500).json({ error: 'update_fail' });
+          return;
+        }
+
+        // Si vino una razón, agregarla como comentario público del requester
+        if (body.reason && body.reason.trim().length >= 2) {
+          await fetch(`${supabaseUrl}/rest/v1/ticket_comments`, {
+            method: 'POST',
+            headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              ticket_id: ticketId,
+              author_id: session.employee_id,
+              content: (target === 'cancelled' ? '[Cancelado por el solicitante] ' : '[Reabierto por el solicitante] ') + body.reason.trim().slice(0, 1000),
+              is_internal: false,
+            }),
+            signal: AbortSignal.timeout(4000),
+          });
+        }
+
+        res.json({ ok: true, status: target });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 8) POST /api/soporte/ticket/:id/comment ─────────────────────
+    // El requester agrega comentario público a su ticket.
+    server.post('/api/soporte/ticket/:id/comment', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const ticketId = parseInt(req.params.id, 10);
+      const body = (req.body || {}) as { content?: string; author_id?: string };
+      const content = String(body.content || '').trim().slice(0, 2000);
+      if (!Number.isFinite(ticketId) || content.length < 2) {
+        res.status(400).json({ error: 'invalid_payload' });
+        return;
+      }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        // Ticket debe pertenecer a la sucursal del kiosko
+        const tRes = await fetch(
+          `${supabaseUrl}/rest/v1/tickets?id=eq.${ticketId}&branch_id=eq.${session.branch_id}&select=id&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const owned: any[] = tRes.ok ? await tRes.json() : [];
+        if (!owned[0]) { res.status(403).json({ error: 'not_in_branch' }); return; }
+
+        // Si vino author_id, validar que pertenezca a la sucursal y esté activo.
+        // Sino, usar el employee del session.
+        let authorId = session.employee_id;
+        if (body.author_id && body.author_id !== session.employee_id) {
+          const aRes = await fetch(
+            `${supabaseUrl}/rest/v1/employees?id=eq.${body.author_id}&branch_id=eq.${session.branch_id}&is_active=eq.true&select=id&limit=1`,
+            { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+          );
+          const valid: any[] = aRes.ok ? await aRes.json() : [];
+          if (!valid[0]) { res.status(403).json({ error: 'author_not_in_branch' }); return; }
+          authorId = body.author_id;
+        }
+
+        const ins = await fetch(`${supabaseUrl}/rest/v1/ticket_comments`, {
+          method: 'POST',
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({ ticket_id: ticketId, author_id: authorId, content, is_internal: false }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!ins.ok) { res.status(500).json({ error: 'insert_fail' }); return; }
+        const inserted: any[] = await ins.json();
+        res.json({ ok: true, comment: inserted[0] });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 8) POST /api/soporte/submit-authed ──────────────────────────
+    // Variante de /submit que NO requiere TOTP por cada ticket — usa el JWT
+    // emitido por /api/soporte/login. Para el flujo del portal v2.
+    server.post('/api/soporte/submit-authed', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const body = (req.body || {}) as {
+        department?: 'it' | 'operations' | 'accounting' | 'hr';
+        category?: string;
+        priority?: 'low' | 'medium' | 'high' | 'urgent';
+        title?: string;
+        description?: string;
+        requester_id?: string;  // opcional — quién reporta (debe ser empleado activo de la sucursal)
+      };
+      const VALID_DEPTS = ['it', 'operations', 'accounting', 'hr'] as const;
+      const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+      if (!body.department || !body.title || !body.description ||
+          !VALID_DEPTS.includes(body.department) ||
+          !VALID_PRIORITIES.includes(body.priority ?? 'medium')) {
+        res.status(400).json({ error: 'payload_invalido' });
+        return;
+      }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        // Resolver REQUESTER: si vino requester_id en el body, debe ser empleado activo
+        // de la sucursal. Si no, usar el de la sesión.
+        const requesterId = body.requester_id || session.employee_id;
+        const empRes = await fetch(
+          `${supabaseUrl}/rest/v1/employees?id=eq.${requesterId}&branch_id=eq.${session.branch_id}&is_active=eq.true&select=id,first_name,father_name,branch_id,company_id&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const emps: any[] = empRes.ok ? await empRes.json() : [];
+        const emp = emps[0];
+        if (!emp) {
+          res.status(403).json({ error: 'requester_invalid', message: 'El empleado que reporta no pertenece a esta sucursal o no está activo.' });
+          return;
+        }
+
+        // Reusar lógica de auto-assignment
+        let assigneeId: string | null = null;
+        try {
+          const singleKey = `tickets_assignee_${body.department}`;
+          const poolKey = `tickets_assignee_${body.department}_pool`;
+          const sRes = await fetch(
+            `${supabaseUrl}/rest/v1/settings?key=in.(${singleKey},${poolKey})&select=key,value`,
+            { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+          );
+          if (sRes.ok) {
+            const rows: Array<{ key: string; value: string }> = await sRes.json();
+            const single = rows.find(r => r.key === singleKey)?.value?.trim();
+            const poolCsv = rows.find(r => r.key === poolKey)?.value?.trim();
+            if (single && /^[0-9a-f-]{36}$/i.test(single)) {
+              assigneeId = single;
+            } else if (poolCsv) {
+              const pool = poolCsv.split(',').map(s => s.trim()).filter(s => /^[0-9a-f-]{36}$/i.test(s));
+              if (pool.length === 1) assigneeId = pool[0];
+              else if (pool.length > 1) {
+                const loadRes = await fetch(
+                  `${supabaseUrl}/rest/v1/tickets?assignee_id=in.(${pool.join(',')})&status=in.(open,in_process)&select=assignee_id`,
+                  { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(4000) }
+                );
+                const loadRows: Array<{ assignee_id: string }> = loadRes.ok ? await loadRes.json() : [];
+                const counts: Record<string, number> = Object.fromEntries(pool.map(id => [id, 0]));
+                for (const r of loadRows) counts[r.assignee_id] = (counts[r.assignee_id] || 0) + 1;
+                let best = pool[0];
+                for (const id of pool) if (counts[id] < counts[best]) best = id;
+                assigneeId = best;
+              }
+            }
+          }
+        } catch { /* sigue sin assign */ }
+
+        const title = String(body.title).trim().slice(0, 200);
+        const description = String(body.description).trim().slice(0, 5000);
+        const insertRes = await fetch(`${supabaseUrl}/rest/v1/tickets`, {
+          method: 'POST',
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({
+            title, description,
+            department: body.department,
+            category: body.category || null,
+            priority: body.priority ?? 'medium',
+            status: 'open',
+            branch_id: session.branch_id,
+            company_id: emp.company_id,
+            requester_id: emp.id,
+            assignee_id: assigneeId,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!insertRes.ok) { res.status(500).json({ error: 'insert_fail' }); return; }
+        const created: Array<{ id: number }> = await insertRes.json();
+        const ticketId = created[0]?.id;
+
+        // Email (fire-and-forget) — usa header interno para bypass de requireAuth
+        const branchNameForEmail = (await (async () => {
+          try {
+            const b = await fetch(`${supabaseUrl}/rest/v1/branches?id=eq.${session.branch_id}&select=name&limit=1`,
+              { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(3000) });
+            if (!b.ok) return '';
+            const rows: any[] = await b.json();
+            return rows[0]?.name || '';
+          } catch { return ''; }
+        })());
+        (async () => {
+          try {
+            await fetch(`http://localhost:${process.env['PORT'] || 3001}/api/notifications/it-ticket-urgent`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Internal-Token': INTERNAL_AUTH_TOKEN },
+              body: JSON.stringify({
+                ticketId, title, description,
+                category: body.category, branchName: branchNameForEmail || 'Sucursal',
+                requesterName: `${emp.first_name} ${emp.father_name}`.trim(),
+                department: body.department,
+                force_notify: true,
+              }),
+              signal: AbortSignal.timeout(8000),
+            });
+          } catch (e) { safeLogger.error('[soporte v2] email notify failed', e); }
+        })();
+
+        await soporteAudit(session.ip, 'submit_ok', true, { branch_id: session.branch_id, employee_id: emp.id, ticket_id: ticketId ?? null, metadata: { department: body.department, via: 'session' } });
+        res.json({ ok: true, ticket_id: ticketId });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 8b) POST /api/soporte/submit-suggestion ─────────────────────
+    // Sugerencias / ideas de mejora desde /soporte. Insertan en `suggestions`
+    // (no en tickets). Soporta envío anónimo (author_id = null).
+    server.post('/api/soporte/submit-suggestion', async (req, res) => {
+      const session = await requireSoporteSession(req, res);
+      if (!session) return;
+      const body = (req.body || {}) as {
+        department?: 'it' | 'operations' | 'accounting' | 'hr' | 'general';
+        category?: string;
+        impact?: 'low' | 'medium' | 'high';
+        title?: string;
+        description?: string;
+        is_anonymous?: boolean;
+        requester_id?: string;
+      };
+      const VALID_DEPTS = ['it', 'operations', 'accounting', 'hr', 'general'] as const;
+      const VALID_IMPACT = ['low', 'medium', 'high'] as const;
+      if (!body.department || !body.title || !body.description ||
+          !VALID_DEPTS.includes(body.department)) {
+        res.status(400).json({ error: 'payload_invalido' });
+        return;
+      }
+      if (body.impact && !VALID_IMPACT.includes(body.impact)) {
+        res.status(400).json({ error: 'impacto_invalido' });
+        return;
+      }
+      try {
+        const supabaseUrl = process.env['ENV_SUPABASE_URL']!;
+        const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']!;
+        const requesterId = body.requester_id || session.employee_id;
+        const empRes = await fetch(
+          `${supabaseUrl}/rest/v1/employees?id=eq.${requesterId}&branch_id=eq.${session.branch_id}&is_active=eq.true&select=id,first_name,father_name,branch_id,company_id&limit=1`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+        );
+        const emps: any[] = empRes.ok ? await empRes.json() : [];
+        const emp = emps[0];
+        if (!emp) {
+          res.status(403).json({ error: 'requester_invalid', message: 'El empleado no pertenece a esta sucursal o no está activo.' });
+          return;
+        }
+
+        const isAnon = body.is_anonymous === true;
+        const title = String(body.title).trim().slice(0, 200);
+        const description = String(body.description).trim().slice(0, 5000);
+        const insertRes = await fetch(`${supabaseUrl}/rest/v1/suggestions`, {
+          method: 'POST',
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({
+            title, description,
+            department: body.department,
+            category: body.category || null,
+            impact: body.impact || null,
+            status: 'new',
+            is_anonymous: isAnon,
+            author_id: isAnon ? null : emp.id,
+            branch_id: session.branch_id,
+            company_id: emp.company_id,
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!insertRes.ok) {
+          const txt = await insertRes.text().catch(() => '');
+          res.status(500).json({ error: 'insert_fail', message: txt.slice(0, 200) });
+          return;
+        }
+        const created: Array<{ id: number }> = await insertRes.json();
+        const suggestionId = created[0]?.id;
+        await soporteAudit(session.ip, 'submit_ok', true, { branch_id: session.branch_id, employee_id: isAnon ? null : emp.id, metadata: { department: body.department, via: 'session', kind: 'suggestion', suggestion_id: suggestionId ?? null } });
+        res.json({ ok: true, suggestion_id: suggestionId });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        res.status(500).json({ error: 'server_error', message: msg });
+      }
+    });
+
+    // ── 9b) POST /api/notifications/ticket-requester-update ─────────
+    // Llamado desde el cron interno. Envía email al solicitante usando MS365 Graph API.
+    // Requiere X-Internal-Token (bypassa requireAuth).
+    // ────────────────────────────────────────────────────────────────
+    // ── 9) GET /soporte ─────────────────────────────────────────────
+    // Página pública servida desde un archivo estático /public/soporte.html
+    server.get('/soporte', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.sendFile(path.join(process.cwd(), 'public', 'soporte.html'), (err) => {
+        if (err) {
+          safeLogger.error('[soporte] error sirviendo soporte.html', err);
+          res.status(500).send('Error cargando portal de soporte');
+        }
+      });
+    });
   }
 
   // Root endpoint - información básica del servidor (solo para peticiones API)
@@ -4692,6 +5863,178 @@ function setupTeamsCrons(): void {
   console.log('📢 Teams crons programados:');
   console.log('   🎂 Cumpleaños: diario a las 7:00 AM (Panamá)');
   console.log('   🆕 Nuevos ingresos: cada 5 min (30 min después de crear)');
+
+  // ──────────────────────────────────────────────────────────────────
+  // Cron de notificaciones a requesters: cada 60s revisa ticket_history
+  // sin notificar y manda email al solicitante por cada cambio relevante.
+  // ──────────────────────────────────────────────────────────────────
+  cron.schedule('* * * * *', async () => {
+    try {
+      await notifyTicketRequesters();
+    } catch (err: any) {
+      console.error('🔔 [Ticket Requester Notif] Error:', err?.message || err);
+    }
+  });
+  console.log('   🔔 Notificaciones a requesters: cada 1 min (status, comentarios públicos, asignación)');
+}
+
+async function notifyTicketRequesters(): Promise<void> {
+  const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+  const serviceKey = process.env['ENV_SUPABASE_TOKEN'] || process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
+  if (!supabaseUrl || !serviceKey) return;
+
+  // 1) Eventos pendientes de notificar (status, asignación, o comentario público), < 6h
+  // Limitamos a 50 por iteración para no saturar.
+  const histRes = await fetch(
+    `${supabaseUrl}/rest/v1/ticket_history?notified_at=is.null&action=in.(status_changed,assignee_changed,commented)&created_at=gte.${new Date(Date.now() - 6 * 3600_000).toISOString()}&order=created_at.asc&limit=50&select=id,ticket_id,action,from_value,to_value,actor_id,actor_name,comment_id,metadata,created_at`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(8000) }
+  );
+  if (!histRes.ok) return;
+  const events: any[] = await histRes.json();
+  if (events.length === 0) return;
+
+  // 2) Resolver tickets + requesters en lote
+  const ticketIds = Array.from(new Set(events.map(e => e.ticket_id)));
+  const ticketsRes = await fetch(
+    `${supabaseUrl}/rest/v1/tickets?id=in.(${ticketIds.join(',')})&select=id,title,department,status,requester_id,requester:employees!tickets_requester_id_fkey(id,work_email,first_name,father_name)`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(8000) }
+  );
+  if (!ticketsRes.ok) return;
+  const ticketsArr: any[] = await ticketsRes.json();
+  const ticketsById: Record<number, any> = Object.fromEntries(ticketsArr.map(t => [t.id, t]));
+
+  // 3) Comments lookup para los 'commented' (necesitamos texto + is_internal)
+  const commentIds = events.filter(e => e.comment_id).map(e => e.comment_id);
+  let commentsById: Record<number, any> = {};
+  if (commentIds.length > 0) {
+    const cRes = await fetch(
+      `${supabaseUrl}/rest/v1/ticket_comments?id=in.(${commentIds.join(',')})&select=id,content,is_internal`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, signal: AbortSignal.timeout(5000) }
+    );
+    if (cRes.ok) {
+      const rows: any[] = await cRes.json();
+      commentsById = Object.fromEntries(rows.map(c => [c.id, c]));
+    }
+  }
+
+  const fmtTicketId = (n: number): string => {
+    const s = String(n).padStart(6, '0');
+    return `T${s.slice(0,3)}-${s.slice(3)}`;
+  };
+  const STATUS_ES: Record<string, string> = { open:'Abierto', in_process:'En Proceso', resolved:'Resuelto', cancelled:'Cancelado' };
+  const DEPT_ES: Record<string, string> = { it:'IT', operations:'Operaciones', accounting:'Contabilidad', hr:'RRHH' };
+
+  const sendBatchById: Record<number, number[]> = {}; // marcar como notificados al final (history.id)
+
+  for (const ev of events) {
+    const t = ticketsById[ev.ticket_id];
+    if (!t || !t.requester || !t.requester.work_email) {
+      // No hay requester con email — solo marcamos como procesado para no reintentar
+      (sendBatchById[ev.ticket_id] ||= []).push(ev.id);
+      continue;
+    }
+    // Si el actor del evento ES el propio requester (ej. el requester comentó), no notificar
+    if (ev.actor_id && ev.actor_id === t.requester.id) {
+      (sendBatchById[ev.ticket_id] ||= []).push(ev.id);
+      continue;
+    }
+    // Si es comentario interno, NO notificar al requester
+    if (ev.action === 'commented') {
+      const c = ev.comment_id ? commentsById[ev.comment_id] : null;
+      if (!c || c.is_internal) {
+        (sendBatchById[ev.ticket_id] ||= []).push(ev.id);
+        continue;
+      }
+    }
+
+    const ticketCode = fmtTicketId(t.id);
+    let subject = '';
+    let bodyHtml = '';
+    const actor = ev.actor_name || 'El equipo';
+
+    if (ev.action === 'status_changed') {
+      const fromTxt = STATUS_ES[ev.from_value] || ev.from_value || '—';
+      const toTxt   = STATUS_ES[ev.to_value]   || ev.to_value   || '—';
+      subject = `Tu ticket ${ticketCode} ahora está ${toTxt}`;
+      bodyHtml = `
+        <p>Hola ${(t.requester.first_name || '').trim()},</p>
+        <p><strong>${escapeHtml(actor)}</strong> actualizó el estado de tu ticket.</p>
+        <table style="border-collapse:collapse; margin:14px 0; font-size:14px;">
+          <tr><td style="padding:4px 12px 4px 0; color:#666;">Ticket</td><td><strong>${ticketCode}</strong> — ${escapeHtml(t.title)}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0; color:#666;">Equipo</td><td>${DEPT_ES[t.department] || t.department}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0; color:#666;">Estado anterior</td><td>${fromTxt}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0; color:#666;">Estado nuevo</td><td><strong>${toTxt}</strong></td></tr>
+        </table>
+        <p>Puedes ver el detalle y responder en el <a href="${(process.env['ENV_APP_URL'] || 'https://people.blackdogpanama.com').replace(/\/$/, '')}/soporte" style="color:#fbbf24;">Portal de Soporte</a> de tu sucursal.</p>
+      `;
+    } else if (ev.action === 'assignee_changed') {
+      subject = `Tu ticket ${ticketCode} fue asignado${ev.to_value ? ' a ' + ev.to_value : ''}`;
+      bodyHtml = `
+        <p>Hola ${(t.requester.first_name || '').trim()},</p>
+        <p>Tu ticket ${ticketCode} (${escapeHtml(t.title)}) fue asignado a <strong>${escapeHtml(ev.to_value || 'el equipo')}</strong>.</p>
+        <p>Pronto recibirás respuesta. Puedes seguirlo en el <a href="${(process.env['ENV_APP_URL'] || 'https://people.blackdogpanama.com').replace(/\/$/, '')}/soporte" style="color:#fbbf24;">Portal de Soporte</a>.</p>
+      `;
+    } else if (ev.action === 'commented') {
+      const c = ev.comment_id ? commentsById[ev.comment_id] : null;
+      const snippet = c?.content ? (c.content.length > 400 ? c.content.slice(0, 400) + '…' : c.content) : ev.to_value;
+      subject = `${actor} respondió a tu ticket ${ticketCode}`;
+      bodyHtml = `
+        <p>Hola ${(t.requester.first_name || '').trim()},</p>
+        <p><strong>${escapeHtml(actor)}</strong> publicó un comentario en tu ticket ${ticketCode} (${escapeHtml(t.title)}):</p>
+        <blockquote style="border-left:3px solid #fbbf24; margin:14px 0; padding:10px 16px; background:#f9f9f9; color:#333; white-space:pre-wrap;">${escapeHtml(snippet || '')}</blockquote>
+        <p>Responde o sigue la conversación en el <a href="${(process.env['ENV_APP_URL'] || 'https://people.blackdogpanama.com').replace(/\/$/, '')}/soporte" style="color:#fbbf24;">Portal de Soporte</a>.</p>
+      `;
+    } else {
+      (sendBatchById[ev.ticket_id] ||= []).push(ev.id);
+      continue;
+    }
+
+    // Envío via SMTP (usa la misma config nodemailer del módulo)
+    try {
+      await sendTicketEmailToRequester(t.requester.work_email, subject, bodyHtml);
+      (sendBatchById[ev.ticket_id] ||= []).push(ev.id);
+    } catch (err) {
+      console.error('[Ticket Requester Notif] Error enviando email:', err);
+      // No marcar como notificado — reintentará al próximo tick
+    }
+  }
+
+  // 4) Marcar eventos procesados como notificados
+  const allIds: number[] = [];
+  for (const ids of Object.values(sendBatchById)) allIds.push(...ids);
+  if (allIds.length > 0) {
+    await fetch(
+      `${supabaseUrl}/rest/v1/ticket_history?id=in.(${allIds.join(',')})`,
+      {
+        method: 'PATCH',
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ notified_at: new Date().toISOString() }),
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+  }
+}
+
+function escapeHtml(s: string): string {
+  return String(s ?? '').replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c] as string));
+}
+
+async function sendTicketEmailToRequester(to: string, subject: string, html: string): Promise<void> {
+  // Delegamos al endpoint interno que tiene acceso a sendEmailMS365 (con fallback Graph API)
+  const port = process.env['PORT'] || 3001;
+  const internalToken = (process.env['ENV_SUPABASE_TOKEN'] || 'no-internal-token').slice(-32);
+  const r = await fetch(`http://localhost:${port}/api/notifications/ticket-requester-update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Internal-Token': internalToken },
+    body: JSON.stringify({ to, subject, html }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    throw new Error(`notify endpoint ${r.status}: ${text.slice(0, 200)}`);
+  }
+  const data: any = await r.json().catch(() => ({}));
+  if (data?.sent === false) throw new Error('email not sent');
 }
 
 async function sendBirthdayMessages(

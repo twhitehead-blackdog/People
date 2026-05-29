@@ -63,11 +63,12 @@ export const appRoutes: Route[] = [
         (x) => x.nazTimeclockRoutes
       ),
   },
+  // dp-timeclock (huellas DigitalPersona) desactivado por orden del usuario (2026-05-28).
+  // Redirige al timeclock estándar. Para reactivar, restaurar el loadComponent original.
   {
     path: 'dp-timeclock',
-    loadComponent: () =>
-      import('./dp-timeclock/dp-timeclock.component').then((x) => x.DpTimeclockComponent),
-    canActivate: [timeclockKioskGuard],
+    redirectTo: 'timeclock',
+    pathMatch: 'full',
   },
   {
     path: 'job-fair',

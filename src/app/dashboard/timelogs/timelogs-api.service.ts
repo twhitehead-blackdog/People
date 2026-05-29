@@ -1,26 +1,99 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { addDays, format } from 'date-fns';
 import { ApiUrlService } from '../../services/api-url.service';
 import { LoggerService } from '../../services/logger.service';
 import { OrganizationService } from '../../services/organization.service';
 
+/**
+ * Fecha que marca un cambio histórico en cómo se almacena `punched_at` en
+ * `timelogs`. Las consultas que crucen esta fecha se parten en 2 requests
+ * paralelos (`logsBefore22` y `logsAfter22`) para preservar compatibilidad
+ * con datos anteriores. Si en el futuro se hace un backfill completo y se
+ * verifica que ambos lados son intercambiables, este split puede removerse.
+ *
+ * Verificado 2026-05-29: los datos a ambos lados ya parecen estar en el mismo
+ * formato, pero el split se conserva por precaución hasta tener auditoría
+ * formal.
+ */
+const PUNCHED_AT_BACKFILL_CUTOFF_DATE = '2025-12-22';
+const PUNCHED_AT_BACKFILL_CUTOFF_NEXT = '2025-12-23';
+
 @Injectable({ providedIn: 'root' })
 export class TimelogsApiService {
   private readonly TIMEZONE = 'America/Panama';
-  private readonly cutoffBefore = new Date('2025-12-22');
-  private readonly cutoffAfter = new Date('2025-12-23');
-  private readonly cutoffBeforeStr = '2025-12-22';
-  private readonly cutoffAfterStr = '2025-12-23';
+  private readonly cutoffBefore = new Date(PUNCHED_AT_BACKFILL_CUTOFF_DATE);
+  private readonly cutoffAfter = new Date(PUNCHED_AT_BACKFILL_CUTOFF_NEXT);
+  private readonly cutoffBeforeStr = PUNCHED_AT_BACKFILL_CUTOFF_DATE;
+  private readonly cutoffAfterStr = PUNCHED_AT_BACKFILL_CUTOFF_NEXT;
 
   private readonly organizationService = inject(OrganizationService);
   private readonly logger = inject(LoggerService);
   private readonly apiUrl = inject(ApiUrlService);
+  private readonly http = inject(HttpClient);
+
+  // Supabase PostgREST tiene un hard cap server-side de 10000 filas por request,
+  // independiente de los params `limit` o header `Range`. Paginamos para no perder filas.
+  private readonly PAGE_SIZE = 10000;
 
   private clone(date: Date): Date {
     return new Date(date.getTime());
   }
 
-  public buildLogsRequest(start: Date, end: Date, employeeId?: string) {
+  // Safety hard stop: 50 páginas * 10000 = 500K filas máximo.
+  private readonly MAX_PAGES = 50;
+
+  /**
+   * Trae TODOS los timelogs del rango, paginando por offset hasta agotar el server cap.
+   * Devuelve la unión completa en orden punched_at.asc.
+   */
+  public async fetchAllLogs(
+    start: Date,
+    end: Date,
+    employeeId?: string,
+    signal?: AbortSignal
+  ): Promise<any[]> {
+    const all: any[] = [];
+    let from = 0;
+    let pages = 0;
+    let lastPageFull = false;
+    for (pages = 0; pages < this.MAX_PAGES; pages++) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      const req = this.buildLogsRequest(start, end, employeeId, from, from + this.PAGE_SIZE - 1);
+      const page = await firstValueFrom(
+        this.http.get<any[]>(req.url, { headers: req.headers })
+      );
+      if (!page || page.length === 0) {
+        lastPageFull = false;
+        break;
+      }
+      all.push(...page);
+      lastPageFull = page.length === this.PAGE_SIZE;
+      if (!lastPageFull) break;
+      from += this.PAGE_SIZE;
+    }
+
+    // Telemetría: si llenamos las 50 páginas con la última completa, casi
+    // seguro hay más datos que no estamos trayendo. Avisar para investigar.
+    if (pages === this.MAX_PAGES && lastPageFull) {
+      this.logger.warn(
+        '[TimelogsApiService] fetchAllLogs golpeó el cap de paginación',
+        {
+          maxPages: this.MAX_PAGES,
+          pageSize: this.PAGE_SIZE,
+          totalRows: all.length,
+          rangeStart: start.toISOString(),
+          rangeEnd: end.toISOString(),
+          employeeId: employeeId ?? 'all',
+        }
+      );
+    }
+
+    return all;
+  }
+
+  public buildLogsRequest(start: Date, end: Date, employeeId?: string, rangeFrom = 0, rangeTo = 9999) {
     const companyId = this.organizationService.getCurrentCompanyId();
 
     const normalizedStart = format(start, 'yyyy-MM-dd');
@@ -58,14 +131,13 @@ export class TimelogsApiService {
 
     // Filtro directo por punched_at (backfill + trigger garantizan que todos los registros lo tienen)
     params['and'] = `(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
-    params['limit'] = '10000';
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return {
       url,
       method: 'GET' as const,
-      headers: { Range: '0-9999' },
+      headers: { Range: `${rangeFrom}-${rangeTo}`, 'Range-Unit': 'items' },
     };
   }
 

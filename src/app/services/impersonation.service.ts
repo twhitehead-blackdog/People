@@ -21,6 +21,7 @@ interface ImpersonationState {
   employeeId: string;
   startedAt: number;
   logId?: string;
+  employee?: any; // objeto completo del empleado emulado (sobrevive reload sin depender de entities)
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,6 +32,8 @@ export class ImpersonationService {
   private readonly _state = signal<ImpersonationState | null>(this.loadFromStorage());
 
   public impersonatedEmployeeId = computed(() => this._state()?.employeeId ?? null);
+  /** Objeto completo del empleado emulado (con position, permisos, etc.). */
+  public impersonatedEmployee = computed(() => this._state()?.employee ?? null);
   public isImpersonating = computed(() => this._state() !== null);
   public startedAt = computed(() => this._state()?.startedAt ?? null);
   public ttlMs = TTL_MS;
@@ -41,9 +44,14 @@ export class ImpersonationService {
     return false;
   }
 
-  public async startImpersonation(employeeId: string, realEmployeeId: string): Promise<void> {
+  public async startImpersonation(employeeOrId: string | { id: string; [k: string]: any }, realEmployeeId: string | null): Promise<void> {
     const startedAt = Date.now();
-    const state: ImpersonationState = { employeeId, startedAt };
+    const employeeId = typeof employeeOrId === 'string' ? employeeOrId : employeeOrId.id;
+    // Sanitizar a un objeto PLANO y serializable. Las entidades de NgRx/realtime
+    // pueden tener referencias no serializables que rompen JSON.stringify y hacen
+    // que persistState falle en silencio (la impersonación no sobrevivía el reload).
+    const employeeObj = this.sanitizeEmployee(employeeOrId);
+    const state: ImpersonationState = { employeeId, startedAt, employee: employeeObj };
 
     // Registrar en DB (best-effort)
     try {
@@ -51,7 +59,7 @@ export class ImpersonationService {
         this.http.post<Array<{ id: string }>>(
           this.apiUrl.build('rest/v1/super_admin_impersonation_log'),
           {
-            real_employee_id: realEmployeeId,
+            real_employee_id: realEmployeeId ?? null,
             impersonated_employee_id: employeeId,
             user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
           },
@@ -122,8 +130,48 @@ export class ImpersonationService {
     } catch { return null; }
   }
 
+  /** Devuelve un objeto plano serializable con los campos necesarios para emular. */
+  private sanitizeEmployee(empInput: string | { id: string; [k: string]: any }): any {
+    if (typeof empInput === 'string' || !empInput) return null;
+    const emp: any = empInput;
+    try {
+      const p = emp.position
+        ? {
+            id: emp.position.id, name: emp.position.name,
+            admin: emp.position.admin, schedule_admin: emp.position.schedule_admin,
+            schedule_approver: emp.position.schedule_approver,
+            dashboard_access: emp.position.dashboard_access, default_view: emp.position.default_view,
+          }
+        : null;
+      const b = emp.branch ? { id: emp.branch.id, name: emp.branch.name, short_name: emp.branch.short_name, zone: emp.branch.zone } : null;
+      const d = emp.department ? { id: emp.department.id, name: emp.department.name } : null;
+      return {
+        id: emp.id, employee_number: emp.employee_number,
+        first_name: emp.first_name, middle_name: emp.middle_name,
+        father_name: emp.father_name, mother_name: emp.mother_name,
+        full_name: emp.full_name, short_name: emp.short_name,
+        work_email: emp.work_email, email: emp.email,
+        company_id: emp.company_id, branch_id: emp.branch_id, department_id: emp.department_id,
+        position_id: emp.position_id, is_active: emp.is_active,
+        has_portal_access: emp.has_portal_access, account_approved: emp.account_approved,
+        frontend_permissions_override: emp.frontend_permissions_override ?? null,
+        legacy_permissions_override: emp.legacy_permissions_override ?? null,
+        position: p, branch: b, department: d,
+      };
+    } catch {
+      return { id: emp.id };
+    }
+  }
+
   private persistState(state: ImpersonationState): void {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // Fallback: persistir sin el objeto employee (al menos el id sobrevive)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ employeeId: state.employeeId, startedAt: state.startedAt, logId: state.logId }));
+      } catch {}
+    }
   }
 
   /** Llamado por el componente cada minuto para detectar expiración. */

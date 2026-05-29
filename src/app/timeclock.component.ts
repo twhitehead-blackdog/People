@@ -21,6 +21,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { differenceInMinutes, format, getHours, getMinutes, getSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
@@ -65,6 +66,7 @@ import { NewsTickerComponent } from './shared/components/news-ticker.component';
 import { DpInstallHelpModalComponent } from './shared/components/dp-install-help-modal.component';
 import { AuthenticatorEnrollmentComponent } from './dashboard/authenticator-enrollment/authenticator-enrollment.component';
 import { KioskExtrasComponent } from './timeclock/kiosk-extras.component';
+import { FaceClockModalComponent, FaceClockSuccess } from './shared/components/face-clock-modal.component';
 import {
   initAudioContext,
   playEffectSound,
@@ -126,11 +128,20 @@ interface TimeclockInfoData {
     DpEnrollDialogComponent,
     DpInstallHelpModalComponent,
     AuthenticatorEnrollmentComponent,
+    FaceClockModalComponent,
     KioskExtrasComponent,
   ],
   providers: [ConfirmationService],
   template: `<p-toast />
     <pt-kiosk-extras />
+
+    <!-- Acceso directo al Portal de Soporte (visible siempre, top-right).
+         La IP de la sucursal ya validó al usuario aquí, así que en /soporte
+         entra directo al flujo de ticket. -->
+    <a href="/soporte" class="soporte-fab" title="Portal de Soporte">
+      <i class="pi pi-headphones"></i>
+      <span>Soporte</span>
+    </a>
 
     <!-- ── Pending punches banner ─────────────────────────────────────
          Aparece automáticamente si quedaron marcaciones de emergencia sin
@@ -751,6 +762,7 @@ interface TimeclockInfoData {
         />
         }
         <pt-news-ticker class="w-full max-w-lg" [variant]="isKioskMode() ? 'kiosk' : 'default'" />
+        <div [class.tc-row-wide]="faceFirstMode()" class="w-full flex flex-col items-center" style="gap: 1rem;">
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10" [class.special-mode]="specialMode()" [class.matrix-card]="matrixMode()" [class.moto-card]="motoMode()" [class.batman-card]="batmanMode()" [class.starwars-card]="starwarsMode()" [class.corridos-card]="corridosMode()" [class.watchdogs-card]="watchdogsMode()">
           <ng-template #title>
             <div class="flex flex-col items-center py-1 gap-1">
@@ -879,9 +891,8 @@ interface TimeclockInfoData {
               </div>
             }
 
-            <!-- Auth Method Toggle: SIEMPRE visible cuando hay empleado.
-                 PIN es opcional para todos aunque tengan huella enrolada. -->
-            @if (selectedEmployee()) {
+            <!-- Auth Method Toggle: solo visible si fingerprintFeatureEnabled. -->
+            @if (selectedEmployee() && fingerprintFeatureEnabled()) {
               <div class="auth-method-toggle w-full">
                 <button type="button" class="auth-method-btn" [class.auth-method-btn--active]="authMethod() === 'pin'" (click)="authMethod.set('pin')">
                   <i class="pi pi-shield"></i> PIN
@@ -959,7 +970,7 @@ interface TimeclockInfoData {
 
             <!-- Fingerprint Section: solo si la huella es usable
                  (WebAuthn siempre, DP sólo cuando el lector está conectado) -->
-            @if (authMethod() === 'fingerprint' && (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected()))) {
+            @if (fingerprintFeatureEnabled() && authMethod() === 'fingerprint' && (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected()))) {
               <div class="w-full flex flex-col items-center gap-3 px-2">
                 @if (employeeHasFingerprint() || (employeeHasDp() && dpReaderConnected())) {
                   <div class="fp-scanner" [class.fp-scanner--scanning]="isProcessing()" [class.fp-scanner--ready]="!isProcessing()">
@@ -994,12 +1005,12 @@ interface TimeclockInfoData {
             <div class="w-full">
               <p-button
                 [disabled]="
-                  isProcessing() || !selectedEmployee() || !form.get('type')?.value ||
+                  isProcessing() || isLoadingType() || !selectedEmployee() || !form.get('type')?.value ||
                   (authMethod() === 'pin' && form.get('otp')?.invalid)
                 "
-                [loading]="isProcessing()"
+                [loading]="isProcessing() || isLoadingType()"
                 (onClick)="authMethod() === 'fingerprint' ? validateFingerprint() : validateOtp()"
-                [label]="isProcessing() ? 'Procesando...' : 'Marcar Asistencia'"
+                [label]="isLoadingType() ? 'Cargando...' : (isProcessing() ? 'Procesando...' : 'Marcar Asistencia')"
                 [icon]="
                   isProcessing()
                     ? 'pi pi-spin pi-spinner'
@@ -1010,6 +1021,32 @@ interface TimeclockInfoData {
                 [style]="{ border: 'none', width: '100%' }"
               />
             </div>
+
+            <!-- Botón "Marcar con cara" (solo se muestra en mobile / pantalla angosta) -->
+            @if (companyHasFaceEnrolments() && !isDesktopWide()) {
+              <div class="w-full" style="margin-top: 0.5rem;">
+                <p-button
+                  [disabled]="isProcessing() || isLoadingType() || !form.get('type')?.value"
+                  (onClick)="openFaceModal()"
+                  label="Marcar con cara"
+                  icon="pi pi-user"
+                  [size]="'large'"
+                  [styleClass]="'w-full'"
+                  severity="secondary"
+                  [outlined]="true"
+                  [style]="{ width: '100%' }"
+                />
+              </div>
+            }
+            @if (faceFirstMode()) {
+              <div class="w-full text-center" style="margin-top: 0.5rem;">
+                <button type="button"
+                  style="background: transparent; border: none; color: #71717a; font-size: 0.8rem; cursor: pointer; text-decoration: underline;"
+                  (click)="toggleShowPin()">
+                  ¿Problemas con la cara? Usar PIN
+                </button>
+              </div>
+            }
 
             <!-- Validation Messages -->
             @if (form.get('employee')?.invalid && form.get('employee')?.touched)
@@ -1022,6 +1059,21 @@ interface TimeclockInfoData {
             }
           </form>
         </p-card>
+
+        <!-- Panel face inline (desktop wide). Sin esperar enrolments — se valida en server. -->
+        @if (faceFirstMode()) {
+          <div class="tc-face-panel">
+            <pt-face-clock-modal
+              [open]="true"
+              [displayMode]="'inline'"
+              [type]="$any(form.get('type')?.value || 'entry')"
+              [branchId]="form.get('branch_id')?.value || null"
+              (success)="onFaceClockSuccess($event)"
+              (closed)="facePanelOpen.set(false)"
+            />
+          </div>
+        }
+        </div><!-- /tc-row-wide -->
       </div>
       } @else {
       <!-- Restricted access screen -->
@@ -1322,12 +1374,22 @@ interface TimeclockInfoData {
         (finished)="onEnrollmentFinished()"
         (cancelled)="enrollmentVisible.set(false)"
       />
-    }`,
+    }
+
+    <!-- Face Clock Modal (independent: identifica + crea timelog automáticamente) -->
+    <pt-face-clock-modal
+      [open]="faceModalOpen()"
+      [type]="$any(form.get('type')?.value || 'entry')"
+      [branchId]="form.get('branch_id')?.value || null"
+      (success)="onFaceClockSuccess($event)"
+      (closed)="faceModalOpen.set(false)"
+    />`,
   styleUrl: './timeclock.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimeclockComponent implements OnDestroy {
   private message = inject(MessageService);
+  private auth0 = inject(Auth0Service);
   private confirmation = inject(ConfirmationService);
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
@@ -1356,6 +1418,7 @@ export class TimeclockComponent implements OnDestroy {
   public currentIP = signal<string>('127.0.0.1');
   public petType = signal<'dog' | 'cat'>('dog');
   public isProcessing = signal<boolean>(false);
+  public isLoadingType = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
   public showKeypadPanel = signal<boolean>(false);
   public keypadMinimized = signal<boolean>(false);
@@ -1418,7 +1481,76 @@ export class TimeclockComponent implements OnDestroy {
     this.employeesResource.reload();
   }
   public authMethod = signal<'pin' | 'fingerprint'>('pin');
+  // Feature flag — fingerprint auth desactivada (2026-05-28). Cambiar a true para reactivar.
+  public readonly fingerprintFeatureEnabled = signal(false);
   public employeeHasFingerprint = signal<boolean>(false);
+
+  // Face clock state
+  public faceModalOpen = signal<boolean>(false);
+  public facePanelOpen = signal<boolean>(true);            // panel inline always open en desktop
+  public companyHasFaceEnrolments = signal<boolean>(false); // si hay caras enroladas en la company
+  public showPinFlow = signal<boolean>(false);              // forzar mostrar PIN si face falla
+  public isDesktopWide = signal<boolean>(typeof window !== 'undefined' && window.innerWidth >= 900);
+  private resizeWatchHandle: any = null;
+
+  // Mostrar panel face inline en desktop wide. La validación de enrolments la hace el server.
+  public faceFirstMode = computed(() =>
+    !this.showPinFlow() && this.isDesktopWide()
+  );
+
+  /** Suscribir Auth0 + chequeo de enrolments al iniciar el componente (llamado desde ngOnInit existente o constructor). */
+  private subscribeAuth0AndFace(): void {
+    this.auth0.user$.subscribe((u) => {
+      const email = u?.email?.toLowerCase() || null;
+      this.callerEmailForFace.set(email);
+      if (email) this.checkFaceEnrolments();
+    });
+    if (typeof window !== 'undefined') {
+      this.resizeWatchHandle = () => this.isDesktopWide.set(window.innerWidth >= 900);
+      window.addEventListener('resize', this.resizeWatchHandle);
+    }
+  }
+
+  public openFaceModal(): void {
+    if (!this.form.get('type')?.value) {
+      this.message.add({ severity: 'warn', summary: 'Tipo', detail: 'Seleccioná un tipo de marcación primero.' });
+      return;
+    }
+    this.faceModalOpen.set(true);
+  }
+
+  public toggleShowPin(): void { this.showPinFlow.update(v => !v); }
+
+  public callerEmailForFace = signal<string | null>(null);
+
+  /** Chequear si la company tiene rostros enrolados — define el modo face-first */
+  private async checkFaceEnrolments(): Promise<void> {
+    try {
+      const email = this.callerEmailForFace();
+      if (!email) return;
+      const stats: any = await firstValueFrom(this.http.post(
+        this.apiUrl.build('functions/v1/face-stats'),
+        { caller_email: email },
+      ));
+      this.companyHasFaceEnrolments.set((stats?.enrolled_count ?? 0) > 0 && (stats?.cf_health?.ok ?? false));
+    } catch { this.companyHasFaceEnrolments.set(false); }
+  }
+
+  public onFaceClockSuccess(result: FaceClockSuccess): void {
+    this.faceModalOpen.set(false);
+    this.message.add({
+      severity: 'success',
+      summary: '✓ Marcación facial',
+      detail: `${result.employee_name} · ${this.typeLabel(result.timelog_type)} · ${(result.similarity * 100).toFixed(0)}%`,
+      life: 5000,
+    });
+    try { playSuccessSound(result.employee_id); } catch { /* no-op */ }
+    try { vibrateForMarking(result.timelog_type); } catch { /* no-op */ }
+  }
+
+  private typeLabel(t: string): string {
+    return ({ entry: 'Entrada', exit: 'Salida', lunch_start: 'Inicio almuerzo', lunch_end: 'Fin almuerzo' } as any)[t] || t;
+  }
   // Fallback PIN: si falla la huella, habilitamos PIN aunque el empleado
   // tenga huella enrolada. Reseteamos al cambiar de empleado.
   public fingerprintFailures = signal<number>(0);
@@ -1653,6 +1785,9 @@ export class TimeclockComponent implements OnDestroy {
     // la app sin que nadie tenga que ir a Settings.
     this.punchQueue.bootstrap();
 
+    // Suscribir Auth0 + chequear si la company tiene rostros enrolados (face-first mode)
+    this.subscribeAuth0AndFace();
+
     // Monitorear estado del lector DP
     this.dp.startStatusPolling(5000);
     this.dp.onConnectionChange((c) => {
@@ -1662,8 +1797,8 @@ export class TimeclockComponent implements OnDestroy {
       if (!c && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'fingerprint') {
         this.authMethod.set('pin');
       }
-      // Si vuelve y la huella es la opción real, reactivar
-      if (c && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'pin') {
+      // Si vuelve y la huella es la opción real, reactivar (solo si feature flag activa)
+      if (c && this.fingerprintFeatureEnabled() && this.employeeHasDp() && !this.employeeHasFingerprint() && this.authMethod() === 'pin') {
         this.authMethod.set('fingerprint');
         this.maybeAutoStartFingerprint();
       }
@@ -2625,8 +2760,12 @@ export class TimeclockComponent implements OnDestroy {
     this.fingerprintFailures.set(0);
     this.allowPinFallback.set(false);
     initAudioContext();
+    // Safety: prevent stale type from previous employee being submitted.
+    this.form.get('type')?.setValue('entry');
+    this.updateAvailableTypes(null);
 
     if (employee?.id) {
+      this.isLoadingType.set(true);
       Promise.all([
         this.webAuthn.getCredentialStatus(employee.id).catch(() => ({ hasCredential: false } as any)),
         this.dp.isLiteClientAvailable().then(async (liteOk) => {
@@ -2644,8 +2783,10 @@ export class TimeclockComponent implements OnDestroy {
         //   - WebAuthn (employeeHasFingerprint) funciona sin lector externo.
         //   - DP (employeeHasDp) requiere que esta PC tenga el Lite Client conectado;
         //     si no, dejar PIN como fallback para no bloquear al empleado.
-        const fingerprintUsable = this.employeeHasFingerprint() ||
-          (this.employeeHasDp() && this.dpReaderConnected());
+        const fingerprintUsable = this.fingerprintFeatureEnabled() && (
+          this.employeeHasFingerprint() ||
+          (this.employeeHasDp() && this.dpReaderConnected())
+        );
         if (fingerprintUsable) {
           this.authMethod.set('fingerprint');
           this.maybeAutoStartFingerprint();
@@ -2716,11 +2857,13 @@ export class TimeclockComponent implements OnDestroy {
             ? nextType
             : (available[0]?.value ?? 'entry');
           this.form.get('type')?.setValue(safeType);
+          this.isLoadingType.set(false);
           this.focusOtpInput();
         },
         error: () => {
           this.updateAvailableTypes(null);
           this.form.get('type')?.setValue('entry');
+          this.isLoadingType.set(false);
           this.focusOtpInput();
         },
       });
@@ -2771,6 +2914,7 @@ export class TimeclockComponent implements OnDestroy {
   async validateFingerprint() {
     const employee = this.selectedEmployee();
     if (!employee?.id || this.isProcessing()) return;
+    if (this.isLoadingType()) return;
     const { branch_id, company_id, type } = this.form.getRawValue();
     if (!branch_id || !type) {
       this.message.add({ severity: 'warn', summary: 'Datos incompletos', detail: 'Selecciona la sucursal y el tipo de marcación antes de continuar.', life: 6000 });
@@ -2840,7 +2984,9 @@ export class TimeclockComponent implements OnDestroy {
       clearTimeout(this.autoFingerprintTimer);
       this.autoFingerprintTimer = null;
     }
+    if (!this.fingerprintFeatureEnabled()) return;
     if (this.isProcessing()) return;
+    if (this.isLoadingType()) return;
     if (this.authMethod() !== 'fingerprint') return;
     if (!this.selectedEmployee()?.id) return;
     const v = this.form.getRawValue();
@@ -3111,6 +3257,10 @@ export class TimeclockComponent implements OnDestroy {
 
   async validateOtp() {
     if (this.isProcessing()) return;
+    if (this.isLoadingType()) {
+      this.message.add({ severity: 'warn', summary: 'Cargando', detail: 'Verificando tipo de marcación, intente de nuevo en 1 segundo.', life: 3000 });
+      return;
+    }
 
     this.isProcessing.set(true);
     const { employee, otp, branch_id, company_id, type } =
@@ -3349,6 +3499,28 @@ export class TimeclockComponent implements OnDestroy {
       return;
     }
 
+    // ── STORE-AND-FORWARD ──────────────────────────────────────────────
+    // Registramos la marca en la cola local ANTES de enviarla. Si el envío
+    // confirma éxito, la quitamos (remove). Si algo falla (red caída, pestaña
+    // cerrada, respuesta perdida), queda en IndexedDB y el auto-sync la manda
+    // al beacon — que es idempotente, así que nunca duplica. Garantiza que
+    // ninguna marca se pierda "sin rastro" como pasó con Andrés Pérez.
+    const sfPunchedAt = punchedAt || new Date().toISOString();
+    let sfQueueId: string | null = null;
+    void this.punchQueue.enqueueQuiet({
+      employee_id: employeeId,
+      employee_name: employeeName,
+      branch_id: branchId,
+      company_id: finalCompanyId,
+      type,
+      type_label: this.types.find((t) => t.value === type)?.label || type,
+      punched_at: sfPunchedAt,
+      ip: this.getIP(),
+      invalid_ip: invalidValue,
+      auth_method: authMethod ?? null,
+      reason: 'Store-and-forward (respaldo local de marcación de kiosko)',
+    }).then((id) => { sfQueueId = id; });
+
     // Usar RPC para procesar todo en una sola transacción
     this.http
       .post<{
@@ -3490,6 +3662,8 @@ export class TimeclockComponent implements OnDestroy {
               detail: 'El servidor respondió de forma inesperada. Recarga la página con F5 y vuelve a intentar.',
               life: 10000,
             });
+            // Respuesta 200 pero sin cuerpo: el server recibió la petición. Dejamos
+            // el respaldo en la cola por si no insertó; el beacon idempotente evita duplicados.
             return;
           }
 
@@ -3504,8 +3678,15 @@ export class TimeclockComponent implements OnDestroy {
               detail: (result.error || 'Error al procesar la marcación') + ' — Si el problema continúa, recarga con F5.',
               life: 10000,
             });
+            // El server respondió y rechazó (regla de negocio): quitamos el respaldo
+            // local para que el beacon NO la fuerce después. El store-and-forward solo
+            // protege contra fallas SIN respuesta (red/servidor), no contra rechazos.
+            if (sfQueueId) { void this.punchQueue.remove(sfQueueId); }
             return;
           }
+
+          // Éxito confirmado por el server → quitar el respaldo local store-and-forward.
+          if (sfQueueId) { void this.punchQueue.remove(sfQueueId); }
 
           // Hora oficial: header Date del servidor. Fallback: reloj sincronizado por offset.
           const dateHeader = response.headers.get('Date');
@@ -3721,6 +3902,8 @@ export class TimeclockComponent implements OnDestroy {
     // Immediately reset form fields so button is disabled during modal display
     this.form.get('otp')?.reset();
     this.form.get('employee')?.reset();
+    this.form.get('type')?.setValue('entry');
+    this.updateAvailableTypes(null);
     this.specialMode.set(false);
     this.matrixMode.set(false);
     this.motoMode.set(false);

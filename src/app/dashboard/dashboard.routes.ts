@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
-import { modulePermissionGuard } from '../guards/permission.guard';
+import { modulePermissionGuard, manageSchedulesGuard } from '../guards/permission.guard';
 import { accessScheduleGuard } from '../guards/access-schedule.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
@@ -136,12 +136,80 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.DeviceInventoryComponent
               ),
           },
+          // Legacy: redirige a tickets-it
           {
             path: 'it-tickets',
-            canActivate: [modulePermissionGuard('admin', 'it_tickets')],
+            redirectTo: 'tickets-it',
+            pathMatch: 'full',
+          },
+          {
+            path: 'tickets-all',
+            canActivate: [modulePermissionGuard('admin', 'tickets_view_all')],
             loadComponent: () =>
-              import('./it-tickets-admin.component').then(
-                (x) => x.ItTicketsAdminComponent
+              import('./tickets-all-admin.component').then(
+                (x) => x.TicketsAllAdminComponent
+              ),
+            data: { scope: 'all' },
+          },
+          {
+            path: 'tickets-analytics',
+            canActivate: [modulePermissionGuard('admin', 'tickets_view_all')],
+            loadComponent: () =>
+              import('./tickets-analytics.component').then(
+                (x) => x.TicketsAnalyticsComponent
+              ),
+          },
+          {
+            path: 'tickets-my-store',
+            canActivate: [modulePermissionGuard('admin', 'tickets_my_branch')],
+            loadComponent: () =>
+              import('./tickets-all-admin.component').then(
+                (x) => x.TicketsAllAdminComponent
+              ),
+            data: { scope: 'my-branch' },
+          },
+          {
+            path: 'tickets-it',
+            canActivate: [modulePermissionGuard('admin', 'tickets_it')],
+            loadComponent: () =>
+              import('./tickets-admin.component').then(
+                (x) => x.TicketsAdminComponent
+              ),
+            data: { department: 'it' },
+          },
+          {
+            path: 'tickets-operations',
+            canActivate: [modulePermissionGuard('admin', 'tickets_operations')],
+            loadComponent: () =>
+              import('./tickets-admin.component').then(
+                (x) => x.TicketsAdminComponent
+              ),
+            data: { department: 'operations' },
+          },
+          {
+            path: 'tickets-accounting',
+            canActivate: [modulePermissionGuard('admin', 'tickets_accounting')],
+            loadComponent: () =>
+              import('./tickets-admin.component').then(
+                (x) => x.TicketsAdminComponent
+              ),
+            data: { department: 'accounting' },
+          },
+          {
+            path: 'tickets-hr',
+            canActivate: [modulePermissionGuard('admin', 'tickets_hr')],
+            loadComponent: () =>
+              import('./tickets-admin.component').then(
+                (x) => x.TicketsAdminComponent
+              ),
+            data: { department: 'hr' },
+          },
+          {
+            path: 'suggestions',
+            canActivate: [modulePermissionGuard('admin', 'suggestions_admin')],
+            loadComponent: () =>
+              import('./suggestions-admin.component').then(
+                (x) => x.SuggestionsAdminComponent
               ),
           },
           {
@@ -255,6 +323,20 @@ export const DASHBOARD_ROUTES: Routes = [
           },
           { path: '', redirectTo: 'hub', pathMatch: 'full' },
         ],
+      },
+      {
+        path: 'marcacion-manual',
+        canActivate: [employeePortalGuard, manageSchedulesGuard],
+        loadComponent: () =>
+          import('./settings/manual-timelog.component').then(
+            (x) => x.ManualTimelogComponent
+          ),
+      },
+      {
+        path: 'face-test',
+        canActivate: [employeePortalGuard, manageSchedulesGuard],
+        loadComponent: () =>
+          import('./face-test.component').then((x) => x.FaceTestComponent),
       },
       {
         path: 'time-management',

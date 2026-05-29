@@ -8,6 +8,7 @@ import {
   inject,
   Injector,
   model,
+  resource,
   signal,
 } from '@angular/core';
 import { useRealtimeTrigger } from '../utils/realtime-trigger.utils';
@@ -48,11 +49,11 @@ import {
   getAlertSeverity,
   getAlertTooltip,
 } from './timelogs/utils/alert.utils';
-import { buildDayLogs } from './timelogs/utils/daylog-processing.utils';
+import { applyMetricsToDayLogs, buildBaseDayLogs } from './timelogs/utils/daylog-processing.utils';
 import { filterDayLogs } from './timelogs/utils/daylog-filter.utils';
 import { mapDayLogsToReportRows } from './timelogs/utils/timelogs-report.utils';
 import { matchesEmployeeSearch } from './timelogs/utils/employee-search.utils';
-import { RESTRICTED_SCHEDULE_NAMES } from './timelogs/utils/timelogs-constants';
+import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/utils/timelogs-constants';
 
 @Component({
   selector: 'pt-timelogs',
@@ -348,7 +349,9 @@ export class TimelogsComponent {
 
   // ─── Constants ─────────────────────────────────────────────
   private readonly TIMEZONE = 'America/Panama';
-  private readonly QUERY_LIMIT = 50000;
+  // Cap real de la paginación en TimelogsApiService.fetchAllLogs: 50 páginas × 10K filas.
+  // Si lo golpeamos, la UI muestra el warning de "Resultados incompletos".
+  private readonly QUERY_LIMIT = 500000;
 
   // ─── State signals ─────────────────────────────────────────
   protected silentReloading = signal(false);
@@ -584,55 +587,114 @@ export class TimelogsComponent {
     };
   });
 
-  // ─── httpResource: Timelogs (split before/after cutoff) ────
-  public logsBefore22 = httpResource<any[]>(() => {
+  // ─── httpResource: Overtime Records ─────────────────────────
+  // Trae los `employee_overtime_records` del rango para que el botón de
+  // aprobación de extras refleje el estado real (pending/confirmed/rejected)
+  // y para no crear duplicados al re-confirmar uno existente.
+  public overtimeRecords = httpResource<EmployeeOvertimeRecord[]>(() => {
     const { start, end } = this.normalizedDateRange();
     if (!start || !end) return undefined;
-    const { beforeRange } = this.timelogsApiService.splitDateRange({ start, end });
-    if (!beforeRange) return undefined;
-    return this.timelogsApiService.buildLogsRequest(beforeRange.start, beforeRange.end, this.employeeId());
-  });
-
-  public logsAfter22 = httpResource<any[]>(() => {
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end) return undefined;
-    const { afterRange } = this.timelogsApiService.splitDateRange({ start, end });
-    if (!afterRange) return undefined;
-    return this.timelogsApiService.buildLogsRequest(afterRange.start, afterRange.end, this.employeeId());
-  });
-
-  private _logsComputed = computed(() => {
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end) {
-      return { value: () => [], isLoading: () => false, error: () => undefined };
-    }
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return undefined;
 
     const startStr = format(start, 'yyyy-MM-dd');
     const endStr = format(end, 'yyyy-MM-dd');
-    const cutoffStr = '2025-12-22';
+
+    return {
+      url: this.apiUrl.build('rest/v1/employee_overtime_records', {
+        select:
+          '*,confirmedByEmployee:employees!confirmed_by(id,first_name,father_name)',
+        and: `(timelog_date.gte.${startStr},timelog_date.lte.${endStr})`,
+        company_id: `eq.${companyId}`,
+      }),
+      method: 'GET' as const,
+    };
+  });
+
+  // ─── resource: Timelogs paginados (split before/after cutoff) ────
+  // Supabase tiene un hard cap server-side de 10K filas por request. Paginamos
+  // manual para no perder filas (exits al final del rango).
+  public logsBefore22 = resource<any[], { start: Date; end: Date; employeeId?: string } | undefined>({
+    params: () => {
+      const { start, end } = this.normalizedDateRange();
+      if (!start || !end) return undefined;
+      const { beforeRange } = this.timelogsApiService.splitDateRange({ start, end });
+      if (!beforeRange) return undefined;
+      return { start: beforeRange.start, end: beforeRange.end, employeeId: this.employeeId() };
+    },
+    loader: async ({ params, abortSignal }) => {
+      if (!params) return [];
+      return this.timelogsApiService.fetchAllLogs(params.start, params.end, params.employeeId, abortSignal);
+    },
+  });
+
+  public logsAfter22 = resource<any[], { start: Date; end: Date; employeeId?: string } | undefined>({
+    params: () => {
+      const { start, end } = this.normalizedDateRange();
+      if (!start || !end) return undefined;
+      const { afterRange } = this.timelogsApiService.splitDateRange({ start, end });
+      if (!afterRange) return undefined;
+      return { start: afterRange.start, end: afterRange.end, employeeId: this.employeeId() };
+    },
+    loader: async ({ params, abortSignal }) => {
+      if (!params) return [];
+      return this.timelogsApiService.fetchAllLogs(params.start, params.end, params.employeeId, abortSignal);
+    },
+  });
+
+  // Fecha que parte las dos consultas de timelogs. Ver el comentario en
+  // TimelogsApiService — es un cutoff histórico que se conserva hasta auditar
+  // que los datos a ambos lados son idénticos.
+  private readonly PUNCHED_AT_BACKFILL_CUTOFF = '2025-12-22';
+
+  // ─── Computed: Logs combinados (memoizados) ────────────────
+  // Tres signals independientes para que la memoización río abajo funcione:
+  // cambiar isLoading no invalida el array de logs y viceversa.
+  private logsValue = computed<any[]>(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) return [];
+
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+    const cutoffStr = this.PUNCHED_AT_BACKFILL_CUTOFF;
 
     const before22Data = this.logsBefore22.value() ?? [];
     const after22Data = this.logsAfter22.value() ?? [];
 
-    if (endStr <= cutoffStr) {
-      return { value: () => before22Data, isLoading: () => this.logsBefore22.isLoading(), error: () => this.logsBefore22.error() };
-    }
-    if (startStr > cutoffStr) {
-      return { value: () => after22Data, isLoading: () => this.logsAfter22.isLoading(), error: () => this.logsAfter22.error() };
-    }
-
-    const combined = [...before22Data, ...after22Data];
-    return {
-      value: () => combined,
-      isLoading: () => this.logsBefore22.isLoading() || this.logsAfter22.isLoading(),
-      error: () => this.logsBefore22.error() || this.logsAfter22.error(),
-    };
+    if (endStr <= cutoffStr) return before22Data;
+    if (startStr > cutoffStr) return after22Data;
+    return [...before22Data, ...after22Data];
   });
 
+  private logsIsLoading = computed<boolean>(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) return false;
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+    const cutoffStr = this.PUNCHED_AT_BACKFILL_CUTOFF;
+
+    if (endStr <= cutoffStr) return this.logsBefore22.isLoading();
+    if (startStr > cutoffStr) return this.logsAfter22.isLoading();
+    return this.logsBefore22.isLoading() || this.logsAfter22.isLoading();
+  });
+
+  private logsErrorSignal = computed<any>(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) return undefined;
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+    const cutoffStr = this.PUNCHED_AT_BACKFILL_CUTOFF;
+
+    if (endStr <= cutoffStr) return this.logsBefore22.error();
+    if (startStr > cutoffStr) return this.logsAfter22.error();
+    return this.logsBefore22.error() || this.logsAfter22.error();
+  });
+
+  // Fachada estable para los consumidores que esperan { value, isLoading, error }
   public logs = {
-    value: (): any[] => this._logsComputed().value(),
-    isLoading: (): boolean => this._logsComputed().isLoading(),
-    error: (): any => this._logsComputed().error(),
+    value: (): any[] => this.logsValue(),
+    isLoading: (): boolean => this.logsIsLoading(),
+    error: (): any => this.logsErrorSignal(),
   } as any;
 
   // ─── Computed: Results truncated warning ───────────────────
@@ -649,7 +711,7 @@ export class TimelogsComponent {
   private _errorShown = false;
 
   public hasError = computed(() => {
-    const logsError = this._logsComputed().error();
+    const logsError = this.logsErrorSignal();
     const schedulesError = this.schedules.error();
     const timeoffsError = this.timeoffs.error();
 
@@ -673,15 +735,18 @@ export class TimelogsComponent {
     return false;
   });
 
-  // ─── Computed: DayLogs (delegates to utils) ────────────────
-  public dayLogs = computed(() => {
+  // ─── Computed: DayLogs (3-phase memoization) ───────────────
+  // Fase 1: estructura base (cara) — depende solo de datos crudos + rango + selección
+  // de empleados/sucursal. NO incluye métricas ni alertas para que cambiar la
+  // tolerancia no dispare un rebuild completo.
+  public baseDayLogs = computed(() => {
     const { start, end } = this.normalizedDateRange();
     if (!start || !end) return [];
 
     const normalizedStart = startOfDay(new Date(start));
     const normalizedEnd = startOfDay(new Date(end));
 
-    return buildDayLogs({
+    return buildBaseDayLogs({
       logsData: this.logs.value() ?? [],
       schedulesData: this.schedules.value() ?? [],
       timeoffsData: this.timeoffs.value() ?? [],
@@ -696,6 +761,20 @@ export class TimelogsComponent {
       timezone: this.TIMEZONE,
       logger: this.logger,
     });
+  });
+
+  // Fase 2: aplica alertas + métricas (retraso, horas, almuerzo) y mergea los
+  // overtime records (estado pending/confirmed/rejected del botón de extras).
+  // Solo re-corre cuando cambia la base, la tolerancia, o los overtime records.
+  public dayLogs = computed(() => {
+    return applyMetricsToDayLogs(
+      this.baseDayLogs(),
+      this.timeoffs.value() ?? [],
+      this.TIMEZONE,
+      this.delayToleranceMinutes(),
+      this.logger,
+      this.overtimeRecords.value() ?? [],
+    );
   });
 
   // ─── Computed: Filtered daylogs (delegates to utils) ───────
@@ -789,11 +868,38 @@ export class TimelogsComponent {
     let permiso = 0;
     let compensatorioDias = 0;
 
-    for (const log of empLogs) {
-      const name = log.schedule?.schedule?.name?.toLowerCase()?.trim() || '';
-      if (!name) continue;
+    // Categorizar primero por ID (robusto a renombres en Supabase), con
+    // fallback a nombres por si aparece un schedule nuevo no registrado en
+    // SUMMARY_SCHEDULE_IDS (ver timelogs-constants.ts).
+    const categorize = (
+      schedId: string | undefined | null,
+      schedName: string,
+    ): 'certMedicos' | 'injustificada' | 'justificada' | 'permiso' | 'compensatorio' | null => {
+      if (schedId) {
+        if (SUMMARY_SCHEDULE_IDS.certMedicos.includes(schedId as never)) return 'certMedicos';
+        if (SUMMARY_SCHEDULE_IDS.injustificada.includes(schedId as never)) return 'injustificada';
+        if (SUMMARY_SCHEDULE_IDS.justificada.includes(schedId as never)) return 'justificada';
+        if (SUMMARY_SCHEDULE_IDS.permiso.includes(schedId as never)) return 'permiso';
+        if (SUMMARY_SCHEDULE_IDS.compensatorio.includes(schedId as never)) return 'compensatorio';
+      }
+      // Fallback por nombre (solo si el ID no matchea ninguna categoría conocida)
+      const n = schedName.toLowerCase().trim();
+      if (!n) return null;
+      if (n === 'cm' || n === 'incapacidad') return 'certMedicos';
+      if (n.startsWith('a. injus') || n === 'ausencia') return 'injustificada';
+      if (n.startsWith('a. justificada')) return 'justificada';
+      if (n === 'permiso') return 'permiso';
+      if (n === 'compensatorio') return 'compensatorio';
+      return null;
+    };
 
-      if (name === 'cm' || name === 'incapacidad') {
+    for (const log of empLogs) {
+      const schedId = log.schedule?.schedule?.id;
+      const schedName = log.schedule?.schedule?.name || '';
+      const category = categorize(schedId, schedName);
+      if (!category) continue;
+
+      if (category === 'certMedicos') {
         const alreadyCounted = empDisabilities.some(d => {
           const dStart = d.start_date?.slice(0, 10) || '';
           const dEnd = d.end_date?.slice(0, 10) || '';
@@ -802,27 +908,18 @@ export class TimelogsComponent {
         if (!alreadyCounted) {
           details.certMedicos.push({ day: log.day, source: 'Horario asignado' });
         }
-        continue;
-      }
-      if (name.startsWith('a. injus') || name === 'ausencia') {
+      } else if (category === 'injustificada') {
         injustificada++;
         details.injustificada.push({ day: log.day, source: 'Horario asignado' });
-        continue;
-      }
-      if (name.startsWith('a. justificada')) {
+      } else if (category === 'justificada') {
         justificada++;
         details.justificada.push({ day: log.day, source: 'Horario asignado' });
-        continue;
-      }
-      if (name === 'permiso') {
+      } else if (category === 'permiso') {
         permiso++;
         details.permiso.push({ day: log.day, source: 'Horario asignado' });
-        continue;
-      }
-      if (name === 'compensatorio') {
+      } else if (category === 'compensatorio') {
         compensatorioDias++;
         details.compensatorio.push({ day: log.day, source: 'Horario asignado' });
-        continue;
       }
     }
 
@@ -869,7 +966,7 @@ export class TimelogsComponent {
 
     // Reset silentReloading when loading finishes
     effect(() => {
-      const loading = this._logsComputed().isLoading();
+      const loading = this.logsIsLoading();
       if (!loading && this.silentReloading()) {
         this.silentReloading.set(false);
       }
@@ -1109,7 +1206,9 @@ export class TimelogsComponent {
   }
 
   private refreshOvertimeRecords(): void {
-    const current = this.dateRange();
-    this.dateRange.set([...current]);
+    // Recarga directa del resource — antes se forzaba un cambio de dateRange
+    // para invalidar todo el árbol reactivo, ahora podemos pedir solo lo que
+    // cambió.
+    this.overtimeRecords.reload();
   }
 }

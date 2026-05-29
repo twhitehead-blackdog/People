@@ -16,6 +16,20 @@ export const EMPLOYEE_PORTAL_ROUTES: Routes = [
             (x) => x.EmployeePortalComponent
           ),
       },
+      {
+        path: 'tickets',
+        loadComponent: () =>
+          import('../dashboard/modules/branch-manager/ui/branch-manager-it-tickets-tab.component').then(
+            (x) => x.BranchManagerItTicketsTabComponent
+          ),
+      },
+      {
+        path: 'suggestions',
+        loadComponent: () =>
+          import('../dashboard/modules/branch-manager/ui/branch-manager-suggestions-tab.component').then(
+            (x) => x.BranchManagerSuggestionsTabComponent
+          ),
+      },
     ],
   },
 ];

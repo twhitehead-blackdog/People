@@ -145,6 +145,37 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google
       line-height: 1.5;
     }
 
+    /* Clave manual (alternativa sin cámara) */
+    .manual-toggle {
+      background: none; border: 1px solid rgba(245,158,11,0.35); color: #fbbf24;
+      border-radius: 10px; padding: 0.5rem 0.85rem; font-size: 0.78rem; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.4rem; transition: background 0.15s;
+    }
+    .manual-toggle:hover { background: rgba(245,158,11,0.12); }
+    .manual-key-box {
+      margin-top: 0.85rem; width: 100%; max-width: 360px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .mk-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .mk-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #737373; }
+    .mk-type { font-size: 0.8rem; font-weight: 700; color: #fcd34d; }
+    .mk-hint { font-size: 0.72rem; color: #a3a3a3; line-height: 1.4; }
+    .mk-secret {
+      font-family: ui-monospace, monospace; font-size: 1.05rem; font-weight: 700;
+      letter-spacing: 0.08em; color: #fff; background: rgba(0,0,0,0.35);
+      border: 1px dashed rgba(245,158,11,0.4); border-radius: 10px; padding: 0.7rem 0.85rem;
+      text-align: center; cursor: pointer; word-break: break-all;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .mk-secret:hover { border-color: rgba(245,158,11,0.7); }
+    .mk-secret .pi-copy { font-size: 0.8rem; color: #fbbf24; }
+    .mk-params {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; font-size: 0.7rem; color: #a3a3a3;
+    }
+    .mk-params strong { color: #d4d4d4; }
+    .mk-steps { font-size: 0.72rem; color: #a3a3a3; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.6rem; }
+
     /* OTP */
     .otp-row { display: flex; justify-content: center; margin: 1.5rem 0 0.5rem; }
     :host ::ng-deep .otp-row .p-inputotp { gap: 0.4rem; }
@@ -317,6 +348,44 @@ const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google
               <div class="single-qr-hint">
                 Cuando lo agregues, verás un código de <strong>6 dígitos</strong> que cambia cada 30 segundos.
               </div>
+
+              <!-- Alternativa sin cámara: clave manual -->
+              <button type="button" class="manual-toggle" (click)="showManualKey.set(!showManualKey())">
+                <i class="pi" [class.pi-chevron-down]="!showManualKey()" [class.pi-chevron-up]="showManualKey()"></i>
+                {{ showManualKey() ? 'Ocultar clave manual' : '¿Cámara dañada? Ingresar la clave a mano' }}
+              </button>
+
+              @if (showManualKey() && manualKey(); as k) {
+                <div class="manual-key-box">
+                  <div class="mk-row">
+                    <span class="mk-label">Tipo de clave</span>
+                    <span class="mk-type">{{ k.typeLabel }}</span>
+                  </div>
+                  <div class="mk-hint">{{ k.typeHint }}</div>
+
+                  <div class="mk-row">
+                    <span class="mk-label">Clave (secret)</span>
+                  </div>
+                  <div class="mk-secret" (click)="copyManualKey()" title="Toca para copiar">
+                    {{ k.secretGrouped }}
+                    <i class="pi pi-copy"></i>
+                  </div>
+
+                  <div class="mk-params">
+                    <span>Cuenta: <strong>{{ k.account }}</strong></span>
+                    <span>Emisor: <strong>{{ k.issuer }}</strong></span>
+                    <span>Algoritmo: <strong>{{ k.algorithm }}</strong></span>
+                    <span>Dígitos: <strong>{{ k.digits }}</strong></span>
+                    @if (k.period) { <span>Periodo: <strong>{{ k.period }}s</strong></span> }
+                    @if (k.counter !== null) { <span>Contador: <strong>{{ k.counter }}</strong></span> }
+                  </div>
+
+                  <div class="mk-steps">
+                    En Google Authenticator: <strong>+</strong> → "Introducir una clave de configuración" →
+                    escribe el nombre de cuenta, pega la clave, y elige <strong>{{ k.type === 'totp' ? 'Basado en tiempo' : 'Basado en contador' }}</strong>.
+                  </div>
+                </div>
+              }
             </div>
           }
           @case (3) {
@@ -382,8 +451,56 @@ export class AuthenticatorEnrollmentComponent {
   public appStoreQr = signal<string | null>(null);
   public playStoreQr = signal<string | null>(null);
   public employeeQr = signal<string | null>(null);
+  // Captures the code_uri generated for a new enrollment, since `employee` is an
+  // input.required signal and can't be mutated. Without this, finalize() reads
+  // the original employee record which has no code_uri yet → 'Falta el code_uri'.
+  public enrolledCodeUri = signal<string | null>(null);
 
   public employeeOtp = signal('');
+
+  // Mostrar/ocultar la clave manual (alternativa al QR cuando la cámara falla)
+  public showManualKey = signal<boolean>(false);
+
+  // Parsea el code_uri para extraer la clave y parámetros (entrada manual)
+  public manualKey = computed(() => {
+    const uri = this.enrolledCodeUri();
+    if (!uri) return null;
+    try {
+      const parsed = OTPAuth.URI.parse(uri);
+      const isTotp = parsed instanceof OTPAuth.TOTP;
+      const secret = parsed.secret.base32;
+      // Agrupa el secreto en bloques de 4 para que sea fácil de teclear
+      const grouped = secret.replace(/(.{4})/g, '$1 ').trim();
+      return {
+        type: isTotp ? 'totp' : 'hotp',
+        typeLabel: isTotp ? 'Basada en tiempo (TOTP)' : 'Basada en contador (HOTP)',
+        typeHint: isTotp
+          ? 'En la app elige "Basado en tiempo" (Time-based). El código cambia cada 30 s.'
+          : 'En la app elige "Basado en contador" (Counter-based / HOTP).',
+        secret,
+        secretGrouped: grouped,
+        account: (parsed as any).label || this.employeeFullName(),
+        issuer: (parsed as any).issuer || 'Black Dog',
+        algorithm: (parsed as any).algorithm || 'SHA1',
+        digits: (parsed as any).digits || 6,
+        period: isTotp ? ((parsed as OTPAuth.TOTP).period || 30) : null,
+        counter: !isTotp ? ((parsed as OTPAuth.HOTP).counter ?? 0) : null,
+      };
+    } catch {
+      return null;
+    }
+  });
+
+  public async copyManualKey(): Promise<void> {
+    const k = this.manualKey();
+    if (!k) return;
+    try {
+      await navigator.clipboard.writeText(k.secret);
+      this.message.add({ severity: 'success', summary: 'Copiada', detail: 'Clave copiada al portapapeles' });
+    } catch {
+      this.message.add({ severity: 'info', summary: 'Clave', detail: k.secret });
+    }
+  }
 
   public employeeFullName = computed(() => {
     const e = this.employee();
@@ -430,6 +547,7 @@ export class AuthenticatorEnrollmentComponent {
     this.managerOtp.set('');
     this.employeeOtp.set('');
     this.employeeQr.set(null);
+    this.enrolledCodeUri.set(null);
   }
 
   public async loadManagers() {
@@ -516,6 +634,9 @@ export class AuthenticatorEnrollmentComponent {
         const qr = await QRCode.toDataURL(uri, { margin: 1, width: 480, errorCorrectionLevel: 'M' });
         this.employeeQr.set(qr);
       }
+      // Persist generated URI so finalize() can validate against it
+      // (employee is input.required and can't be mutated from inside this component).
+      this.enrolledCodeUri.set(uri ?? null);
       this.step.set(2);
     } catch {
       this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar el QR del empleado' });
@@ -526,13 +647,16 @@ export class AuthenticatorEnrollmentComponent {
 
   private async finalize() {
     const e = this.employee();
-    if (!e.code_uri) {
+    // Prefer the URI we just generated in advanceToScanStep; fall back to the
+    // employee record only if they already had one (re-enrollment case).
+    const uri = this.enrolledCodeUri() ?? e.code_uri;
+    if (!uri) {
       this.message.add({ severity: 'error', summary: 'Error', detail: 'Falta el code_uri del empleado' });
       return;
     }
     this.loading.set(true);
     try {
-      const totp = OTPAuth.URI.parse(e.code_uri);
+      const totp = OTPAuth.URI.parse(uri);
       const ok = totp.validate({ token: this.employeeOtp(), window: 1 });
       if (ok === null) {
         this.message.add({ severity: 'error', summary: 'Código inválido', detail: 'El código no coincide. Espera 30 seg y prueba el nuevo.' });

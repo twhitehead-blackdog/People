@@ -3852,13 +3852,14 @@ body > .p-select-panel {
   letter-spacing: -0.01em;
 }
 .confirm-modal-time {
-  background: linear-gradient(135deg, #fde047, #fbbf24) !important;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent !important;
+  /* Color sólido legible sobre el fondo oscuro del modal.
+     Antes usaba background-clip:text con color:transparent, que en algunos
+     navegadores dejaba el texto invisible (solo se veía el bloque amarillo). */
+  background: none !important;
+  color: #fcd34d !important;
   font-weight: 800 !important;
   font-variant-numeric: tabular-nums;
-  filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.2));
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .confirm-modal-phrase-box {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05)) !important;
@@ -3906,3 +3907,72 @@ body > .p-select-panel {
 .animated-gradient-container::-webkit-scrollbar-thumb:hover {
   background: rgba(251, 191, 36, 0.5) !important;
 }
+
+/* Soporte FAB — link al portal de tickets, visible en cualquier modo */
+.soporte-fab {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 999px;
+  color: #fbbf24;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(6px);
+  transition: background-color 0.15s, transform 0.15s;
+}
+.soporte-fab:hover {
+  background: rgba(251, 191, 36, 0.22);
+  transform: translateY(-1px);
+}
+.soporte-fab i {
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .soporte-fab {
+    top: 10px;
+    right: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Face-first layout: card PIN + face panel lado a lado en desktop */
+.tc-row-wide {
+  width: 100%;
+  align-items: stretch !important;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .tc-row-wide {
+    flex-direction: row !important;
+    justify-content: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .tc-row-wide .timeclock-card {
+    max-width: 460px !important;
+    flex: 0 0 460px;
+  }
+  .tc-face-panel {
+    flex: 1 1 auto;
+    max-width: 520px;
+    min-width: 360px;
+    display: flex;
+    align-items: stretch;
+  }
+  .tc-face-panel pt-face-clock-modal {
+    display: block;
+    width: 100%;
+  }
+}
+.tc-face-panel { width: 100%; }
