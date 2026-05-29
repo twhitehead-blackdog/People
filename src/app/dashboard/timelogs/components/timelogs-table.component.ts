@@ -28,6 +28,7 @@ import {
   getAlertSeverity,
   getAlertTooltip,
 } from '../utils/alert.utils';
+import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
 
 @Component({
   selector: 'pt-timelogs-table',
@@ -42,6 +43,7 @@ import {
     NgClass,
     NgStyle,
     PanamaDatePipe,
+    TimelogPhotoDialogComponent,
   ],
   template: `
     <!-- Mobile card view -->
@@ -50,9 +52,20 @@ import {
         <div class="flex justify-center py-8"><i class="pi pi-spin pi-spinner text-xl text-amber-400"></i></div>
       } @else if (logs().length === 0) {
         <div class="mobile-empty-state">
-          <i class="pi pi-clock mobile-empty-state__icon"></i>
+          <i class="pi pi-search mobile-empty-state__icon"></i>
           <p class="mobile-empty-state__title">Sin marcaciones</p>
-          <p class="mobile-empty-state__desc">Ajusta los filtros o fechas</p>
+          <p class="mobile-empty-state__desc">
+            Ajusta los filtros o limpia para ver todo el período.
+          </p>
+          <p-button
+            label="Limpiar filtros"
+            icon="pi pi-filter-slash"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            (onClick)="clearFiltersRequested.emit()"
+            styleClass="mt-3"
+          />
         </div>
       } @else {
         <div class="mobile-card-list pb-2">
@@ -307,6 +320,14 @@ import {
                    class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
                    [pTooltip]="'IP inválida: ' + (log.entry?.ip ?? '—')"
                    tooltipPosition="top"></i>
+                <button *ngIf="hasPhoto(log.entry)"
+                   type="button"
+                   class="tl-photo-btn"
+                   (click)="openPhoto(log.entry?.id, 'Entrada', log.employee.first_name + ' ' + log.employee.father_name)"
+                   pTooltip="Ver foto de la marcación"
+                   tooltipPosition="top">
+                  <i class="pi pi-camera"></i>
+                </button>
                 <p-tag
                   *ngIf="log.delay"
                   [value]="'Retraso de ' + log.delay + ' min'"
@@ -355,6 +376,14 @@ import {
                 <i *ngIf="log.lunch_start?.invalid_ip"
                    class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
                    [pTooltip]="'IP inválida: ' + (log.lunch_start?.ip ?? '—')"></i>
+                <button *ngIf="hasPhoto(log.lunch_start)"
+                   type="button"
+                   class="tl-photo-btn"
+                   (click)="openPhoto(log.lunch_start?.id, 'Inicio almuerzo', log.employee.first_name + ' ' + log.employee.father_name)"
+                   pTooltip="Ver foto de la marcación"
+                   tooltipPosition="top">
+                  <i class="pi pi-camera"></i>
+                </button>
               </div>
             </td>
             <td>
@@ -379,6 +408,14 @@ import {
                 <i *ngIf="log.lunch_end?.invalid_ip"
                    class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
                    [pTooltip]="'IP inválida: ' + (log.lunch_end?.ip ?? '—')"></i>
+                <button *ngIf="hasPhoto(log.lunch_end)"
+                   type="button"
+                   class="tl-photo-btn"
+                   (click)="openPhoto(log.lunch_end?.id, 'Fin almuerzo', log.employee.first_name + ' ' + log.employee.father_name)"
+                   pTooltip="Ver foto de la marcación"
+                   tooltipPosition="top">
+                  <i class="pi pi-camera"></i>
+                </button>
                 <p-tag
                   *ngIf="log.lunchExceeded && log.lunchMinutes"
                   [value]="'Almuerzo +' + (log.lunchMinutes - 60) + ' min'"
@@ -422,6 +459,14 @@ import {
                    class="pi pi-exclamation-triangle text-orange-400 text-[11px] ml-1"
                    [pTooltip]="'IP inválida: ' + (log.exit?.ip ?? '—')"
                    tooltipPosition="top"></i>
+                <button *ngIf="hasPhoto(log.exit)"
+                   type="button"
+                   class="tl-photo-btn"
+                   (click)="openPhoto(log.exit?.id, 'Salida', log.employee.first_name + ' ' + log.employee.father_name)"
+                   pTooltip="Ver foto de la marcación"
+                   tooltipPosition="top">
+                  <i class="pi pi-camera"></i>
+                </button>
                 <p-tag
                   *ngIf="log.earlyExit"
                   value="Salida temprana"
@@ -508,13 +553,28 @@ import {
         </ng-template>
         <ng-template #emptymessage>
           <tr>
-            <td colspan="9">
-              <div class="flex flex-col items-center justify-center gap-4">
-                <p>No se encontraron registros</p>
+            <td colspan="9" class="!py-12">
+              <div class="flex flex-col items-center justify-center gap-3 text-center">
+                <div class="w-16 h-16 rounded-full bg-neutral-800/60 flex items-center justify-center">
+                  <i class="pi pi-search text-2xl text-gray-500"></i>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <p class="text-base font-semibold text-gray-200 m-0">
+                    Sin marcaciones para los filtros actuales
+                  </p>
+                  <p class="text-sm text-gray-500 m-0 max-w-md">
+                    Prueba ampliar el rango de fechas, quitar la sucursal
+                    seleccionada o limpiar los filtros para ver todas las
+                    marcaciones del período.
+                  </p>
+                </div>
                 <p-button
-                  label="Limpiar"
-                  icon="pi pi-refresh"
-                  (click)="employeeId.set('')"
+                  label="Limpiar filtros"
+                  icon="pi pi-filter-slash"
+                  severity="secondary"
+                  [outlined]="true"
+                  (onClick)="clearFiltersRequested.emit()"
+                  styleClass="mt-2"
                 />
               </div>
             </td>
@@ -522,12 +582,64 @@ import {
         </ng-template>
       </p-table>
     </div>
+
+    <!-- Dialogo de foto de marcación facial -->
+    <pt-timelog-photo-dialog
+      [(visible)]="photoDialogVisible"
+      [timelogId]="selectedTimelogIdForPhoto()"
+      [title]="photoDialogTitle()"
+      (closed)="onPhotoDialogClosed()"
+    />
   `,
+  styles: [`
+    .tl-photo-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      margin-left: 4px;
+      padding: 0;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.32);
+      color: #60a5fa;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tl-photo-btn:hover {
+      background: rgba(59, 130, 246, 0.22);
+      transform: translateY(-1px);
+    }
+    .tl-photo-btn i { font-size: 11px; }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimelogsTableComponent {
   // Mobile detection
   public isMobile = signal(window.innerWidth < 768);
+
+  // ─── Photo dialog (marcación facial) ───────────────────────
+  public photoDialogVisible = signal(false);
+  public selectedTimelogIdForPhoto = signal<string | null>(null);
+  public photoDialogTitle = signal('Foto de marcación');
+
+  /** Muestra el modal con la foto de un punch específico (entry/exit/lunch). */
+  public openPhoto(timelogId: string | undefined, label: string, employeeName?: string): void {
+    if (!timelogId) return;
+    this.selectedTimelogIdForPhoto.set(timelogId);
+    this.photoDialogTitle.set(employeeName ? `${employeeName} — ${label}` : `Foto: ${label}`);
+    this.photoDialogVisible.set(true);
+  }
+
+  public onPhotoDialogClosed(): void {
+    this.selectedTimelogIdForPhoto.set(null);
+  }
+
+  /** Helper: ¿este punch tiene foto disponible? (auth_method === 'face') */
+  public hasPhoto(punch: any | undefined): boolean {
+    return !!punch && punch.auth_method === 'face';
+  }
 
   @HostListener('window:resize')
   onResize() {
@@ -548,6 +660,8 @@ export class TimelogsTableComponent {
 
   // Output for overtime action button click
   public overtimeAction = output<DayLog>();
+  /** Emitido cuando el usuario hace clic en "Limpiar filtros" desde el empty state. */
+  public clearFiltersRequested = output<void>();
 
   public colorVariants = colorVariants;
   public alertSeverity = getAlertSeverity;

@@ -81,7 +81,7 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
               Listado de marcaciones de empleados
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap justify-end">
             <p-button
               icon="pi pi-info-circle"
               severity="info"
@@ -91,6 +91,19 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
               pTooltip="Cómo funciona el sistema"
               tooltipPosition="bottom"
             />
+            @if (hasActiveFilters()) {
+              <p-button
+                icon="pi pi-filter-slash"
+                severity="secondary"
+                [outlined]="true"
+                rounded
+                (click)="clearAllFilters()"
+                [label]="'Limpiar filtros (' + getActiveFiltersCount() + ')'"
+                pTooltip="Volver al mes actual sin filtros"
+                tooltipPosition="bottom"
+                class="min-h-[44px]"
+              />
+            }
             <p-button
               icon="pi pi-file-excel"
               [loading]="loading()"
@@ -231,6 +244,7 @@ import { RESTRICTED_SCHEDULE_NAMES, SUMMARY_SCHEDULE_IDS } from './timelogs/util
         [maxHoursTagWidth]="maxHoursTagWidth()"
         [isAdmin]="store.isAdmin()"
         (overtimeAction)="onOvertimeAction($event)"
+        (clearFiltersRequested)="clearAllFilters()"
       ></pt-timelogs-table>
       <!-- Alertas de seguridad de marcaciones (solo Tristan) -->
       @if (canSeeSecurityAlerts()) {
@@ -384,6 +398,7 @@ export class TimelogsComponent {
   // ─── Realtime triggers ─────────────────────────────────────
   private timelogChanges = useRealtimeTrigger('timelogs');
   private scheduleChanges = useRealtimeTrigger('employee_schedules');
+  private overtimeChanges = useRealtimeTrigger('employee_overtime_records');
 
   // ─── Template-bound utilities ──────────────────────────────
   public colorVariants = colorVariants;
@@ -964,10 +979,26 @@ export class TimelogsComponent {
       this.schedules.reload();
     }, { injector: this.injector });
 
-    // Reset silentReloading when loading finishes
+    // Realtime: si otro admin aprueba/rechaza overtime desde otro tab o desde
+    // la API, refrescamos el record sin recargar la página.
     effect(() => {
-      const loading = this.logsIsLoading();
-      if (!loading && this.silentReloading()) {
+      const batch = this.overtimeChanges();
+      if (!batch) return;
+      this.silentReloading.set(true);
+      this.overtimeRecords.reload();
+    }, { injector: this.injector });
+
+    // Reset silentReloading robusto: espera a que TODOS los resources
+    // terminen de cargar. Antes solo escuchaba logsIsLoading y se quedaba
+    // pegado si schedules/timeoffs/overtime hacían reload por realtime sin
+    // que logs estuviera cargando.
+    effect(() => {
+      const anyLoading =
+        this.logsIsLoading() ||
+        this.schedules.isLoading() ||
+        this.timeoffs.isLoading() ||
+        this.overtimeRecords.isLoading();
+      if (!anyLoading && this.silentReloading()) {
         this.silentReloading.set(false);
       }
     }, { injector: this.injector });
@@ -1032,6 +1063,32 @@ export class TimelogsComponent {
     this.employeeSearch.set(this.employeeSearchInput());
   };
 
+  /**
+   * Reset de todos los filtros UI a su valor default. El rango de fechas
+   * vuelve al mes actual hasta hoy. No toca el dataset crudo — el rebuild
+   * de DayLogs sale de la propia memoización al cambiar los signals.
+   */
+  public clearAllFilters(): void {
+    this.dateRange.set([startOfMonth(new Date()), new Date()]);
+    this.employeeId.set(undefined);
+    this.branchId.set(undefined);
+    this.employeeSearch.set('');
+    this.employeeSearchInput.set('');
+    this.onlyDelayed.set(false);
+    this.onlyErrors.set(false);
+    this.onlyEarlyExit.set(false);
+    this.onlyLunchExceeded.set(false);
+    this.onlyWithMarcaciones.set(false);
+    this.delayRange.set(null);
+    this.lunchExceededRange.set(null);
+    this.message.add({
+      severity: 'info',
+      summary: 'Filtros limpiados',
+      detail: 'Vista restaurada al mes actual.',
+      life: 2000,
+    });
+  }
+
   public getScheduleColorInlineStyle(color: string | undefined | null) {
     return getColorStyle(color);
   }
@@ -1041,61 +1098,74 @@ export class TimelogsComponent {
     return undefined;
   }
 
+  /**
+   * Exporta el reporte de marcaciones a un archivo Excel profesional con:
+   *  - Hoja "Información": metadata + KPIs agregados del período.
+   *  - Hoja "Marcaciones": detalle día por día con header de marca,
+   *    zebra striping, errores destacados en rojo/amarillo, filtros automáticos,
+   *    freeze pane.
+   *  - Hoja "Totales": resumen por empleado con fila de gran total.
+   *
+   * La utilidad `exportTimelogsWorkbook` se carga dinámicamente (xlsx-js-style)
+   * para mantener el bundle principal liviano.
+   */
   async generateReport() {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Fecha requerida',
+        detail: 'Por favor selecciona un rango de fechas',
+      });
+      return;
+    }
+
     try {
       this.loading.set(true);
-      const { utils, writeFile } = await import('xlsx');
-      const data = this.timelogsReport();
 
-      const headers = Object.keys(data[0] || {});
-      const ws = utils.json_to_sheet(data, { header: headers });
+      const { exportTimelogsWorkbook } = await import(
+        './timelogs/utils/timelogs-excel-export.utils'
+      );
 
-      const lastCol = String.fromCharCode(64 + headers.length);
-      ws['!autofilter'] = { ref: `A1:${lastCol}${data.length + 1}` };
-      ws['!cols'] = [
-        { wch: 25 }, { wch: 12 }, { wch: 20 }, { wch: 25 },
-        { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 },
-        { wch: 15 }, { wch: 40 },
-      ];
+      const filteredDayLogs = this.filteredDaylogs();
+      const totalRowsWithMarks = filteredDayLogs.filter(
+        (dl) => dl.entry || dl.lunch_start || dl.lunch_end || dl.exit,
+      ).length;
 
-      const wb = utils.book_new();
-
-      const { start, end } = this.normalizedDateRange();
-      const reportInfo = [
-        ['REPORTE DE MARCACIONES'],
-        ['Fecha de generación:', formatInTimeZone(new Date(), this.TIMEZONE, 'dd/MM/yyyy HH:mm')],
-        ['Período:', start && end
-          ? isEqual(start, end)
-            ? formatInTimeZone(start, this.TIMEZONE, 'dd/MM/yyyy')
-            : `${formatInTimeZone(start, this.TIMEZONE, 'dd/MM/yyyy')} - ${formatInTimeZone(end, this.TIMEZONE, 'dd/MM/yyyy')}`
-          : 'Sin fecha',
-        ],
-        ['Total de registros:', data.length],
-        [''],
-      ];
-
-      const infoWs = utils.aoa_to_sheet(reportInfo);
-      infoWs['!cols'] = [{ wch: 30 }, { wch: 30 }];
-
-      utils.book_append_sheet(wb, infoWs, 'Información');
-      utils.book_append_sheet(wb, ws, 'Marcaciones');
-
-      if (!start || !end) {
-        this.message.add({ severity: 'warn', summary: 'Fecha requerida', detail: 'Por favor selecciona un rango de fechas' });
-        return;
-      }
-
-      const name = this.selectedEmployee()
-        ? (this.selectedEmployee()?.short_name.toUpperCase() || '').trim().replace(' ', '_')
+      const sel = this.selectedEmployee();
+      const scopeName = sel?.short_name
+        ? sel.short_name.toUpperCase().trim()
         : 'GLOBAL';
-      const fileName = `${name}_${formatInTimeZone(start, this.TIMEZONE, 'yyyyMMdd')}-${formatInTimeZone(end, this.TIMEZONE, 'yyyyMMdd')}.xlsx`;
 
-      writeFile(wb, fileName);
+      await exportTimelogsWorkbook({
+        filteredDayLogs,
+        start,
+        end,
+        timezone: this.TIMEZONE,
+        scopeName,
+        totalRows: filteredDayLogs.length,
+        totalRowsWithMarks,
+        companyName: this.organizationService.isNaz()
+          ? 'Naz'
+          : 'Black Dog Panamá',
+        generatedByEmail:
+          this.store.currentEmployee()?.work_email ||
+          this.store.currentEmployee()?.email ||
+          undefined,
+      });
 
-      this.message.add({ severity: 'success', summary: 'Reporte generado', detail: `El archivo ${fileName} se ha descargado correctamente` });
+      this.message.add({
+        severity: 'success',
+        summary: 'Reporte generado',
+        detail: 'El archivo Excel se descargó correctamente.',
+      });
     } catch (error) {
       this.logger.error('Error generating report:', error);
-      this.message.add({ severity: 'error', summary: 'Error', detail: 'No se pudo generar el reporte. Por favor, intente nuevamente.' });
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo generar el reporte. Por favor, intente nuevamente.',
+      });
     } finally {
       this.loading.set(false);
     }
