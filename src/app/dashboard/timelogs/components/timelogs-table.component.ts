@@ -48,8 +48,18 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
   template: `
     <!-- Mobile card view -->
     <div class="md:hidden">
-      @if (isLoading) {
-        <div class="flex justify-center py-8"><i class="pi pi-spin pi-spinner text-xl text-amber-400"></i></div>
+      @if (isInitialLoading) {
+        <!-- Skeleton placeholders durante la primera carga -->
+        <div class="flex flex-col gap-2 px-2 pt-2">
+          @for (i of [1,2,3,4,5]; track i) {
+            <div class="rounded-lg bg-neutral-800/40 animate-pulse h-20"></div>
+          }
+        </div>
+      } @else if (isLoading) {
+        <div class="flex flex-col items-center justify-center py-12 gap-3">
+          <i class="pi pi-spin pi-spinner text-2xl text-amber-400"></i>
+          <span class="text-sm text-gray-400">Cargando marcaciones…</span>
+        </div>
       } @else if (logs().length === 0) {
         <div class="mobile-empty-state">
           <i class="pi pi-search mobile-empty-state__icon"></i>
@@ -577,33 +587,49 @@ import { TimelogPhotoDialogComponent } from './timelog-photo-dialog.component';
           </tr>
         </ng-template>
         <ng-template #emptymessage>
-          <tr>
-            <td colspan="9" class="!py-12">
-              <div class="flex flex-col items-center justify-center gap-3 text-center">
-                <div class="w-16 h-16 rounded-full bg-neutral-800/60 flex items-center justify-center">
-                  <i class="pi pi-search text-2xl text-gray-500"></i>
-                </div>
-                <div class="flex flex-col gap-1">
+          @if (isInitialLoading || isLoading) {
+            <tr>
+              <td colspan="9" class="!py-12">
+                <div class="flex flex-col items-center justify-center gap-3 text-center">
+                  <i class="pi pi-spin pi-spinner text-3xl text-amber-400"></i>
                   <p class="text-base font-semibold text-gray-200 m-0">
-                    Sin marcaciones para los filtros actuales
+                    Cargando marcaciones…
                   </p>
                   <p class="text-sm text-gray-500 m-0 max-w-md">
-                    Prueba ampliar el rango de fechas, quitar la sucursal
-                    seleccionada o limpiar los filtros para ver todas las
-                    marcaciones del período.
+                    Procesando logs, horarios, permisos y horas extras del período seleccionado.
                   </p>
                 </div>
-                <p-button
-                  label="Limpiar filtros"
-                  icon="pi pi-filter-slash"
-                  severity="secondary"
-                  [outlined]="true"
-                  (onClick)="clearFiltersRequested.emit()"
-                  styleClass="mt-2"
-                />
-              </div>
-            </td>
-          </tr>
+              </td>
+            </tr>
+          } @else {
+            <tr>
+              <td colspan="9" class="!py-12">
+                <div class="flex flex-col items-center justify-center gap-3 text-center">
+                  <div class="w-16 h-16 rounded-full bg-neutral-800/60 flex items-center justify-center">
+                    <i class="pi pi-search text-2xl text-gray-500"></i>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <p class="text-base font-semibold text-gray-200 m-0">
+                      Sin marcaciones para los filtros actuales
+                    </p>
+                    <p class="text-sm text-gray-500 m-0 max-w-md">
+                      Prueba ampliar el rango de fechas, quitar la sucursal
+                      seleccionada o limpiar los filtros para ver todas las
+                      marcaciones del período.
+                    </p>
+                  </div>
+                  <p-button
+                    label="Limpiar filtros"
+                    icon="pi pi-filter-slash"
+                    severity="secondary"
+                    [outlined]="true"
+                    (onClick)="clearFiltersRequested.emit()"
+                    styleClass="mt-2"
+                  />
+                </div>
+              </td>
+            </tr>
+          }
         </ng-template>
       </p-table>
     </div>
@@ -690,6 +716,9 @@ export class TimelogsTableComponent {
 
   @Input() public logs!: Signal<DayLog[]>;
   @Input() public isLoading = false;
+  /** True solo en la primera carga (cuando no hay datos aún). Activa
+   *  skeleton/placeholder en vez del empty state. */
+  @Input() public isInitialLoading = false;
   @Input() public delayToleranceMinutes!: WritableSignal<number>;
   @Input() public employeeId!: WritableSignal<string | undefined>;
   @Input() public maxEmployeeTagWidth!: string;

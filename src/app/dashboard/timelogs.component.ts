@@ -252,6 +252,19 @@ import {
           </div>
         </div>
       </ng-template>
+
+      <!-- Indicador global de carga: barra delgada animada visible mientras
+           CUALQUIER resource (logs, schedules, timeoffs, overtime) esté
+           cargando. Antes solo se mostraba dentro de la tabla, lo que dejaba
+           al usuario sin feedback cuando schedules o timeoffs tardaban. -->
+      <div
+        class="timelogs-loading-bar"
+        [class.timelogs-loading-bar--active]="anyResourceLoading()"
+        role="progressbar"
+        [attr.aria-busy]="anyResourceLoading()"
+        [attr.aria-label]="anyResourceLoading() ? 'Cargando marcaciones' : null"
+      ></div>
+
       <pt-timelogs-filters
         [dateRange]="dateRange"
         [employeeSearchInput]="employeeSearchInput"
@@ -387,7 +400,8 @@ import {
       }
       <pt-timelogs-table
         [logs]="filteredDaylogs"
-        [isLoading]="logs.isLoading() && !silentReloading()"
+        [isLoading]="anyResourceLoading() && !silentReloading()"
+        [isInitialLoading]="isInitialLoading()"
         [delayToleranceMinutes]="delayToleranceMinutes"
         [employeeId]="employeeId"
         [maxEmployeeTagWidth]="maxEmployeeTagWidth()"
@@ -697,6 +711,42 @@ import {
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
       margin-right: 0.5rem;
+    }
+    /* Barra de progreso indeterminada — visible mientras cualquier resource
+       esté cargando. Cuando termina, fade-out suave. */
+    .timelogs-loading-bar {
+      position: relative;
+      height: 3px;
+      width: 100%;
+      margin: 0 0 4px 0;
+      overflow: hidden;
+      background: transparent;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+    .timelogs-loading-bar--active {
+      opacity: 1;
+    }
+    .timelogs-loading-bar--active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 35%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        rgba(245, 158, 11, 0) 0%,
+        rgba(245, 158, 11, 0.95) 50%,
+        rgba(245, 158, 11, 0) 100%
+      );
+      animation: timelogs-loading-slide 1.2s ease-in-out infinite;
+      border-radius: 2px;
+    }
+    @keyframes timelogs-loading-slide {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(385%); }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -1162,6 +1212,36 @@ export class TimelogsComponent {
     isLoading: (): boolean => this.logsIsLoading(),
     error: (): any => this.logsErrorSignal(),
   } as any;
+
+  /**
+   * Indicador GLOBAL de carga. True si CUALQUIERA de los 4 resources está
+   * cargando (logs, schedules, timeoffs, overtimeRecords). Antes el spinner
+   * de la tabla solo escuchaba `logs`, así que si schedules o timeoffs
+   * tardaban más, la tabla aparecía vacía sin avisar al usuario.
+   */
+  public anyResourceLoading = computed(
+    () =>
+      this.logsIsLoading() ||
+      this.schedules.isLoading() ||
+      this.timeoffs.isLoading() ||
+      this.overtimeRecords.isLoading(),
+  );
+
+  /**
+   * True solo durante la PRIMERA carga (aún no hay datos en ningún
+   * resource). Útil para mostrar skeleton/placeholder en vez de "Sin
+   * resultados" mientras se obtienen datos por primera vez.
+   */
+  public isInitialLoading = computed(() => {
+    if (!this.anyResourceLoading()) return false;
+    // Hay algún resource cargando — verificar si ya tenemos datos previos
+    const hasLogsData =
+      (this.logsBefore22.value()?.length ?? 0) > 0 ||
+      (this.logsAfter22.value()?.length ?? 0) > 0;
+    const hasSchedulesData = (this.schedules.value()?.length ?? 0) > 0;
+    // Primera carga si no tenemos NADA todavía
+    return !hasLogsData && !hasSchedulesData;
+  });
 
   // ─── Computed: Results truncated warning ───────────────────
   public resultsTruncated = computed(() => {
