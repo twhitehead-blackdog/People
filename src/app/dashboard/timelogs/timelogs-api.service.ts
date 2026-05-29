@@ -17,8 +17,8 @@ import { OrganizationService } from '../../services/organization.service';
  * formato, pero el split se conserva por precaución hasta tener auditoría
  * formal.
  */
-const PUNCHED_AT_BACKFILL_CUTOFF_DATE = '2025-12-22';
-const PUNCHED_AT_BACKFILL_CUTOFF_NEXT = '2025-12-23';
+export const PUNCHED_AT_BACKFILL_CUTOFF_DATE = '2025-12-22';
+export const PUNCHED_AT_BACKFILL_CUTOFF_NEXT = '2025-12-23';
 
 @Injectable({ providedIn: 'root' })
 export class TimelogsApiService {

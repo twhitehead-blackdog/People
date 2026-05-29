@@ -12,7 +12,7 @@ import {
   signal,
 } from '@angular/core';
 import { useRealtimeTrigger } from '../utils/realtime-trigger.utils';
-import { addDays, differenceInMinutes, format, isEqual, startOfDay, startOfMonth } from 'date-fns';
+import { addDays, differenceInMinutes, format, isEqual, isSameDay, startOfDay, startOfMonth } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -41,7 +41,7 @@ import { TimelogsFiltersComponent } from './timelogs/components/timelogs-filters
 import { TimelogsTableComponent } from './timelogs/components/timelogs-table.component';
 import { TimelogAlertsComponent } from './settings/timelog-alerts.component';
 import { OvertimeRecordsService } from './timelogs/services/overtime-records.service';
-import { TimelogsApiService } from './timelogs/timelogs-api.service';
+import { PUNCHED_AT_BACKFILL_CUTOFF_DATE, TimelogsApiService } from './timelogs/timelogs-api.service';
 import {
   formatHours,
   formatLunchExceededTotal,
@@ -415,8 +415,12 @@ export class TimelogsComponent {
 
   public maxScheduleBadgeWidth = computed(() => {
     const schedules = this.schedules.value() || [];
-    const scheduleNames = schedules.map((s) => s.schedule?.name || 'Sin horario');
-    const maxLength = Math.max(...scheduleNames.map((name: string) => name.length), 'Sin horario'.length);
+    // Set para deduplicar — y reducción manual evita `Math.max(...spread)`
+    // que puede stack-overflowear con miles de schedules.
+    const uniqueNames = new Set<string>();
+    for (const s of schedules) uniqueNames.add(s.schedule?.name || 'Sin horario');
+    let maxLength = 'Sin horario'.length;
+    uniqueNames.forEach((n) => { if (n.length > maxLength) maxLength = n.length; });
     return `${Math.max(120, maxLength * 8 + 32)}px`;
   });
 
@@ -456,13 +460,25 @@ export class TimelogsComponent {
     return { start, end };
   });
 
+  // ─── Computed: Rango como strings 'yyyy-MM-dd' (compartido) ─
+  // Calcular una vez aquí en vez de en cada totals/report computed.
+  public normalizedDateStrings = computed(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) return { startStr: '', endStr: '' };
+    return {
+      startStr: format(startOfDay(new Date(start)), 'yyyy-MM-dd'),
+      endStr: format(startOfDay(new Date(end)), 'yyyy-MM-dd'),
+    };
+  });
+
   // ─── Computed: Days list ───────────────────────────────────
+  // El loop ascendente garantiza orden cronológico; no necesita .sort().
   days = computed(() => {
     const { start, end } = this.normalizedDateRange();
     if (!start || !end) return [];
 
-    let normalizedStart = startOfDay(new Date(start));
-    let normalizedEnd = startOfDay(new Date(end));
+    const normalizedStart = startOfDay(new Date(start));
+    const normalizedEnd = startOfDay(new Date(end));
     const days: string[] = [];
     let currentDate = new Date(normalizedStart);
 
@@ -471,10 +487,23 @@ export class TimelogsComponent {
       currentDate = addDays(currentDate, 1);
     }
 
-    return days.sort();
+    return days;
   });
 
   // ─── Computed: Filter state ────────────────────────────────
+  // dateRange cuenta como "filtro activo" SOLO si el usuario eligió algo
+  // distinto del default (mes actual hasta hoy). Antes contaba siempre
+  // como activo porque el array tenía length 2 desde el inicio.
+  public hasCustomDateRange = computed(() => {
+    const range = this.dateRange();
+    if (!range || range.length === 0) return false;
+    const defaultStart = startOfMonth(new Date());
+    const defaultEnd = new Date();
+    const customStart = !range[0] || !isSameDay(range[0], defaultStart);
+    const customEnd = !range[1] || !isSameDay(range[1], defaultEnd);
+    return customStart || customEnd;
+  });
+
   public hasActiveFilters = computed(
     () =>
       this.onlyDelayed() ||
@@ -485,7 +514,7 @@ export class TimelogsComponent {
       !!this.employeeId() ||
       !!this.branchId() ||
       !!this.employeeSearch() ||
-      (this.dateRange() && this.dateRange().length > 0)
+      this.hasCustomDateRange(),
   );
 
   public getActiveFiltersCount = computed(() => {
@@ -498,7 +527,7 @@ export class TimelogsComponent {
     if (this.employeeId()) count++;
     if (this.branchId()) count++;
     if (this.employeeSearch()) count++;
-    if (this.dateRange() && this.dateRange().length > 0) count++;
+    if (this.hasCustomDateRange()) count++;
     return count;
   });
 
@@ -642,10 +671,9 @@ export class TimelogsComponent {
     },
   });
 
-  // Fecha que parte las dos consultas de timelogs. Ver el comentario en
-  // TimelogsApiService — es un cutoff histórico que se conserva hasta auditar
-  // que los datos a ambos lados son idénticos.
-  private readonly PUNCHED_AT_BACKFILL_CUTOFF = '2025-12-22';
+  // Fecha que parte las dos consultas de timelogs. Definida una sola vez en
+  // TimelogsApiService.PUNCHED_AT_BACKFILL_CUTOFF_DATE.
+  private readonly PUNCHED_AT_BACKFILL_CUTOFF = PUNCHED_AT_BACKFILL_CUTOFF_DATE;
 
   // ─── Computed: Logs combinados (memoizados) ────────────────
   // Tres signals independientes para que la memoización río abajo funcione:
@@ -740,19 +768,16 @@ export class TimelogsComponent {
   // de empleados/sucursal. NO incluye métricas ni alertas para que cambiar la
   // tolerancia no dispare un rebuild completo.
   public baseDayLogs = computed(() => {
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end) return [];
-
-    const normalizedStart = startOfDay(new Date(start));
-    const normalizedEnd = startOfDay(new Date(end));
+    const { startStr, endStr } = this.normalizedDateStrings();
+    if (!startStr || !endStr) return [];
 
     return buildBaseDayLogs({
       logsData: this.logs.value() ?? [],
       schedulesData: this.schedules.value() ?? [],
       timeoffsData: this.timeoffs.value() ?? [],
       daysList: this.days(),
-      dateRangeStart: format(normalizedStart, 'yyyy-MM-dd'),
-      dateRangeEnd: format(normalizedEnd, 'yyyy-MM-dd'),
+      dateRangeStart: startStr,
+      dateRangeEnd: endStr,
       employeesList: this.employees.employeesList(),
       employeeSearch: this.employeeSearch()?.toLowerCase().trim() || '',
       employeeId: this.employeeId(),
@@ -794,47 +819,25 @@ export class TimelogsComponent {
   );
 
   // ─── Computed: Totals for selected employee ────────────────
-  public totalLunchExceededMinutes = computed(() => {
-    const logs = this.filteredDaylogs();
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end) return 0;
+  // filteredDaylogs ya está acotado al rango por buildBaseDayLogs; no se
+  // necesita re-filtrar por fecha aquí.
+  public totalLunchExceededMinutes = computed(() =>
+    this.filteredDaylogs().reduce((total: number, log: DayLog) => {
+      if (log.lunchExceeded && log.lunchMinutes && log.lunchMinutes > 60) {
+        return total + (log.lunchMinutes - 60);
+      }
+      return total;
+    }, 0),
+  );
 
-    const dateRangeStart = format(startOfDay(new Date(start)), 'yyyy-MM-dd');
-    const dateRangeEnd = format(startOfDay(new Date(end)), 'yyyy-MM-dd');
-
-    return logs
-      .filter((log: DayLog) => {
-        const dayStr = log.day || '';
-        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
-      })
-      .reduce((total: number, log: DayLog) => {
-        if (log.lunchExceeded && log.lunchMinutes && log.lunchMinutes > 60) {
-          return total + (log.lunchMinutes - 60);
-        }
-        return total;
-      }, 0);
-  });
-
-  public totalDelayMinutes = computed(() => {
-    const logs = this.filteredDaylogs();
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end) return 0;
-
-    const dateRangeStart = format(startOfDay(new Date(start)), 'yyyy-MM-dd');
-    const dateRangeEnd = format(startOfDay(new Date(end)), 'yyyy-MM-dd');
-
-    return logs
-      .filter((log: DayLog) => {
-        const dayStr = log.day || '';
-        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
-      })
-      .reduce((total: number, log: DayLog) => {
-        if (log.delay && typeof log.delay === 'number') {
-          return total + log.delay;
-        }
-        return total;
-      }, 0);
-  });
+  public totalDelayMinutes = computed(() =>
+    this.filteredDaylogs().reduce((total: number, log: DayLog) => {
+      if (log.delay && typeof log.delay === 'number') {
+        return total + log.delay;
+      }
+      return total;
+    }, 0),
+  );
 
   // ─── Computed: Employee summary counts (cuadritos) ─────────
   // Counts based on assigned schedules + approved disabilities
@@ -937,13 +940,10 @@ export class TimelogsComponent {
   // ─── Computed: Report data (delegates to utils) ────────────
   public timelogsReport = computed(() => {
     const filteredData = this.filteredDaylogs();
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end || filteredData.length === 0) return [];
+    const { startStr, endStr } = this.normalizedDateStrings();
+    if (!startStr || !endStr || filteredData.length === 0) return [];
 
-    const dateRangeStart = format(startOfDay(new Date(start)), 'yyyy-MM-dd');
-    const dateRangeEnd = format(startOfDay(new Date(end)), 'yyyy-MM-dd');
-
-    return mapDayLogsToReportRows(filteredData, dateRangeStart, dateRangeEnd, this.TIMEZONE);
+    return mapDayLogsToReportRows(filteredData, startStr, endStr, this.TIMEZONE);
   });
 
   // ─── Constructor: Effects ──────────────────────────────────
@@ -1003,6 +1003,20 @@ export class TimelogsComponent {
         });
         this.logger.warn('[TimelogsComponent] Resultados truncados por límite de', this.QUERY_LIMIT);
       }
+    }, { injector: this.injector });
+
+    // Debounce de búsqueda de empleado: el usuario escribe en
+    // `employeeSearchInput` y 400ms después se commitea a `employeeSearch`
+    // (que dispara el filtro). Evita búsquedas en cada tecla y soluciona el
+    // caso "escribí pero olvidé presionar Enter" — ahora se aplica solo.
+    effect((onCleanup) => {
+      const input = this.employeeSearchInput();
+      const handle = setTimeout(() => {
+        if (this.employeeSearch() !== input) {
+          this.employeeSearch.set(input);
+        }
+      }, 400);
+      onCleanup(() => clearTimeout(handle));
     }, { injector: this.injector });
   }
 

@@ -1,6 +1,5 @@
 import {
   addDays,
-  compareAsc,
   differenceInMinutes,
   differenceInSeconds,
   format,
@@ -23,7 +22,6 @@ import { calcTimeDiff } from './time.utils';
 import {
   RESTRICTED_SCHEDULE_IDS,
   RESTRICTED_SCHEDULE_NAMES,
-  RESTRICTED_TIMEOFF_TYPE_IDS,
 } from './timelogs-constants';
 
 export interface DayLogProcessingInput {
@@ -727,12 +725,13 @@ function ensureValidDaysList(
 
 /**
  * Comparador estable para DayLog: por fecha asc, luego por nombre.
+ *
+ * `day` es siempre 'yyyy-MM-dd' con padding fijo → es lexicográficamente
+ * ordenable. Comparar strings directamente evita ~140K `new Date()` por
+ * sort en datasets de ~6K DayLogs.
  */
 function compareDayLogs(a: DayLog, b: DayLog): number {
-  const dateA = new Date(a.day + 'T00:00:00');
-  const dateB = new Date(b.day + 'T00:00:00');
-  const dateComparison = compareAsc(dateA, dateB);
-  if (dateComparison !== 0) return dateComparison;
+  if (a.day !== b.day) return a.day < b.day ? -1 : 1;
   const nameA =
     (a.employee.first_name || '') + ' ' + (a.employee.father_name || '');
   const nameB =

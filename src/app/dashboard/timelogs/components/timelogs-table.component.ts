@@ -56,7 +56,7 @@ import {
         </div>
       } @else {
         <div class="mobile-card-list pb-2">
-          @for (log of logs(); track $index) {
+          @for (log of logs(); track (log.employee?.id ?? '_') + ':' + log.day) {
             <div class="mobile-card-item" style="flex-direction:column;align-items:stretch;gap:0.4rem;padding:0.6rem 0.75rem;">
               <!-- Row 1: Employee + Day -->
               <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -153,6 +153,7 @@ import {
         [scrollHeight]="isMobile() ? 'calc(100dvh - 350px)' : 'calc(100dvh - 400px)'"
         styleClass="min-w-[1200px] md:min-w-full"
         responsiveLayout="scroll"
+        [rowTrackBy]="trackDayLog"
       >
         <ng-template #header>
           <tr>
@@ -553,6 +554,14 @@ export class TimelogsTableComponent {
   public alertIcon = getAlertIcon;
   public alertTooltip = getAlertTooltip;
   public formatHours = formatHours;
+
+  /**
+   * Track-by para `p-table` y `@for` mobile: identidad estable
+   * `${empId}:${day}`. Antes la mobile usaba `$index` que reciclaba mal las
+   * cards al filtrar; ahora cada fila mantiene su DOM si su DayLog persiste.
+   */
+  public trackDayLog = (_: number, log: DayLog): string =>
+    `${log.employee?.id ?? '_'}:${log.day}`;
 
   public scheduleTooltip(
     schedule: EmployeeScheduleData | undefined
