@@ -62,6 +62,7 @@ const PEOPLE_MODULES: readonly Module[] = [
 
 const EXTERNAL_MODULES: readonly Module[] = [
   { id: 'analytics',  label: 'Analytics',           description: 'KPIs y ventas',             icon: 'pi-chart-line',     target: 'analytics', moduleId: 'services', subModuleId: 'analytics_access', accent: 'teal'    },
+  { id: 'web_analytics', label: 'Analítica Web',    description: 'Tráfico, búsquedas, ventas web', icon: 'pi-globe',      target: 'web-analytics', moduleId: 'services', subModuleId: 'analytics_access', accent: 'orange'  },
   { id: 'dashboards', label: 'Asistencias en vivo', description: 'Asistencia en tiempo real', icon: 'pi-objects-column', target: 'live',      moduleId: 'services', subModuleId: 'live_access',      accent: 'indigo'  },
   { id: 'metas',      label: 'Metas',               description: 'Mensuales y diarias',       icon: 'pi-flag',           target: 'metas',     moduleId: 'services', subModuleId: 'metas_access',     accent: 'amber'   },
   { id: 'stock',      label: 'Stock',               description: 'Top100, rotación, salud',   icon: 'pi-box',            target: 'stock',     moduleId: 'services', subModuleId: 'stock_access',     accent: 'lime'    },

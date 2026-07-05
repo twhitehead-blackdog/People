@@ -583,6 +583,14 @@ export const DASHBOARD_ROUTES: Routes = [
         canActivate: [modulePermissionGuard('services', 'analytics_access')],
       },
       {
+        path: 'web-analytics',
+        loadComponent: () =>
+          import('./web-analytics/web-analytics.component').then(
+            (x) => x.WebAnalyticsComponent
+          ),
+        canActivate: [modulePermissionGuard('services', 'analytics_access')],
+      },
+      {
         path: 'live',
         loadComponent: () =>
           import('./live-embed/live-embed.component').then(

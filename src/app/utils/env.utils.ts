@@ -29,6 +29,10 @@ export function getEnv(key: string): string | undefined {
     value = process.env['ENV_API_URL'];
   if (key === 'ENV_APP_URL' && !value)
     value = process.env['ENV_APP_URL'];
+  if (key === 'ENV_WEB_METRICS_URL' && !value)
+    value = process.env['ENV_WEB_METRICS_URL'];
+  if (key === 'ENV_WEB_METRICS_TOKEN' && !value)
+    value = process.env['ENV_WEB_METRICS_TOKEN'];
   if (key === 'ENV_AUTH0_DOMAIN' && !value)
     value = process.env['ENV_AUTH0_DOMAIN'];
   if (key === 'ENV_AUTH0_CLIENT_ID' && !value)
